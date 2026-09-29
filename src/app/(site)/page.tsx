@@ -7,6 +7,11 @@ export default function Home() {
     <main>
       <section className="hero">
         <div className="hero-inner">
+          <Link href="/apply" className="announcement-banner">
+            <span className="announcement-tag">Now open</span>
+            <span className="announcement-text">Applications to become a commissioner are still open!</span>
+            <ArrowUpRight size={14} aria-hidden="true" />
+          </Link>
           <div className="eyebrow">Welcome, Thomasian</div>
           <h1>Your voice<br /><em>moves UST.</em></h1>
           <p className="hero-copy">Your central hub for student elections, announcements, and the information you need to participate with confidence.</p>

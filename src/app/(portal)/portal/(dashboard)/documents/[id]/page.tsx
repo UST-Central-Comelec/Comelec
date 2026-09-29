@@ -1,0 +1,32 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { DeleteButton } from "@/components/portal/delete-button";
+import { DocumentForm } from "@/components/portal/document-form";
+import { requirePortalUser } from "@/lib/auth/session";
+import { getDocument } from "@/lib/data/queries";
+import { deleteDocument, updateDocument } from "@/lib/portal/document-actions";
+
+export const metadata: Metadata = { title: "Edit document" };
+
+export default async function EditDocumentPage({ params }: PageProps<"/portal/documents/[id]">) {
+  await requirePortalUser();
+  const doc = await getDocument((await params).id);
+  if (!doc) notFound();
+
+  return (
+    <main className="portal-page">
+      <header className="portal-page-head">
+        <div>
+          <Link className="portal-back" href="/portal/documents">← Documents</Link>
+          <h1>Edit document</h1>
+          <p className="portal-muted">Last updated {new Date(doc.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} by {doc.updatedBy}. <a href={`/archive/${doc.id}`} target="_blank" rel="noreferrer">View on website ↗</a></p>
+        </div>
+        <DeleteButton action={deleteDocument.bind(null, doc.id)} label="Delete document" />
+      </header>
+      <section className="portal-card">
+        <DocumentForm action={updateDocument.bind(null, doc.id)} submitLabel="Save changes" initial={doc} />
+      </section>
+    </main>
+  );
+}

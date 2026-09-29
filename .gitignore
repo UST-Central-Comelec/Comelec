@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# allow the committed env template
+!.env.example
+
+# local AI tooling (personal setup, not shared)
+/.agents/
+/.claude/
+/.codex/
+skills-lock.json
