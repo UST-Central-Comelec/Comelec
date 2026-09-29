@@ -2,25 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Notice } from "@/components/portal/notice";
-import { builtInUser, requireExecutive } from "@/lib/auth/session";
+import { builtInUser, requireExecutive, withPortalUser } from "@/lib/auth/session";
 import { getAccounts } from "@/lib/data/queries";
 import { accountRoles } from "@/lib/data/types";
+import { TitleWithInfo } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "Accounts" };
 
 export default async function PortalAccountsPage({ searchParams }: PageProps<"/portal/accounts">) {
-  const me = await requireExecutive();
   const { notice } = await searchParams;
   const builtIn = builtInUser();
-  const accounts = await getAccounts(builtIn && { ...builtIn, active: true, createdAt: "", updatedAt: "", updatedBy: "" });
+  const [me, accounts] = await withPortalUser(getAccounts(builtIn && { ...builtIn, active: true, createdAt: "", updatedAt: "", updatedBy: "" }), requireExecutive);
 
   return (
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Executive</p>
-          <h1>Accounts</h1>
-          <p className="portal-muted">Who can sign in to the portal with their UST Google account. Commissioners manage website content; executives can also add accounts and revoke access.</p>
+          <TitleWithInfo info="Who can sign in to the portal with their UST Google account. Commissioners manage website content; executives can also add accounts and revoke access.">Accounts</TitleWithInfo>
         </div>
         <Link className="portal-button" href="/portal/accounts/new"><Plus size={16} /> Add account</Link>
       </header>

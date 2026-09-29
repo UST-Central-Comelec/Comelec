@@ -64,9 +64,17 @@ const links: NavLink[] = [
       { label: "Central Comelec", href: "/about#central-comelec", description: "The central body overseeing student elections", icon: Users },
       { label: "Local Comelec", href: "/about#local-comelec", description: "Local election bodies serving each college", icon: Users },
       { label: "En Banc", href: "/about#en-banc", description: "Meet the commission’s collective decision-making body", icon: Users },
-      { label: "Apply now", href: "/apply", description: "Join the commission and serve the Thomasian community", icon: ArrowRight },
+      { label: "Chamber of Chairpersons", href: "/about#chamber-of-chairpersons", description: "The chairpersons of every college’s Local Comelec", icon: Users },
       { label: "Contact", href: "/about#contact", description: "Find the people and office behind the process", icon: ArrowRight },
       { label: "EvoSys", href: "/about", description: "Access the commission’s election system", icon: ArrowRight },
+    ],
+  },
+  {
+    label: "Apply",
+    href: "/apply",
+    items: [
+      { label: "Apply now", href: "/apply", description: "Join the commission and serve the Thomasian community", icon: Users },
+      { label: "Track application", href: "/apply/track", description: "Check your application’s status with your reference code", icon: ArrowRight },
     ],
   },
 ];

@@ -77,7 +77,7 @@ export const seedContent: ContentDb = {
   members: [
     { id: "central-chairperson", name: "To be announced", position: "Chairperson", body: "central", unit: "", photoUrl: null, order: 1, ...meta },
     { id: "central-vice-chairperson", name: "To be announced", position: "Vice Chairperson", body: "central", unit: "", photoUrl: null, order: 2, ...meta },
-    { id: "central-secretary-general", name: "To be announced", position: "Secretary General", body: "central", unit: "", photoUrl: null, order: 3, ...meta },
+    { id: "central-secretary-general", name: "To be announced", position: "Secretary to the Executive", body: "central", unit: "", photoUrl: null, order: 3, ...meta },
   ],
   // The built-in executive comes from PORTAL_EXECUTIVE_EMAIL; executives add everyone else in the portal.
   accounts: [],

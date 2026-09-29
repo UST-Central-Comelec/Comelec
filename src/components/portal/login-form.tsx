@@ -23,7 +23,6 @@ export function LoginForm() {
   return (
     <form className="portal-login-form" action={signInWithGoogle}>
       <GoogleButton />
-      <p className="portal-login-note">Use your @ust.edu.ph account. Only accounts added by an executive can sign in.</p>
     </form>
   );
 }

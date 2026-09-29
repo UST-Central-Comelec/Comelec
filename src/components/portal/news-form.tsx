@@ -2,6 +2,7 @@
 
 import { newsCategories, type NewsPost } from "@/lib/data/types";
 import type { FormState } from "@/lib/portal/form";
+import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 
 type Values = Pick<NewsPost, "title" | "category" | "date" | "excerpt" | "body" | "featured">;
@@ -31,7 +32,7 @@ export function NewsForm({ action, initial, submitLabel }: { action: (state: For
         </Field>
         <label className="portal-check is-wide">
           <input name="featured" type="checkbox" defaultChecked={initial.featured} />
-          <span><strong>Feature this post</strong><small>Shows it as the large lead story on the News page. Only one post can be featured.</small></span>
+          <span><strong>Feature this post<InfoTip>Shows it as the large lead story on the News page. Only one post can be featured.</InfoTip></strong></span>
         </label>
       </div>
       <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/news" />

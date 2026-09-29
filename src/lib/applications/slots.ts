@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
 import { positions, type SlotCounts } from "./options";
 
-// Open slots per position, set by commissioners in the portal (Recruitment) and shown on /apply.
+// Open slots per position, set by commissioners in the portal (Recruitment → Slots) and shown on /apply.
 // Stored in public.recruitment_slots (supabase/migrations/0004_applications.sql).
 
 /** Used before Supabase is set up, and for positions with no saved row yet. */
@@ -20,9 +20,11 @@ export async function getSlots(): Promise<SlotCounts> {
   return counts;
 }
 
+/** Saves only the positions in `counts`; the rest keep their current value. */
 export async function saveSlots(counts: SlotCounts, author: string) {
   const now = new Date().toISOString();
-  const rows = positions.map((position) => ({ position_id: position.id, slots: counts[position.id] ?? 0, updated_at: now, updated_by: author }));
+  const rows = Object.entries(counts).map(([positionId, slots]) => ({ position_id: positionId, slots, updated_at: now, updated_by: author }));
+  if (!rows.length) return;
   const { error } = await createAdminClient().from("recruitment_slots").upsert(rows, { onConflict: "position_id" });
   if (error) throw new Error(`Couldn’t save recruitment slots: ${error.message}`);
 }

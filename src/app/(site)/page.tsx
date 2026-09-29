@@ -1,17 +1,31 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { principles } from "@/lib/content";
+import { getPeriodForApplyPage } from "@/lib/applications/apply-cache";
+import { isAccepting } from "@/lib/applications/period";
+
+// Rebuilt at most once a minute, so the announcement below follows the application period (saving
+// it in the portal also rebuilds this page straight away).
+export const revalidate = 60;
+
+/** "Applications are open" while the application period is; set in the portal (Recruitment → Settings). */
+async function ApplicationsAnnouncement() {
+  if (!isAccepting(await getPeriodForApplyPage())) return null;
+  return (
+    <Link href="/apply" className="announcement-banner">
+      <span className="announcement-tag">Now open</span>
+      <span className="announcement-text">Applications to become a commissioner are still open!</span>
+      <ArrowUpRight size={14} aria-hidden="true" />
+    </Link>
+  );
+}
 
 export default function Home() {
   return (
     <main>
       <section className="hero">
         <div className="hero-inner">
-          <Link href="/apply" className="announcement-banner">
-            <span className="announcement-tag">Now open</span>
-            <span className="announcement-text">Applications to become a commissioner are still open!</span>
-            <ArrowUpRight size={14} aria-hidden="true" />
-          </Link>
+          <ApplicationsAnnouncement />
           <div className="eyebrow">Welcome, Thomasian</div>
           <h1>Your voice<br /><em>moves UST.</em></h1>
           <p className="hero-copy">Your central hub for student elections, announcements, and the information you need to participate with confidence.</p>

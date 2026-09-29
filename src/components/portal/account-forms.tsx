@@ -2,6 +2,7 @@
 
 import { accountRoles, type AccountRole } from "@/lib/data/types";
 import type { FormState } from "@/lib/portal/form";
+import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 
 type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
@@ -18,7 +19,7 @@ function RoleField({ defaultValue, error }: { defaultValue: AccountRole; error?:
       {Object.entries(accountRoles).map(([value, label]) => (
         <label className="portal-check" key={value}>
           <input type="radio" name="role" value={value} defaultChecked={value === defaultValue} />
-          <span><strong>{label}</strong><small>{roleHints[value as AccountRole]}</small></span>
+          <span><strong>{label}<InfoTip>{roleHints[value as AccountRole]}</InfoTip></strong></span>
         </label>
       ))}
       {error && <span className="portal-field-error">{error}</span>}
@@ -35,7 +36,7 @@ export function NewAccountForm({ action }: { action: FormAction }) {
         <Field label="Full name" error={errors.name}>
           <input name="name" maxLength={120} required />
         </Field>
-        <Field label="UST email" hint="Their @ust.edu.ph Google account — they sign in with it." error={errors.email}>
+        <Field label="UST email" hint="Their @ust.edu.ph Google account. They sign in with it." error={errors.email}>
           <input name="email" type="email" autoComplete="off" placeholder="name@ust.edu.ph" required />
         </Field>
         <RoleField defaultValue="commissioner" error={errors.role} />

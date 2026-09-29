@@ -15,8 +15,10 @@ export function RecruitmentForm({ action, slots }: { action: (state: FormState, 
             <h2 className="portal-card-title">{item.label}</h2>
             <div className="portal-form-grid">
               {Object.entries(item.positions).map(([id, label]) => (
-                <Field key={id} label={label} hint="0 closes this position on the Apply page." error={errors[`slots-${id}`]}>
+                <Field key={id} label={label} error={errors[`slots-${id}`]}>
                   <input name={`slots-${id}`} type="number" inputMode="numeric" min={0} max={999} step={1} defaultValue={slots[id] ?? 0} />
+                  {/* The count this page loaded with, so saving only touches the ones you changed. */}
+                  <input name={`loaded-${id}`} type="hidden" value={slots[id] ?? 0} />
                 </Field>
               ))}
             </div>

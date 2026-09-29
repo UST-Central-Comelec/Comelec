@@ -1,8 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isLoginConfigured } from "@/lib/auth/session";
+import { ACTIVITY_COOKIE, activityCookieOptions, type TimeoutReason } from "@/lib/security/portal-session";
+import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
 import { createAuthClient } from "@/lib/supabase/server";
 
@@ -15,6 +17,7 @@ async function siteOrigin() {
 
 export async function signInWithGoogle() {
   if (!isLoginConfigured()) redirect("/portal/login?error=not-configured");
+  if (!rateLimit(`login-start:${clientIp(await headers())}`, limits.login.limit, limits.login.windowMs).ok) redirect("/portal/login?error=rate-limited");
 
   const { data, error } = await (await createAuthClient()).auth.signInWithOAuth({
     provider: "google",
@@ -28,7 +31,18 @@ export async function signInWithGoogle() {
   redirect(data.url);
 }
 
+async function endSession() {
+  await (await createAuthClient()).auth.signOut({ scope: "local" });
+  (await cookies()).delete({ name: ACTIVITY_COOKIE, path: activityCookieOptions.path });
+}
+
 export async function logout() {
-  await (await createAuthClient()).auth.signOut();
+  await endSession();
   redirect("/portal/login");
+}
+
+/** Called by the portal when the idle or absolute timeout runs out in the browser. */
+export async function logoutAfterTimeout(reason: TimeoutReason) {
+  await endSession();
+  redirect(`/portal/login?reason=${reason === "expired" ? "expired" : "idle"}`);
 }

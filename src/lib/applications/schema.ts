@@ -27,6 +27,8 @@ export const applicationFields = z.object({
   endorsementUrl: z.union([z.literal(""), driveLink("Use a Google Drive link.")]),
   portfolioUrl: z.union([z.literal(""), driveLink("Use a Google Drive link.")]),
   consent: z.literal(true, "You need to agree before we can process your application."),
+  // Checked in checkFields against the slots that are still open.
+  interviewSlot: z.string(),
 });
 
 export type ApplicationField = keyof typeof applicationFields.shape;
@@ -42,8 +44,11 @@ export function needsPortfolio(division: string) {
   return portfolioDivisions.includes(division as DivisionId);
 }
 
-/** Checks the given fields and returns a message per invalid field (empty when all are valid). */
-export function checkFields(values: ApplicationValues, fields: ApplicationField[], slots?: SlotCounts) {
+/**
+ * Checks the given fields and returns a message per invalid field (empty when all are valid).
+ * `openInterviews` is the ids of interview slots with room; when there are none, the interview is skipped.
+ */
+export function checkFields(values: ApplicationValues, fields: ApplicationField[], slots?: SlotCounts, openInterviews?: readonly string[]) {
   const mask = Object.fromEntries(fields.map((field) => [field, true])) as Partial<Record<ApplicationField, true>>;
   const result = applicationFields.pick(mask).safeParse(values);
   const errors: Record<string, string> = {};
@@ -56,6 +61,10 @@ export function checkFields(values: ApplicationValues, fields: ApplicationField[
     const open: Record<string, string> = divisions[values.division as DivisionId].positions;
     if (!(values.position in open)) errors.position = "Pick a position from this division.";
     else if (slots && (slots[values.position] ?? 0) < 1) errors.position = "This position has no open slots. Pick another.";
+  }
+  if (fields.includes("interviewSlot") && openInterviews?.length) {
+    if (!values.interviewSlot) errors.interviewSlot = "Pick an interview time.";
+    else if (!openInterviews.includes(values.interviewSlot)) errors.interviewSlot = "That time just filled up. Pick another.";
   }
   if (fields.includes("portfolioUrl") && !errors.portfolioUrl && needsPortfolio(values.division) && !values.portfolioUrl.trim()) {
     errors.portfolioUrl = "Paste the Google Drive link to your portfolio.";
@@ -87,5 +96,6 @@ export function readApplication(formData: FormData) {
     endorsementUrl: text("endorsementUrl"),
     portfolioUrl: text("portfolioUrl"),
     consent: formData.get("consent") === "on",
+    interviewSlot: text("interviewSlot"),
   };
 }

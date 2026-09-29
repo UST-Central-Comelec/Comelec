@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { AccountDetailsForm } from "@/components/portal/account-forms";
 import { DeleteButton } from "@/components/portal/delete-button";
 import { Notice } from "@/components/portal/notice";
-import { requireExecutive } from "@/lib/auth/session";
+import { requireExecutive, withPortalUser } from "@/lib/auth/session";
 import { getAccount } from "@/lib/data/queries";
 import { accountRoles } from "@/lib/data/types";
 import { setAccountAccess, updateAccountDetails } from "@/lib/portal/account-actions";
@@ -12,10 +12,9 @@ import { setAccountAccess, updateAccountDetails } from "@/lib/portal/account-act
 export const metadata: Metadata = { title: "Manage account" };
 
 export default async function ManageAccountPage({ params, searchParams }: PageProps<"/portal/accounts/[id]">) {
-  const me = await requireExecutive();
   const [{ id }, { notice }] = await Promise.all([params, searchParams]);
+  const [me, account] = await withPortalUser(getAccount(id), requireExecutive);
   if (id === me.id) redirect("/portal/account");
-  const account = await getAccount(id);
   if (!account) notFound();
 
   return (

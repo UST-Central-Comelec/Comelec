@@ -25,13 +25,13 @@ export function DocumentForm({ action, initial, submitLabel }: { action: (state:
         <Field label="Title" error={errors.title} wide>
           <input name="title" defaultValue={initial.title} maxLength={200} required />
         </Field>
-        <Field label="Reference number" hint="Optional — e.g. Memorandum No. 2026-004" error={errors.reference} wide>
+        <Field label="Reference number (optional)" hint="For example, Memorandum No. 2026-004." error={errors.reference} wide>
           <input name="reference" defaultValue={initial.reference} maxLength={80} />
         </Field>
-        <Field label="Summary" hint="Optional — one line shown in the Archive list." error={errors.summary} wide>
+        <Field label="Summary (optional)" hint="One line shown in the Archive list." error={errors.summary} wide>
           <textarea name="summary" rows={2} defaultValue={initial.summary} maxLength={600} />
         </Field>
-        <Field label="Main text" error={errors.body} wide>
+        <Field label="Main text" hint="Separate paragraphs with a blank line. To add a table, copy it from Google Docs, Word or Sheets and paste it here — not from the PDF." error={errors.body} wide>
           <DocumentBodyField defaultValue={initial.body} />
         </Field>
         <SignatoriesField initial={initial.signatories} error={errors.signatories} />

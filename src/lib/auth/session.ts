@@ -89,6 +89,17 @@ export async function requirePortalUser() {
   return user;
 }
 
+/**
+ * Waits for `load` (already started) alongside the access check instead of after it, so a page
+ * waits for one Supabase round trip rather than two. The data is only handed back once access is
+ * confirmed; if access is denied, the redirect wins and the data is dropped.
+ */
+export async function withPortalUser<T>(load: Promise<T>, check: () => Promise<PortalUser> = requirePortalUser): Promise<[PortalUser, T]> {
+  load.catch(() => {}); // Rethrown below, after the access check.
+  const user = await check();
+  return [user, await load];
+}
+
 /** For account management. Commissioners who reach an executive page are sent to the dashboard. */
 export async function requireExecutive() {
   const user = await requirePortalUser();

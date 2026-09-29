@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { startTransition, useActionState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import type { FormState } from "@/lib/portal/form";
+import { InfoTip } from "./info-tip";
 
 type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
 
@@ -32,12 +33,13 @@ export function useHydrated() {
   return useSyncExternalStore(noopSubscribe, () => true, () => false);
 }
 
-export function Field({ label, hint, error, children, wide }: { label: string; hint?: string; error?: string; children: ReactNode; wide?: boolean }) {
+/** A labelled input. `hint` is guide text, shown behind an "i" icon beside the label; only errors show below. */
+export function Field({ label, hint, error, children, wide }: { label: string; hint?: ReactNode; error?: string; children: ReactNode; wide?: boolean }) {
   return (
     <label className={`portal-field${wide ? " is-wide" : ""}${error ? " has-error" : ""}`}>
-      <span className="portal-field-label">{label}</span>
+      <span className="portal-field-label">{label}{hint && <InfoTip>{hint}</InfoTip>}</span>
       {children}
-      {error ? <span className="portal-field-error">{error}</span> : hint ? <span className="portal-field-hint">{hint}</span> : null}
+      {error && <span className="portal-field-error">{error}</span>}
     </label>
   );
 }

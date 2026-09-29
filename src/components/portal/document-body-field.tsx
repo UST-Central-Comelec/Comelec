@@ -15,10 +15,8 @@ export function DocumentBodyField({ defaultValue }: { defaultValue: string }) {
     <>
       <textarea name="body" rows={14} defaultValue={defaultValue} onChange={(event) => setText(event.target.value)} />
       <span className="portal-body-tools">
-        <span className="portal-field-hint">
-          Separate paragraphs with a blank line. To add a table, copy it from Google Docs, Word or Sheets and paste it here — not from the PDF.
-          {tables > 0 && <strong className="portal-file-status"> {tables === 1 ? "1 table detected." : `${tables} tables detected.`}</strong>}
-        </span>
+        {/* How to write it is in the "i" beside the Main text label (document-form.tsx). */}
+        <span>{tables > 0 && <strong className="portal-file-status">{tables === 1 ? "1 table detected." : `${tables} tables detected.`}</strong>}</span>
         <button type="button" className="portal-button is-ghost is-small" onClick={() => setShowPreview((shown) => !shown)} aria-expanded={showPreview}>
           {showPreview ? "Hide preview" : "Preview"}
         </button>

@@ -2,23 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, Star } from "lucide-react";
 import { Notice } from "@/components/portal/notice";
-import { requirePortalUser } from "@/lib/auth/session";
+import { withPortalUser } from "@/lib/auth/session";
 import { getNews } from "@/lib/data/queries";
 import { formatDate, newsCategories } from "@/lib/data/types";
+import { TitleWithInfo } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "News" };
 
 export default async function PortalNewsPage({ searchParams }: PageProps<"/portal/news">) {
-  await requirePortalUser();
-  const [news, { notice }] = await Promise.all([getNews(), searchParams]);
+  const [, [news, { notice }]] = await withPortalUser(Promise.all([getNews(), searchParams]));
 
   return (
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Website content</p>
-          <h1>News</h1>
-          <p className="portal-muted">Announcements, press releases, events and explainers shown on the News page.</p>
+          <TitleWithInfo info="Announcements, press releases, events and explainers shown on the News page.">News</TitleWithInfo>
         </div>
         <Link className="portal-button" href="/portal/news/new"><Plus size={16} /> New post</Link>
       </header>

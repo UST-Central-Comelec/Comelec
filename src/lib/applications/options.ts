@@ -85,6 +85,18 @@ export type College = keyof typeof programsByCollege;
 
 export const colleges = (Object.keys(programsByCollege) as College[]).sort((a, b) => a.localeCompare(b));
 
+/**
+ * Applications are deleted this many days after they're submitted (the nightly job in
+ * supabase/migrations/0007_application_retention.sql); the site hides them from that moment.
+ */
+export const APPLICATION_RETENTION_DAYS = 60;
+
+/** The oldest submission time still kept, as an ISO string for queries. */
+export const retentionCutoff = (now = Date.now()) => new Date(now - APPLICATION_RETENTION_DAYS * 86_400_000).toISOString();
+
+/** When an application submitted at `submittedAt` gets deleted. */
+export const deletionDate = (submittedAt: string) => new Date(new Date(submittedAt).getTime() + APPLICATION_RETENTION_DAYS * 86_400_000).toISOString();
+
 export const yearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", "5": "5th year", swis: "SWIS" } as const;
 
 export const preferredBodies = {
@@ -133,6 +145,27 @@ export const divisions = {
 } as const satisfies Record<string, { label: string; positions: Record<string, string> }>;
 
 export type DivisionId = keyof typeof divisions;
+
+/** What each division does, shown when an applicant expands it. */
+export const divisionDescriptions: Record<DivisionId, string> = {
+  executive: "The Executive Division serves as the backbone of Central COMELEC. This team oversees the organization’s internal and external affairs, ensures smooth coordination across all divisions, and spearheads initiatives that uphold transparency and efficiency. They lead with vision and strategy to guarantee that every operation aligns with the commission’s mission.",
+  legal: "The Legals Division is the guardian of rules, policies, and due process. This team handles the interpretation and enforcement of election laws, organizational policies, and student governance guidelines. They ensure that all activities are compliant, fair, and just, protecting both the commission and the Thomasian student body.",
+  operations: "The Operations Division is the action force of Central COMELEC. From planning to execution, this team makes sure that every event, election, and initiative runs seamlessly. They handle logistics, manage timelines and schedules, and coordinate with stakeholders to transform plans into concrete outcomes.",
+  "public-information": "The Public Information Division is the voice of Central COMELEC. They are in charge of creating compelling content, managing social media accounts and communications, and ensuring Thomasians are informed and engaged. Through campaigns, publicity, and creative outputs, they spread awareness of electoral processes and promote active participation in student democracy.",
+};
+
+/** What each position does, by position id. */
+export const positionDescriptions: Record<string, string> = {
+  "ea-chairperson": "Assists in overseeing the entire commission, ensuring that all divisions are aligned with Central COMELEC’s mission and goals.",
+  "ea-vice-chairperson": "Supports in managing operations and coordination between divisions, promoting efficiency in daily tasks.",
+  "ea-secretary-executive": "Helps with documentation, records, and correspondence to keep organizational communication seamless.",
+  "ea-legal-head": "Assists in interpreting and applying legal frameworks to ensure that all activities comply with the rules and regulations.",
+  "ea-secretary-adjudicatory": "Helps document, process, and monitor cases, ensuring transparency and proper handling of disputes.",
+  "ea-deputy-head": "Assists in handling schedules, forms, and documents that support the overall supervision of the operations team, and helps ensure tasks are properly executed.",
+  "ea-operations-officer": "Helps manage day-to-day activities, ensuring events and projects are delivered smoothly.",
+  "ea-finance-officer": "Assists in handling budget management, financial reports, and resource allocation.",
+  "ea-logistics-officer": "Helps secure and manage logistical needs, from venues to materials, for the seamless execution of projects and events.",
+};
 
 /** Every position, flattened, in display order. */
 export const positions = (Object.entries(divisions) as Array<[DivisionId, (typeof divisions)[DivisionId]]>).flatMap(([division, { positions: list }]) =>

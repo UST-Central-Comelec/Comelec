@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, Newspaper, Plus, Users } from "lucide-react";
-import { requirePortalUser } from "@/lib/auth/session";
+import { withPortalUser } from "@/lib/auth/session";
 import { getDocuments, getMembers, getNews } from "@/lib/data/queries";
 import { documentKinds, memberBodies, newsCategories } from "@/lib/data/types";
+import { TitleWithInfo } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function PortalDashboardPage() {
-  const user = await requirePortalUser();
-  const [news, documents, members] = await Promise.all([getNews(), getDocuments(), getMembers()]);
+  const [user, [news, documents, members]] = await withPortalUser(Promise.all([getNews(), getDocuments(), getMembers()]));
 
   const recent = [
     ...news.map((item) => ({ key: `news-${item.id}`, title: item.title, type: newsCategories[item.category], href: `/portal/news/${item.id}`, updatedAt: item.updatedAt })),
@@ -22,7 +22,7 @@ export default async function PortalDashboardPage() {
   const stats = [
     { label: "News posts", count: news.length, href: "/portal/news", newHref: "/portal/news/new", icon: Newspaper },
     { label: "Documents", count: documents.length, href: "/portal/documents", newHref: "/portal/documents/new", icon: FileText },
-    { label: "Commission members", count: members.length, href: "/portal/members", newHref: "/portal/members/new", icon: Users },
+    { label: "Directory", count: members.length, href: "/portal/members", newHref: "/portal/members/new", icon: Users },
   ];
 
   return (
@@ -30,8 +30,7 @@ export default async function PortalDashboardPage() {
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Dashboard</p>
-          <h1>Welcome back, {user.name}.</h1>
-          <p className="portal-muted">Everything you publish here appears on the website as soon as you save.</p>
+          <TitleWithInfo info="Everything you publish here appears on the website as soon as you save.">Welcome back, {user.name}.</TitleWithInfo>
         </div>
       </header>
 

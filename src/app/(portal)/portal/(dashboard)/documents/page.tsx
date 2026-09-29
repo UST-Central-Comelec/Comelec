@@ -2,25 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Notice } from "@/components/portal/notice";
-import { requirePortalUser } from "@/lib/auth/session";
+import { withPortalUser } from "@/lib/auth/session";
 import { getDocuments } from "@/lib/data/queries";
 import { documentKinds, formatDate, isDocumentKind } from "@/lib/data/types";
+import { TitleWithInfo } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "Documents" };
 
 export default async function PortalDocumentsPage({ searchParams }: PageProps<"/portal/documents">) {
-  await requirePortalUser();
   const { notice, kind: kindParam } = await searchParams;
   const kind = typeof kindParam === "string" && isDocumentKind(kindParam) ? kindParam : undefined;
-  const documents = await getDocuments({ kind });
+  const [, documents] = await withPortalUser(getDocuments({ kind }));
 
   return (
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Website content</p>
-          <h1>Documents</h1>
-          <p className="portal-muted">Executive orders, memorandums, resolutions and other official documents listed in the Archive.</p>
+          <TitleWithInfo info="Executive orders, memorandums, resolutions and other official documents listed in the Archive.">Documents</TitleWithInfo>
         </div>
         <Link className="portal-button" href="/portal/documents/new"><Plus size={16} /> Add document</Link>
       </header>

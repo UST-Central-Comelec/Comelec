@@ -3,15 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/portal/delete-button";
 import { NewsForm } from "@/components/portal/news-form";
-import { requirePortalUser } from "@/lib/auth/session";
+import { withPortalUser } from "@/lib/auth/session";
 import { getNewsPost } from "@/lib/data/queries";
 import { deleteNews, updateNews } from "@/lib/portal/news-actions";
 
 export const metadata: Metadata = { title: "Edit post" };
 
 export default async function EditNewsPage({ params }: PageProps<"/portal/news/[id]">) {
-  await requirePortalUser();
-  const post = await getNewsPost((await params).id);
+  const [, post] = await withPortalUser(getNewsPost((await params).id));
   if (!post) notFound();
 
   return (

@@ -1,21 +1,27 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 
 /**
  * Text input with a filtered dropdown: type to narrow the list, or open it and pick. Only a value
- * from `options` counts as chosen; it's sent through a hidden input named `name`.
+ * from `options` counts as chosen; it's sent through a hidden input named `name` (as `submitValue`
+ * when the sent value differs from the label). `pickOnly` makes it a plain picker for short lists.
  */
-export function Combobox({ name, options, value, onChange, placeholder, invalid, labelledBy, describedBy }: {
+export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, disabled, pickOnly, describedBy, labelledBy, emptyText = "No match. Try another name." }: {
   name: string;
   options: readonly string[];
   value: string;
+  submitValue?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   invalid?: boolean;
-  labelledBy?: string;
+  disabled?: boolean;
+  pickOnly?: boolean;
   describedBy?: string;
+  /** Id of the visible label, when the combobox isn't inside a <label>. */
+  labelledBy?: string;
+  emptyText?: string;
 }) {
   const listId = useId();
   const [query, setQuery] = useState(value);
@@ -24,7 +30,7 @@ export function Combobox({ name, options, value, onChange, placeholder, invalid,
   const inputRef = useRef<HTMLInputElement>(null);
 
   const search = query.trim().toLowerCase();
-  const matches = !search || query === value ? options : options.filter((option) => option.toLowerCase().includes(search));
+  const matches = pickOnly || !search || query === value ? options : options.filter((option) => option.toLowerCase().includes(search));
 
   const choose = (option: string) => {
     onChange(option);
@@ -33,12 +39,16 @@ export function Combobox({ name, options, value, onChange, placeholder, invalid,
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (pickOnly && !open && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      setActive(Math.max(options.indexOf(value), 0));
+      setOpen(true);
+    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (!open) return setOpen(true);
       const step = event.key === "ArrowDown" ? 1 : -1;
       setActive((current) => (current + step + matches.length) % Math.max(matches.length, 1));
-    } else if (event.key === "Enter" && open) {
+    } else if ((event.key === "Enter" || (pickOnly && event.key === " ")) && open) {
       event.preventDefault();
       if (matches[active]) choose(matches[active]);
     } else if (event.key === "Escape" && open) {
@@ -48,7 +58,7 @@ export function Combobox({ name, options, value, onChange, placeholder, invalid,
   };
 
   return (
-    <div className={`combobox${open ? " is-open" : ""}`}>
+    <div className={`combobox${open ? " is-open" : ""}${pickOnly ? " is-pick-only" : ""}`}>
       <input
         ref={inputRef}
         role="combobox"
@@ -57,11 +67,13 @@ export function Combobox({ name, options, value, onChange, placeholder, invalid,
         aria-autocomplete="list"
         aria-activedescendant={open && matches[active] ? `${listId}-${active}` : undefined}
         aria-invalid={invalid || undefined}
-        aria-labelledby={labelledBy}
         aria-describedby={describedBy}
+        aria-labelledby={labelledBy}
         value={query}
         placeholder={placeholder}
         autoComplete="off"
+        disabled={disabled}
+        readOnly={pickOnly}
         onChange={(event) => {
           const next = event.target.value;
           setQuery(next);
@@ -70,18 +82,18 @@ export function Combobox({ name, options, value, onChange, placeholder, invalid,
           const exact = options.find((option) => option.toLowerCase() === next.trim().toLowerCase());
           onChange(exact ?? "");
         }}
-        onFocus={() => setOpen(true)}
-        onClick={() => setOpen(true)}
+        onFocus={() => { if (!pickOnly) setOpen(true); }}
+        onClick={() => setOpen(pickOnly ? !open : true)}
         onBlur={() => {
           setOpen(false);
           setQuery(value);
         }}
         onKeyDown={onKeyDown}
       />
-      <button type="button" className="combobox-toggle" tabIndex={-1} aria-label="Show all options" onMouseDown={(event) => event.preventDefault()} onClick={() => { setOpen(!open); inputRef.current?.focus(); }}>
+      <button type="button" className="combobox-toggle" tabIndex={-1} aria-label="Show all options" disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={() => { setOpen(!open); inputRef.current?.focus(); }}>
         <ChevronDown size={16} aria-hidden="true" />
       </button>
-      <input type="hidden" name={name} value={value} />
+      <input type="hidden" name={name} value={submitValue ?? value} />
       {open && (
         <ul className="combobox-list" id={listId} role="listbox">
           {matches.length ? matches.map((option, index) => (
@@ -95,10 +107,9 @@ export function Combobox({ name, options, value, onChange, placeholder, invalid,
               onMouseEnter={() => setActive(index)}
               onClick={() => choose(option)}
             >
-              <span>{option}</span>
-              {option === value && <Check size={15} strokeWidth={2.4} aria-hidden="true" />}
+              {option}
             </li>
-          )) : <li className="combobox-empty">No match. Try another name.</li>}
+          )) : <li className="combobox-empty">{emptyText}</li>}
         </ul>
       )}
     </div>

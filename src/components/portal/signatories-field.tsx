@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import type { Signatory } from "@/lib/data/types";
+import { InfoTip } from "./info-tip";
 
 type Row = Signatory & { key: number };
 
@@ -23,7 +24,7 @@ export function SignatoriesField({ initial, error }: { initial: Signatory[]; err
 
   return (
     <fieldset className={`portal-field is-wide portal-signatories${error ? " has-error" : ""}`}>
-      <legend className="portal-field-label">Signatories</legend>
+      <legend className="portal-field-label">Signatories<InfoTip>Names and positions only. The website shows “SGD.” in place of each signature; empty rows are ignored.</InfoTip></legend>
       <input type="hidden" name="signatories" value={JSON.stringify(rows.map(({ name, position }) => ({ name, position })))} />
       {rows.map((row, index) => (
         <div className="portal-signatory" key={row.key}>
@@ -40,7 +41,7 @@ export function SignatoriesField({ initial, error }: { initial: Signatory[]; err
       <button type="button" className="portal-button is-ghost is-small portal-signatory-add" onClick={() => setRows((current) => [...current, ...toRows([{ name: "", position: "" }])])}>
         <Plus size={14} /> Add signatory
       </button>
-      {error ? <span className="portal-field-error">{error}</span> : <span className="portal-field-hint">Names and positions only. The website shows “SGD.” in place of each signature; empty rows are ignored.</span>}
+      {error && <span className="portal-field-error">{error}</span>}
     </fieldset>
   );
 }
