@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, ExternalLink, Mail, RotateCcw, X } from "lucide-react";
+import { DeleteButton } from "@/components/portal/delete-button";
 import { Notice } from "@/components/portal/notice";
 import { applicationStatuses, getApplication, statusTag, type ApplicationRecord } from "@/lib/applications/admin";
-import { deletionDate } from "@/lib/applications/options";
+import { conflicts, deletionDate, type ConflictId } from "@/lib/applications/options";
 import { getSlots } from "@/lib/applications/slots";
-import { withPortalUser } from "@/lib/auth/session";
-import { updateApplicationStatus } from "@/lib/portal/application-actions";
+import { canSeeCollege, isLocal, withPortalUser } from "@/lib/auth/session";
+import { deleteApplicationRecord, updateApplicationStatus } from "@/lib/portal/application-actions";
 import { InfoTip } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "Application" };
@@ -32,14 +33,37 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
   return <div><dt>{label}</dt><dd>{children || <span className="portal-muted">Not provided</span>}</dd></div>;
 }
 
+/**
+ * What the applicant confirmed on the Qualifications step, and each conflict they declared. Anything
+ * declared was pledged to be resolved.
+ */
+function QualificationDetails({ declared }: { declared: ApplicationRecord["conflicts"] }) {
+  if (!declared) return <Detail label="Qualifications"><span className="portal-muted">Not asked. This application was sent before the form covered qualifications.</span></Detail>;
+  return (
+    <>
+      <Detail label="Requirements">Confirmed all four. UST student status verified with Google.</Detail>
+      {(Object.keys(conflicts) as ConflictId[]).map((type) => {
+        const conflict = declared.find((item) => item.type === type);
+        return (
+          <Detail key={type} label={conflicts[type].short}>
+            {conflict ? <><span className="portal-tag is-gold">To resolve</span> {conflict.detail}</> : "None"}
+          </Detail>
+        );
+      })}
+      {declared.length > 0 && <Detail label="Pledge">Committed to resolving these before taking office</Detail>}
+    </>
+  );
+}
+
 function FileLink({ href }: { href: string | null }) {
   return href ? <a href={href} target="_blank" rel="noreferrer">Open in Google Drive <ExternalLink size={13} /></a> : null;
 }
 
 export default async function PortalApplicationPage({ params, searchParams }: PageProps<"/portal/recruitment/applications/[id]">) {
   const [{ id }, { notice }] = await Promise.all([params, searchParams]);
-  const [, [application, slots]] = await withPortalUser(Promise.all([getApplication(id), getSlots().catch(() => null)]));
-  if (!application) notFound();
+  const [user, [application, slots]] = await withPortalUser(Promise.all([getApplication(id), getSlots().catch(() => null)]));
+  // A Local account can't open another college's applicants.
+  if (!application || !canSeeCollege(user, application.college)) notFound();
   // Recruitment slots still open for this position; accepting takes one. Null if they couldn't load.
   const slotsLeft = slots ? (slots[application.positionId] ?? 0) : null;
   const full = application.status !== "accepted" && slotsLeft === 0;
@@ -58,7 +82,14 @@ export default async function PortalApplicationPage({ params, searchParams }: Pa
             Applied for {application.position}, {application.division} · Submitted {formatDate(application.submittedAt)} · Deleted automatically on {formatDate(deletionDate(application.submittedAt))}
           </p>
         </div>
-        <span className={`portal-tag ${statusTag[application.status]} portal-status-tag`}>{applicationStatuses[application.status]}</span>
+        <div className="portal-head-actions">
+          <span className={`portal-tag ${statusTag[application.status]} portal-status-tag`}>{applicationStatuses[application.status]}</span>
+          <DeleteButton
+            action={deleteApplicationRecord.bind(null, application.id)}
+            label="Delete application"
+            prompt={application.status === "accepted" ? "Delete now? Their slot stays taken." : "Delete now? This can’t be undone."}
+          />
+        </div>
       </header>
       <Notice notice={notice} />
 
@@ -78,7 +109,7 @@ export default async function PortalApplicationPage({ params, searchParams }: Pa
           {slotsLeft !== null && (
             <p className="portal-muted">
               {slotsLeft === 1 ? "1 slot" : `${slotsLeft} slots`} left for {application.position}
-              {application.status === "accepted" ? ", besides the one this applicant holds." : full ? <>. Add one under <Link href="/portal/recruitment/slots">Recruitment → Slots</Link> to accept this applicant.</> : "."}
+              {application.status === "accepted" ? ", besides the one this applicant holds." : full ? (isLocal(user) ? ". Ask the Central Comelec to add one before accepting this applicant." : <>. Add one under <Link href="/portal/recruitment/slots">Recruitment → Slots</Link> to accept this applicant.</>) : "."}
             </p>
           )}
         </div>
@@ -105,7 +136,7 @@ export default async function PortalApplicationPage({ params, searchParams }: Pa
             <Detail label="Middle initial">{application.middleInitial}</Detail>
             <Detail label="Student number">{application.studentNumber}</Detail>
             <Detail label="UST email"><a href={`mailto:${application.email}`}>{application.email}</a></Detail>
-            <Detail label="Mobile number"><a href={`tel:${application.contactNumber}`}>{application.contactNumber}</a></Detail>
+            <Detail label="Mobile number">{application.contactNumber && <a href={`tel:${application.contactNumber}`}>{application.contactNumber}</a>}</Detail>
             <Detail label="Facebook"><a href={application.facebookUrl} target="_blank" rel="noreferrer">Open profile <ExternalLink size={13} /></a></Detail>
             <Detail label="College or faculty">{application.college}</Detail>
             <Detail label="Program">{application.program}</Detail>
@@ -114,6 +145,12 @@ export default async function PortalApplicationPage({ params, searchParams }: Pa
         </section>
 
         <div className="portal-application-stack">
+          <section className="portal-card">
+            <h2 className="portal-card-title">Qualifications</h2>
+            <dl className="portal-details">
+              <QualificationDetails declared={application.conflicts} />
+            </dl>
+          </section>
           <section className="portal-card">
             <h2 className="portal-card-title">Application</h2>
             <dl className="portal-details">

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requirePortalUser } from "@/lib/auth/session";
+import { requireCentral } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
 import { documentKinds, type DocumentKind } from "@/lib/data/types";
 import { checkDriveSharing, normalizeDriveLink } from "@/lib/data/drive";
@@ -67,7 +67,7 @@ async function readDriveLink(formData: FormData, required: boolean): Promise<{ l
 }
 
 export async function createDocument(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
   const drive = await readDriveLink(formData, true);
@@ -79,7 +79,7 @@ export async function createDocument(_state: FormState, formData: FormData): Pro
 }
 
 export async function updateDocument(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
   const drive = await readDriveLink(formData, false);
@@ -96,7 +96,7 @@ export async function updateDocument(id: string, _state: FormState, formData: Fo
 }
 
 export async function deleteDocument(id: string) {
-  await requirePortalUser();
+  await requireCentral();
   const removed = await store.remove("documents", id);
   await deleteUpload(removed?.fileUrl ?? null);
   refresh();

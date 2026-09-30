@@ -13,7 +13,7 @@ export function SiteFooter() {
           <a className="footer-email" href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph ↗</a>
         </div>
         <div className="footer-links">
-          <div><span>The Commission</span><Link href="/about#central-comelec">Central Comelec</Link><Link href="/about#local-comelec">Local Comelec</Link><Link href="/about#en-banc">En Banc</Link><Link href="/about#chamber-of-chairpersons">Chamber of Chairpersons</Link><Link href="/apply">Apply now</Link><Link href="/about#contact">Contact</Link></div>
+          <div><span>The Commission</span><Link href="/about#central-comelec">Central Comelec</Link><Link href="/about#local-comelec">Local Comelec</Link><Link href="/about#en-banc">En Banc</Link><Link href="/about#chamber-of-chairpersons">Chamber of Chairpersons</Link><Link href="/apply">Become a Commissioner</Link><Link href="/candidacy">Filing of Candidacy</Link><Link href="/party-registration">Party Registration</Link><Link href="/about#contact">Contact</Link></div>
           <div><span>Voter Info</span><Link href="/archive?type=constitution">Constitution</Link><Link href="/archive?type=elections-code">Elections Code</Link><Link href="/about#contact">File a petition</Link><Link href="/archive?type=proclamation">Proclamation</Link></div>
           <div><span>Information</span><Link href="/news">News & updates</Link><Link href="/archive?type=executive-order">Executive Orders</Link><Link href="/archive?type=memorandum">Memorandums</Link><Link href="/archive?type=resolution">Resolutions</Link></div>
         </div>

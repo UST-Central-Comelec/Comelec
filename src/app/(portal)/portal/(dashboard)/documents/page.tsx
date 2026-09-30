@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Notice } from "@/components/portal/notice";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { getDocuments } from "@/lib/data/queries";
 import { documentKinds, formatDate, isDocumentKind } from "@/lib/data/types";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Documents" };
 export default async function PortalDocumentsPage({ searchParams }: PageProps<"/portal/documents">) {
   const { notice, kind: kindParam } = await searchParams;
   const kind = typeof kindParam === "string" && isDocumentKind(kindParam) ? kindParam : undefined;
-  const [, documents] = await withPortalUser(getDocuments({ kind }));
+  const [, documents] = await withPortalUser(getDocuments({ kinds: kind && [kind] }), requireCentral);
 
   return (
     <main className="portal-page">

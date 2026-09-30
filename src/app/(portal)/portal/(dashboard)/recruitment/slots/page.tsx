@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { HelpDialog } from "@/components/portal/help-dialog";
 import { Notice } from "@/components/portal/notice";
 import { RecruitmentForm } from "@/components/portal/recruitment-form";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { settle } from "@/lib/portal/settle";
 import { getSlots } from "@/lib/applications/slots";
 import { updateRecruitmentSlots } from "@/lib/portal/recruitment-actions";
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Recruitment slots" };
 export default async function PortalRecruitmentSlotsPage({ searchParams }: PageProps<"/portal/recruitment/slots">) {
   const { notice } = await searchParams;
 
-  const [, { value: slots, error: loadError }] = await withPortalUser(settle(getSlots()));
+  const [, { value: slots, error: loadError }] = await withPortalUser(settle(getSlots()), requireCentral);
 
   return (
     <main className="portal-page">

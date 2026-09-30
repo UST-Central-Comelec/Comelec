@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { endAccessFlow } from "@/lib/access-requests/verification";
 import { isLoginConfigured } from "@/lib/auth/session";
 import { ACTIVITY_COOKIE, activityCookieOptions, type TimeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
@@ -18,6 +19,8 @@ async function siteOrigin() {
 export async function signInWithGoogle() {
   if (!isLoginConfigured()) redirect("/portal/login?error=not-configured");
   if (!rateLimit(`login-start:${clientIp(await headers())}`, limits.login.limit, limits.login.windowMs).ok) redirect("/portal/login?error=rate-limited");
+  // So the callback treats this as a portal sign-in, even after an abandoned Request access.
+  await endAccessFlow();
 
   const { data, error } = await (await createAuthClient()).auth.signInWithOAuth({
     provider: "google",

@@ -15,7 +15,10 @@ export default async function PortalShellLayout({ children }: LayoutProps<"/port
 
   return (
     <div className="portal-shell">
-      <PortalSidebar user={{ name: user.name, role: accountRoles[user.role], email: user.email, isExecutive: user.role === "executive" }} initialCollapsed={collapsed} />
+      <PortalSidebar
+        user={{ name: user.name, role: user.affiliation === "local" ? `Local ${accountRoles[user.role]}` : accountRoles[user.role], email: user.email, isExecutive: user.role === "executive", isLocal: user.affiliation === "local" }}
+        initialCollapsed={collapsed}
+      />
       <div className="portal-main">{children}</div>
       <SessionTimeout startedAt={startedAt} />
     </div>

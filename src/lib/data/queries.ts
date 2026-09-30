@@ -17,15 +17,15 @@ export function getNewsPost(id: string) {
 // Rows saved before migration 0003 have no body/signatories yet.
 const withDocumentDefaults = (doc: OfficialDocument): OfficialDocument => ({ ...doc, body: doc.body ?? "", signatories: Array.isArray(doc.signatories) ? doc.signatories : [] });
 
-export async function getDocuments(filter: { kind?: DocumentKind; year?: string } = {}) {
+export async function getDocuments(filter: { kinds?: readonly DocumentKind[]; year?: string } = {}) {
   return (await store.list("documents"))
     .map(withDocumentDefaults)
-    .filter((doc) => (!filter.kind || doc.kind === filter.kind) && (!filter.year || doc.date.startsWith(filter.year)))
+    .filter((doc) => (!filter.kinds || filter.kinds.includes(doc.kind)) && (!filter.year || doc.date.startsWith(filter.year)))
     .sort(byDateDesc);
 }
 
-export async function getDocumentYears() {
-  const years = new Set((await store.list("documents")).map((doc) => doc.date.slice(0, 4)));
+export async function getDocumentYears(kinds?: readonly DocumentKind[]) {
+  const years = new Set((await store.list("documents")).filter((doc) => !kinds || kinds.includes(doc.kind)).map((doc) => doc.date.slice(0, 4)));
   return [...years].sort().reverse();
 }
 
@@ -72,7 +72,7 @@ export function getMember(id: string) {
 
 function toSummary(account: PortalAccount): AccountSummary {
   const { id, name, email, role, active, createdAt, updatedAt, updatedBy } = account;
-  return { id, name, email, role, active, createdAt, updatedAt, updatedBy, builtIn: false };
+  return { id, name, email, role, active, affiliation: account.affiliation ?? "central", college: account.college ?? null, createdAt, updatedAt, updatedBy, builtIn: false };
 }
 
 /** Portal accounts without password hashes. Callers must already have checked for an executive. */

@@ -68,12 +68,25 @@ export const accountRoles = {
   executive: "Executive",
 } as const;
 
+/**
+ * Where a portal account serves. Central sees everything; Local sees the Directory, Recruitment
+ * applications, PolPaR and Filing of Candidacy, and only its own college's people there.
+ */
+export const affiliations = {
+  central: "Central Comelec",
+  local: "Local Comelec",
+} as const;
+
 export type NewsCategory = keyof typeof newsCategories;
 export type DocumentKind = keyof typeof documentKinds;
+
+/** Kinds listed in the public Archive. The others (Constitution, Elections Code, Proclamation) are reached from Voter Info, each on its own. */
+export const archiveKinds: readonly DocumentKind[] = ["executive-order", "memorandum", "resolution"];
 export type MemberBody = keyof typeof memberBodies;
 export type DirectoryGroup = keyof typeof directoryGroups;
 export type ChamberRole = keyof typeof chamberRoles;
 export type AccountRole = keyof typeof accountRoles;
+export type Affiliation = keyof typeof affiliations;
 
 type Record = {
   id: string;
@@ -133,9 +146,13 @@ export type PortalAccount = Record & {
   email: string;
   role: AccountRole;
   active: boolean;
+  /** Missing before supabase/migrations/0017; treated as Central. */
+  affiliation?: Affiliation;
+  /** College or faculty. Required for Local; null for accounts added before 0017. */
+  college?: string | null;
 };
 
-export type AccountSummary = PortalAccount & { builtIn: boolean };
+export type AccountSummary = Omit<PortalAccount, "affiliation" | "college"> & { affiliation: Affiliation; college: string | null; builtIn: boolean };
 
 export type ContentDb = {
   news: NewsPost[];
@@ -158,6 +175,15 @@ export function isMemberBody(value: string): value is MemberBody {
 
 export function isAccountRole(value: string): value is AccountRole {
   return value in accountRoles;
+}
+
+export function isAffiliation(value: unknown): value is Affiliation {
+  return typeof value === "string" && value in affiliations;
+}
+
+/** "Central Comelec", or "Local Comelec · College of Science". */
+export function describeAffiliation(affiliation: Affiliation, college: string | null | undefined) {
+  return affiliation === "local" && college ? `${affiliations.local} · ${college}` : affiliations[affiliation];
 }
 
 export function formatDate(iso: string) {

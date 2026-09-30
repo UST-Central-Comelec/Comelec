@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requirePortalUser } from "@/lib/auth/session";
+import { isLocal, requirePortalUser, type PortalUser } from "@/lib/auth/session";
 import { colleges } from "@/lib/applications/options";
 import { store } from "@/lib/data/store";
 import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, memberBodies, positionsFor, type ChamberRole, type Member, type MemberBody } from "@/lib/data/types";
@@ -39,6 +39,13 @@ function collegeTaken(members: Member[], data: { body: MemberBody; position: str
   return { error: "Check the highlighted fields.", fieldErrors: { unit: `${holder.name} is already this college’s Central Representative. Change or remove them first.` } };
 }
 
+/** Local accounts manage only their own college's Local Comelec; true when `member` is outside that. */
+function outOfScope(user: PortalUser, member: { body: MemberBody; unit: string }) {
+  return isLocal(user) && !(member.body === "local" && member.unit === user.college);
+}
+
+const scopeError = (user: PortalUser): FormState => ({ error: `You can only manage ${user.college ?? "your college"}’s Local Comelec.` });
+
 /** The next free spot at the end of a group. */
 const endOf = (members: Member[], body: MemberBody) => members.filter((member) => member.body === body).reduce((max, member) => Math.max(max, member.order), 0) + 1;
 
@@ -56,9 +63,11 @@ async function readPhoto(formData: FormData) {
 }
 
 export async function createMember(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const user = await requirePortalUser();
+  const { email } = user;
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
+  if (outOfScope(user, parsed.data)) return scopeError(user);
 
   const members = await store.list("members");
   const taken = collegeTaken(members, parsed.data);
@@ -74,13 +83,15 @@ export async function createMember(_state: FormState, formData: FormData): Promi
 }
 
 export async function updateMember(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const user = await requirePortalUser();
+  const { email } = user;
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
   const members = await store.list("members");
   const existing = members.find((member) => member.id === id);
   if (!existing) return { error: "This member no longer exists." };
+  if (outOfScope(user, existing) || outOfScope(user, parsed.data)) return scopeError(user);
   const taken = collegeTaken(members, parsed.data, id);
   if (taken) return taken;
 
@@ -106,7 +117,9 @@ export async function updateMember(id: string, _state: FormState, formData: Form
  * college, so it's reordered one `college` at a time.
  */
 export async function reorderMembers(body: MemberBody, ids: string[], college?: string): Promise<{ error?: string }> {
-  const { email } = await requirePortalUser();
+  const user = await requirePortalUser();
+  const { email } = user;
+  if (outOfScope(user, { body, unit: college ?? "" })) return { error: scopeError(user)!.error };
   const group = (await store.list("members")).filter((member) => member.body === body && (body !== "local" || member.unit === college));
   if (ids.length !== group.length || !group.every((member) => ids.includes(member.id))) {
     return { error: "The directory changed while you were dragging. Reload the page and try again." };
@@ -131,7 +144,9 @@ export async function reorderMembers(body: MemberBody, ids: string[], college?: 
  * There's one of each, so whoever held the role before becomes a regular member.
  */
 export async function setChamberRole(id: string, role: ChamberRole | null): Promise<{ error?: string }> {
-  const { email } = await requirePortalUser();
+  const user = await requirePortalUser();
+  const { email } = user;
+  if (isLocal(user)) return { error: "Only the Central Comelec sets the Chamber of Chairpersons’ Primus and Vicar." };
   const members = await store.list("members");
   const member = members.find((item) => item.id === id);
   if (!member || member.body !== "local" || member.position !== CHAIRPERSON) return { error: "Only Local Comelec Chairpersons are in the Chamber of Chairpersons." };
@@ -150,7 +165,9 @@ export async function setChamberRole(id: string, role: ChamberRole | null): Prom
 }
 
 export async function deleteMember(id: string) {
-  await requirePortalUser();
+  const user = await requirePortalUser();
+  const member = await store.get("members", id);
+  if (member && outOfScope(user, member)) redirect("/portal/members");
   const removed = await store.remove("members", id);
   await deleteUpload(removed?.photoUrl ?? null);
   refresh();

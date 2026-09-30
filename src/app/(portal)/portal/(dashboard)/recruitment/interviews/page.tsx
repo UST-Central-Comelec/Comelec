@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { InterviewPlanner } from "@/components/portal/interview-planner";
 import { Notice } from "@/components/portal/notice";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { settle } from "@/lib/portal/settle";
 import { getSlotsForPortal } from "@/lib/applications/interviews";
 import { divisions, type DivisionId } from "@/lib/applications/options";
@@ -16,7 +16,7 @@ export default async function PortalInterviewsPage({ searchParams }: PageProps<"
   const { notice, division: divisionParam, day: dayParam } = await searchParams;
   const division = typeof divisionParam === "string" && divisionParam in divisions ? (divisionParam as DivisionId) : undefined;
 
-  const [, { value: slots, error: loadError }] = await withPortalUser(settle(getSlotsForPortal()));
+  const [, { value: slots, error: loadError }] = await withPortalUser(settle(getSlotsForPortal()), requireCentral);
 
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
   const initialDay = typeof dayParam === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : undefined;

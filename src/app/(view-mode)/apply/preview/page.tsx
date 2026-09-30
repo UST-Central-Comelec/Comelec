@@ -7,7 +7,7 @@ import { positions, type SlotCounts } from "@/lib/applications/options";
 import { getInterviewsForApplyPage, getPeriodForApplyPage, getSlotsForApplyPage } from "@/lib/applications/apply-cache";
 import { closingTime, formatClosing, isAccepting } from "@/lib/applications/period";
 
-export const metadata: Metadata = { title: "Apply now (view mode)" };
+export const metadata: Metadata = { title: "Become a Commissioner (view mode)" };
 
 /**
  * The Apply page in view mode, for commissioners checking it from the portal. It shows the live

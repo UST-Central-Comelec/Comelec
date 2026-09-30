@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { ApplicationPeriodForm } from "@/components/portal/application-period-form";
 import { Notice } from "@/components/portal/notice";
 import { PeriodOverview } from "@/components/portal/period-overview";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { settle } from "@/lib/portal/settle";
 import { closingTime, formatClosing, isAccepting, isClosingSoon, type ApplicationPeriod } from "@/lib/applications/period";
 import { getApplicationPeriod } from "@/lib/applications/period-store";
@@ -27,7 +27,7 @@ function describePeriod(period: ApplicationPeriod) {
 
 export default async function PortalRecruitmentSettingsPage({ searchParams }: PageProps<"/portal/recruitment/settings">) {
   const { notice } = await searchParams;
-  const [, { value: period, error: loadError }] = await withPortalUser(settle(getApplicationPeriod()));
+  const [, { value: period, error: loadError }] = await withPortalUser(settle(getApplicationPeriod()), requireCentral);
   // The seeded row says "system"; only name a person once someone has changed it.
   const updated = period?.updatedAt && period.updatedBy && period.updatedBy !== "system" ? `Last changed by ${period.updatedBy} · ${formatClosing(period.updatedAt)}` : null;
 

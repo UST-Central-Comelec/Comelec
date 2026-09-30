@@ -9,7 +9,7 @@ import { isAccepting } from "@/lib/applications/period";
 import { readPass } from "@/lib/applications/verification";
 import type { InterviewSlot } from "@/lib/applications/interview-format";
 
-export const metadata: Metadata = { title: "Apply now" };
+export const metadata: Metadata = { title: "Become a Commissioner" };
 
 async function loadSlots(): Promise<SlotCounts> {
   try {

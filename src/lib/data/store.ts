@@ -39,6 +39,11 @@ function db() {
   return createAdminClient();
 }
 
+/** True when a save failed because one of `columns` doesn't exist yet: a migration hasn't been run. */
+export function isMissingColumn(error: unknown, columns: string[]) {
+  return error instanceof Error && columns.some((column) => error.message.includes(`'${column}' column`));
+}
+
 function fail(action: string, collection: Collection, error: { message: string }): never {
   throw new Error(`Couldn’t ${action} ${collection}: ${error.message}`);
 }

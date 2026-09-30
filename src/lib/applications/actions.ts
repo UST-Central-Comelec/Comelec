@@ -2,11 +2,13 @@
 
 import { headers } from "next/headers";
 import { after } from "next/server";
+import { findAccessRequest, type AccessRequestStatus } from "@/lib/access-requests/admin";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/email/send";
 import { text, type FormState } from "@/lib/portal/form";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
+import { describeAnswers, interviewLater, type AnswerSection } from "./answers";
 import { clearApplyPageCache } from "./apply-cache";
 import { confirmationEmail } from "./emails";
 import { describeSlot, type InterviewMode } from "./interview-format";
@@ -14,13 +16,13 @@ import { getOpenSlots } from "./interviews";
 import { divisions, preferredBodies, retentionCutoff, yearLevels, type DivisionId } from "./options";
 import { isAccepting } from "./period";
 import { getApplicationPeriod } from "./period-store";
-import { newReferenceCode, normalizeReferenceCode } from "./reference";
-import { applicationFields, checkFields, needsPortfolio, readApplication, type ApplicationField } from "./schema";
+import { newReferenceCode, parseReferenceCode } from "./reference";
+import { applicationFields, checkFields, declaredConflicts, needsPortfolio, readApplication, type ApplicationField } from "./schema";
 import { getSlots } from "./slots";
 import { clearPass, readPass } from "./verification";
 
-/** What the Result step shows once an application is saved. */
-export type SubmittedApplication = { referenceCode: string; lastName: string; name: string; division: string; position: string; interview: string | null; submittedAt: string };
+/** What the Receipt step shows once an application is saved. */
+export type SubmittedApplication = { referenceCode: string; name: string; division: string; position: string; interview: string | null; submittedAt: string; answers: AnswerSection[] };
 
 export type ApplicationState = (FormState & { submitted?: boolean; result?: SubmittedApplication; verificationExpired?: boolean }) | undefined;
 
@@ -66,7 +68,7 @@ export async function submitApplication(_state: ApplicationState, formData: Form
     first_name: data.firstName.toUpperCase(),
     middle_initial: data.middleInitial.toUpperCase(),
     student_number: data.studentNumber,
-    contact_number: data.contactNumber.replace(/[\s-]/g, ""),
+    contact_number: data.contactNumber.replace(/[\s-]/g, "") || null,
     email: data.email,
     facebook_url: facebookUrl,
     college: data.college,
@@ -80,6 +82,8 @@ export async function submitApplication(_state: ApplicationState, formData: Form
     endorsement_url: data.endorsementUrl || null,
     portfolio_url: needsPortfolio(data.division) ? data.portfolioUrl : null,
     consent: data.consent,
+    // Only the conflicts answered "yes"; an empty list means none. Submitting one means pledging to resolve it.
+    conflicts: declaredConflicts(values),
     interview_slot_id: interview?.id ?? null,
   };
 
@@ -113,12 +117,12 @@ export async function submitApplication(_state: ApplicationState, formData: Form
       submitted: true,
       result: {
         referenceCode,
-        lastName: row.last_name,
         name: `${row.first_name} ${row.middle_initial}. ${row.last_name}`,
         division: row.division,
         position: row.position,
         interview: interviewText,
         submittedAt: saved.created_at as string,
+        answers: describeAnswers({ ...values, facebookUrl }, interviewText ?? interviewLater),
       },
     };
   }
@@ -150,39 +154,68 @@ export type TrackedApplication = {
   interview: string | null;
 };
 
-export type TrackState = { error?: string; fieldErrors?: Record<string, string>; application?: TrackedApplication } | undefined;
+/** A portal access request (PA- code), as its requester sees it when tracking. */
+export type TrackedAccessRequest = {
+  referenceCode: string;
+  name: string;
+  email: string;
+  status: AccessRequestStatus;
+  submittedAt: string;
+  position: string;
+  college: string;
+  program: string;
+  yearLevel: string;
+};
+
+/** `entered` is what the applicant typed, so a failed lookup doesn't clear the form. */
+export type TrackState = { error?: string; fieldErrors?: Record<string, string>; application?: TrackedApplication; accessRequest?: TrackedAccessRequest; entered?: { reference: string; studentNumber: string } } | undefined;
 
 export async function trackApplication(_state: TrackState, formData: FormData): Promise<TrackState> {
-  const referenceCode = normalizeReferenceCode(text(formData, "reference"));
-  const surname = text(formData, "surname").trim().replace(/\s+/g, " ").toUpperCase();
+  const entered = { reference: text(formData, "reference"), studentNumber: text(formData, "studentNumber") };
+  // CC- codes are applications; PA- codes are portal access requests (src/lib/access-requests).
+  const parsed = parseReferenceCode(entered.reference);
+  const studentNumber = entered.studentNumber.replace(/\s+/g, "");
 
   const fieldErrors: Record<string, string> = {};
-  if (!referenceCode) fieldErrors.reference = "Use the code from your confirmation, like CC-7K3M-9QXA.";
-  if (!surname) fieldErrors.surname = "Add the surname you applied with.";
-  if (!referenceCode || !surname) return { error: "Check the highlighted fields.", fieldErrors };
+  if (!parsed) fieldErrors.reference = "Use the code from your confirmation, like CC-7K3M-9QXA or PA-7K3M-9QXA.";
+  if (!/^\d{10}$/.test(studentNumber)) fieldErrors.studentNumber = "Use the 10-digit student number you gave when you submitted.";
+  if (!parsed || Object.keys(fieldErrors).length) return { error: "Check the highlighted fields.", fieldErrors, entered };
+  const referenceCode = parsed.code;
 
   // Also what makes guessing reference codes impractical.
   const limited = rateLimit(`track:${clientIp(await headers())}`, limits.track.limit, limits.track.windowMs);
-  if (!limited.ok) return { error: `Too many lookups from this network. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.` };
+  if (!limited.ok) return { error: `Too many lookups from this network. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.`, entered };
 
-  if (!isSupabaseConfigured()) return { error: "Tracking isn’t available right now. Please email comelec@ust.edu.ph." };
+  if (!isSupabaseConfigured()) return { error: "Tracking isn’t available right now. Please email comelec@ust.edu.ph.", entered };
+
+  if (parsed.prefix === "PA") {
+    const request = await findAccessRequest(referenceCode, studentNumber).catch((lookupError: Error) => {
+      console.error("Couldn’t look up access request:", lookupError.message);
+      return undefined;
+    });
+    if (request === undefined) return { error: "Something went wrong looking up your request. Please try again.", entered };
+    if (!request) return { error: "We couldn’t find a request with that reference code and student number. Check both and try again.", entered };
+    const { referenceCode: code, name, email, status, submittedAt, position, college, program, yearLevel } = request;
+    return { entered, accessRequest: { referenceCode: code, name, email, status, submittedAt, position, college, program, yearLevel } };
+  }
 
   const { data, error } = await createAdminClient()
     .from("applications")
     .select("reference_code, first_name, middle_initial, last_name, status, created_at, preferred_body, division, position, college, program, year_level, interview_slots(starts_at, duration_minutes, mode, location)")
     .eq("reference_code", referenceCode)
-    .eq("last_name", surname)
+    .eq("student_number", studentNumber)
     .gte("created_at", retentionCutoff())
     .maybeSingle();
 
   if (error) {
     console.error("Couldn’t look up application:", error.message);
-    return { error: "Something went wrong looking up your application. Please try again." };
+    return { error: "Something went wrong looking up your application. Please try again.", entered };
   }
   // Same message either way, so the form doesn't reveal which half was wrong.
-  if (!data) return { error: "We couldn’t find an application with that reference code and surname. Check both and try again." };
+  if (!data) return { error: "We couldn’t find an application with that reference code and student number. Check both and try again.", entered };
 
   return {
+    entered,
     application: {
       referenceCode: data.reference_code,
       name: `${data.first_name} ${data.middle_initial}. ${data.last_name}`,

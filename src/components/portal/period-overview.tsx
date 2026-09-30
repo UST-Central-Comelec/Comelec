@@ -43,7 +43,7 @@ function Countdown({ closesAt, short }: { closesAt: number; short?: boolean }) {
   const units = short ? all.slice(2) : all;
 
   return (
-    <ol className="period-countdown" aria-label="Time left to apply">
+    <ol className="period-countdown" aria-label="Time left">
       {units.map(([unit, value]) => (
         <li key={unit}><strong>{value === null ? "--" : String(value).padStart(2, "0")}</strong><small>{unit}</small></li>
       ))}
@@ -54,7 +54,7 @@ function Countdown({ closesAt, short }: { closesAt: number; short?: boolean }) {
 const stateLabels = { open: "Live", closing: "Closing", closed: "Closed" };
 
 /**
- * The status at the top of Recruitment → Settings: open, closing (a manual close still in its
+ * The status at the top of Recruitment → Settings (and PolPaR's and Filing of Candidacy's): open, closing (a manual close still in its
  * grace period, which can be cancelled), or closed; when it closes; and who last changed it.
  */
 export function PeriodOverview({
@@ -64,6 +64,7 @@ export function PeriodOverview({
   closesAt,
   updated,
   cancelAction,
+  label = "Application period status",
 }: {
   state: "open" | "closing" | "closed";
   headline: string;
@@ -71,9 +72,10 @@ export function PeriodOverview({
   closesAt: number | null;
   updated: string | null;
   cancelAction: () => Promise<void>;
+  label?: string;
 }) {
   return (
-    <section className={`period-overview is-${state}`} aria-label="Application period status">
+    <section className={`period-overview is-${state}`} aria-label={label}>
       <div className="period-overview-main">
         <span className="period-overview-state"><i aria-hidden="true" />{stateLabels[state]}</span>
         <h2>{headline}</h2>

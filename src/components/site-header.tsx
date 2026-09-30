@@ -7,6 +7,7 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Lightbulb } from "@/components/animate-ui/icons/lightbulb";
 import { Users } from "@/components/animate-ui/icons/users";
+import { FeaturedCarousel, type Featured } from "@/components/featured-carousel";
 import { useEffect, useRef, useState } from "react";
 import type { ElementType } from "react";
 
@@ -73,13 +74,15 @@ const links: NavLink[] = [
     label: "Apply",
     href: "/apply",
     items: [
-      { label: "Apply now", href: "/apply", description: "Join the commission and serve the Thomasian community", icon: Users },
+      { label: "Become a Commissioner", href: "/apply", description: "Join the commission and serve the Thomasian community", icon: Users },
+      { label: "Filing of Candidacy", href: "/candidacy", description: "File your candidacy for the student elections", icon: ArrowRight },
+      { label: "Political Party Registration", href: "/party-registration", description: "Register a political party with the commission", icon: Users },
       { label: "Track application", href: "/apply/track", description: "Check your application’s status with your reference code", icon: ArrowRight },
     ],
   },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ featured = [] }: { featured?: Featured[] }) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -89,14 +92,38 @@ export function SiteHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const [placeholderText, setPlaceholderText] = useState("");
   const [topLayer, setTopLayer] = useState<"search" | "mega">("mega");
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  // A menu opened by clicking its tab stays open when the pointer wanders off or over other tabs,
+  // until its tab is clicked again (or a link is picked, or you click away, press Escape or scroll down).
+  const [lockedMenu, setLockedMenu] = useState<string | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const megaMenuOpen = visible && activeMenu !== null;
+  const shownMenu = lockedMenu ?? activeMenu;
+  const megaMenuOpen = visible && shownMenu !== null;
 
   const activateMenu = (label: string) => {
+    if (lockedMenu) return;
     setTopLayer("mega");
     setActiveMenu(label);
     setDisplayedMenu(label);
+  };
+
+  const closeMenu = () => {
+    setActiveMenu(null);
+    setLockedMenu(null);
+  };
+
+  const toggleMenu = (label: string) => {
+    setSearchOpen(false);
+    if (lockedMenu === label) {
+      closeMenu();
+      return;
+    }
+    setTopLayer("mega");
+    setActiveMenu(label);
+    setDisplayedMenu(label);
+    setLockedMenu(label);
   };
 
   const toggleSearch = () => {
@@ -155,6 +182,28 @@ export function SiteHeader() {
   }, [searchOpen]);
 
   useEffect(() => {
+    if (!megaMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (headerRef.current?.contains(event.target as Node)) return;
+      setActiveMenu(null);
+      setLockedMenu(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setActiveMenu(null);
+      setLockedMenu(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [megaMenuOpen]);
+
+  useEffect(() => {
     let lastScrollY = window.scrollY;
 
     const handleSmoothScroll = (event: Event) => {
@@ -165,6 +214,7 @@ export function SiteHeader() {
       setVisible(currentScrollY < 24 || scrollingUp);
       if (!scrollingUp && currentScrollY > 24) {
         setActiveMenu(null);
+        setLockedMenu(null);
         setSearchOpen(false);
       }
       setScrollProgress(scrollableHeight > 0 ? (currentScrollY / scrollableHeight) * 100 : 0);
@@ -186,9 +236,9 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className={`site-header ${topLayer}-on-top${visible ? " is-visible" : " is-hidden"}`} onMouseLeave={() => setActiveMenu(null)}>
+      <header ref={headerRef} className={`site-header ${topLayer}-on-top${visible ? " is-visible" : " is-hidden"}`} onMouseLeave={() => setActiveMenu(null)}>
         <div className="header-inner">
-          <Link href="/" className="wordmark" onClick={() => setOpen(false)}>
+          <Link href="/" className="wordmark" onClick={() => { setOpen(false); closeMenu(); }}>
             <Image className="wordmark-logo" src="/images/Logo-1.png" alt="UST Central Comelec logo" width={42} height={42} priority />
             <span>
               <strong>CENTRAL COMELEC</strong>
@@ -199,14 +249,20 @@ export function SiteHeader() {
           <nav className={open ? "main-nav is-open" : "main-nav"} aria-label="Main navigation">
             {links.map((link) => (
               <div className={`nav-item${link.items.length ? " has-dropdown" : ""}`} key={link.label} onMouseEnter={() => activateMenu(link.label)}>
-                <Link href={link.href} className="nav-tab" onFocus={() => activateMenu(link.label)} onClick={() => { setOpen(false); setSearchOpen(false); setActiveMenu(null); }}>
+                <Link
+                  href={link.href}
+                  className="nav-tab"
+                  aria-expanded={shownMenu === link.label}
+                  onFocus={() => activateMenu(link.label)}
+                  onClick={(event) => { event.preventDefault(); toggleMenu(link.label); }}
+                >
                   {link.label}
-                  <ChevronDown className={`nav-chevron${activeMenu === link.label ? " is-active" : ""}`} size={13} strokeWidth={1.7} aria-hidden="true" />
+                  <ChevronDown className={`nav-chevron${shownMenu === link.label ? " is-active" : ""}`} size={13} strokeWidth={1.7} aria-hidden="true" />
                 </Link>
               </div>
             ))}
             <div className="nav-tools">
-              <Link href="/news" className="nav-cta" onClick={() => setOpen(false)}>
+              <Link href="/news" className="nav-cta" onClick={() => { setOpen(false); closeMenu(); }}>
                 EvoSys <span>↗</span>
               </Link>
               <button ref={searchButtonRef} className="nav-icon-button" type="button" aria-label="Search" title="Search" onClick={toggleSearch}>
@@ -214,7 +270,7 @@ export function SiteHeader() {
               </button>
             </div>
           </nav>
-          <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Toggle menu">
+          <button className="menu-button" onClick={() => { if (open) closeMenu(); setOpen(!open); }} aria-label="Toggle menu">
             {open ? <X size={21} /> : <Menu size={21} />}
           </button>
         </div>
@@ -230,18 +286,21 @@ export function SiteHeader() {
         </div>
         <div className={`mega-layer${megaMenuOpen ? " is-open" : ""}`} onMouseEnter={() => megaMenuOpen && activeMenu && setActiveMenu(activeMenu)}>
           {links.filter((link) => link.label === displayedMenu).map((link) => (
-            <div className={`mega-layer-inner item-count-${link.items.length}`} key={link.label}>
-              <span className="dropdown-label">{link.label}</span>
-              <div className="dropdown-grid">
-                {link.items.map((item) => (
-                  <AnimateIcon key={item.label} asChild animateOnHover>
-                    <Link href={item.href} onClick={() => { setOpen(false); setActiveMenu(null); }}>
-                      <item.icon className="dropdown-icon" aria-hidden="true" size={28} />
-                      <span><strong>{item.label}</strong><small>{item.description}</small></span>
-                    </Link>
-                  </AnimateIcon>
-                ))}
+            <div className={`mega-layer-inner item-count-${link.items.length}${featured.length ? " has-featured" : ""}`} key={link.label}>
+              <div className="mega-links">
+                <span className="dropdown-label">{link.label}</span>
+                <div className="dropdown-grid">
+                  {link.items.map((item) => (
+                    <AnimateIcon key={item.label} asChild animateOnHover>
+                      <Link href={item.href} onClick={() => { setOpen(false); closeMenu(); }}>
+                        <item.icon className="dropdown-icon" aria-hidden="true" size={28} />
+                        <span><strong>{item.label}</strong><small>{item.description}</small></span>
+                      </Link>
+                    </AnimateIcon>
+                  ))}
+                </div>
               </div>
+              <FeaturedCarousel items={featured} index={featuredIndex} onIndexChange={setFeaturedIndex} playing={megaMenuOpen} onNavigate={() => { setOpen(false); closeMenu(); }} />
             </div>
           ))}
         </div>

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 import { store } from "@/lib/data/store";
-import type { AccountRole } from "@/lib/data/types";
+import type { AccountRole, Affiliation } from "@/lib/data/types";
 import { ALLOWED_EMAIL_DOMAIN, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAuthClient } from "@/lib/supabase/server";
 
@@ -14,10 +14,14 @@ import { createAuthClient } from "@/lib/supabase/server";
 // an @ust.edu.ph address AND match an active account that an executive added under Accounts.
 // PORTAL_EXECUTIVE_EMAIL is the built-in Executive — it always has access and can't be revoked
 // from the portal, so there's always someone able to add the first accounts.
+//
+// Each account is Central or Local (a college's Local Comelec). Local accounts only reach the
+// Directory, Recruitment applications, PolPaR and Filing of Candidacy, and only their own college's
+// people there: pages and Server Actions check with requireCentral and canSeeCollege below.
 
 export const BUILT_IN_ID = "built-in";
 
-export type PortalUser = { id: string; name: string; email: string; role: AccountRole; builtIn: boolean };
+export type PortalUser = { id: string; name: string; email: string; role: AccountRole; affiliation: Affiliation; college: string | null; builtIn: boolean };
 
 export type AccessDenied = "not-ust" | "not-registered" | "revoked";
 
@@ -31,7 +35,7 @@ function builtInEmail() {
 
 export function builtInUser(name?: string): PortalUser | null {
   const email = builtInEmail();
-  return email ? { id: BUILT_IN_ID, name: name || process.env.PORTAL_EXECUTIVE_NAME || "Executive", email, role: "executive", builtIn: true } : null;
+  return email ? { id: BUILT_IN_ID, name: name || process.env.PORTAL_EXECUTIVE_NAME || "Executive", email, role: "executive", affiliation: "central", college: null, builtIn: true } : null;
 }
 
 export function isBuiltInEmail(email: string) {
@@ -52,7 +56,9 @@ export async function checkAccess(emailInput: string, googleName?: string): Prom
   const account = (await store.list("accounts")).find((item) => item.email === email);
   if (!account) return { denied: "not-registered" };
   if (!account.active) return { denied: "revoked" };
-  return { user: { id: account.id, name: account.name, email: account.email, role: account.role, builtIn: false } };
+  // Executives are always Central, whatever the row says.
+  const affiliation = account.role === "executive" ? "central" : (account.affiliation ?? "central");
+  return { user: { id: account.id, name: account.name, email: account.email, role: account.role, affiliation, college: account.college ?? null, builtIn: false } };
 }
 
 /**
@@ -98,6 +104,23 @@ export async function withPortalUser<T>(load: Promise<T>, check: () => Promise<P
   load.catch(() => {}); // Rethrown below, after the access check.
   const user = await check();
   return [user, await load];
+}
+
+/** Where a Local account lands: the first tab it can see. */
+export const LOCAL_HOME = "/portal/members";
+
+export const isLocal = (user: PortalUser) => user.affiliation === "local";
+
+/** For pages and actions only Central accounts use (News, Documents, commission-wide settings). Local accounts are sent to their home tab. */
+export async function requireCentral() {
+  const user = await requirePortalUser();
+  if (isLocal(user)) redirect(LOCAL_HOME);
+  return user;
+}
+
+/** Whether `user` may see or manage someone from `college`: Central sees everyone, Local only its own college. */
+export function canSeeCollege(user: PortalUser, college: string) {
+  return !isLocal(user) || (user.college !== null && user.college === college);
 }
 
 /** For account management. Commissioners who reach an executive page are sent to the dashboard. */

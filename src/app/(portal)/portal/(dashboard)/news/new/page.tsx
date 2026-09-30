@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NewsForm } from "@/components/portal/news-form";
-import { requirePortalUser } from "@/lib/auth/session";
+import { requireCentral } from "@/lib/auth/session";
 import { createNews } from "@/lib/portal/news-actions";
 
 export const metadata: Metadata = { title: "New post" };
 
 export default async function NewNewsPage() {
-  await requirePortalUser();
+  await requireCentral();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
   return (

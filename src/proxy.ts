@@ -12,14 +12,29 @@ import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 // It can't tell whether an account was revoked, so pages and Server Actions still check access
 // themselves via `requirePortalUser`.
 
-const openPaths = new Set(["/portal/login", "/portal/auth/callback"]);
+const openPaths = new Set(["/portal/login", "/portal/auth/callback", "/portal/request-access/start"]);
 
 /** Link prefetches aren't the person doing anything, so they don't count as activity. */
 const isPrefetch = (request: NextRequest) => request.headers.has("next-router-prefetch") || request.headers.get("sec-purpose")?.includes("prefetch") || request.headers.get("purpose") === "prefetch";
 
+/** A Server Action call (a form post from a portal page) rather than a page load. */
+const isServerAction = (request: NextRequest) => request.method === "POST" && request.headers.has("next-action");
+
 function noStore(response: NextResponse) {
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;
+}
+
+/**
+ * Sends the browser to `path`. A Server Action can't follow a plain redirect: the browser would
+ * re-post the action to `path`, get a page back instead of an action result, and show "An
+ * unexpected response was received from the server." So actions get Next.js's own redirect
+ * header, which makes the page load `path` itself.
+ */
+function redirectResponse(request: NextRequest, path: string) {
+  const url = new URL(path, request.nextUrl);
+  if (!isServerAction(request)) return NextResponse.redirect(url);
+  return new NextResponse(null, { headers: { "x-action-redirect": `${url.pathname}${url.search};replace` } });
 }
 
 export async function proxy(request: NextRequest) {
@@ -31,12 +46,13 @@ export async function proxy(request: NextRequest) {
   if (!flood.ok || !login.ok) {
     return new NextResponse("Too many requests. Please wait a moment and try again.", {
       status: 429,
-      headers: { "Retry-After": String(Math.max(flood.retryAfter, login.retryAfter)), "Content-Type": "text/plain; charset=utf-8" },
+      // Next.js only shows a Server Action's error text when the type is exactly "text/plain".
+      headers: { "Retry-After": String(Math.max(flood.retryAfter, login.retryAfter)), "Content-Type": isServerAction(request) ? "text/plain" : "text/plain; charset=utf-8" },
     });
   }
 
   const isOpen = openPaths.has(pathname);
-  if (!isSupabaseConfigured()) return noStore(isOpen ? NextResponse.next() : NextResponse.redirect(new URL("/portal/login", request.nextUrl)));
+  if (!isSupabaseConfigured()) return noStore(isOpen ? NextResponse.next() : redirectResponse(request, "/portal/login"));
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(supabaseUrl, supabasePublishableKey, {
@@ -53,7 +69,7 @@ export async function proxy(request: NextRequest) {
 
   /** Redirects to `path`, keeping any cookies Supabase just set or cleared. */
   const redirectTo = (path: string) => {
-    const redirect = NextResponse.redirect(new URL(path, request.nextUrl));
+    const redirect = redirectResponse(request, path);
     for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
     return redirect;
   };

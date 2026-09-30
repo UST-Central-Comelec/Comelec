@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requirePortalUser } from "@/lib/auth/session";
+import { requireCentral } from "@/lib/auth/session";
 import { positions } from "@/lib/applications/options";
 import { clearApplyPageCache } from "@/lib/applications/apply-cache";
-import { CLOSE_GRACE_MINUTES, fromManilaInput, isPeriodMode, toManilaInput } from "@/lib/applications/period";
 import { getApplicationPeriod, saveApplicationPeriod } from "@/lib/applications/period-store";
 import { saveSlots } from "@/lib/applications/slots";
 import { text, type FormState } from "./form";
+import { canCancelClosing, graceEnd, modeAfterCancel, readPeriodForm } from "./period-form";
 
 /**
  * Saves the counts a commissioner changed. Accepting applicants lowers the counts on its own
@@ -16,7 +16,7 @@ import { text, type FormState } from "./form";
  * opened before an acceptance would otherwise restore the old number.
  */
 export async function updateRecruitmentSlots(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
 
   const counts: Record<string, number> = {};
   const fieldErrors: Record<string, string> = {};
@@ -47,27 +47,14 @@ export async function updateRecruitmentSlots(_state: FormState, formData: FormDa
  * back to a schedule remembers it.
  */
 export async function updateApplicationPeriod(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
 
-  const mode = text(formData, "mode");
-  if (!isPeriodMode(mode)) return { error: "Choose whether applications are open or closed." };
-
-  // Keep the saved time to the second when its field wasn't touched (the field only shows minutes).
-  const input = text(formData, "closesAt").trim();
-  const loaded = text(formData, "loadedClosesAt");
-  const closesAt = loaded && input === toManilaInput(loaded) ? loaded : input ? fromManilaInput(input) : null;
-
-  if (mode === "scheduled") {
-    if (!closesAt) return { error: "Check the highlighted fields.", fieldErrors: { closesAt: "Pick the date and time applications close." } };
-    if (Date.parse(closesAt) <= Date.now()) {
-      return { error: "Check the highlighted fields.", fieldErrors: { closesAt: "That time has already passed. Pick a later one, or choose Close now." } };
-    }
-  } else if (input && !closesAt) {
-    return { error: "Check the highlighted fields.", fieldErrors: { closesAt: "Use a valid date and time, or clear the field." } };
-  }
+  const form = readPeriodForm(formData);
+  if ("error" in form) return form.error;
+  const { mode, closesAt } = form;
 
   try {
-    await saveApplicationPeriod({ mode, closesAt, graceEndsAt: mode === "closed" ? await graceEnd() : null }, email);
+    await saveApplicationPeriod({ mode, closesAt, graceEndsAt: mode === "closed" ? graceEnd(await getApplicationPeriod()) : null }, email);
     clearApplyPageCache();
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Couldn’t save the application period." };
@@ -77,35 +64,19 @@ export async function updateApplicationPeriod(_state: FormState, formData: FormD
   redirect(`/portal/recruitment/settings?notice=period-${mode}`);
 }
 
-/**
- * When a close saved now really takes effect: CLOSE_GRACE_MINUTES from now, so anyone partway
- * through the form can still submit. Never later than a scheduled close that was already coming,
- * and a close already under way keeps its time rather than starting the wait again.
- */
-async function graceEnd() {
-  const current = await getApplicationPeriod();
-  if (current.mode === "closed") return current.graceEndsAt;
-  const end = Date.now() + CLOSE_GRACE_MINUTES * 60_000;
-  const scheduled = current.mode === "scheduled" && current.closesAt ? Date.parse(current.closesAt) : Infinity;
-  return new Date(Math.min(end, Math.max(scheduled, Date.now()))).toISOString();
-}
-
 /** Stops a close that's still in its grace period: back to the schedule if its date is still ahead, otherwise open. */
 export async function cancelClosing() {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
   const current = await getApplicationPeriod();
-  if (current.mode !== "closed" || !current.graceEndsAt || Date.parse(current.graceEndsAt) <= Date.now()) {
-    redirect("/portal/recruitment/settings?notice=period-cancel-too-late");
-  }
-  const mode = current.closesAt && Date.parse(current.closesAt) > Date.now() ? "scheduled" : "open";
-  await saveApplicationPeriod({ mode, closesAt: current.closesAt, graceEndsAt: null }, email);
+  if (!canCancelClosing(current)) redirect("/portal/recruitment/settings?notice=period-cancel-too-late");
+  await saveApplicationPeriod({ mode: modeAfterCancel(current), closesAt: current.closesAt, graceEndsAt: null }, email);
   clearApplyPageCache();
   refreshPeriodPages();
   redirect("/portal/recruitment/settings?notice=period-close-cancelled");
 }
 
 function refreshPeriodPages() {
-  revalidatePath("/");
-  revalidatePath("/apply", "layout");
+  // Every site page: the menu's Featured card and the home page announcement follow the period.
+  revalidatePath("/", "layout");
   revalidatePath("/portal/recruitment/settings");
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import { trackApplication, type ApplicationStatus, type TrackedApplication } from "@/lib/applications/actions";
+import { trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication } from "@/lib/applications/actions";
 
 const statusLabels: Record<ApplicationStatus, string> = {
   pending: "Pending review",
@@ -19,13 +19,24 @@ const statusNotes: Record<ApplicationStatus, string> = {
   declined: "Thank you for applying. You weren’t selected this time, but we hope you’ll apply again in a future cycle.",
 };
 
+const accessLabels: Record<TrackedAccessRequest["status"], string> = {
+  pending: "Pending review",
+  approved: "Approved",
+  declined: "Not approved",
+};
+
+const accessNotes: Record<TrackedAccessRequest["status"], string> = {
+  pending: "We have your request and a Central Comelec executive is reviewing it. The decision will show here, and we’ll email your UST account.",
+  approved: "You can now sign in to the Commission Portal with Google, using the UST account below.",
+  declined: "Your request wasn’t approved. If you think this is a mistake, contact a Central Comelec executive.",
+};
+
 const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso));
 
-/** Submitted → Pending review → Result, with the application's place on it. */
-function StatusTimeline({ status }: { status: ApplicationStatus }) {
-  const decided = status === "accepted" || status === "declined";
-  const reached = decided ? 2 : 1;
-  const stages = ["Submitted", "Pending review", decided ? statusLabels[status] : "Result"];
+/** Submitted → Pending review → Result, with the application's or request's place on it. `result` is set once it's decided. */
+function StatusTimeline({ result }: { result: string | null }) {
+  const reached = result ? 2 : 1;
+  const stages = ["Submitted", "Pending review", result ?? "Result"];
   return (
     <ol className="track-timeline">
       {stages.map((stage, index) => (
@@ -48,7 +59,7 @@ function TrackedResult({ application }: { application: TrackedApplication }) {
         </div>
         <span className={`track-status is-${application.status}`}>{statusLabels[application.status]}</span>
       </header>
-      <StatusTimeline status={application.status} />
+      <StatusTimeline result={application.status === "accepted" || application.status === "declined" ? statusLabels[application.status] : null} />
       <p className="track-note">{statusNotes[application.status]} For your privacy, your application is deleted 60 days after you submit it.</p>
       <dl className="apply-result-details">
         <div><dt>Name</dt><dd>{application.name}</dd></div>
@@ -65,6 +76,33 @@ function TrackedResult({ application }: { application: TrackedApplication }) {
   );
 }
 
+function TrackedAccess({ request }: { request: TrackedAccessRequest }) {
+  return (
+    <section className="track-result" aria-live="polite" aria-label="Your portal access request">
+      <header>
+        <div>
+          <span>Reference code</span>
+          <strong>{request.referenceCode}</strong>
+        </div>
+        <span className={`track-status is-${request.status === "approved" ? "accepted" : request.status}`}>{accessLabels[request.status]}</span>
+      </header>
+      <StatusTimeline result={request.status === "pending" ? null : accessLabels[request.status]} />
+      <p className="track-note">{accessNotes[request.status]} For your privacy, your request is deleted 60 days after you send it.</p>
+      <dl className="apply-result-details">
+        <div><dt>Name</dt><dd>{request.name}</dd></div>
+        <div><dt>Submitted</dt><dd>{formatSubmitted(request.submittedAt)}</dd></div>
+        <div><dt>Request</dt><dd>Commission Portal access</dd></div>
+        <div><dt>Position</dt><dd>{request.position}</dd></div>
+        <div className="is-wide"><dt>UST email</dt><dd>{request.email}</dd></div>
+        <div><dt>College or faculty</dt><dd>{request.college}</dd></div>
+        <div><dt>Program</dt><dd>{request.program}</dd></div>
+        <div><dt>Year level</dt><dd>{request.yearLevel}</dd></div>
+      </dl>
+      {request.status === "approved" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
+    </section>
+  );
+}
+
 export function TrackApplication({ initialReference }: { initialReference: string }) {
   const [state, formAction, pending] = useActionState(trackApplication, undefined);
   const errors = state?.fieldErrors ?? {};
@@ -73,27 +111,28 @@ export function TrackApplication({ initialReference }: { initialReference: strin
     <div className="apply-body track-body">
       <div className="apply-body-head">
         <h2>Track your application</h2>
-        <p>Enter the reference code you got after submitting, and the surname you applied with.</p>
+        <p>Enter the reference code you got after submitting, and the student number you gave. This works for commissioner applications (CC-) and portal access requests (PA-).</p>
       </div>
 
       <form className="track-form" action={formAction} noValidate>
         <label className={`apply-field${errors.reference ? " has-error" : ""}`}>
           <span className="apply-field-label">Reference code</span>
-          <input name="reference" defaultValue={initialReference} placeholder="CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
+          <input name="reference" key={`reference-${state?.entered?.reference}`} defaultValue={state?.entered?.reference ?? initialReference} placeholder="CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
           {errors.reference && <span className="apply-field-error">{errors.reference}</span>}
         </label>
-        <label className={`apply-field${errors.surname ? " has-error" : ""}`}>
-          <span className="apply-field-label">Surname</span>
-          <input name="surname" placeholder="DELA CRUZ" autoComplete="family-name" autoCapitalize="characters" maxLength={80} />
-          {errors.surname && <span className="apply-field-error">{errors.surname}</span>}
+        <label className={`apply-field${errors.studentNumber ? " has-error" : ""}`}>
+          <span className="apply-field-label">Student number</span>
+          <input name="studentNumber" key={`student-${state?.entered?.studentNumber}`} defaultValue={state?.entered?.studentNumber} inputMode="numeric" placeholder="2023123456" autoComplete="off" maxLength={12} />
+          {errors.studentNumber && <span className="apply-field-error">{errors.studentNumber}</span>}
         </label>
         <button className="button-primary" type="submit" disabled={pending}>{pending ? "Looking up…" : <>Track <ArrowRight size={15} /></>}</button>
       </form>
 
-      {state?.error && !state.application && <p className="apply-form-error" role="alert">{state.error}</p>}
+      {state?.error && !state.application && !state.accessRequest && <p className="apply-form-error" role="alert">{state.error}</p>}
       {state?.application && <TrackedResult application={state.application} />}
+      {state?.accessRequest && <TrackedAccess request={state.accessRequest} />}
 
-      <p className="track-help">Lost your code? Email <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link> from your UST email. Haven’t applied yet? <Link href="/apply">Apply now</Link>.</p>
+      <p className="track-help">Lost your code? Email <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link> from your UST email. Haven’t applied yet? <Link href="/apply">Become a Commissioner</Link>.</p>
     </div>
   );
 }

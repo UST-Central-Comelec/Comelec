@@ -3,10 +3,12 @@ import "server-only";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
 import { describeSlot, type InterviewMode } from "./interview-format";
-import { preferredBodies, retentionCutoff, yearLevels } from "./options";
+import { isConflictId, preferredBodies, retentionCutoff, yearLevels, type DeclaredConflict } from "./options";
+
+export type PreferredBody = keyof typeof preferredBodies;
 
 // Applications as the portal sees them: everything the applicant sent, including contact details.
-// Stored in public.applications (supabase/migrations/0004 and 0005).
+// Stored in public.applications (supabase/migrations/0004, 0005, 0013 and 0014).
 
 export const applicationStatuses = {
   pending: "Pending review",
@@ -31,18 +33,22 @@ export type ApplicationRecord = {
   name: string;
   studentNumber: string;
   email: string;
-  contactNumber: string;
+  contactNumber: string | null;
   facebookUrl: string;
   college: string;
   program: string;
   yearLevel: string;
   preferredBody: string;
+  /** "central" or "local": which body they want to serve in. */
+  preferredBodyId: string;
   division: string;
   position: string;
   positionId: string;
   cvUrl: string;
   endorsementUrl: string | null;
   portfolioUrl: string | null;
+  /** Conflicts the applicant pledged to resolve. Null when they applied before the form asked. */
+  conflicts: DeclaredConflict[] | null;
   interview: string | null;
   status: ApplicationStatus;
   statusUpdatedAt: string | null;
@@ -59,6 +65,11 @@ function interviewOf(slot: unknown) {
   return row ? describeSlot({ startsAt: row.starts_at, durationMinutes: row.duration_minutes, mode: row.mode, location: row.location }) : null;
 }
 
+function conflictsOf(value: unknown): DeclaredConflict[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.filter((item) => isConflictId(item?.type)).map((item) => ({ type: item.type, detail: typeof item.detail === "string" ? item.detail : "" }));
+}
+
 function toRecord(row: Row): ApplicationRecord {
   const value = (key: string) => (row[key] ?? "") as string;
   return {
@@ -70,18 +81,20 @@ function toRecord(row: Row): ApplicationRecord {
     name: `${value("first_name")} ${value("middle_initial")}. ${value("last_name")}`,
     studentNumber: value("student_number"),
     email: value("email"),
-    contactNumber: value("contact_number"),
+    contactNumber: (row.contact_number as string | null) || null,
     facebookUrl: value("facebook_url"),
     college: value("college"),
     program: value("program"),
     yearLevel: yearLevels[value("year_level") as keyof typeof yearLevels] ?? value("year_level"),
     preferredBody: preferredBodies[value("preferred_body") as keyof typeof preferredBodies] ?? value("preferred_body"),
+    preferredBodyId: value("preferred_body"),
     division: value("division"),
     position: value("position"),
     positionId: value("position_id"),
     cvUrl: value("cv_url"),
     endorsementUrl: (row.endorsement_url as string | null) ?? null,
     portfolioUrl: (row.portfolio_url as string | null) ?? null,
+    conflicts: conflictsOf(row.conflicts),
     interview: interviewOf(row.interview_slots),
     status: isApplicationStatus(row.status) ? row.status : "pending",
     statusUpdatedAt: (row.status_updated_at as string | null) ?? null,
@@ -90,12 +103,17 @@ function toRecord(row: Row): ApplicationRecord {
   };
 }
 
-/** Newest first, optionally only one status. */
-export async function listApplications(status?: ApplicationStatus): Promise<ApplicationRecord[]> {
+/**
+ * Newest first. Optionally only one status, only applicants who want to serve in one body
+ * (Central or Local Comelec), or only one college's applicants (what a Local account sees).
+ */
+export async function listApplications({ status, body, college }: { status?: ApplicationStatus; body?: PreferredBody; college?: string } = {}): Promise<ApplicationRecord[]> {
   if (!isSupabaseConfigured()) return [];
   // Past the retention period an application is treated as deleted, even before the nightly job runs.
   let query = createAdminClient().from("applications").select(withInterview).gte("created_at", retentionCutoff()).order("created_at", { ascending: false });
   if (status) query = query.eq("status", status);
+  if (body) query = query.eq("preferred_body", body);
+  if (college !== undefined) query = query.eq("college", college);
   const { data, error } = await query;
   if (error) throw new Error(`Couldn’t load applications: ${error.message}`);
   return data.map(toRecord);
@@ -121,4 +139,13 @@ export async function setApplicationStatus(id: string, status: ApplicationStatus
   if (error?.message.includes("recruitment_slots_full")) return false;
   if (error) throw new Error(`Couldn’t update the application: ${error.message}`);
   return true;
+}
+
+/**
+ * Deletes an application before its 60 days are up, as the nightly job would. Its interview place
+ * frees up with it; an accepted applicant's slot stays taken, as with the nightly job (0009).
+ */
+export async function deleteApplication(id: string) {
+  const { error } = await createAdminClient().from("applications").delete().eq("id", id);
+  if (error) throw new Error(`Couldn’t delete the application: ${error.message}`);
 }

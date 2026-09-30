@@ -14,17 +14,25 @@ const options: Array<{ mode: PeriodMode; label: string; icon: typeof Lock }> = [
   { mode: "closed", label: "Closed", icon: Lock },
 ];
 
-const submitLabels: Record<PeriodMode, string> = { scheduled: "Save schedule", open: "Open applications", closed: `Close in ${CLOSE_GRACE_MINUTES} minutes` };
+/** The form's wording: what opens and closes, and the public page that follows it. */
+export type PeriodCopy = { noun: string; page: string; note?: string };
+
+const applicationsCopy: PeriodCopy = { noun: "applications", page: "the Apply page", note: "Track application keeps working." };
+
+const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 export function ApplicationPeriodForm({
   action,
   mode: savedMode,
   closesAt,
+  copy = applicationsCopy,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   mode: PeriodMode;
   closesAt: string | null;
+  copy?: PeriodCopy;
 }) {
+  const submitLabels: Record<PeriodMode, string> = { scheduled: "Save schedule", open: `Open ${copy.noun}`, closed: `Close in ${CLOSE_GRACE_MINUTES} minutes` };
   const { state, pending, onSubmit, errors } = usePortalForm(action);
   const hydrated = useHydrated();
   const now = useNow();
@@ -43,9 +51,9 @@ export function ApplicationPeriodForm({
         <div className="portal-setting-label">
           <span id={`${id}-mode`}>Status</span>
           <InfoTip>
-            <strong>Scheduled:</strong> open now, with a countdown on the Apply page; closes by itself at the time you set.{" "}
+            <strong>Scheduled:</strong> open now, with a countdown on {copy.page}; closes by itself at the time you set.{" "}
             <strong>Always open:</strong> no closing date or countdown.{" "}
-            <strong>Closed:</strong> stops new applications after a {CLOSE_GRACE_MINUTES}-minute grace period, so anyone mid-application can finish; you can cancel until then. Track application keeps working.
+            <strong>Closed:</strong> stops new {copy.noun} after a {CLOSE_GRACE_MINUTES}-minute grace period, so anyone partway through can finish; you can cancel until then.{copy.note && ` ${copy.note}`}
           </InfoTip>
         </div>
         <div className="portal-setting-control">
@@ -65,7 +73,7 @@ export function ApplicationPeriodForm({
         <div className={`portal-setting${errors.closesAt ? " has-error" : ""}`}>
           <div className="portal-setting-label">
             <label htmlFor={`${id}-closes`}>Closes at</label>
-            <InfoTip>Manila time. Applications close at this exact minute; anyone who hasn’t submitted by then can’t.</InfoTip>
+            <InfoTip>Manila time. {capitalize(copy.noun)} close at this exact minute; anyone who hasn’t submitted by then can’t.</InfoTip>
           </div>
           <div className="portal-setting-control">
             <div className="portal-setting-inline">

@@ -6,7 +6,7 @@ import { DeleteButton } from "@/components/portal/delete-button";
 import { Notice } from "@/components/portal/notice";
 import { requireExecutive, withPortalUser } from "@/lib/auth/session";
 import { getAccount } from "@/lib/data/queries";
-import { accountRoles } from "@/lib/data/types";
+import { accountRoles, describeAffiliation } from "@/lib/data/types";
 import { setAccountAccess, updateAccountDetails } from "@/lib/portal/account-actions";
 
 export const metadata: Metadata = { title: "Manage account" };
@@ -24,7 +24,7 @@ export default async function ManageAccountPage({ params, searchParams }: PagePr
           <Link className="portal-back" href="/portal/accounts">← Accounts</Link>
           <h1>{account.name}</h1>
           <p className="portal-muted">
-            {account.email} · {accountRoles[account.role]} · {account.active ? "Active" : "Access revoked"}. Last changed {new Date(account.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} by {account.updatedBy}.
+            {account.email} · {accountRoles[account.role]} · {describeAffiliation(account.affiliation, account.college)} · {account.active ? "Active" : "Access revoked"}. Last changed {new Date(account.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} by {account.updatedBy}.
           </p>
         </div>
         {account.active ? (
@@ -39,7 +39,8 @@ export default async function ManageAccountPage({ params, searchParams }: PagePr
       {!account.active && <p className="portal-form-error">This account’s access is revoked. They can’t sign in until you restore it.</p>}
 
       <section className="portal-card">
-        <h2 className="portal-card-title">Details and role</h2>
+        <h2 className="portal-card-title">Details, role and affiliation</h2>
+        {!account.college && <p className="portal-muted">Added before accounts had a college. Pick theirs below.</p>}
         <AccountDetailsForm action={updateAccountDetails.bind(null, account.id)} initial={account} cancelHref="/portal/accounts" />
       </section>
     </main>

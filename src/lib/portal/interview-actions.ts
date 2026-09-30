@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requirePortalUser } from "@/lib/auth/session";
+import { requireCentral } from "@/lib/auth/session";
 import { clearApplyPageCache } from "@/lib/applications/apply-cache";
 import { createSlots, deleteEmptySlot, type NewSlot } from "@/lib/applications/interviews";
 import { divisions, type DivisionId } from "@/lib/applications/options";
@@ -16,7 +16,7 @@ const MAX_DAYS = 31;
  * come from selecting a group of dates on the calendar; they all get the same times and details.
  */
 export async function addInterviewSlots(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
 
   const division = text(formData, "division");
   const dates = [...new Set(formData.getAll("date").filter((value): value is string => typeof value === "string"))].sort();
@@ -68,7 +68,7 @@ export async function addInterviewSlots(_state: FormState, formData: FormData): 
 
 /** `day` ("YYYY-MM-DD") keeps the calendar on the same day afterwards. */
 export async function deleteInterviewSlot(id: string, day?: string) {
-  await requirePortalUser();
+  await requireCentral();
   const deleted = await deleteEmptySlot(id);
   clearApplyPageCache();
   revalidatePath("/apply");

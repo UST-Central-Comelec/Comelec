@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, Newspaper, Plus, Users } from "lucide-react";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { getDocuments, getMembers, getNews } from "@/lib/data/queries";
 import { documentKinds, memberBodies, newsCategories } from "@/lib/data/types";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -9,7 +9,7 @@ import { TitleWithInfo } from "@/components/portal/info-tip";
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function PortalDashboardPage() {
-  const [user, [news, documents, members]] = await withPortalUser(Promise.all([getNews(), getDocuments(), getMembers()]));
+  const [user, [news, documents, members]] = await withPortalUser(Promise.all([getNews(), getDocuments(), getMembers()]), requireCentral);
 
   const recent = [
     ...news.map((item) => ({ key: `news-${item.id}`, title: item.title, type: newsCategories[item.category], href: `/portal/news/${item.id}`, updatedAt: item.updatedAt })),

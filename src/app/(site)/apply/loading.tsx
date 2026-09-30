@@ -1,4 +1,4 @@
-// Shown the moment someone switches to Apply now (or Track application) while the page loads its
+// Shown the moment someone switches to Become a Commissioner (or Track application) while the page loads its
 // slot counts from Supabase, so the switch feels instant. The banner above stays put.
 
 export default function ApplyLoading() {
@@ -7,7 +7,7 @@ export default function ApplyLoading() {
       <div className="apply-tracker">
         <div className="apply-tracker-inner">
           <div className="apply-skeleton-steps">
-            {Array.from({ length: 7 }, (_, index) => <span key={index} />)}
+            {Array.from({ length: 8 }, (_, index) => <span key={index} />)}
           </div>
         </div>
       </div>

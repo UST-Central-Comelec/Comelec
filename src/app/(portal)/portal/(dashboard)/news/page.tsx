@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, Star } from "lucide-react";
 import { Notice } from "@/components/portal/notice";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { getNews } from "@/lib/data/queries";
 import { formatDate, newsCategories } from "@/lib/data/types";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -10,7 +10,7 @@ import { TitleWithInfo } from "@/components/portal/info-tip";
 export const metadata: Metadata = { title: "News" };
 
 export default async function PortalNewsPage({ searchParams }: PageProps<"/portal/news">) {
-  const [, [news, { notice }]] = await withPortalUser(Promise.all([getNews(), searchParams]));
+  const [, [news, { notice }]] = await withPortalUser(Promise.all([getNews(), searchParams]), requireCentral);
 
   return (
     <main className="portal-page">

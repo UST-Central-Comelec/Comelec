@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DocumentForm } from "@/components/portal/document-form";
-import { requirePortalUser } from "@/lib/auth/session";
+import { requireCentral } from "@/lib/auth/session";
 import { isDocumentKind } from "@/lib/data/types";
 import { createDocument } from "@/lib/portal/document-actions";
 
 export const metadata: Metadata = { title: "Add document" };
 
 export default async function NewDocumentPage({ searchParams }: PageProps<"/portal/documents/new">) {
-  await requirePortalUser();
+  await requireCentral();
   const { kind } = await searchParams;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 

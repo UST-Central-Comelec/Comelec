@@ -3,14 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/portal/delete-button";
 import { DocumentForm } from "@/components/portal/document-form";
-import { withPortalUser } from "@/lib/auth/session";
+import { requireCentral, withPortalUser } from "@/lib/auth/session";
 import { getDocument } from "@/lib/data/queries";
 import { deleteDocument, updateDocument } from "@/lib/portal/document-actions";
 
 export const metadata: Metadata = { title: "Edit document" };
 
 export default async function EditDocumentPage({ params }: PageProps<"/portal/documents/[id]">) {
-  const [, doc] = await withPortalUser(getDocument((await params).id));
+  const [, doc] = await withPortalUser(getDocument((await params).id), requireCentral);
   if (!doc) notFound();
 
   return (

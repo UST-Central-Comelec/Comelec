@@ -97,6 +97,9 @@ export const retentionCutoff = (now = Date.now()) => new Date(now - APPLICATION_
 /** When an application submitted at `submittedAt` gets deleted. */
 export const deletionDate = (submittedAt: string) => new Date(new Date(submittedAt).getTime() + APPLICATION_RETENTION_DAYS * 86_400_000).toISOString();
 
+/** Whole days until an application is deleted, counting a part day as one: 60 on the day it's submitted, 1 on its last day. */
+export const daysUntilDeletion = (submittedAt: string, now = Date.now()) => Math.max(0, Math.ceil((new Date(deletionDate(submittedAt)).getTime() - now) / 86_400_000));
+
 export const yearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", "5": "5th year", swis: "SWIS" } as const;
 
 export const preferredBodies = {
@@ -108,6 +111,56 @@ export const preferredBodyDescriptions: Record<keyof typeof preferredBodies, str
   central: "Run university-wide elections with the central commission.",
   local: "Serve the local commission of your own college.",
 };
+
+/**
+ * Qualifications applicants confirm on the Qualifications step, by form field. Being a bona fide
+ * student isn't here: verifying with a UST Google account confirms it.
+ */
+export const qualifications = {
+  meetsUnits: "Enrolled in at least 15 units, not counting P.E. and NSTP.",
+  meetsGwa: "General weighted average of at least 2.50, or 2.75 for the Faculty of Civil Law and the Faculty of Medicine and Surgery.",
+  notRecentCandidate: "Not a candidate for any elective position in the immediately preceding elections.",
+} as const;
+
+export type QualificationField = keyof typeof qualifications;
+
+/**
+ * Conflicts that don't disqualify an applicant but have to be resolved before they take office.
+ * The ids are saved with the application (supabase/migrations/0013_application_conflicts.sql).
+ */
+export const conflicts = {
+  office: {
+    question: "Do you hold any other office in the University?",
+    rule: "Members of the commission can’t hold any other office in the University during their term.",
+    resolve: "Should you be appointed, we’ll ask you to step down from this office before your term with the commission begins.",
+    detailLabel: "Which office, and in which organization?",
+    detailPlaceholder: "Treasurer, CICS Student Council",
+    short: "Other office",
+  },
+  party: {
+    question: "Are you affiliated with a political party, fraternity or sorority in the University?",
+    rule: "Members of the commission can’t be affiliated with any political party, fraternity or sorority in the University.",
+    resolve: "Should you be appointed, we’ll ask you to end this affiliation before your term with the commission begins, and to remain unaffiliated while you serve.",
+    detailLabel: "Which party, fraternity or sorority?",
+    detailPlaceholder: "Name of the party, fraternity or sorority",
+    short: "Party, fraternity or sorority",
+  },
+  politics: {
+    question: "Are you affiliated with any society, association or organization that is directly or indirectly involved in politics?",
+    rule: "The USEC also bars members of the commission from any society, association or organization directly or indirectly involved in politics.",
+    resolve: "Should you be appointed, we’ll ask you to step away from this organization before your term with the commission begins, and to remain apart from it while you serve.",
+    detailLabel: "Which organization?",
+    detailPlaceholder: "Name of the society, association or organization",
+    short: "Political organization",
+  },
+} as const;
+
+export type ConflictId = keyof typeof conflicts;
+
+export const isConflictId = (value: unknown): value is ConflictId => typeof value === "string" && value in conflicts;
+
+/** A conflict an applicant declared, as saved with the application. */
+export type DeclaredConflict = { type: ConflictId; detail: string };
 
 // Divisions and the positions open in each. Position ids key the slot counts that commissioners set
 // in the portal (Recruitment), so keep an id stable once applications have started.

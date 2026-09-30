@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { finishAccessVerification } from "@/lib/access-requests/callback";
+import { takeAccessFlow } from "@/lib/access-requests/verification";
 import { checkAccess } from "@/lib/auth/session";
 import { ACTIVITY_COOKIE, activityCookieOptions, encodeActivity } from "@/lib/security/portal-session";
 import { createAuthClient } from "@/lib/supabase/server";
@@ -6,10 +8,14 @@ import { createAuthClient } from "@/lib/supabase/server";
 // Google sends people back here after they pick an account. Exchange the code for a Supabase
 // session, then make sure the email is allowed — if not, sign them straight back out. Allowed
 // sessions start their timeout clock here (see src/lib/security/portal-session.ts). The proxy
-// rate-limits this route.
+// rate-limits this route. Sign-ins started from Request access come back here too, and are handed
+// over to finishAccessVerification.
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  const accessStep = await takeAccessFlow();
+  if (accessStep) return finishAccessVerification(code, accessStep);
+
   const toLogin = (error: string) => NextResponse.redirect(new URL(`/portal/login?error=${error}`, request.nextUrl));
   if (!code) return toLogin("failed");
 

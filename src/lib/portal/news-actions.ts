@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requirePortalUser } from "@/lib/auth/session";
+import { requireCentral } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
 import { newsCategories, type NewsCategory } from "@/lib/data/types";
 import { text, toFormState, type FormState } from "./form";
@@ -35,13 +35,12 @@ async function refresh(featuredId: string | null, author: string) {
       if (post.featured && post.id !== featuredId) await store.update("news", post.id, { featured: false }, author);
     }
   }
-  revalidatePath("/news");
-  revalidatePath("/news/[id]", "page");
-  revalidatePath("/portal", "layout");
+  // Every page: besides the newsroom, the menu's Featured carousel shows the latest posts.
+  revalidatePath("/", "layout");
 }
 
 export async function createNews(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
@@ -51,7 +50,7 @@ export async function createNews(_state: FormState, formData: FormData): Promise
 }
 
 export async function updateNews(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
@@ -62,7 +61,7 @@ export async function updateNews(id: string, _state: FormState, formData: FormDa
 }
 
 export async function deleteNews(id: string) {
-  const { email } = await requirePortalUser();
+  const { email } = await requireCentral();
   await store.remove("news", id);
   await refresh(null, email);
   redirect("/portal/news?notice=deleted");

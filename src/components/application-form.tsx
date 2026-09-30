@@ -2,36 +2,44 @@
 
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ClipboardList, Clock, Copy, Eye, Mail, ShieldCheck, Target, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ClipboardList, Clock, Copy, Download, Eye, Info, Mail, ShieldCheck, Target, Users } from "lucide-react";
 import { submitApplication, type ApplicationState, type SubmittedApplication } from "@/lib/applications/actions";
 import { forgetApplicantVerification } from "@/lib/applications/verification-actions";
 import { VERIFICATION_CHANNEL, type VerificationMessage } from "@/lib/applications/verification-channel";
-import { colleges, divisionDescriptions, divisions, positionDescriptions, preferredBodies, preferredBodyDescriptions, programsByCollege, yearLevels, type College, type DivisionId, type SlotCounts } from "@/lib/applications/options";
-import { checkFields, needsPortfolio, readApplication, type ApplicationField, type ApplicationValues } from "@/lib/applications/schema";
+import { colleges, conflicts, divisionDescriptions, divisions, positionDescriptions, preferredBodies, preferredBodyDescriptions, programsByCollege, qualifications, yearLevels, type College, type ConflictId, type DivisionId, type QualificationField, type SlotCounts } from "@/lib/applications/options";
+import { checkFields, conflictFields, needsPortfolio, readApplication, type ApplicationField, type ApplicationValues } from "@/lib/applications/schema";
 import { useHydrated } from "@/components/portal/portal-form";
 import { Combobox } from "@/components/combobox";
 import { InterviewPicker } from "@/components/interview-picker";
 import { describeSlot, type InterviewSlot } from "@/lib/applications/interview-format";
+import { downloadReceipt } from "@/lib/applications/receipt-image";
+import { describeAnswers, interviewLater, type AnswerSection, type AnswerSectionId } from "@/lib/applications/answers";
 
 const steps: Array<{ title: string; description: string; fields: ApplicationField[] }> = [
   { title: "Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
+  { title: "Qualifications", description: "Confirm you meet the requirements to serve on the commission, and tell us about anything you’d have to give up to join.", fields: ["meetsUnits", "meetsGwa", "notRecentCandidate", "conflictOffice", "conflictOfficeDetail", "conflictParty", "conflictPartyDetail", "conflictPolitics", "conflictPoliticsDetail", "conflictPledge"] },
   { title: "About you", description: "Your name, how to reach you, and where you study.", fields: ["lastName", "firstName", "middleInitial", "studentNumber", "contactNumber", "email", "facebookUrl", "college", "program", "yearLevel"] },
-  { title: "Your application", description: "Where you’d like to serve and the position you’re applying for.", fields: ["preferredBody", "division", "position"] },
+  { title: "Position", description: "Where you’d like to serve and the position you’re applying for.", fields: ["preferredBody", "division", "position"] },
   { title: "Documents", description: "Share your files as Google Drive links.", fields: ["cvUrl", "endorsementUrl", "portfolioUrl"] },
   { title: "Interview", description: "Pick a time for your interview with the commission. Times are in Philippine time.", fields: ["interviewSlot"] },
-  { title: "Review and submit", description: "Check your answers, then submit your application.", fields: [] },
+  { title: "Submit", description: "Check your answers, then submit your application.", fields: [] },
 ];
 
 /** Shown in the progress tracker after the form steps, once the application is saved. */
-const resultStep = steps.length;
-const trackerSteps = [...steps.map((step) => step.title), "Result"];
+const receiptStep = steps.length;
+const trackerSteps = [...steps.map((step) => step.title), "Receipt"];
 
 const yearLevelLabels: readonly string[] = Object.values(yearLevels);
 const yearLevelValue = (label: string) => Object.entries(yearLevels).find(([, text]) => text === label)?.[0] ?? "";
 
+const twoDigits = (value: number) => String(value).padStart(2, "0");
+
 const slotLabel = (count: number) => (count < 1 ? "No slots open" : count === 1 ? "1 slot open" : `${count} slots open`);
 
 const lastStep = steps.length - 1;
+
+/** How long a step takes to slide out before the next one slides in (apply-body.is-leaving in globals.css). */
+const STEP_LEAVE_MS = 180;
 
 function stepOf(field: string) {
   const index = steps.findIndex((step) => step.fields.includes(field as ApplicationField));
@@ -58,6 +66,44 @@ function Field({ label, hint, error, children, span = 4, optional }: { label: st
       {children}
       {error ? <span className="apply-field-error">{error}</span> : hint ? <span className="apply-field-hint">{hint}</span> : null}
     </label>
+  );
+}
+
+type ConflictAnswers = Record<ConflictId, "" | "yes" | "no">;
+const noConflictAnswers: ConflictAnswers = { office: "", party: "", politics: "" };
+const conflictIds = Object.keys(conflicts) as ConflictId[];
+const qualificationFields = Object.keys(qualifications) as QualificationField[];
+
+/**
+ * One conflict question. Answering "yes" doesn't rule the applicant out; it explains what they'd be
+ * asked to do if appointed and asks them to name the office or group.
+ */
+function ConflictQuestion({ id, answer, onAnswer, errors }: { id: ConflictId; answer: ConflictAnswers[ConflictId]; onAnswer: (answer: "yes" | "no") => void; errors: Record<string, string> }) {
+  const labelId = useId();
+  const item = conflicts[id];
+  const [answerField, detailField] = conflictFields[id];
+  return (
+    <div className={`apply-field apply-conflict${errors[answerField] ? " has-error" : ""}`}>
+      <span className="apply-field-label" id={labelId}>{item.question}<Required /></span>
+      <span className="apply-field-hint">{item.rule}</span>
+      <div className="apply-choices is-2 is-compact" role="radiogroup" aria-labelledby={labelId}>
+        {(["no", "yes"] as const).map((value) => (
+          <label className="apply-choice" key={value}>
+            <input type="radio" name={answerField} value={value} checked={answer === value} onChange={() => onAnswer(value)} />
+            <span className="apply-choice-text"><strong>{value === "yes" ? "Yes" : "No"}</strong></span>
+          </label>
+        ))}
+      </div>
+      {errors[answerField] && <span className="apply-field-error">{errors[answerField]}</span>}
+      {answer === "yes" && (
+        <div className="apply-conflict-note">
+          <p role="status"><Info size={17} aria-hidden="true" /><span><strong>Thank you for letting us know.</strong> {item.resolve}</span></p>
+          <Field label={item.detailLabel} error={errors[detailField]} span={12}>
+            <input name={detailField} maxLength={200} placeholder={item.detailPlaceholder} />
+          </Field>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -96,9 +142,10 @@ function DivisionOption({ id, checked, onSelect, slots }: { id: DivisionId; chec
 
 const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso));
 
-/** Step 6: confirms the application and hands over the reference code for tracking. */
+/** The Receipt step: confirms the application and hands over the reference code for tracking. */
 function ApplicationResult({ result, preview, onRestart }: { result?: SubmittedApplication; preview?: boolean; onRestart?: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState<"idle" | "saving" | "failed">("idle");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -117,10 +164,21 @@ function ApplicationResult({ result, preview, onRestart }: { result?: SubmittedA
     }
   };
 
+  const save = async () => {
+    if (!result) return;
+    setSaving("saving");
+    try {
+      await downloadReceipt(result);
+      setSaving("idle");
+    } catch {
+      setSaving("failed");
+    }
+  };
+
   return (
     <div className="apply-body" role="status">
       <div className="apply-body-head">
-        <span>Step {resultStep + 1} of {trackerSteps.length}</span>
+        <span>Step {receiptStep + 1} of {trackerSteps.length}</span>
         <h2 ref={headingRef} tabIndex={-1}>Application received</h2>
         <p>Thank you for stepping up. The commission will review your application and reach out through your UST email.</p>
       </div>
@@ -135,14 +193,22 @@ function ApplicationResult({ result, preview, onRestart }: { result?: SubmittedA
             </div>
             <button type="button" onClick={copy}>{copied ? <><Check size={15} aria-hidden="true" /> Copied</> : <><Copy size={15} aria-hidden="true" /> Copy code</>}</button>
           </div>
-          <p className="apply-result-note">Save this code. To check on your application, open <strong>Track application</strong> and enter it with your surname, <strong>{result.lastName}</strong>.</p>
+          <p className="apply-result-note">Save this code. To check on your application, open <strong>Track application</strong> and enter it with your student number.</p>
           <dl className="apply-result-details">
-            <div><dt>Name</dt><dd>{result.name}</dd></div>
-            <div><dt>Division</dt><dd>{result.division}</dd></div>
-            <div><dt>Position</dt><dd>{result.position}</dd></div>
-            {result.interview && <div className="is-wide"><dt>Interview</dt><dd>{result.interview}</dd></div>}
+            <div><dt>Applicant</dt><dd>{result.name}</dd></div>
             <div><dt>Submitted</dt><dd>{formatSubmitted(result.submittedAt)}</dd></div>
           </dl>
+          <div className="apply-result-save">
+            <p>{saving === "failed" ? "Couldn’t create the image. Take a screenshot of this page instead." : "Keep a copy of this receipt, with your reference code and all your answers, as an image."}</p>
+            <button type="button" onClick={save} disabled={saving === "saving"}><Download size={15} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
+          </div>
+        </section>
+      )}
+
+      {result && (
+        <section className="apply-result-answers" aria-labelledby="receipt-answers-title">
+          <h3 id="receipt-answers-title">Your answers</h3>
+          <AnswerSections sections={result.answers} />
         </section>
       )}
 
@@ -166,14 +232,29 @@ function ViewModeNote({ children }: { children: ReactNode }) {
   return <p className="apply-view-mode" role="note"><Eye size={16} aria-hidden="true" /><span><strong>View mode.</strong> {children}</span></p>;
 }
 
-function ReviewSection({ title, onEdit, rows }: { title: string; onEdit: () => void; rows: Array<[string, string]> }) {
+/** The step that holds each answer section, for the Review step's Edit links. */
+const sectionSteps: Record<AnswerSectionId, number> = { qualifications: 1, about: 2, application: 3, documents: 4, interview: 5 };
+
+function ReviewSection({ title, onEdit, rows }: { title: string; onEdit?: () => void; rows: Array<[string, string]> }) {
   return (
     <section className="apply-review-section">
-      <header><h3>{title}</h3><button type="button" onClick={onEdit}>Edit</button></header>
+      <header><h3>{title}</h3>{onEdit && <button type="button" onClick={onEdit}>Edit</button>}</header>
       <dl>
         {rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || <span className="is-empty">Not provided</span>}</dd></div>)}
       </dl>
     </section>
+  );
+}
+
+/** Every answer, About you on the left and the rest stacked beside it. With `onEdit`, each section links back to its step. */
+function AnswerSections({ sections, onEdit }: { sections: AnswerSection[]; onEdit?: (id: AnswerSectionId) => void }) {
+  const [about, ...rest] = sections;
+  const section = ({ id, title, rows }: AnswerSection) => <ReviewSection key={id} title={title} rows={rows} onEdit={onEdit && (() => onEdit(id))} />;
+  return (
+    <div className="apply-review">
+      {section(about)}
+      <div className="apply-review-stack">{rest.map(section)}</div>
+    </div>
   );
 }
 
@@ -247,12 +328,18 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
   const [position, setPosition] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [interviewSlot, setInterviewSlot] = useState("");
+  const [conflictAnswers, setConflictAnswers] = useState<ConflictAnswers>(noConflictAnswers);
+  const hasConflict = conflictIds.some((id) => conflictAnswers[id] === "yes");
   // Each division interviews on its own schedule; only the chosen division's times are offered.
   const divisionInterviews = interviews.filter((slot) => slot.division === division);
   const openInterviews = divisionInterviews.map((slot) => slot.id);
   const chosenInterview = divisionInterviews.find((slot) => slot.id === interviewSlot);
   const [handledState, setHandledState] = useState<ApplicationState>(undefined);
   const [moved, setMoved] = useState(false);
+  // Switching steps: the current one slides out the way the applicant is heading, then the next slides in.
+  const [leaving, setLeaving] = useState(false);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const hydrated = useHydrated();
@@ -279,11 +366,21 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
 
   const read = () => readApplication(new FormData(formRef.current ?? undefined));
 
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+
   const goTo = (target: number) => {
     setValues(read());
-    setStep(target);
-    setReached((current) => Math.max(current, target));
-    setMoved(true);
+    setDirection(target < step ? "back" : "forward");
+    const show = () => {
+      setLeaving(false);
+      setStep(target);
+      setReached((current) => Math.max(current, target));
+      setMoved(true);
+    };
+    clearTimeout(leaveTimer.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return show();
+    setLeaving(true);
+    leaveTimer.current = setTimeout(show, STEP_LEAVE_MS);
   };
 
   const checkStep = (index: number) => {
@@ -348,18 +445,18 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
     setWaitingForGoogle(true);
   };
 
-  /** View mode's Submit: shows the Result step with the answers given, without sending anything. */
+  /** View mode's Submit: shows the Receipt step with the answers given, without sending anything. */
   const finishPreview = () => {
     const answers = read();
     const chosenDivision = divisions[answers.division as DivisionId];
     setPreviewResult({
       referenceCode: "CC-SAMP-LE00",
-      lastName: answers.lastName || "your surname",
       name: [answers.firstName, answers.middleInitial && `${answers.middleInitial}.`, answers.lastName].filter(Boolean).join(" ") || "Not provided",
       division: chosenDivision?.label ?? "Not provided",
       position: (chosenDivision?.positions as Record<string, string> | undefined)?.[answers.position] ?? "Not provided",
       interview: chosenInterview ? describeSlot(chosenInterview) : null,
       submittedAt: new Date().toISOString(),
+      answers: describeAnswers(answers, chosenInterview ? describeSlot(chosenInterview) : interviewLater),
     });
   };
 
@@ -372,6 +469,7 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
     setPosition("");
     setYearLevel("");
     setInterviewSlot("");
+    setConflictAnswers(noConflictAnswers);
     setErrors({});
     setValues(null);
     setPreviewResult(null);
@@ -397,8 +495,11 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
   };
 
   const submitted = Boolean(state?.submitted) || previewResult !== null;
-  const current = submitted ? resultStep : step;
+  const current = submitted ? receiptStep : step;
   const progress = Math.round(((current + 1) / trackerSteps.length) * 100);
+  // A step counts as done only when every required answer on it is valid, as of the last step change.
+  // Before the first one there's nothing to check: the only step behind is Consent, done by verifying.
+  const complete = steps.map((item) => !values || Object.keys(checkFields(values, item.fields, slots, openInterviews)).length === 0);
 
   const tracker = (
     <div className="apply-tracker">
@@ -406,20 +507,29 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
         <nav aria-label="Application progress">
           <ol className="apply-steps">
             {trackerSteps.map((title, index) => {
-              const status = index === current ? "is-current" : submitted || index < reached || index < step ? "is-done" : "is-upcoming";
-              // Once submitted there's nothing to go back to; the Result step is never a link.
-              const reachable = !submitted && index < resultStep && index <= reached && index !== step && !pending;
+              const status = index === current ? "is-current" : submitted || ((index < reached || index < step) && complete[index]) ? "is-done" : "is-upcoming";
+              // Once submitted there's nothing to go back to; the Receipt step is never a link.
+              const reachable = !submitted && index < receiptStep && index <= reached && index !== step && !pending;
               return (
                 <li key={title} className={status}>
                   <button type="button" disabled={!reachable} onClick={() => goTo(index)} aria-current={index === current ? "step" : undefined}>
-                    <span className="apply-step-marker">{status === "is-done" ? <Check size={14} strokeWidth={2.5} /> : index + 1}</span>
-                    <span className="apply-step-text"><small>Step {index + 1}</small>{title}</span>
+                    <span className="apply-step-rail" aria-hidden="true" />
+                    <span className="apply-step-label">
+                      <span className="apply-step-index"><span className="visually-hidden">Step </span>{twoDigits(index + 1)}</span>
+                      <span className="apply-step-text">{title}{status === "is-done" && <span className="visually-hidden"> (done)</span>}</span>
+                    </span>
                   </button>
                 </li>
               );
             })}
           </ol>
         </nav>
+        {/* Phones and tablets hide the step names, so the current one is spelled out here. */}
+        <div className="apply-tracker-readout" aria-hidden="true">
+          <span><strong>{twoDigits(current + 1)}</strong> / {twoDigits(trackerSteps.length)}</span>
+          <span className="apply-tracker-readout-title" key={current}>{trackerSteps[current]}</span>
+          <span className="apply-tracker-readout-percent">{progress}%</span>
+        </div>
       </div>
       <div className="apply-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-label="Progress">
         <span style={{ width: `${progress}%` }} />
@@ -440,11 +550,11 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
     <form ref={formRef} className="apply-form" onSubmit={onSubmit} onInput={(event) => clearError((event.target as HTMLInputElement).name)} noValidate>
       {tracker}
 
-      <div className="apply-body">
-        <div className="apply-body-head">
+      <div className={`apply-body${leaving ? " is-leaving" : ""}`} data-direction={direction}>
+        <div className="apply-body-head" key={step}>
           <span>Step {step + 1} of {trackerSteps.length}</span>
           <h2 ref={headingRef} tabIndex={-1}>{steps[step].title}</h2>
-          {step === 1 && verified ? (
+          {step === 2 && verified ? (
             <p className="apply-verified-line"><VerifiedBadge /><span>Verified as <strong>{verified.email}</strong></span></p>
           ) : (
             <p>{steps[step].description}</p>
@@ -501,6 +611,62 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
 
         <div className="apply-step" hidden={step !== 1}>
           <fieldset className="apply-group">
+            <legend>Requirements</legend>
+            <div className="apply-checklist">
+              <p className="apply-group-intro">Check each one you meet. You need all four to apply.</p>
+              <ul className="apply-requirements">
+                <li>
+                  <label className="apply-requirement is-locked">
+                    <input type="checkbox" checked disabled readOnly />
+                    <span className="apply-requirement-box" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+                    <span className="apply-requirement-text">Bona fide student of the faculty, college, school or institute you’ll serve.</span>
+                    <span className="apply-requirement-verified"><VerifiedBadge /> {preview ? "Verified at sign-in" : "Verified with UST Google"}</span>
+                  </label>
+                </li>
+                {qualificationFields.map((field) => (
+                  <li key={field}>
+                    <label className={`apply-requirement${errors[field] ? " has-error" : ""}`}>
+                      <input name={field} type="checkbox" />
+                      <span className="apply-requirement-box" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+                      <span className="apply-requirement-text">
+                        {qualifications[field]}
+                        {errors[field] && <span className="apply-field-error">{errors[field]}</span>}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </fieldset>
+
+          <fieldset className="apply-group">
+            <legend>Conflicts to resolve</legend>
+            <div className="apply-checklist">
+              <p className="apply-group-intro">Please answer honestly. A “yes” won’t rule you out; it only means there’s something to settle before your term begins, should you be appointed.</p>
+              {conflictIds.map((id) => (
+                <ConflictQuestion
+                  key={id}
+                  id={id}
+                  answer={conflictAnswers[id]}
+                  errors={errors}
+                  onAnswer={(answer) => { setConflictAnswers((current) => ({ ...current, [id]: answer })); clearError(conflictFields[id][0]); }}
+                />
+              ))}
+              {hasConflict && (
+                <div className="apply-check">
+                  <label className={`apply-consent${errors.conflictPledge ? " has-error" : ""}`}>
+                    <input name="conflictPledge" type="checkbox" />
+                    <span><Required /> Should I be appointed, I will step down from the office or end the affiliation I named above before my term begins, and remain apart from it while I serve. I understand my appointment depends on this.</span>
+                  </label>
+                  {errors.conflictPledge && <span className="apply-field-error">{errors.conflictPledge}</span>}
+                </div>
+              )}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className="apply-step" hidden={step !== 2}>
+          <fieldset className="apply-group">
             <legend>Name</legend>
             <div className="apply-grid">
               <Field label="Last name" error={errors.lastName} span={5}>
@@ -521,7 +687,7 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
               <Field label="Student number" error={errors.studentNumber} span={3}>
                 <input name="studentNumber" inputMode="numeric" maxLength={10} placeholder="2023123456" />
               </Field>
-              <Field label="Mobile number" error={errors.contactNumber} span={3}>
+              <Field label="Mobile number" error={errors.contactNumber} span={3} optional>
                 <input name="contactNumber" type="tel" autoComplete="tel" placeholder="0917 123 4567" maxLength={16} />
               </Field>
               <Field label="UST email" error={errors.email} span={6}>
@@ -598,7 +764,7 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
           </fieldset>
         </div>
 
-        <div className="apply-step" hidden={step !== 2}>
+        <div className="apply-step" hidden={step !== 3}>
           <div className={`apply-field${errors.preferredBody ? " has-error" : ""}`} role="radiogroup" aria-label="Where would you like to serve?">
             <span className="apply-field-label">Where would you like to serve?<Required /></span>
             <div className="apply-choices is-2">
@@ -647,7 +813,7 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
           )}
         </div>
 
-        <div className="apply-step" hidden={step !== 3}>
+        <div className="apply-step" hidden={step !== 4}>
           <p className="apply-note">Upload each file to Google Drive, set sharing to <strong>Anyone with the link can view</strong>, then paste the link here.</p>
           <div className="apply-grid">
             <Field label="CV or résumé" error={errors.cvUrl} span={12}>
@@ -664,43 +830,15 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
           </div>
         </div>
 
-        <div className="apply-step" hidden={step !== 4}>
+        <div className="apply-step" hidden={step !== 5}>
           <div className={`apply-field${errors.interviewSlot ? " has-error" : ""}`}>
             <InterviewPicker key={division} slots={divisionInterviews} value={interviewSlot} invalid={Boolean(errors.interviewSlot)} onChange={(id) => { setInterviewSlot(id); clearError("interviewSlot"); }} />
             {errors.interviewSlot && <span className="apply-field-error" role="alert">{errors.interviewSlot}</span>}
           </div>
         </div>
 
-        <div className="apply-step" hidden={step !== 5}>
-          {values && (
-            <div className="apply-review">
-              <ReviewSection title="About you" onEdit={() => goTo(1)} rows={[
-                ["Name", [values.lastName && `${values.lastName},`, values.firstName, values.middleInitial && `${values.middleInitial.toUpperCase()}.`].filter(Boolean).join(" ")],
-                ["Student number", values.studentNumber],
-                ["Mobile number", values.contactNumber],
-                ["UST email", values.email],
-                ["Facebook", values.facebookUrl],
-                ["College or faculty", values.college],
-                ["Program", values.program],
-                ["Year level", yearLevels[values.yearLevel as keyof typeof yearLevels] ?? ""],
-              ]} />
-              <div className="apply-review-stack">
-                <ReviewSection title="Your application" onEdit={() => goTo(2)} rows={[
-                  ["Serve in", preferredBodies[values.preferredBody as keyof typeof preferredBodies] ?? ""],
-                  ["Division", divisions[values.division as DivisionId]?.label ?? ""],
-                  ["Position", divisionPositions[values.position] ?? ""],
-                ]} />
-                <ReviewSection title="Documents" onEdit={() => goTo(3)} rows={[
-                  ["CV or résumé", values.cvUrl],
-                  ["Endorsement letter", values.endorsementUrl],
-                  ...(needsPortfolio(values.division) ? [["Portfolio", values.portfolioUrl] as [string, string]] : []),
-                ]} />
-                <ReviewSection title="Interview" onEdit={() => goTo(4)} rows={[
-                  ["Time", chosenInterview ? describeSlot(chosenInterview) : divisionInterviews.length ? "" : "The commission will email you to schedule it"],
-                ]} />
-              </div>
-            </div>
-          )}
+        <div className="apply-step" hidden={step !== 6}>
+          {values && <AnswerSections sections={describeAnswers(values, chosenInterview ? describeSlot(chosenInterview) : divisionInterviews.length ? "" : interviewLater)} onEdit={(id) => goTo(sectionSteps[id])} />}
           {state?.error && !state.fieldErrors && <p className="apply-form-error" role="alert">{state.error}</p>}
         </div>
 
@@ -714,7 +852,7 @@ export function ApplicationForm({ slots, interviews, verified: verifiedAtLoad, v
             <button className="apply-back" type="button" onClick={() => goTo(step - 1)} disabled={pending}><ArrowLeft size={15} /> Back</button>
           ) : <span />}
           <button className="button-primary" type="submit" disabled={pending || redirecting || waitingForGoogle || !hydrated}>
-            {step === 0 && !verified && !preview ? (waitingForGoogle ? "Waiting for Google…" : <>Continue with UST Google <ArrowRight size={15} /></>) : step < lastStep ? <>Continue <ArrowRight size={15} /></> : pending ? "Submitting…" : <>Submit application <ArrowRight size={15} /></>}
+            {step === 0 && !verified && !preview ? (waitingForGoogle ? "Waiting for Google…" : <>Continue with UST Google <ArrowRight size={15} /></>) : step === 1 ? <>I confirm <ArrowRight size={15} /></> : step < lastStep ? <>Continue <ArrowRight size={15} /></> : pending ? "Submitting…" : <>Submit application <ArrowRight size={15} /></>}
           </button>
         </footer>
       </div>

@@ -1,11 +1,14 @@
 import { z } from "zod";
-import { colleges, divisions, portfolioDivisions, preferredBodies, programsByCollege, yearLevels, type College, type DivisionId, type SlotCounts } from "./options";
+import { colleges, conflicts, divisions, portfolioDivisions, preferredBodies, programsByCollege, yearLevels, type College, type ConflictId, type DeclaredConflict, type DivisionId, type SlotCounts } from "./options";
 
 // Shared by the form (checks each step before moving on) and the server action (checks
 // everything again before saving).
 
 const keys = <T extends object>(record: T) => Object.keys(record) as [keyof T & string, ...(keyof T & string)[]];
 const driveLink = (message: string) => z.string().trim().max(500).regex(/^https:\/\/(drive|docs)\.google\.com\/\S+$/, message);
+const confirmed = z.literal(true, "This qualification is required to apply.");
+const conflictAnswer = z.enum(["no", "yes"], "Answer yes or no.");
+const conflictDetail = z.string().trim().max(200, "Keep it under 200 characters.");
 const name = (message: string) => z.string().trim().min(1, message).max(80).regex(/^[\p{L}][\p{L}\p{M} .'-]*$/u, "Use letters only.");
 
 /** Field rules, one per input. `.pick()` checks a single step's fields. */
@@ -14,7 +17,8 @@ export const applicationFields = z.object({
   firstName: name("Add your first name."),
   middleInitial: z.string().trim().min(1, "Add your middle initial.").regex(/^\p{L}$/u, "Use one letter only."),
   studentNumber: z.string().trim().regex(/^\d{10}$/, "Use your 10-digit student number."),
-  contactNumber: z.string().trim().regex(/^(\+63|0)9\d{2}[\s-]?\d{3}[\s-]?\d{4}$/, "Use a mobile number like 0917 123 4567."),
+  // Optional: empty, or a Philippine mobile number.
+  contactNumber: z.union([z.literal(""), z.string().trim().regex(/^(\+63|0)9\d{2}[\s-]?\d{3}[\s-]?\d{4}$/, "Use a mobile number like 0917 123 4567.")]),
   email: z.string().trim().toLowerCase().email("Use a valid email address.").max(120).refine((value) => value.endsWith("@ust.edu.ph"), "Use your @ust.edu.ph email."),
   college: z.enum(colleges as [College, ...College[]], "Pick your college or faculty from the list."),
   program: z.string().trim().min(1, "Pick your program."),
@@ -27,12 +31,37 @@ export const applicationFields = z.object({
   endorsementUrl: z.union([z.literal(""), driveLink("Use a Google Drive link.")]),
   portfolioUrl: z.union([z.literal(""), driveLink("Use a Google Drive link.")]),
   consent: z.literal(true, "You need to agree before we can process your application."),
+  meetsUnits: confirmed,
+  meetsGwa: confirmed,
+  notRecentCandidate: confirmed,
+  // A "yes" needs the detail field filled in and the pledge checked, both checked in checkFields.
+  conflictOffice: conflictAnswer,
+  conflictOfficeDetail: conflictDetail,
+  conflictParty: conflictAnswer,
+  conflictPartyDetail: conflictDetail,
+  conflictPolitics: conflictAnswer,
+  conflictPoliticsDetail: conflictDetail,
+  conflictPledge: z.boolean(),
   // Checked in checkFields against the slots that are still open.
   interviewSlot: z.string(),
 });
 
 export type ApplicationField = keyof typeof applicationFields.shape;
 export type ApplicationValues = ReturnType<typeof readApplication>;
+
+/** Each conflict question's yes/no field and the field that names the office or group. */
+export const conflictFields = {
+  office: ["conflictOffice", "conflictOfficeDetail"],
+  party: ["conflictParty", "conflictPartyDetail"],
+  politics: ["conflictPolitics", "conflictPoliticsDetail"],
+} as const satisfies Record<ConflictId, readonly [ApplicationField, ApplicationField]>;
+
+/** The conflicts answered "yes", with what the applicant named. */
+export function declaredConflicts(values: ApplicationValues): DeclaredConflict[] {
+  return (Object.keys(conflicts) as ConflictId[])
+    .filter((type) => values[conflictFields[type][0]] === "yes")
+    .map((type) => ({ type, detail: values[conflictFields[type][1]].trim() }));
+}
 
 /** The program has to be one the chosen college offers. */
 export function programError(values: Pick<ApplicationValues, "college" | "program">) {
@@ -66,6 +95,12 @@ export function checkFields(values: ApplicationValues, fields: ApplicationField[
     if (!values.interviewSlot) errors.interviewSlot = "Pick an interview time.";
     else if (!openInterviews.includes(values.interviewSlot)) errors.interviewSlot = "That time just filled up. Pick another.";
   }
+  for (const [answer, detail] of Object.values(conflictFields)) {
+    if (fields.includes(detail) && !errors[detail] && values[answer] === "yes" && !values[detail].trim()) errors[detail] = "Please name it so the commission can follow up with you.";
+  }
+  if (fields.includes("conflictPledge") && declaredConflicts(values).length && !values.conflictPledge) {
+    errors.conflictPledge = "Please confirm this commitment to continue.";
+  }
   if (fields.includes("portfolioUrl") && !errors.portfolioUrl && needsPortfolio(values.division) && !values.portfolioUrl.trim()) {
     errors.portfolioUrl = "Paste the Google Drive link to your portfolio.";
   }
@@ -83,7 +118,7 @@ export function readApplication(formData: FormData) {
     firstName: text("firstName"),
     middleInitial: text("middleInitial"),
     studentNumber: text("studentNumber"),
-    contactNumber: text("contactNumber"),
+    contactNumber: text("contactNumber").trim(),
     email: text("email"),
     college: text("college"),
     program: text("program"),
@@ -96,6 +131,16 @@ export function readApplication(formData: FormData) {
     endorsementUrl: text("endorsementUrl"),
     portfolioUrl: text("portfolioUrl"),
     consent: formData.get("consent") === "on",
+    meetsUnits: formData.get("meetsUnits") === "on",
+    meetsGwa: formData.get("meetsGwa") === "on",
+    notRecentCandidate: formData.get("notRecentCandidate") === "on",
+    conflictOffice: text("conflictOffice"),
+    conflictOfficeDetail: text("conflictOfficeDetail"),
+    conflictParty: text("conflictParty"),
+    conflictPartyDetail: text("conflictPartyDetail"),
+    conflictPolitics: text("conflictPolitics"),
+    conflictPoliticsDetail: text("conflictPoliticsDetail"),
+    conflictPledge: formData.get("conflictPledge") === "on",
     interviewSlot: text("interviewSlot"),
   };
 }

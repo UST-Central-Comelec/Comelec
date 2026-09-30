@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./portal.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+// Labels, codes and figures: the portal's technical voice.
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: { default: "Commission Portal", template: "%s · Commission Portal" },
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function PortalRootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={geist.variable}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
       <body className="portal">{children}</body>
     </html>
   );

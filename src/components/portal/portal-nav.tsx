@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType } from "react";
-import { CalendarDays, ChevronDown, ClipboardList, FileText, Hash, Inbox, LayoutDashboard, Newspaper, Settings2, ShieldCheck, Users } from "lucide-react";
+import { CalendarDays, ChevronDown, ClipboardList, FileText, Flag, Hash, Inbox, LayoutDashboard, Newspaper, Settings2, ShieldCheck, Users, Vote } from "lucide-react";
 
 type Icon = ComponentType<{ size?: number; strokeWidth?: number; "aria-hidden"?: boolean | "true" }>;
 type Tab = { href: string; label: string; icon: Icon };
-/** A main tab with subtabs. Clicking it opens the first subtab. */
+/** A main tab with subtabs. Clicking it folds the subtabs open or shut (in the icon strip, it opens the first subtab). */
 type Group = { label: string; icon: Icon; items: Tab[] };
 type Entry = Tab | Group;
 
@@ -26,30 +26,56 @@ const entries: Entry[] = [
       { href: "/portal/recruitment/settings", label: "Settings", icon: Settings2 },
     ],
   },
+  {
+    label: "PolPaR",
+    icon: Flag,
+    items: [
+      { href: "/portal/polpar/registrations", label: "Registrations", icon: Inbox },
+      { href: "/portal/polpar/settings", label: "Settings", icon: Settings2 },
+    ],
+  },
+  {
+    label: "Filing of Candidacy",
+    icon: Vote,
+    items: [
+      { href: "/portal/candidacy/filings", label: "Filings", icon: Inbox },
+      { href: "/portal/candidacy/settings", label: "Settings", icon: Settings2 },
+    ],
+  },
 ];
 
 const executiveEntries: Entry[] = [{ href: "/portal/accounts", label: "Accounts", icon: ShieldCheck }];
 
 const isGroup = (entry: Entry): entry is Group => "items" in entry;
+
+/**
+ * The tabs a Local account sees: its college's people, not the commission-wide settings. Groups
+ * keep only these subtabs. The pages check this on the server too.
+ */
+const localTabs = new Set(["/portal/members", "/portal/recruitment/applications", "/portal/polpar/registrations", "/portal/candidacy/filings"]);
+
+function localEntries(list: Entry[]): Entry[] {
+  return list.flatMap((entry): Entry[] => {
+    if (!isGroup(entry)) return localTabs.has(entry.href) ? [entry] : [];
+    const items = entry.items.filter((item) => localTabs.has(item.href));
+    return items.length ? [{ ...entry, items }] : [];
+  });
+}
 const isActive = (href: string, pathname: string) => (href === "/portal" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`));
 
 /**
- * `isExecutive` only decides what's shown; the account pages check the role on the server.
+ * `isExecutive` and `isLocal` only decide what's shown; the pages check the role and affiliation on the server.
  * When `collapsed`, the sidebar is a strip of icons: labels show as tooltips, and a group's
  * subtabs show in a flyout on hover or keyboard focus instead of expanding in place.
  */
-export function PortalNav({ isExecutive, collapsed }: { isExecutive: boolean; collapsed: boolean }) {
+export function PortalNav({ isExecutive, isLocal, collapsed }: { isExecutive: boolean; isLocal: boolean; collapsed: boolean }) {
   const pathname = usePathname();
-  const shown = isExecutive ? [...entries, ...executiveEntries] : entries;
+  const shown = isLocal ? localEntries(entries) : isExecutive ? [...entries, ...executiveEntries] : entries;
   const activeGroup = shown.find((entry) => isGroup(entry) && entry.items.some((item) => isActive(item.href, pathname)))?.label ?? null;
 
-  // The group you're in starts open; moving to another page resets it to that page's group.
-  const [openGroup, setOpenGroup] = useState(activeGroup);
-  const [seenPath, setSeenPath] = useState(pathname);
-  if (seenPath !== pathname) {
-    setSeenPath(pathname);
-    setOpenGroup(activeGroup);
-  }
+  // A group opened or closed by hand stays that way from page to page. Groups you haven't touched
+  // follow the page: only the one you're in is open.
+  const [locked, setLocked] = useState<Record<string, boolean>>({});
 
   return (
     <nav className="portal-nav" aria-label="Portal">
@@ -58,8 +84,8 @@ export function PortalNav({ isExecutive, collapsed }: { isExecutive: boolean; co
 
         const { label, icon: GroupIcon, items } = entry;
         const within = activeGroup === label;
-        const open = openGroup === label;
-        const subId = `portal-nav-${label.toLowerCase()}`;
+        const open = locked[label] ?? within;
+        const subId = `portal-nav-${label.toLowerCase().replace(/\s+/g, "-")}`;
         return (
           <div key={label} className={`portal-nav-group${open ? " is-open" : ""}${within ? " is-within" : ""}`}>
             <Link
@@ -68,14 +94,10 @@ export function PortalNav({ isExecutive, collapsed }: { isExecutive: boolean; co
               aria-expanded={collapsed ? undefined : open}
               aria-controls={subId}
               onClick={(event) => {
+                // In the icon strip it goes to the first subtab; the flyout covers the rest.
                 if (collapsed) return;
-                // Already on one of its pages: just fold or unfold the subtabs.
-                if (within) {
-                  event.preventDefault();
-                  setOpenGroup(open ? null : label);
-                } else {
-                  setOpenGroup(label);
-                }
+                event.preventDefault();
+                setLocked((current) => ({ ...current, [label]: !open }));
               }}
             >
               <GroupIcon size={17} strokeWidth={1.7} aria-hidden="true" />

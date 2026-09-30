@@ -14,18 +14,21 @@ type Values = Pick<Member, "name" | "position" | "body" | "unit" | "photoUrl">;
 
 /**
  * `takenColleges` maps each college that already has a Central Representative (other than this
- * member) to that person's name; the server checks it again on save.
+ * member) to that person's name; the server checks it again on save. `lockedCollege` (a Local
+ * account's college) fixes the member to that college's Local Comelec.
  */
 export function MemberForm({
   action,
   initial,
   submitLabel,
   takenColleges,
+  lockedCollege,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   initial: Values;
   submitLabel: string;
   takenColleges: Record<string, string>;
+  lockedCollege?: string;
 }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
   const [body, setBody] = useState<MemberBody>(initial.body);
@@ -50,7 +53,8 @@ export function MemberForm({
           <input name="name" defaultValue={initial.name} maxLength={120} required />
         </Field>
         <Field label="Serves in" error={errors.body}>
-          <select name="body" value={body} onChange={(event) => changeBody(event.target.value as MemberBody)}>
+          {lockedCollege !== undefined && <input type="hidden" name="body" value="local" />}
+          <select name={lockedCollege !== undefined ? undefined : "body"} value={body} onChange={(event) => changeBody(event.target.value as MemberBody)} disabled={lockedCollege !== undefined}>
             {Object.entries(memberBodies).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </Field>
@@ -81,7 +85,11 @@ export function MemberForm({
                   : "Shown under their name on the website. Clear the field to leave it out."}
             </InfoTip>
           </span>
-          <Combobox name="unit" options={colleges} value={college} onChange={setCollege} placeholder="Type or pick a college" invalid={Boolean(errors.unit || takenBy)} labelledBy={collegeLabel} />
+          {lockedCollege !== undefined ? (
+            <input className="is-fixed" name="unit" value={lockedCollege} readOnly aria-labelledby={collegeLabel} />
+          ) : (
+            <Combobox name="unit" options={colleges} value={college} onChange={setCollege} placeholder="Type or pick a college" invalid={Boolean(errors.unit || takenBy)} labelledBy={collegeLabel} />
+          )}
           {takenBy ? (
             <span className="portal-field-error">{takenBy} is already this college’s Central Representative. Change or remove them first.</span>
           ) : (
