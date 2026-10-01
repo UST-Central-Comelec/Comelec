@@ -1,12 +1,19 @@
 // Shared content shapes for the public site and the portal. Kept free of server-only
 // imports so client forms can use the option lists below.
 
+import type { CommissionEvent } from "@/lib/events/options";
+import type { StatisticTable } from "@/lib/statistics/table";
+
+/**
+ * What a post is filed under. Press releases, announcements and publications make up the News page
+ * (newsroomCategories); explainers are written the same way in the portal but have their own page,
+ * the Election Explainer (/explainer).
+ */
 export const newsCategories = {
-  announcement: "Announcement",
   "press-release": "Press Release",
-  event: "Event",
+  announcement: "Announcement",
+  publication: "Publication",
   explainer: "Explainer",
-  "election-watch": "Election Watch",
 } as const;
 
 export const documentKinds = {
@@ -78,6 +85,17 @@ export const affiliations = {
 } as const;
 
 export type NewsCategory = keyof typeof newsCategories;
+
+/** The categories listed on the News page, in the order of its tabs. */
+export const newsroomCategories = ["press-release", "announcement", "publication"] as const satisfies readonly NewsCategory[];
+export type NewsroomCategory = (typeof newsroomCategories)[number];
+
+/** The News page's tabs: its categories, in the plural. */
+export const newsroomLabels: { [Category in NewsroomCategory]: string } = {
+  "press-release": "Press releases",
+  announcement: "Announcements",
+  publication: "Publications",
+};
 export type DocumentKind = keyof typeof documentKinds;
 
 /** Kinds listed in the public Archive. The others (Constitution, Elections Code, Proclamation) are reached from Voter Info, each on its own. */
@@ -159,10 +177,18 @@ export type ContentDb = {
   documents: OfficialDocument[];
   members: Member[];
   accounts: PortalAccount[];
+  /** Events and activities. Their shape and options live in src/lib/events/options.ts. */
+  events: CommissionEvent[];
+  /** The Statistics page's tables of figures. Their shape lives in src/lib/statistics/table.ts. */
+  statistics: StatisticTable[];
 };
 
 export function isNewsCategory(value: string): value is NewsCategory {
-  return value in newsCategories;
+  return Object.hasOwn(newsCategories, value);
+}
+
+export function isNewsroomCategory(value: string): value is NewsroomCategory {
+  return (newsroomCategories as readonly string[]).includes(value);
 }
 
 export function isDocumentKind(value: string): value is DocumentKind {

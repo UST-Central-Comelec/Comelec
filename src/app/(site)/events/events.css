@@ -1,0 +1,369 @@
+/* Events & activities (src/app/(site)/events): the home page's COMET language on a page to be used, not
+   toured. A short banner under the night sky, then two columns: the events as an accordion, each under a
+   banner naming the unit that organizes it (src/components/events/events-board.tsx), and a month calendar
+   that stays beside the list. An event's own page and its registration form share all of it. Everything is
+   prefixed ev- (keyframes and custom properties too): a page's stylesheet stays loaded after navigating
+   away, so nothing here may reach other pages. */
+
+.ev { --ev-bg: #030305; --ev-text: #f3f1eb; --ev-soft: #c9c7d0; --ev-muted: #a3a1ac; --ev-faint: #7e7c87; --ev-line: rgba(255,255,255,.08); --ev-line-strong: rgba(255,255,255,.15); --ev-gold: #fec30c; --ev-gold-light: #ffe28a; --ev-local: #8aa6ff; --ev-local-light: #c3d2ff; --ev-ok: #3ecf8e; --ev-ok-ink: #7be3b4; --ev-warn: #f5a524; --ev-warn-ink: #ffc96b; --ev-danger: #ff6b7d; --ev-danger-ink: #ff9aa6; --ev-glass: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.014)); --ev-ease: cubic-bezier(.22,1,.36,1); --ev-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --ev-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --ev-wrap: var(--site-max, 1240px); --ev-gutter: var(--site-gutter, 24px); --ev-header: 78px; -webkit-font-smoothing: antialiased; background: var(--ev-bg); color: var(--ev-text); min-height: calc(100svh - var(--ev-header)); overflow: clip; position: relative; }
+/* Film grain over everything, as on the home page: texture, and it keeps the dark gradients from banding */
+.ev::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 4; }
+.ev ::selection { background: rgba(254,195,12,.32); color: #fff; }
+.ev :focus-visible { outline: 2px solid var(--ev-gold); outline-offset: 3px; }
+
+/* Shared: the frame, mono labels, and the gold serif italic that carries accent words */
+.ev-wrap { margin: 0 auto; max-width: var(--ev-wrap); padding: 0 var(--ev-gutter); position: relative; }
+.ev-eyebrow { align-items: center; color: var(--ev-muted); display: flex; font: 500 11px/1 var(--ev-mono); gap: 11px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
+.ev-eyebrow::before { background: var(--ev-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(254,195,12,.16), 0 0 12px rgba(254,195,12,.6); content: ""; flex: none; height: 6px; width: 6px; }
+.ev-title em, .ev-done h2 em { background: linear-gradient(100deg, #ffe7a3, var(--ev-gold) 28%, #f2a900 52%, var(--ev-gold) 76%, #ffe7a3) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--ev-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+.ev-title em { animation: ev-sheen 10s linear infinite; }
+@keyframes ev-sheen { to { background-position: 200% 0; } }
+
+/* Buttons, as on the home page: gold with a sheen that sweeps across on hover, and glass */
+.ev-button { align-items: center; border: 0; border-radius: 999px; cursor: pointer; display: inline-flex; font: inherit; font-size: 14px; font-weight: 550; gap: 10px; isolation: isolate; justify-content: center; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: background-color .3s ease, box-shadow .4s var(--ev-ease), transform .4s var(--ev-ease); white-space: nowrap; }
+.ev-button svg { flex: none; transition: transform .4s var(--ev-ease); }
+.ev-button:hover svg { transform: translate(2px, -2px); }
+.ev-button.is-back:hover svg { transform: translateX(-3px); }
+.ev-button.is-small { font-size: 13px; padding: 12px 17px; }
+.ev-button.is-primary { background: var(--ev-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(254,195,12,.75); color: #0c0b08; }
+.ev-button.is-primary::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--ev-ease); z-index: -1; }
+.ev-button.is-primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(254,195,12,.9), 0 0 0 6px rgba(254,195,12,.14); transform: translateY(-1px); }
+.ev-button.is-primary:hover::after { transform: translateX(120%); }
+.ev-button.is-ghost { background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px var(--ev-line-strong); color: var(--ev-text); }
+.ev-button.is-ghost:hover { background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(254,195,12,.55); }
+.ev-button:disabled { cursor: progress; opacity: .55; transform: none; }
+.ev-button.is-block { width: 100%; }
+.ev-note { color: var(--ev-muted); font-size: 13.5px; line-height: 1.5; margin: 0; }
+
+/* The organizer's banner: gold for the Central Comelec, blue for a college's Local Comelec unit */
+.ev-organizer { --unit: var(--ev-gold); --unit-ink: var(--ev-gold-light); --unit-wash: rgba(254,195,12,.13); align-items: center; background: linear-gradient(90deg, var(--unit-wash), transparent 72%); border-bottom: 1px solid var(--ev-line); color: var(--ev-faint); display: flex; font: 500 10.5px/1.3 var(--ev-mono); gap: 9px; letter-spacing: .16em; padding: 10px 20px; text-transform: uppercase; }
+.ev-organizer.is-local { --unit: var(--ev-local); --unit-ink: var(--ev-local-light); --unit-wash: rgba(138,166,255,.14); }
+.ev-organizer i { background: var(--unit); border-radius: 50%; box-shadow: 0 0 10px var(--unit); flex: none; height: 6px; width: 6px; }
+.ev-organizer strong { color: var(--unit-ink); font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* On an event's own page it's a tag rather than the top edge of a card */
+.ev-organizer.is-tag { align-self: flex-start; background: var(--unit-wash); border: 1px solid color-mix(in srgb, var(--unit) 34%, transparent); border-radius: 999px; display: inline-flex; max-width: 100%; padding: 8px 14px 8px 12px; }
+
+/* Whether sign-ups are open: a dot (pulsing green while they are), then the words */
+.ev-status { align-items: center; border: 1px solid var(--ev-line-strong); border-radius: 999px; color: var(--ev-muted); display: inline-flex; flex: none; font: 500 10.5px/1 var(--ev-mono); gap: 8px; letter-spacing: .12em; padding: 6px 11px 6px 9px; text-transform: uppercase; white-space: nowrap; }
+.ev-status i { background: #6b6975; border-radius: 50%; flex: none; height: 6px; width: 6px; }
+.ev-status.is-open { background: rgba(62,207,142,.08); border-color: rgba(62,207,142,.3); color: var(--ev-ok-ink); }
+.ev-status.is-open i { animation: ev-ping 2.4s var(--ev-ease) infinite; background: var(--ev-ok); }
+.ev-status.is-waitlist { background: rgba(254,195,12,.08); border-color: rgba(254,195,12,.3); color: var(--ev-gold-light); }
+.ev-status.is-waitlist i { background: var(--ev-gold); box-shadow: 0 0 8px rgba(254,195,12,.8); }
+.ev-status.is-rescheduled { background: rgba(245,165,36,.09); border-color: rgba(245,165,36,.34); color: var(--ev-warn-ink); }
+.ev-status.is-rescheduled i { background: var(--ev-warn); }
+.ev-status.is-cancelled { background: rgba(255,107,125,.08); border-color: rgba(255,107,125,.3); color: var(--ev-danger-ink); }
+.ev-status.is-cancelled i { background: var(--ev-danger); }
+@keyframes ev-ping { 0% { box-shadow: 0 0 0 0 rgba(62,207,142,.55); } 70%, 100% { box-shadow: 0 0 0 6px rgba(62,207,142,0); } }
+
+/* An event's facts: the label in mono capitals over its value */
+.ev-facts { border-top: 1px solid var(--ev-line); display: grid; gap: 20px 24px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding-top: 18px; }
+.ev-facts > div { min-width: 0; }
+.ev-facts dt { align-items: center; color: var(--ev-faint); display: flex; font: 500 10px/1 var(--ev-mono); gap: 7px; letter-spacing: .16em; margin-bottom: 9px; text-transform: uppercase; }
+.ev-facts dt svg { color: var(--ev-gold); flex: none; }
+.ev-facts dd { color: var(--ev-text); font-size: 14.5px; font-weight: 500; letter-spacing: -.01em; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+.ev-facts dd small { color: var(--ev-muted); display: block; font-size: 13px; font-weight: 400; letter-spacing: 0; margin-top: 3px; }
+/* One fact per row, the label beside its value, hairlines between: in the side cards */
+.ev-facts.is-stacked { gap: 0; grid-template-columns: minmax(0, 1fr); padding-top: 0; }
+.ev-facts.is-stacked > div { align-items: baseline; border-bottom: 1px solid var(--ev-line); display: grid; gap: 12px; grid-template-columns: 124px minmax(0, 1fr); padding: 13px 0; }
+.ev-facts.is-stacked dt { margin: 0; }
+
+/* The banner: a title and a line under the night sky, with three readings to the right */
+.ev-banner { background: radial-gradient(46% 130% at 88% 0%, rgba(254,195,12,.09), transparent 70%), radial-gradient(44% 130% at 2% 0%, rgba(66,84,190,.18), transparent 72%), linear-gradient(180deg, #030306, #05050a 62%, var(--ev-bg)); border-bottom: 1px solid var(--ev-line); isolation: isolate; padding: clamp(40px, 5vw, 76px) 0 clamp(30px, 3.4vw, 48px); position: relative; }
+.ev-banner .night-sky { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent); }
+.ev-banner-inner { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 28px clamp(40px, 6vw, 110px); justify-content: space-between; }
+.ev-banner-copy { flex: 1 1 26em; min-width: 0; }
+.ev-title { color: var(--ev-text); font-size: clamp(40px, 5.2vw, 84px); font-weight: 560; letter-spacing: -.056em; line-height: .96; margin: 18px 0 0; text-wrap: balance; }
+.ev-title.is-event { font-size: clamp(32px, 3.8vw, 60px); letter-spacing: -.05em; line-height: 1.02; max-width: 17em; }
+.ev-lede { color: var(--ev-muted); font-size: clamp(15px, 1.15vw, 17.5px); line-height: 1.65; margin: 18px 0 0; max-width: 36em; }
+.ev-hud { border-top: 1px solid var(--ev-line); clip-path: inset(-100px 0); display: grid; flex: 0 1 auto; grid-auto-columns: minmax(0, auto); grid-auto-flow: column; margin: 0; position: relative; }
+/* A spark runs along its edge now and then, as along the home page's */
+.ev-hud::before { animation: ev-scan 9s var(--ev-ease) infinite; background: linear-gradient(90deg, transparent, var(--ev-gold), transparent); content: ""; height: 1px; left: 0; opacity: 0; position: absolute; top: -1px; width: 30%; }
+.ev-hud > div { padding: 16px 26px 4px 0; }
+.ev-hud > div + div { border-left: 1px solid var(--ev-line); padding-left: 26px; }
+.ev-hud > div:last-child { padding-right: 0; }
+.ev-hud dt { color: var(--ev-faint); font: 500 10px/1.2 var(--ev-mono); letter-spacing: .16em; margin-bottom: 10px; text-transform: uppercase; white-space: nowrap; }
+.ev-hud dd { align-items: center; color: var(--ev-text); display: flex; font: 500 22px/1 var(--ev-mono); gap: 10px; letter-spacing: -.03em; margin: 0; white-space: nowrap; }
+.ev-hud dd i { animation: ev-ping 2.4s var(--ev-ease) infinite; background: var(--ev-ok); border-radius: 50%; flex: none; height: 7px; width: 7px; }
+@keyframes ev-scan { 0% { opacity: 0; transform: translateX(-100%); } 8%, 42% { opacity: 1; } 50%, 100% { opacity: 0; transform: translateX(340%); } }
+.ev-crumbs { align-items: center; color: var(--ev-faint); display: flex; flex-wrap: wrap; font: 500 11px/1 var(--ev-mono); gap: 10px; letter-spacing: .14em; margin-bottom: clamp(20px, 2.4vw, 30px); text-transform: uppercase; }
+.ev-crumbs a { align-items: center; color: var(--ev-muted); display: inline-flex; gap: 7px; transition: color .2s ease; }
+.ev-crumbs a:hover { color: var(--ev-gold-light); }
+.ev-crumbs svg { transition: transform .4s var(--ev-ease); }
+.ev-crumbs a:hover svg { transform: translateX(-3px); }
+.ev-banner-meta { align-items: center; color: var(--ev-soft); display: flex; flex-wrap: wrap; font-size: 14.5px; gap: 10px 16px; margin-top: 22px; }
+
+/* Entrances (src/components/home/reveal-on-scroll.tsx): the banner's pieces rise in one after another once it's live */
+.ev-banner[data-live] [data-enter] { animation: ev-rise 1.1s var(--ev-ease) both; animation-delay: calc(.1s + var(--enter, 0) * .08s); }
+@keyframes ev-rise { from { filter: blur(8px); opacity: 0; transform: translate3d(0, 22px, 0); } }
+
+/* The two columns: the list, and the calendar beside it, which follows the page down */
+.ev-layout { align-items: start; display: grid; gap: clamp(24px, 3vw, 44px); grid-template-columns: minmax(0, 1fr) minmax(320px, 396px); padding-block: clamp(30px, 3.6vw, 52px) clamp(80px, 9vw, 140px); }
+.ev-list { min-width: 0; scroll-margin-top: calc(var(--ev-header) + 20px); }
+.ev-side { position: sticky; top: 24px; transition: top .8s cubic-bezier(.16,1,.3,1); }
+body:has(.site-header.is-visible) .ev-side { top: calc(var(--ev-header) + 24px); }
+
+.ev-list-head { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; margin-bottom: 18px; min-height: 44px; }
+.ev-list-title { color: var(--ev-text); font-size: clamp(20px, 1.7vw, 24px); font-weight: 560; letter-spacing: -.035em; line-height: 1.2; margin: 0; }
+/* Upcoming / Past: a segmented track; the current one is a bright chip */
+.ev-tabs { background: rgba(255,255,255,.045); border: 1px solid var(--ev-line); border-radius: 14px; display: inline-flex; gap: 2px; padding: 4px; }
+.ev-tab { align-items: center; background: none; border: 0; border-radius: 10px; color: var(--ev-muted); cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; font-weight: 500; gap: 8px; padding: 8px 14px; transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; }
+.ev-tab small { color: var(--ev-faint); font: 500 10px/1 var(--ev-mono); letter-spacing: .04em; transition: color .2s ease; }
+.ev-tab:hover { background: rgba(255,255,255,.06); color: var(--ev-text); }
+.ev-tab.is-active, .ev-tab.is-active:hover { background: var(--ev-text); box-shadow: 0 1px 3px rgba(0,0,0,.5); color: #0c0b08; font-weight: 600; }
+.ev-tab.is-active small { color: rgba(12,11,8,.56); }
+.ev-clear { align-items: center; background: rgba(254,195,12,.08); border: 1px solid rgba(254,195,12,.34); border-radius: 999px; color: var(--ev-gold-light); cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; font-weight: 500; gap: 7px; padding: 9px 15px 9px 12px; transition: background-color .2s ease, border-color .2s ease; }
+.ev-clear:hover { background: rgba(254,195,12,.15); border-color: rgba(254,195,12,.6); }
+
+/* The accordion: each event a pane of glass under its organizer's banner */
+.ev-items { animation: ev-in .5s var(--ev-ease) both; display: flex; flex-direction: column; gap: 12px; list-style: none; margin: 0; padding: 0; }
+@keyframes ev-in { from { opacity: 0; transform: translate3d(0, 12px, 0); } }
+.ev-item { background: var(--ev-glass); border: 1px solid var(--ev-line); border-radius: 22px; overflow: hidden; scroll-margin-top: calc(var(--ev-header) + 20px); transition: border-color .3s ease, box-shadow .5s var(--ev-ease); }
+.ev-item:hover { border-color: var(--ev-line-strong); }
+.ev-item.is-open { border-color: rgba(254,195,12,.32); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 40px 80px -56px rgba(254,195,12,.55); }
+.ev-item-head { font-size: inherit; font-weight: inherit; margin: 0; }
+.ev-toggle { align-items: center; background: none; border: 0; color: inherit; cursor: pointer; display: grid; font: inherit; gap: 14px clamp(14px, 1.8vw, 24px); grid-template-columns: auto minmax(0, 1fr) auto; padding: 18px 20px; text-align: left; transition: background-color .2s ease; width: 100%; }
+.ev-toggle:hover { background: rgba(255,255,255,.022); }
+.ev-toggle:focus-visible { outline-offset: -4px; }
+/* The day, large in mono, between its month and weekday */
+.ev-date { align-items: center; border-right: 1px solid var(--ev-line); display: flex; flex-direction: column; gap: 6px; min-width: 62px; padding-right: clamp(14px, 1.8vw, 24px); }
+.ev-date span { color: var(--ev-gold); font: 500 10.5px/1 var(--ev-mono); letter-spacing: .18em; text-transform: uppercase; }
+.ev-date b { color: var(--ev-text); font: 500 34px/.9 var(--ev-mono); letter-spacing: -.07em; }
+.ev-date small { color: var(--ev-faint); font: 500 10px/1 var(--ev-mono); letter-spacing: .14em; text-transform: uppercase; }
+.ev-item.is-over .ev-date span { color: var(--ev-faint); }
+.ev-item.is-over .ev-date b { color: var(--ev-muted); }
+.ev-item-main { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.ev-item-title { color: var(--ev-text); font-size: clamp(18px, 1.5vw, 22px); font-weight: 550; letter-spacing: -.03em; line-height: 1.22; text-wrap: balance; }
+.ev-item-meta { color: var(--ev-muted); display: flex; flex-wrap: wrap; font-size: 13.5px; gap: 6px 18px; line-height: 1.35; }
+.ev-item-meta > span { align-items: center; display: inline-flex; gap: 7px; min-width: 0; }
+.ev-item-meta svg { color: var(--ev-faint); flex: none; }
+.ev-item-end { align-items: center; display: flex; gap: 14px; }
+.ev-chevron { color: var(--ev-faint); flex: none; transition: color .2s ease, transform .45s var(--ev-ease); }
+.ev-toggle:hover .ev-chevron { color: var(--ev-text); }
+.ev-item.is-open .ev-chevron { color: var(--ev-gold); transform: rotate(180deg); }
+/* The panel folds open: its row grows from nothing to its content's height */
+.ev-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .5s var(--ev-ease); }
+.ev-item.is-open .ev-panel { grid-template-rows: 1fr; }
+.ev-panel > div { min-height: 0; overflow: hidden; }
+.ev-panel-inner { border-top: 1px dashed var(--ev-line-strong); margin: 0 20px; opacity: 0; padding: 20px 0 22px; transition: opacity .3s ease; }
+.ev-item.is-open .ev-panel-inner { opacity: 1; transition-delay: .12s; }
+/* Arriving at one event from a link (events-board.tsx): it's simply open, with nothing folding */
+.ev-list.is-arriving :is(.ev-panel, .ev-panel-inner, .ev-chevron) { transition: none; }
+.ev-summary { color: var(--ev-soft); font-size: 15.5px; line-height: 1.7; margin: 0 0 20px; max-width: 46em; white-space: pre-line; }
+.ev-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 22px; }
+
+/* Nothing to list: a quiet scope, still sweeping */
+.ev-empty { align-items: center; background: radial-gradient(60% 80% at 50% 0%, rgba(254,195,12,.07), transparent 70%); border: 1px dashed var(--ev-line-strong); border-radius: 24px; display: flex; flex-direction: column; padding: clamp(48px, 6vw, 84px) 24px; text-align: center; }
+.ev-empty h3 { color: var(--ev-text); font-size: clamp(22px, 2.1vw, 30px); font-weight: 560; letter-spacing: -.04em; margin: 24px 0 0; }
+.ev-empty p { color: var(--ev-muted); font-size: 15px; line-height: 1.65; margin: 10px 0 0; max-width: 32em; }
+.ev-empty .ev-button { margin-top: 24px; }
+.ev-empty-scope { aspect-ratio: 1; background: repeating-radial-gradient(circle closest-side, transparent 0 calc(33.3% - 1px), var(--ev-line-strong) calc(33.3% - 1px) 33.3%), linear-gradient(var(--ev-line), var(--ev-line)) 50% 0 / 1px 100% no-repeat, linear-gradient(var(--ev-line), var(--ev-line)) 0 50% / 100% 1px no-repeat; border: 1px solid var(--ev-line-strong); border-radius: 50%; overflow: hidden; position: relative; width: 88px; }
+.ev-empty-scope i { animation: ev-spin 4s linear infinite; background: conic-gradient(transparent 0deg 290deg, rgba(254,195,12,.1) 310deg, rgba(254,195,12,.6) 359deg, transparent 360deg); border-radius: 50%; inset: 0; position: absolute; }
+@keyframes ev-spin { to { transform: rotate(1turn); } }
+
+/* The calendar: a month of days, a dot under each one that has an event */
+.ev-calendar { background: var(--ev-glass); border: 1px solid var(--ev-line); border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 40px 80px -48px rgba(0,0,0,.9); padding: 22px 20px 18px; position: relative; }
+/* A gold hairline along its top edge, fading out at both ends */
+.ev-calendar::before { background: linear-gradient(90deg, transparent, rgba(254,195,12,.85), transparent); content: ""; height: 1px; left: 28px; position: absolute; right: 28px; top: -1px; }
+.ev-calendar-head { align-items: center; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 18px; }
+.ev-calendar-month { color: var(--ev-text); font-size: 19px; font-weight: 560; letter-spacing: -.035em; line-height: 1.2; margin: 0; }
+.ev-calendar-nav { align-items: center; display: flex; gap: 6px; }
+.ev-calendar-nav button { align-items: center; background: rgba(255,255,255,.045); border: 1px solid var(--ev-line-strong); border-radius: 999px; color: var(--ev-text); cursor: pointer; display: inline-flex; font: inherit; height: 34px; justify-content: center; min-width: 34px; padding: 0; transition: background-color .2s ease, border-color .2s ease, opacity .2s ease; }
+.ev-calendar-nav button:hover:not(:disabled) { background: rgba(254,195,12,.12); border-color: rgba(254,195,12,.5); }
+.ev-calendar-nav button:disabled { cursor: default; opacity: .32; }
+.ev-calendar-nav .ev-calendar-today { color: var(--ev-muted); font: 500 10.5px/1 var(--ev-mono); letter-spacing: .12em; padding: 0 13px; text-transform: uppercase; }
+.ev-weekdays, .ev-days { display: grid; gap: 4px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.ev-weekdays span { color: var(--ev-faint); font: 500 10px/1 var(--ev-mono); letter-spacing: .12em; padding: 0 0 10px; text-align: center; text-transform: uppercase; }
+.ev-days { animation: ev-in .4s var(--ev-ease) both; }
+.ev-day { align-items: center; aspect-ratio: 1; background: none; border: 1px solid transparent; border-radius: 12px; color: var(--ev-muted); display: flex; flex-direction: column; font: inherit; gap: 5px; justify-content: center; min-width: 0; padding: 0; position: relative; }
+.ev-day.is-past { color: #55535d; }
+.ev-day-number { align-items: center; border-radius: 999px; display: inline-flex; font: 500 13px/1 var(--ev-mono); height: 24px; justify-content: center; letter-spacing: -.02em; min-width: 24px; }
+/* Today: its number in a glowing gold ring */
+.ev-day.is-today .ev-day-number { box-shadow: 0 0 0 1.5px var(--ev-gold), 0 0 14px rgba(254,195,12,.45); color: var(--ev-gold-light); }
+.ev-day.has-events { background: rgba(255,255,255,.045); border-color: var(--ev-line); color: var(--ev-text); cursor: pointer; transition: background-color .2s ease, border-color .2s ease, box-shadow .3s var(--ev-ease), transform .15s ease; }
+.ev-day.has-events:hover { background: rgba(254,195,12,.09); border-color: rgba(254,195,12,.5); }
+.ev-day.has-events:active { transform: scale(.95); }
+.ev-day.has-events.is-past { color: var(--ev-muted); }
+/* The day of the event that's open in the list */
+.ev-day.is-open { border-color: rgba(254,195,12,.55); }
+.ev-day.is-selected, .ev-day.is-selected:hover { background: linear-gradient(180deg, rgba(254,195,12,.26), rgba(254,195,12,.08)); border-color: rgba(254,195,12,.75); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 12px 28px -14px rgba(254,195,12,.6); color: #fff; }
+.ev-day-dots { display: inline-flex; gap: 3px; height: 5px; }
+.ev-day-dots i, .ev-legend i { background: var(--ev-gold); border-radius: 50%; box-shadow: 0 0 7px rgba(254,195,12,.7); flex: none; height: 5px; width: 5px; }
+.ev-day-dots i.is-local, .ev-legend .is-local i { background: var(--ev-local); box-shadow: 0 0 7px rgba(138,166,255,.7); }
+.ev-day-dots i.is-over { box-shadow: none; opacity: .45; }
+.ev-calendar-foot { align-items: center; border-top: 1px solid var(--ev-line); display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; margin-top: 18px; padding-top: 16px; }
+.ev-legend { color: var(--ev-muted); display: flex; flex-wrap: wrap; font-size: 12.5px; gap: 6px 16px; margin: 0; }
+.ev-legend span { align-items: center; display: inline-flex; gap: 8px; }
+.ev-legend i { height: 7px; width: 7px; }
+.ev-calendar-count { color: var(--ev-faint); font: 500 10px/1.3 var(--ev-mono); letter-spacing: .12em; margin: 0; text-transform: uppercase; }
+
+/* An event's own page: its background beside a card of the facts, which follows the page down */
+.ev-event-layout { align-items: start; display: grid; gap: clamp(28px, 5vw, 88px); grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); padding-block: clamp(36px, 4.4vw, 68px) clamp(80px, 9vw, 140px); }
+.ev-event-body { max-width: 720px; min-width: 0; }
+.ev-event-body h2 { color: var(--ev-text); font-size: clamp(22px, 2vw, 28px); font-weight: 560; letter-spacing: -.04em; line-height: 1.15; margin: 18px 0 22px; }
+.ev-event-body p:not(.ev-eyebrow) { color: var(--ev-soft); font-size: 17px; line-height: 1.8; margin: 0 0 24px; white-space: pre-line; }
+.ev-card { background: var(--ev-glass); border: 1px solid var(--ev-line); border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 40px 80px -48px rgba(0,0,0,.9); overflow: hidden; position: relative; }
+.ev-card-body { display: flex; flex-direction: column; gap: 18px; padding: 22px 22px 24px; }
+.ev-card-body > .ev-facts { margin-top: -2px; }
+.ev-card-title { color: var(--ev-text); font-size: 19px; font-weight: 560; letter-spacing: -.03em; line-height: 1.25; margin: 0; text-wrap: balance; }
+.ev-fine { color: var(--ev-faint); font-size: 12.5px; line-height: 1.6; margin: 0; }
+.ev :is(.ev-fine, .ev-privacy, .ev-form-error, .ev-done p, .ev-notice p) a { border-bottom: 1px solid rgba(254,195,12,.55); color: var(--ev-text); transition: border-color .2s ease; }
+.ev :is(.ev-fine, .ev-privacy, .ev-form-error, .ev-done p, .ev-notice p) a:hover { border-bottom-color: var(--ev-gold); }
+
+/* Registration: the form beside the event it's for */
+.ev-register-layout { align-items: start; display: grid; gap: clamp(24px, 3.4vw, 56px); grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); padding-block: clamp(30px, 3.6vw, 52px) clamp(80px, 9vw, 140px); }
+.ev-register-main { min-width: 0; }
+.ev-form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ev-group { background: var(--ev-glass); border: 1px solid var(--ev-line); border-radius: 22px; margin: 0; min-width: 0; padding: 22px clamp(18px, 2.4vw, 26px) 26px; }
+.ev-group > legend { color: var(--ev-faint); float: left; font: 500 10.5px/1.2 var(--ev-mono); letter-spacing: .18em; margin: 0 0 18px; padding: 0; text-transform: uppercase; width: 100%; }
+.ev-group > legend + * { clear: both; }
+.ev-grid { display: grid; gap: 18px 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.ev-field { display: flex; flex-direction: column; gap: 8px; grid-column: span 6; min-width: 0; }
+.ev-field.is-3 { grid-column: span 3; }
+.ev-field.is-4 { grid-column: span 4; }
+.ev-field.is-5 { grid-column: span 5; }
+.ev-field-label { color: var(--ev-soft); font-size: 13px; font-weight: 500; }
+.ev-field-label em { color: var(--ev-faint); font-size: 11.5px; font-style: normal; font-weight: 400; margin-left: 6px; }
+.ev-field-hint { color: var(--ev-faint); font-size: 12.5px; line-height: 1.5; }
+.ev-field-error, .ev-form-error { color: var(--ev-danger-ink); font-size: 12.5px; font-weight: 500; line-height: 1.5; }
+.ev-field input:not([type="radio"], [type="checkbox"], [type="hidden"]) { background: rgba(255,255,255,.04); border: 1px solid var(--ev-line-strong); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.03); color: var(--ev-text); font: inherit; font-size: 15px; min-height: 48px; padding: 11px 14px; transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease; width: 100%; }
+.ev-field input::placeholder { color: #6c6a76; opacity: 1; text-transform: none; }
+.ev-field input:not([type="radio"], [type="checkbox"]):hover { border-color: rgba(255,255,255,.26); }
+.ev-field input:not([type="radio"], [type="checkbox"]):focus { background: rgba(255,255,255,.065); border-color: var(--ev-gold); box-shadow: 0 0 0 4px rgba(254,195,12,.14); outline: 0; }
+.ev-field input:disabled { cursor: not-allowed; opacity: .55; }
+.ev-field input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #15151d inset; -webkit-text-fill-color: var(--ev-text); caret-color: var(--ev-text); }
+.ev-field input[name="lastName"], .ev-field input[name="firstName"], .ev-field input[name="middleInitial"] { text-transform: uppercase; }
+.ev-field.has-error input:not([type="radio"], [type="checkbox"]), .ev-field.has-error .ev-orgs { border-color: var(--ev-danger); }
+/* The college, program and year pickers (src/components/combobox.tsx), in this page's colours */
+.ev-field .combobox { position: relative; }
+.ev-field .combobox input[role="combobox"] { padding-right: 44px; }
+.ev-field .combobox.is-pick-only input { caret-color: transparent; cursor: pointer; }
+.ev-field .combobox-toggle { align-items: center; background: none; border: 0; bottom: 0; color: var(--ev-muted); cursor: pointer; display: flex; height: auto; justify-content: center; padding: 0; position: absolute; right: 0; top: 0; width: 44px; }
+.ev-field .combobox-toggle:disabled { cursor: not-allowed; opacity: .5; }
+.ev-field .combobox-list { background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.014)), #0c0c12; border: 1px solid var(--ev-line-strong); border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 30px 80px -20px rgba(0,0,0,.9); left: 0; list-style: none; margin: 6px 0 0; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; padding: 6px; position: absolute; right: 0; top: 100%; z-index: 6; }
+.ev-field .combobox-list li { border-radius: 9px; color: var(--ev-text); cursor: pointer; font-size: 14px; line-height: 1.35; padding: 10px 12px; }
+.ev-field .combobox-list li.is-active { background: rgba(255,255,255,.08); }
+.ev-field .combobox-list li[aria-selected="true"] { color: var(--ev-gold-light); font-weight: 600; }
+.ev-field .combobox-list .combobox-empty { color: var(--ev-muted); cursor: default; }
+/* The interest scale: five steps, the native radios hidden but still focusable, and the chosen one lit gold */
+.ev-scale { display: grid; gap: 8px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ev-scale-option { align-items: flex-start; background: rgba(255,255,255,.035); border: 1px solid var(--ev-line-strong); border-radius: 14px; color: var(--ev-muted); cursor: pointer; display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 13px; position: relative; transition: background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .15s ease; }
+.ev-scale-option:hover { border-color: rgba(255,255,255,.3); color: var(--ev-text); }
+.ev-scale-option:active { transform: scale(.98); }
+.ev-scale-option input { height: 1px; margin: 0; opacity: 0; pointer-events: none; position: absolute; width: 1px; }
+.ev-scale-option b { color: var(--ev-text); font: 500 26px/1 var(--ev-mono); letter-spacing: -.04em; }
+.ev-scale-option span { font-size: 12.5px; line-height: 1.35; }
+/* Five bars under the number, as many lit as the step is high */
+.ev-scale-bars { align-items: flex-end; display: flex; gap: 3px; height: 14px; margin-left: auto; position: absolute; right: 14px; top: 16px; }
+.ev-scale-bars i { background: rgba(255,255,255,.14); border-radius: 1px; width: 3px; }
+.ev-scale-bars i.is-lit { background: var(--ev-gold); box-shadow: 0 0 6px rgba(254,195,12,.6); }
+.ev-scale-option:has(input:checked) { background: rgba(254,195,12,.1); border-color: rgba(254,195,12,.65); box-shadow: 0 0 0 4px rgba(254,195,12,.08); color: var(--ev-gold-light); }
+.ev-scale-option:has(input:focus-visible) { outline: 2px solid var(--ev-gold); outline-offset: 3px; }
+.ev-field.has-error .ev-scale-option { border-color: rgba(255,107,125,.6); }
+/* Organizations: each one a chip inside the field, with the next one typed after them */
+.ev-orgs { align-items: center; background: rgba(255,255,255,.04); border: 1px solid var(--ev-line-strong); border-radius: 12px; cursor: text; display: flex; flex-wrap: wrap; gap: 7px; min-height: 48px; padding: 7px 8px; transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.ev-orgs:hover { border-color: rgba(255,255,255,.26); }
+.ev-orgs:focus-within { background: rgba(255,255,255,.065); border-color: var(--ev-gold); box-shadow: 0 0 0 4px rgba(254,195,12,.14); }
+.ev-field .ev-orgs input:not([type="hidden"]) { background: none; border: 0; border-radius: 0; box-shadow: none; flex: 1 1 180px; min-height: 32px; min-width: 0; padding: 0 6px; width: auto; }
+.ev-field .ev-orgs input:focus { background: none; box-shadow: none; }
+.ev-org { align-items: center; background: rgba(254,195,12,.1); border: 1px solid rgba(254,195,12,.34); border-radius: 999px; color: var(--ev-gold-light); display: inline-flex; font-size: 13.5px; font-weight: 500; gap: 4px; line-height: 1.3; max-width: 100%; padding: 4px 4px 4px 12px; }
+.ev-org > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-org button { align-items: center; background: none; border: 0; border-radius: 50%; color: inherit; cursor: pointer; display: inline-flex; flex: none; height: 22px; justify-content: center; opacity: .7; padding: 0; transition: background-color .15s ease, opacity .15s ease; width: 22px; }
+.ev-org button:hover { background: rgba(254,195,12,.22); opacity: 1; }
+/* The consent line: a quiet panel that lights up once it's ticked */
+.ev-consent { align-items: flex-start; background: rgba(255,255,255,.03); border: 1px solid var(--ev-line); border-radius: 14px; color: var(--ev-soft); cursor: pointer; display: flex; font-size: 14px; gap: 12px; line-height: 1.6; padding: 15px 16px; transition: background-color .2s ease, border-color .2s ease; }
+.ev-consent:has(input:checked) { background: rgba(254,195,12,.06); border-color: rgba(254,195,12,.42); }
+.ev-consent input { accent-color: var(--ev-gold); flex: none; height: 17px; margin: 2px 0 0; width: 17px; }
+.ev-consent.has-error { border-color: rgba(255,107,125,.6); }
+.ev-privacy { color: var(--ev-muted); font-size: 13.5px; line-height: 1.65; margin: 0 0 14px; }
+.ev-privacy strong { color: var(--ev-soft); font-weight: 600; }
+.ev-honeypot { height: 1px; left: -10000px; overflow: hidden; position: absolute; width: 1px; }
+.ev-submit { align-items: center; display: flex; flex-wrap: wrap; gap: 14px 20px; justify-content: space-between; margin-top: 6px; }
+.ev-submit .ev-form-error { flex: 1 1 260px; font-size: 13.5px; margin: 0; }
+.ev-submit .ev-button { margin-left: auto; }
+/* Verified with a UST Google account: a green shield, the email, and a way to switch accounts */
+.ev-verified { align-items: center; background: rgba(62,207,142,.06); border: 1px solid rgba(62,207,142,.24); border-radius: 14px; color: var(--ev-soft); display: flex; flex-wrap: wrap; font-size: 14px; gap: 6px 10px; line-height: 1.5; padding: 12px 15px; }
+.ev-verified svg { color: #27b06d; filter: drop-shadow(0 0 6px rgba(62,207,142,.45)); flex: none; }
+.ev-verified p { flex: 1 1 200px; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.ev-verified strong { color: var(--ev-text); font-weight: 600; }
+.ev-verified a { border-bottom: 1px solid rgba(254,195,12,.55); color: var(--ev-text); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.ev-verified a:hover { border-bottom-color: var(--ev-gold); }
+/* A notice: something to know before, or instead of, the form */
+.ev-notice { background: var(--ev-glass); border: 1px solid var(--ev-line); border-radius: 22px; display: flex; flex-direction: column; gap: 14px; padding: clamp(24px, 3vw, 36px); position: relative; }
+.ev-notice h2 { color: var(--ev-text); font-size: clamp(24px, 2.4vw, 34px); font-weight: 560; letter-spacing: -.045em; line-height: 1.08; margin: 4px 0 0; }
+.ev-notice p:not(.ev-eyebrow, .ev-form-error) { color: var(--ev-muted); font-size: 15.5px; line-height: 1.7; margin: 0; max-width: 40em; }
+.ev-notice p strong { color: var(--ev-text); font-weight: 600; overflow-wrap: anywhere; }
+.ev-notice .ev-actions { margin-top: 10px; }
+.ev-notice .ev-form-error { font-size: 14px; margin: 0; }
+.ev-notice.is-warn { border-color: rgba(245,165,36,.34); }
+/* Google's button stays white, as Google asks */
+.ev-button.is-google { background: #f6f5f1; box-shadow: inset 0 1px 0 #fff, 0 16px 40px -18px rgba(255,255,255,.5); color: #15141a; }
+.ev-button.is-google:hover { background: #fff; box-shadow: inset 0 1px 0 #fff, 0 18px 44px -16px rgba(255,255,255,.6), 0 0 0 6px rgba(255,255,255,.08); transform: translateY(-1px); }
+.ev-button.is-google:hover svg { transform: none; }
+/* Saved: the registration confirmed, in the home page's headline voice */
+.ev-done { align-items: flex-start; background: radial-gradient(70% 120% at 100% 0%, rgba(62,207,142,.1), transparent 70%), var(--ev-glass); border: 1px solid rgba(62,207,142,.26); border-radius: 24px; display: flex; flex-direction: column; gap: 16px; padding: clamp(26px, 3.4vw, 44px); position: relative; }
+.ev-done.is-waitlist { background: radial-gradient(70% 120% at 100% 0%, rgba(254,195,12,.1), transparent 70%), var(--ev-glass); border-color: rgba(254,195,12,.3); }
+.ev-done-mark { align-items: center; background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.34); border-radius: 50%; color: var(--ev-ok); display: inline-flex; height: 48px; justify-content: center; width: 48px; }
+.ev-done.is-waitlist .ev-done-mark { background: rgba(254,195,12,.1); border-color: rgba(254,195,12,.36); color: var(--ev-gold); }
+.ev-done h2 { color: var(--ev-text); font-size: clamp(34px, 4vw, 60px); font-weight: 560; letter-spacing: -.055em; line-height: .98; margin: 6px 0 0; outline: none; }
+.ev-done p { color: var(--ev-muted); font-size: 15.5px; line-height: 1.7; margin: 0; max-width: 38em; }
+.ev-done p strong { color: var(--ev-text); font-weight: 600; overflow-wrap: anywhere; }
+.ev-done .ev-actions { margin-top: 8px; }
+
+@media (max-width: 1100px) {
+	.ev-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.ev-facts.is-stacked { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 980px) {
+	/* One column: the list, then the calendar; an event's facts and its form's summary come first */
+	.ev-layout, .ev-event-layout, .ev-register-layout { grid-template-columns: minmax(0, 1fr); }
+	.ev-side { position: static; }
+	.ev-calendar { margin: 0 auto; max-width: 440px; }
+	.ev-event-side, .ev-register-side { order: -1; }
+	/* Above the form, the event's card keeps to the essentials: when and where */
+	.ev-register-side .ev-facts .is-extra { display: none; }
+	.ev-register-side .ev-facts > div:last-child, .ev-register-side .ev-facts > div:has(+ .is-extra:last-child) { border-bottom: 0; padding-bottom: 0; }
+	.ev-hud { flex: 1 1 100%; grid-auto-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+	.ev { --ev-header: 74px; }
+	/* The status drops under the title, and the chevron stays at the row's end */
+	.ev-toggle { grid-template-areas: "date main chevron" "date status chevron"; grid-template-columns: auto minmax(0, 1fr) auto; padding: 16px; row-gap: 12px; }
+	.ev-date { grid-area: date; min-width: 54px; }
+	.ev-date b { font-size: 28px; }
+	.ev-item-main { grid-area: main; }
+	.ev-item-end { display: contents; }
+	.ev-item-end .ev-status { grid-area: status; justify-self: start; }
+	.ev-chevron { grid-area: chevron; }
+	.ev-organizer { padding: 9px 16px; }
+	.ev-organizer-label { display: none; }
+	.ev-panel-inner { margin: 0 16px; }
+	.ev-actions .ev-button { flex: 1 1 auto; }
+	/* The readings' labels may take two lines, each cell keeping its value on the same line as the others' */
+	.ev-hud > div { display: flex; flex-direction: column; padding: 14px 12px 4px 0; }
+	.ev-hud > div + div { padding-left: 12px; }
+	.ev-hud dt { letter-spacing: .14em; white-space: normal; }
+	.ev-hud dd { font-size: 18px; margin-top: auto; }
+	.ev-field, .ev-field.is-3, .ev-field.is-4, .ev-field.is-5 { grid-column: 1 / -1; }
+	/* The scale's steps stack, each a row: its number, its bars, then its words */
+	.ev-scale { grid-template-columns: minmax(0, 1fr); }
+	.ev-scale-option { align-items: center; flex-direction: row; gap: 14px; padding: 12px 14px; }
+	.ev-scale-option b { font-size: 20px; min-width: 16px; }
+	.ev-scale-option span { font-size: 14px; }
+	.ev-scale-bars { margin-left: auto; order: 3; position: static; }
+	.ev-submit .ev-button { flex: 1 1 100%; }
+	.ev-facts.is-stacked > div { grid-template-columns: 108px minmax(0, 1fr); }
+}
+
+@media (max-width: 480px) {
+	.ev-facts { grid-template-columns: minmax(0, 1fr); }
+	.ev-list-head { align-items: flex-start; flex-direction: column; }
+	.ev-item-meta { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ev *, .ev *::before, .ev *::after { animation: none !important; }
+	.ev-button, .ev-button::after, .ev-button svg, .ev-panel, .ev-panel-inner, .ev-chevron, .ev-side, .ev-item, .ev-day, .ev-scale-option { transition: none; }
+}

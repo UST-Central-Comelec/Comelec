@@ -3,8 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/supabase/config";
 import { ACTIVITY_COOKIE, activityCookieOptions, decodeActivity, encodeActivity, timeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
+import { isSiteUnderMaintenance } from "@/lib/site-settings/maintenance-flag";
 
-// Runs on portal requests. It:
+// Runs on every page request. Under maintenance it answers with the maintenance page: for the
+// public site when that's switched on in the portal (Maintenance), which leaves the portal up to
+// switch it back; for everything, portal included, while MAINTENANCE_MODE is set. Otherwise it
+// leaves the public site alone and, on portal requests:
 //   • caps how many requests one address can make (a ceiling against floods and scripts),
 //   • refreshes the Supabase session cookie and sends visitors who aren't signed in to the login page,
 //   • ends sessions after 30 minutes idle or 8 hours total (src/lib/security/portal-session.ts),
@@ -37,8 +41,25 @@ function redirectResponse(request: NextRequest, path: string) {
   return new NextResponse(null, { headers: { "x-action-redirect": `${url.pathname}${url.search};replace` } });
 }
 
+/** Set MAINTENANCE_MODE=1 (or "true") to take the whole website, portal included, offline. */
+const lockedDown = () => ["1", "true"].includes(process.env.MAINTENANCE_MODE?.trim().toLowerCase() ?? "");
+
+/**
+ * The maintenance page (src/app/(status)/maintenance) in place of whatever was asked for, as a 503
+ * so search engines know it's temporary and keep what they've indexed.
+ */
+function maintenanceResponse(request: NextRequest) {
+  const headers = { "Retry-After": "3600", "Cache-Control": "no-store, max-age=0" };
+  // A form posted from a page that was already open: the action can't run, so say why.
+  if (isServerAction(request)) return new NextResponse("The website is under maintenance. Please try again later.", { status: 503, headers: { ...headers, "Content-Type": "text/plain" } });
+  return NextResponse.rewrite(new URL("/maintenance", request.nextUrl), { status: 503, headers });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (lockedDown()) return maintenanceResponse(request);
+  if (pathname !== "/portal" && !pathname.startsWith("/portal/")) return (await isSiteUnderMaintenance()) ? maintenanceResponse(request) : NextResponse.next();
+
   const ip = clientIp(request.headers);
 
   const flood = rateLimit(`portal:${ip}`, limits.portal.limit, limits.portal.windowMs);
@@ -101,5 +122,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/portal", "/portal/:path*"],
+  // Everything but build assets and the files in public/, which the maintenance page needs too.
+  matcher: ["/((?!_next/static|_next/image|images/|favicon.ico).*)"],
 };

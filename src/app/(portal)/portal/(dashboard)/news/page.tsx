@@ -3,21 +3,21 @@ import Link from "next/link";
 import { Plus, Star } from "lucide-react";
 import { Notice } from "@/components/portal/notice";
 import { requireCentral, withPortalUser } from "@/lib/auth/session";
-import { getNews } from "@/lib/data/queries";
+import { getPosts } from "@/lib/data/queries";
 import { formatDate, newsCategories } from "@/lib/data/types";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "News" };
 
 export default async function PortalNewsPage({ searchParams }: PageProps<"/portal/news">) {
-  const [, [news, { notice }]] = await withPortalUser(Promise.all([getNews(), searchParams]), requireCentral);
+  const [, [news, { notice }]] = await withPortalUser(Promise.all([getPosts(), searchParams]), requireCentral);
 
   return (
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Website content</p>
-          <TitleWithInfo info="Announcements, press releases, events and explainers shown on the News page.">News</TitleWithInfo>
+          <TitleWithInfo info="Press releases, announcements and publications shown on the website’s News page, and the guides on its Election Explainer page. A post’s category decides which page it’s on.">News</TitleWithInfo>
         </div>
         <Link className="portal-button" href="/portal/news/new"><Plus size={16} /> New post</Link>
       </header>
@@ -29,7 +29,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
         ) : (
           <div className="portal-table-wrap">
             <table className="portal-table">
-              <thead><tr><th>Title</th><th>Category</th><th>Date</th><th /></tr></thead>
+              <thead><tr><th>Title</th><th>Category</th><th>Shown on</th><th>Date</th><th /></tr></thead>
               <tbody>
                 {news.map((post) => (
                   <tr key={post.id}>
@@ -38,6 +38,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
                       {post.featured && <span className="portal-tag is-gold"><Star size={11} /> Featured</span>}
                     </td>
                     <td><span className="portal-tag">{newsCategories[post.category]}</span></td>
+                    <td className="portal-muted">{post.category === "explainer" ? "Election Explainer" : "News"}</td>
                     <td className="portal-muted">{formatDate(post.date)}</td>
                     <td className="portal-row-actions"><Link href={`/portal/news/${post.id}`}>Edit</Link></td>
                   </tr>

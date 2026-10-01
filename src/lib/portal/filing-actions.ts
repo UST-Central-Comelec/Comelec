@@ -45,5 +45,7 @@ export async function cancelFilingClosing(kind: FilingKind) {
 
 function refreshFilingPages(kind: FilingKind) {
   revalidatePath(filingKinds[kind].href);
+  // The home page shows whether filing is open.
+  revalidatePath("/");
   revalidatePath(`${filingKinds[kind].portalHref}/settings`);
 }

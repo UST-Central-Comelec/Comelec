@@ -21,7 +21,7 @@ import { createAuthClient } from "@/lib/supabase/server";
 
 export const BUILT_IN_ID = "built-in";
 
-export type PortalUser = { id: string; name: string; email: string; role: AccountRole; affiliation: Affiliation; college: string | null; builtIn: boolean };
+export type PortalUser = { id: string; name: string; email: string; role: AccountRole; affiliation: Affiliation; college: string | null; builtIn: boolean; avatarUrl?: string | null };
 
 export type AccessDenied = "not-ust" | "not-registered" | "revoked";
 
@@ -71,6 +71,13 @@ function isGoogleSession(claims: { amr?: unknown; app_metadata?: { providers?: u
   return methods.includes("oauth") && providers.includes("google");
 }
 
+/** The Google profile picture from the session, or null. Only Google's own image host is accepted, since it goes straight into an `<img>`. */
+function googleAvatar(value: unknown) {
+  if (typeof value !== "string" || !URL.canParse(value)) return null;
+  const url = new URL(value);
+  return url.protocol === "https:" && url.hostname.endsWith(".googleusercontent.com") ? url.href : null;
+}
+
 /**
  * The signed-in portal user. Checked against Accounts on every request, so revoking access or
  * changing a role takes effect on their next click.
@@ -83,9 +90,9 @@ export const getPortalUser = cache(async (): Promise<PortalUser | null> => {
   const email = data?.claims.email;
   if (typeof email !== "string" || !isGoogleSession(data?.claims)) return null;
 
-  const metadata = data?.claims.user_metadata as { full_name?: string; name?: string } | undefined;
+  const metadata = data?.claims.user_metadata as { full_name?: string; name?: string; avatar_url?: unknown; picture?: unknown } | undefined;
   const access = await checkAccess(email, metadata?.full_name ?? metadata?.name);
-  return "user" in access ? access.user : null;
+  return "user" in access ? { ...access.user, avatarUrl: googleAvatar(metadata?.avatar_url ?? metadata?.picture) } : null;
 });
 
 /** Use in every portal page and Server Action — the proxy redirect alone isn't a security boundary. */

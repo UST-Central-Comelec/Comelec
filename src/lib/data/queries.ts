@@ -1,17 +1,38 @@
 import "server-only";
 
 import { store } from "./store";
-import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, type AccountSummary, type DirectoryGroup, type DocumentKind, type Member, type MemberBody, type NewsCategory, type OfficialDocument, type PortalAccount } from "./types";
+import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, isNewsCategory, isNewsroomCategory, type AccountSummary, type DirectoryGroup, type DocumentKind, type Member, type MemberBody, type NewsCategory, type NewsPost, type OfficialDocument, type PortalAccount } from "./types";
 
 const byDateDesc = (a: { date: string }, b: { date: string }) => b.date.localeCompare(a.date);
 
-export async function getNews(category?: NewsCategory) {
-  const news = (await store.list("news")).sort(byDateDesc);
-  return category ? news.filter((post) => post.category === category) : news;
+// The two categories retired by supabase/migrations/0020, and where their posts went. Rows still
+// filed under them (before 0020 is run) are read as their new category.
+const retiredCategories: Record<string, NewsCategory> = { event: "announcement", "election-watch": "explainer" };
+
+function withCategory(post: NewsPost): NewsPost {
+  const category: string = post.category;
+  return isNewsCategory(category) ? post : { ...post, category: retiredCategories[category] ?? "announcement" };
 }
 
-export function getNewsPost(id: string) {
-  return store.get("news", id);
+/** Every post, newest first: the News page's and the Election Explainer's together, as the portal lists them. */
+export async function getPosts() {
+  return (await store.list("news")).map(withCategory).sort(byDateDesc);
+}
+
+/** The News page's posts: press releases, announcements and publications. */
+export async function getNews() {
+  return (await getPosts()).filter((post) => isNewsroomCategory(post.category));
+}
+
+/** The Election Explainer's guides. */
+export async function getExplainers() {
+  return (await getPosts()).filter((post) => post.category === "explainer");
+}
+
+/** One post, whichever page it's on. */
+export async function getNewsPost(id: string) {
+  const post = await store.get("news", id);
+  return post ? withCategory(post) : null;
 }
 
 // Rows saved before migration 0003 have no body/signatories yet.

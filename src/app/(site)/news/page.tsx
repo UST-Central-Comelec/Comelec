@@ -1,22 +1,51 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { permanentRedirect } from "next/navigation";
+import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
+import { NewsDesk } from "@/components/news/news-desk";
+import { formatShort, toStories } from "@/components/news/story";
+import { PageBanner } from "@/components/page-banner";
 import { getNews } from "@/lib/data/queries";
-import { formatDate, isNewsCategory, newsCategories, type NewsCategory } from "@/lib/data/types";
+import { isNewsroomCategory } from "@/lib/data/types";
+import { manilaToday } from "@/lib/events/format";
+import "../banner-page.css";
+import "./news.css";
 
-export const metadata: Metadata = { title: "News" };
-
-const accents: Record<NewsCategory, string> = {
-  announcement: "#d4a017",
-  "press-release": "#8b1e3f",
-  event: "#1d5360",
-  explainer: "#d4a017",
-  "election-watch": "#8b1e3f",
+export const metadata: Metadata = {
+  title: "News",
+  description: "Press releases, announcements and publications from the UST Central Comelec.",
 };
 
-export default async function NewsPage({ searchParams }: PageProps<"/news">) {
-  const { category: categoryParam } = await searchParams;
-  const category = typeof categoryParam === "string" && isNewsCategory(categoryParam) ? categoryParam : undefined;
-  const news = (await getNews(category)).sort((a, b) => Number(b.featured) - Number(a.featured));
+/** Filters the News page used to have, and the pages that took them over. */
+const moved: Record<string, string> = { event: "/events", explainer: "/explainer", "election-watch": "/explainer" };
 
-  return <main><section className="page-hero"><div className="page-hero-inner"><div className="eyebrow">Updates & announcements</div><h1>News from the<br />commission.</h1><p>Clear information for a more confident electorate. Follow the latest announcements, explainers, and stories from UST Central Comelec.</p></div></section><section className="section"><nav className="archive-filter" aria-label="Filter by category"><span className="filter-label">Show</span><Link href="/news" className={`filter-chip${!category ? " active" : ""}`}>All news</Link>{Object.entries(newsCategories).map(([value, label]) => <Link key={value} href={`/news?category=${value}`} className={`filter-chip${category === value ? " active" : ""}`}>{label}</Link>)}</nav>{news.length === 0 ? <p className="empty-state">Nothing posted here yet. Check back soon.</p> : <div className="news-grid">{news.map((item) => <Link key={item.id} href={`/news/${item.id}`} className={`news-card${item.featured ? " featured" : ""}`} style={{ "--accent": accents[item.category] } as React.CSSProperties}><div className="news-meta"><span>{newsCategories[item.category]}</span><time dateTime={item.date}>{formatDate(item.date)}</time></div><h3>{item.title}</h3><p>{item.excerpt}</p></Link>)}</div>}</section></main>;
+const two = (value: number) => String(value).padStart(2, "0");
+
+export default async function NewsPage({ searchParams }: PageProps<"/news">) {
+  const { category: categoryParam, q } = await searchParams;
+  if (typeof categoryParam === "string" && Object.hasOwn(moved, categoryParam)) permanentRedirect(moved[categoryParam]);
+  const category = typeof categoryParam === "string" && isNewsroomCategory(categoryParam) ? categoryParam : null;
+  const query = typeof q === "string" ? q.slice(0, 100) : "";
+  // Press releases, announcements and publications, newest first.
+  const stories = toStories(await getNews());
+  const year = manilaToday().slice(0, 4);
+
+  return (
+    <main className="bp nr">
+      <RevealOnScroll />
+      <PageBanner
+        seed={1934}
+        eyebrow="From the commission"
+        title={<>Latest <em>news.</em></>}
+        lede="Press releases, announcements and publications from the UST Central Comelec, newest first."
+        readings={[
+          { label: "Posts", value: two(stories.length) },
+          { label: `In ${year}`, value: two(stories.filter((story) => story.date.startsWith(year)).length) },
+          { label: "Latest", value: stories.length ? formatShort(stories[0].date) : "None yet" },
+        ]}
+      />
+      <div className="bp-wrap bp-body">
+        <NewsDesk stories={stories} initialCategory={category} initialQuery={query} />
+      </div>
+    </main>
+  );
 }

@@ -51,6 +51,8 @@ function parse(formData: FormData) {
 function refresh() {
   revalidatePath("/archive");
   revalidatePath("/archive/[id]", "page");
+  // The home page lists the latest documents.
+  revalidatePath("/");
   revalidatePath("/portal", "layout");
 }
 

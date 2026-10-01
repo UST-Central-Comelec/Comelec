@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getNewsPost } from "@/lib/data/queries";
-import { formatDate, newsCategories } from "@/lib/data/types";
+import { notFound, redirect } from "next/navigation";
+import { Article } from "@/components/news/article";
+import { toStories } from "@/components/news/story";
+import { getNews, getNewsPost } from "@/lib/data/queries";
+import { isNewsroomCategory, newsroomLabels } from "@/lib/data/types";
+import "../../banner-page.css";
+import "../news.css";
 
 export async function generateMetadata({ params }: PageProps<"/news/[id]">): Promise<Metadata> {
   const post = await getNewsPost((await params).id);
@@ -10,10 +13,21 @@ export async function generateMetadata({ params }: PageProps<"/news/[id]">): Pro
 }
 
 export default async function NewsArticlePage({ params }: PageProps<"/news/[id]">) {
-  const post = await getNewsPost((await params).id);
+  const { id } = await params;
+  const [post, news] = await Promise.all([getNewsPost(id), getNews()]);
   if (!post) notFound();
+  // Explainers have their own page; a post re-filed as one keeps its old links working.
+  if (!isNewsroomCategory(post.category)) redirect(`/explainer/${post.id}`);
 
-  const paragraphs = post.body.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean);
+  // More from the same category first, then the latest of the rest.
+  const others = toStories(news.filter((item) => item.id !== post.id));
+  const more = [...others.filter((item) => item.category === post.category), ...others.filter((item) => item.category !== post.category)].slice(0, 3);
 
-  return <main><section className="page-hero"><div className="page-hero-inner"><Link href={`/news?category=${post.category}`} className="eyebrow">{newsCategories[post.category]}</Link><h1 className="article-title">{post.title}</h1><p><time dateTime={post.date}>{formatDate(post.date)}</time></p></div></section><article className="section article-body"><p className="article-lede">{post.excerpt}</p>{paragraphs.filter((paragraph) => paragraph !== post.excerpt).map((paragraph, index) => <p key={index}>{paragraph}</p>)}<Link className="all-link" href="/news">← Back to all news</Link></article></main>;
+  return (
+    <Article
+      post={post}
+      more={more}
+      section={{ label: "News", href: "/news", crumb: { label: newsroomLabels[post.category], href: `/news?category=${post.category}` }, moreTitle: "More news", allLabel: "All news" }}
+    />
+  );
 }

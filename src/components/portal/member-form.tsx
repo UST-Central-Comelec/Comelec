@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Combobox } from "@/components/combobox";
 import { colleges } from "@/lib/applications/options";
 import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, memberBodies, positionsFor, type Member, type MemberBody } from "@/lib/data/types";
@@ -23,12 +23,14 @@ export function MemberForm({
   submitLabel,
   takenColleges,
   lockedCollege,
+  danger,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   initial: Values;
   submitLabel: string;
   takenColleges: Record<string, string>;
   lockedCollege?: string;
+  danger?: ReactNode;
 }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
   const [body, setBody] = useState<MemberBody>(initial.body);
@@ -109,7 +111,7 @@ export function MemberForm({
           </div>
         )}
       </div>
-      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/members" />
+      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/members" danger={danger} />
     </form>
   );
 }

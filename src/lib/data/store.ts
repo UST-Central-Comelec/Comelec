@@ -15,7 +15,7 @@ export type Collection = keyof ContentDb;
 export type Item<C extends Collection> = ContentDb[C][number];
 type NewItem<C extends Collection> = Omit<Item<C>, "id" | "createdAt" | "updatedAt" | "updatedBy">;
 
-const tables: Record<Collection, string> = { news: "news", documents: "documents", members: "members", accounts: "portal_accounts" };
+const tables: Record<Collection, string> = { news: "news", documents: "documents", members: "members", accounts: "portal_accounts", events: "events", statistics: "statistics" };
 
 // Fields whose column name isn't plain snake_case (`order` is a reserved word in SQL).
 const columnOverrides: Record<string, string> = { order: "display_order" };

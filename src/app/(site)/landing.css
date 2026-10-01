@@ -1,0 +1,282 @@
+/* Home page (src/app/(site)/page.tsx): the COMET Initiative. Dark and cinematic where the rest of the
+   site is light: the navbar's night sky opens into a deep-space hero with the comet
+   (src/components/home/comet-sky.tsx), then the initiative, live status from the commission, the
+   creed, and a closing call over a planet's gold horizon. Everything is prefixed lp- (keyframes and
+   custom properties too): a page's stylesheet stays loaded after navigating away, so nothing here
+   may reach other pages. */
+
+.lp { --lp-bg: #030305; --lp-text: #f3f1eb; --lp-muted: #a3a1ac; --lp-faint: #7e7c87; --lp-line: rgba(255,255,255,.08); --lp-line-strong: rgba(255,255,255,.15); --lp-gold: #fec30c; --lp-gold-light: #ffe28a; --lp-ok: #3ecf8e; --lp-ease: cubic-bezier(.22,1,.36,1); --lp-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --lp-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --lp-wrap: var(--site-max, 1240px); --lp-gutter: var(--site-gutter, 24px); -webkit-font-smoothing: antialiased; background: var(--lp-bg); color: var(--lp-text); overflow: clip; position: relative; }
+/* Film grain over everything: texture, and it keeps the long dark gradients from banding */
+.lp::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 4; }
+.lp ::selection { background: rgba(254,195,12,.32); color: #fff; }
+.lp :focus-visible { outline: 2px solid var(--lp-gold); outline-offset: 3px; }
+
+/* Shared: section frame, eyebrow, titles, and the gold serif italic that carries accent words */
+.lp-wrap { margin: 0 auto; max-width: var(--lp-wrap); padding: 0 var(--lp-gutter); position: relative; }
+.lp-section { padding: clamp(104px, 13vw, 184px) 0; position: relative; }
+.lp-head { margin-bottom: clamp(52px, 6.5vw, 96px); max-width: 900px; }
+/* Title and intro side by side where there's room for both, the intro dropping underneath where there isn't */
+.lp-head.is-split { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 28px 64px; justify-content: space-between; max-width: none; }
+.lp-head.is-split .lp-intro { flex: 1 1 22em; margin: 0 0 8px; max-width: 30em; }
+.lp-eyebrow { align-items: center; color: var(--lp-muted); display: flex; font: 500 11px/1 var(--lp-mono); gap: 11px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
+.lp-eyebrow::before { background: var(--lp-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(254,195,12,.16), 0 0 12px rgba(254,195,12,.6); content: ""; flex: none; height: 6px; width: 6px; }
+.lp-title { color: var(--lp-text); font-size: clamp(44px, 6.2vw, 104px); font-weight: 560; letter-spacing: -.058em; line-height: .94; margin: 22px 0 0; }
+.lp-intro { color: var(--lp-muted); font-size: clamp(15.5px, 1.2vw, 18px); line-height: 1.7; margin: 28px 0 0; max-width: 38em; }
+.lp-intro b { color: var(--lp-gold); font-weight: 600; }
+.lp-tagline em, .lp-title em, .lp-pillar h3 em, .lp-card-title em, .lp-statement em { background: linear-gradient(100deg, #ffe7a3, var(--lp-gold) 28%, #f2a900 52%, var(--lp-gold) 76%, #ffe7a3) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--lp-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+/* Light runs slowly through the two brand lines only; everywhere else the gold holds still */
+.lp-tagline em, .lp-finale .lp-title em { animation: lp-sheen 10s linear infinite; }
+@keyframes lp-sheen { to { background-position: 200% 0; } }
+
+/* Buttons: gold with a sheen that sweeps across on hover, and glass with a beam running round its edge */
+@property --lp-beam { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.lp-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 14px; margin-top: clamp(28px, 3vw, 42px); }
+.lp-button { align-items: center; border-radius: 999px; display: inline-flex; font-size: 14px; font-weight: 550; gap: 10px; isolation: isolate; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: background-color .3s ease, box-shadow .4s var(--lp-ease), transform .4s var(--lp-ease); white-space: nowrap; }
+.lp-button svg { flex: none; transition: transform .4s var(--lp-ease); }
+.lp-button:hover svg { transform: translate(2px, -2px); }
+.lp-button.is-down:hover svg { transform: translateY(3px); }
+.lp-button.is-small { font-size: 13px; padding: 12px 17px; }
+.lp-button.is-primary { background: var(--lp-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(254,195,12,.75); color: #0c0b08; }
+.lp-button.is-primary::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--lp-ease); z-index: -1; }
+.lp-button.is-primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(254,195,12,.9), 0 0 0 6px rgba(254,195,12,.14); transform: translateY(-1px); }
+.lp-button.is-primary:hover::after { transform: translateX(120%); }
+.lp-button.is-ghost { background: rgba(255,255,255,.035); color: var(--lp-text); }
+.lp-button.is-ghost::before { animation: lp-beam 5s linear infinite; background: conic-gradient(from var(--lp-beam), rgba(255,255,255,.14) 0deg 250deg, rgba(254,195,12,.95) 310deg, rgba(255,255,255,.14) 350deg); border-radius: inherit; content: ""; inset: 0; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; padding: 1px; position: absolute; z-index: -1; }
+.lp-button.is-ghost:hover { background: rgba(255,255,255,.08); }
+@keyframes lp-beam { to { --lp-beam: 360deg; } }
+
+/* Status: a dot, green and pulsing while something's open */
+.lp-dot { background: #6b6975; border-radius: 50%; flex: none; height: 7px; width: 7px; }
+.lp-dot.is-open, .lp-eyebrow.is-live::before { animation: lp-ping 2.4s var(--lp-ease) infinite; background: var(--lp-ok); }
+.lp-eyebrow.is-live::before { border-radius: 50%; }
+.lp-status { align-items: center; border: 1px solid var(--lp-line-strong); border-radius: 999px; color: var(--lp-muted); display: inline-flex; flex: none; font: 500 10.5px/1 var(--lp-mono); gap: 8px; letter-spacing: .12em; padding: 6px 11px 6px 9px; text-transform: uppercase; }
+.lp-status.is-open { background: rgba(62,207,142,.08); border-color: rgba(62,207,142,.3); color: #7be3b4; }
+@keyframes lp-ping { 0% { box-shadow: 0 0 0 0 rgba(62,207,142,.55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(62,207,142,0); } }
+
+/* Hero: the sky fills it, the copy sits over the left, and the HUD runs along the foot */
+.lp-hero { background: radial-gradient(50% 58% at 80% 24%, rgba(254,195,12,.08), transparent 70%), radial-gradient(46% 60% at 6% 10%, rgba(66,84,190,.16), transparent 72%), radial-gradient(42% 50% at 58% 110%, rgba(124,74,180,.11), transparent 70%), linear-gradient(180deg, #030306, #05050a 58%, var(--lp-bg)); display: flex; flex-direction: column; isolation: isolate; min-height: calc(100svh - 78px); position: relative; }
+/* A shade behind the copy, so the stars never fight the words */
+.lp-hero::before { background: radial-gradient(56% 64% at 16% 56%, rgba(3,3,5,.72), transparent 72%); content: ""; inset: 0; pointer-events: none; position: absolute; z-index: -1; }
+.lp-sky { inset: 0; -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); mask-image: linear-gradient(180deg, #000 70%, transparent); pointer-events: none; position: absolute; z-index: -2; }
+.lp-sky canvas { display: block; height: 100%; width: 100%; }
+/* Scrolling away lifts the copy and fades it (--hero-scroll and --hero-lift, from comet-sky.tsx) */
+.lp-hero-inner { display: flex; flex: 1; flex-direction: column; justify-content: center; margin: 0 auto; max-width: var(--lp-wrap); opacity: calc(1 - var(--hero-scroll, 0) * 1.15); padding: clamp(48px, 8vh, 104px) var(--lp-gutter) clamp(36px, 6vh, 64px); position: relative; transform: translate3d(0, var(--hero-lift, 0px), 0); width: 100%; z-index: 1; }
+/* Recruitment call: a line of telemetry in the comet reticle's gold corner brackets, with a live countdown.
+   On hover the brackets reach further round and a band of light sweeps through. */
+.lp-call { --c: rgba(254,195,12,.8); align-items: center; align-self: flex-start; background-image: linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(90deg, rgba(254,195,12,.09), rgba(254,195,12,0) 72%); background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%, 0 0; background-repeat: no-repeat; background-size: 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px, 100% 100%; color: var(--lp-text); display: inline-flex; flex-wrap: wrap; font-size: 13.5px; gap: 8px 14px; margin-bottom: clamp(26px, 3.4vh, 40px); max-width: 100%; overflow: hidden; padding: 12px 16px 12px 14px; position: relative; transition: background-size .6s var(--lp-ease); }
+.lp-call::after { background: linear-gradient(100deg, transparent 30%, rgba(254,195,12,.18) 50%, transparent 70%) no-repeat -150% 0 / 60% 100%; content: ""; inset: 0; pointer-events: none; position: absolute; transition: background-position 1s var(--lp-ease); }
+.lp-call:hover { background-size: 22px 1px, 1px 22px, 22px 1px, 1px 22px, 22px 1px, 1px 22px, 22px 1px, 1px 22px, 100% 100%; }
+.lp-call:hover::after { background-position: 250% 0; }
+.lp-call-signal { align-items: flex-end; display: flex; gap: 2px; height: 12px; }
+.lp-call-signal i { animation: lp-signal 1.2s ease-in-out infinite; background: var(--lp-gold); border-radius: 1px; height: 100%; transform-origin: 50% 100%; width: 2px; }
+.lp-call-signal i:nth-child(2) { animation-delay: -.35s; }
+.lp-call-signal i:nth-child(3) { animation-delay: -.7s; }
+.lp-call-signal i:nth-child(4) { animation-delay: -.2s; animation-duration: 1.5s; }
+.lp-call-label { color: var(--lp-gold); font: 500 10.5px/1 var(--lp-mono); letter-spacing: .2em; text-transform: uppercase; }
+.lp-call-text { align-items: baseline; border-left: 1px solid rgba(255,255,255,.14); color: rgba(243,241,235,.8); display: inline-flex; flex-wrap: wrap; gap: 4px 10px; padding-left: 14px; }
+.lp-call-clock { color: #fff; display: inline-flex; font: 500 13px/1 var(--lp-mono); font-variant-numeric: tabular-nums; gap: 7px; letter-spacing: .02em; }
+.lp-call-clock small { color: var(--lp-faint); font-size: 10.5px; margin-left: 1px; }
+.lp-call-arrow { color: var(--lp-gold); flex: none; transition: transform .4s var(--lp-ease); }
+.lp-call:hover .lp-call-arrow { transform: translate(2px, -2px); }
+.lp-kicker { align-items: center; color: var(--lp-muted); display: flex; font: 500 11px/1 var(--lp-mono); gap: 14px; letter-spacing: .22em; margin: 0 0 clamp(14px, 2vh, 24px); text-transform: uppercase; }
+.lp-kicker::before { background: linear-gradient(90deg, transparent, var(--lp-gold)); content: ""; height: 1px; width: 32px; }
+.lp-hero-title { font-weight: inherit; margin: 0; }
+/* The wordmark catches the comet's light: a gold glow centred on the head (--lx/--ly) over silver.
+   Padding keeps the glyphs' overhang inside the painted box, where background-clip can reach it. */
+.lp-wordmark { background: radial-gradient(circle at var(--lx, 112%) var(--ly, 24%), rgba(255,246,220,.95) 0, rgba(255,222,140,.85) 5vw, rgba(254,195,12,.5) 12vw, rgba(254,195,12,.14) 20vw, rgba(254,195,12,0) 28vw), linear-gradient(180deg, #fff 10%, #d6d3de 58%, #6c6a76 100%); -webkit-background-clip: text; background-clip: text; color: transparent; display: block; font-size: clamp(88px, 15.5vw, 280px); font-weight: 650; letter-spacing: -.068em; line-height: .8; margin-left: -.05em; max-width: 100%; padding: .06em .1em .06em 0; width: fit-content; }
+.lp-tagline { color: var(--lp-text); display: block; font-size: clamp(30px, 3.7vw, 60px); font-weight: 400; letter-spacing: -.04em; line-height: 1.02; margin-top: clamp(10px, 1.4vw, 22px); }
+.lp-lede { color: var(--lp-muted); font-size: clamp(15px, 1.15vw, 18px); line-height: 1.7; margin: clamp(22px, 2.4vw, 34px) 0 0; max-width: 34em; }
+.lp-lede strong { color: var(--lp-text); font-weight: 500; }
+
+/* The comet's tracking reticle (comet-sky.tsx moves it): corner brackets, centre ticks and a readout */
+.lp-reticle { left: 0; opacity: 0; position: absolute; top: 0; transition: opacity .8s ease; will-change: transform; }
+.lp-reticle.is-placed { opacity: 1; }
+.lp-reticle-frame { --c: rgba(255,228,150,.72); animation: lp-breathe 3.4s ease-in-out infinite; background: linear-gradient(var(--c), var(--c)) 0 0 / 13px 1px, linear-gradient(var(--c), var(--c)) 0 0 / 1px 13px, linear-gradient(var(--c), var(--c)) 100% 0 / 13px 1px, linear-gradient(var(--c), var(--c)) 100% 0 / 1px 13px, linear-gradient(var(--c), var(--c)) 0 100% / 13px 1px, linear-gradient(var(--c), var(--c)) 0 100% / 1px 13px, linear-gradient(var(--c), var(--c)) 100% 100% / 13px 1px, linear-gradient(var(--c), var(--c)) 100% 100% / 1px 13px; background-repeat: no-repeat; height: 76px; left: -38px; position: absolute; top: -38px; width: 76px; }
+.lp-reticle-frame::before { --c: rgba(255,228,150,.4); background: linear-gradient(var(--c), var(--c)) 50% 0 / 1px 6px, linear-gradient(var(--c), var(--c)) 50% 100% / 1px 6px, linear-gradient(var(--c), var(--c)) 0 50% / 6px 1px, linear-gradient(var(--c), var(--c)) 100% 50% / 6px 1px; background-repeat: no-repeat; content: ""; inset: 0; position: absolute; }
+.lp-reticle-label { color: rgba(255,255,255,.46); display: flex; flex-direction: column; font: 500 10px/1.6 var(--lp-mono); gap: 2px; left: -38px; letter-spacing: .08em; position: absolute; text-transform: uppercase; top: 52px; white-space: nowrap; }
+.lp-reticle-label b { color: var(--lp-gold); font-weight: 600; letter-spacing: .16em; }
+@keyframes lp-breathe { 50% { opacity: .7; transform: scale(1.07); } }
+
+/* The HUD: live readings along the hero's foot, and a spark that runs along its edge now and then */
+.lp-hud { border-top: 1px solid var(--lp-line); clip-path: inset(-100px 0); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 auto; max-width: calc(var(--lp-wrap) - 2 * var(--lp-gutter)); position: relative; width: calc(100% - 2 * var(--lp-gutter)); z-index: 1; }
+.lp-hud::before { animation: lp-scan 9s var(--lp-ease) infinite; background: linear-gradient(90deg, transparent, var(--lp-gold), transparent); content: ""; height: 1px; left: 0; opacity: 0; position: absolute; top: -1px; width: 22%; }
+.lp-hud > div { min-width: 0; padding: 20px 24px 26px 0; }
+.lp-hud > div + div { border-left: 1px solid var(--lp-line); padding-left: 24px; }
+.lp-hud dt { color: var(--lp-faint); font: 500 10.5px/1.2 var(--lp-mono); letter-spacing: .16em; margin-bottom: 10px; text-transform: uppercase; }
+.lp-hud dd { align-items: center; color: var(--lp-text); display: flex; font-size: 14px; font-weight: 500; gap: 9px; letter-spacing: -.01em; margin: 0; }
+@keyframes lp-scan { 0% { opacity: 0; transform: translateX(-100%); } 8%, 42% { opacity: 1; } 50%, 100% { opacity: 0; transform: translateX(460%); } }
+
+/* Entrances (reveal-on-scroll.tsx). The hero's pieces rise in one after another once it goes live, the
+   wordmark condensing out of a blur; further down, things rise as they first scroll into view. */
+.lp-hero[data-live] [data-enter] { animation: lp-rise 1.2s var(--lp-ease) both; animation-delay: calc(.12s + var(--enter, 0) * .09s); }
+.lp-hero[data-live] .lp-wordmark { animation-duration: 2s; animation-name: lp-ignite; }
+.lp-hero[data-live] .lp-reticle-frame { animation: lp-lock 1s var(--lp-ease) 1.3s both, lp-breathe 3.4s ease-in-out 2.3s infinite; }
+.lp-hero[data-live] .lp-reticle-label { animation: lp-type 1.2s steps(26, end) 1.9s both; }
+.lp [data-reveal] { transition: border-color .4s ease, filter 1s var(--lp-ease) var(--reveal-delay, 0s), opacity 1s var(--lp-ease) var(--reveal-delay, 0s), transform 1.1s var(--lp-ease) var(--reveal-delay, 0s); }
+.lp [data-reveal="waiting"] { filter: blur(8px); opacity: 0; transform: translate3d(0, 32px, 0); }
+@keyframes lp-rise { from { filter: blur(10px); opacity: 0; transform: translate3d(0, 28px, 0); } }
+@keyframes lp-ignite { from { filter: blur(18px); letter-spacing: .04em; opacity: 0; } }
+@keyframes lp-lock { from { opacity: 0; transform: rotate(45deg) scale(1.9); } }
+@keyframes lp-type { from { clip-path: inset(0 100% 0 0); } }
+
+/* Marquee */
+.lp-marquee { border-block: 1px solid var(--lp-line); -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); overflow: hidden; padding: clamp(20px, 2.4vw, 32px) 0; }
+.lp-marquee-track { animation: lp-marquee 56s linear infinite; display: flex; width: max-content; }
+.lp-marquee:hover .lp-marquee-track { animation-play-state: paused; }
+.lp-marquee-row { align-items: center; display: flex; flex: none; }
+.lp-marquee-row span { align-items: center; display: inline-flex; font-size: clamp(30px, 4.4vw, 68px); font-weight: 500; letter-spacing: -.045em; line-height: 1.1; white-space: nowrap; }
+.lp-marquee-row span::after { color: var(--lp-gold); content: "✦"; font-family: var(--font-sans); font-size: .34em; font-style: normal; margin: 0 clamp(22px, 2.6vw, 44px); -webkit-text-stroke: 0; }
+.lp-marquee-row .is-1 { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.34); }
+.lp-marquee-row .is-2 { color: var(--lp-gold); font-family: var(--lp-serif); font-style: italic; font-weight: 400; letter-spacing: -.02em; }
+@keyframes lp-marquee { to { transform: translateX(-50%); } }
+
+/* The initiative: COMET on every row, decoded down the page, its letters for that row filling with light as it arrives */
+.lp-pillars { border-top: 1px solid var(--lp-line); list-style: none; margin: 0; padding: 0; }
+.lp-pillar { align-items: start; border-bottom: 1px solid var(--lp-line); display: grid; gap: 24px clamp(32px, 5vw, 96px); grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); padding: clamp(40px, 5vw, 72px) 0; position: relative; }
+.lp-pillar::after { background: linear-gradient(90deg, var(--lp-gold), rgba(254,195,12,.2) 40%, transparent 80%); bottom: -1px; content: ""; height: 1px; left: 0; position: absolute; right: 0; transform-origin: left; transition: transform 1.6s var(--lp-ease) .2s; }
+.lp-pillar[data-reveal="waiting"]::after { transform: scaleX(0); }
+.lp-pillar-glyph { display: flex; font-size: clamp(64px, 9vw, 176px); font-weight: 650; letter-spacing: -.07em; line-height: .78; padding: .04em 0 .06em; }
+.lp-pillar-glyph span { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.13); }
+/* Padding (taken back by the margin) keeps each letter's overhang inside the box its light is painted in */
+.lp-pillar-glyph .is-lit { background: linear-gradient(180deg, #fff3c4 0%, var(--lp-gold) 34%, rgba(254,195,12,.3) 72%, rgba(254,195,12,.04) 100%) no-repeat 0 100% / 100% 100%; -webkit-background-clip: text; background-clip: text; margin-right: -.1em; padding-right: .1em; -webkit-text-stroke: 1px rgba(255,255,255,.2); transition: background-size 1.8s var(--lp-ease) .25s; }
+.lp-pillar[data-reveal="waiting"] .lp-pillar-glyph .is-lit { background-size: 100% 0%; }
+.lp-pillar-index { align-items: center; color: var(--lp-faint); display: flex; font: 500 11px/1 var(--lp-mono); gap: 14px; letter-spacing: .18em; margin: 10px 0 0; text-transform: uppercase; }
+.lp-pillar-index span { color: var(--lp-gold); }
+.lp-pillar h3 { font-size: clamp(30px, 3.2vw, 50px); font-weight: 500; letter-spacing: -.048em; line-height: 1.02; margin: 20px 0 0; }
+.lp-pillar-copy { color: var(--lp-muted); font-size: 16px; line-height: 1.72; margin: 18px 0 0; max-width: 34em; }
+.lp-chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 28px 0 0; padding: 0; }
+.lp-chips a { align-items: center; background: rgba(255,255,255,.035); border: 1px solid var(--lp-line); border-radius: 999px; color: var(--lp-text); display: inline-flex; font-size: 13px; gap: 7px; padding: 9px 14px; transition: background .3s ease, border-color .3s ease; }
+.lp-chips svg { color: var(--lp-gold); transition: transform .4s var(--lp-ease); }
+.lp-chips a:hover { background: rgba(254,195,12,.08); border-color: rgba(254,195,12,.4); }
+.lp-chips a:hover svg { transform: translate(2px, -2px); }
+
+/* Mission control: glass cards with live status, lit under the pointer (spotlight-grid.tsx) */
+.lp-live { background: radial-gradient(70% 50% at 50% 0%, rgba(66,84,190,.07), transparent 70%); }
+.lp-bento { display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.lp-card { background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)); border: 1px solid var(--lp-line); border-radius: 26px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 40px 80px -48px rgba(0,0,0,.9); display: flex; flex-direction: column; grid-column: span 4; isolation: isolate; min-height: 290px; overflow: hidden; padding: clamp(24px, 2.4vw, 34px); position: relative; }
+.lp-card:hover { border-color: rgba(255,255,255,.14); }
+.lp-card::before { background: radial-gradient(520px circle at var(--spot-x, 50%) var(--spot-y, 0%), rgba(254,195,12,.09), transparent 62%); content: ""; inset: 0; opacity: 0; pointer-events: none; position: absolute; transition: opacity .5s ease; z-index: -1; }
+.lp-card::after { background: radial-gradient(320px circle at var(--spot-x, 50%) var(--spot-y, 0%), rgba(254,195,12,.7), transparent 62%); border-radius: inherit; content: ""; inset: 0; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; opacity: 0; padding: 1px; pointer-events: none; position: absolute; transition: opacity .5s ease; }
+.lp-card:hover::before, .lp-card:hover::after { opacity: 1; }
+.lp-card:has(.lp-stretch:focus-visible) { outline: 2px solid var(--lp-gold); outline-offset: 3px; }
+.lp-card.is-apply { grid-column: span 7; grid-row: span 2; min-height: 600px; }
+.lp-card.is-news, .lp-card.is-record { grid-column: span 5; }
+.lp-card-head { align-items: center; display: flex; gap: 12px; justify-content: space-between; min-height: 26px; }
+.lp-card-index, .lp-card-count { color: var(--lp-faint); font: 500 10.5px/1 var(--lp-mono); letter-spacing: .16em; text-transform: uppercase; }
+.lp-card-count { color: var(--lp-gold); }
+.lp-card-title { font-size: clamp(42px, 4.6vw, 76px); font-weight: 540; letter-spacing: -.058em; line-height: .92; margin: auto 0 0; }
+.lp-card-title.is-small { font-size: clamp(22px, 1.9vw, 28px); font-weight: 500; letter-spacing: -.035em; line-height: 1.15; margin: 22px 0 0; }
+.lp-card-copy { color: var(--lp-muted); font-size: 14.5px; line-height: 1.65; margin: 12px 0 0; max-width: 36em; }
+.lp-card-copy.is-clamped { -webkit-box-orient: vertical; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.lp-card-meta { align-items: center; color: var(--lp-faint); display: flex; font: 500 10.5px/1 var(--lp-mono); gap: 12px; letter-spacing: .12em; margin: auto 0 0; padding-top: 28px; text-transform: uppercase; }
+.lp-card-meta span { color: var(--lp-gold); }
+.lp-card-meta + .lp-card-title { margin-top: 14px; }
+.lp-card-foot { align-items: center; align-self: flex-start; color: var(--lp-gold); display: inline-flex; font-size: 13px; font-weight: 550; gap: 6px; margin-top: auto; padding-top: 22px; position: relative; z-index: 2; }
+.lp-card-foot svg { transition: transform .4s var(--lp-ease); }
+.lp-card:hover .lp-card-foot svg, a.lp-card-foot:hover svg { transform: translate(2px, -2px); }
+.lp-card-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; position: relative; z-index: 2; }
+/* The card's main link covers the whole card */
+.lp-stretch::after { content: ""; inset: 0; position: absolute; z-index: 1; }
+.lp-stretch:focus-visible { outline: none; }
+.lp-card-mark { bottom: -24px; color: rgba(255,255,255,.05); height: 150px; pointer-events: none; position: absolute; right: -18px; transition: color .6s ease, transform 1s var(--lp-ease); width: 150px; z-index: -1; }
+.lp-card:hover .lp-card-mark { color: rgba(254,195,12,.16); transform: rotate(-6deg) scale(1.04); }
+
+/* Recruitment: a radar sweeps its rings, blips flaring as it passes, over a countdown to closing */
+.lp-radar { aspect-ratio: 1; background: repeating-radial-gradient(circle closest-side, transparent 0 calc(25% - 1px), rgba(255,255,255,.07) calc(25% - 1px) 25%), linear-gradient(rgba(255,255,255,.06), rgba(255,255,255,.06)) 50% 0 / 1px 100% no-repeat, linear-gradient(rgba(255,255,255,.06), rgba(255,255,255,.06)) 0 50% / 100% 1px no-repeat; border-radius: 50%; -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent); mask-image: radial-gradient(closest-side, #000 62%, transparent); pointer-events: none; position: absolute; right: -18%; top: -18%; width: min(78%, 560px); z-index: -1; }
+.lp-radar::before { animation: lp-spin 6s linear infinite; background: conic-gradient(transparent 0deg 280deg, rgba(254,195,12,.05) 300deg, rgba(254,195,12,.3) 356deg, rgba(255,232,160,.8) 359.5deg, transparent 360deg); border-radius: 50%; content: ""; inset: 0; position: absolute; }
+.lp-radar i { animation: lp-blip 6s linear infinite; animation-delay: calc(var(--turn) * 6s); background: var(--lp-gold); border-radius: 50%; box-shadow: 0 0 10px 2px rgba(254,195,12,.6); height: 5px; margin: -2.5px 0 0 -2.5px; opacity: 0; position: absolute; width: 5px; }
+@keyframes lp-spin { to { transform: rotate(1turn); } }
+@keyframes lp-blip { 0% { opacity: 1; transform: scale(1.5); } 12% { opacity: .9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(.6); } }
+.lp-countdown { margin-top: 28px; }
+.lp-countdown .apply-countdown { align-items: flex-start; flex-direction: column; gap: 12px; justify-content: flex-start; }
+.lp-countdown .apply-countdown-label { color: var(--lp-faint); font: 500 10.5px/1 var(--lp-mono); letter-spacing: .16em; }
+.lp-countdown .apply-countdown ol { gap: 8px; }
+.lp-countdown .apply-countdown li { align-items: flex-start; background: rgba(255,255,255,.04); border-color: var(--lp-line); border-radius: 14px; flex-direction: column; gap: 7px; min-width: 72px; padding: 12px 14px 11px; }
+.lp-countdown .apply-countdown strong { font: 500 clamp(24px, 2.2vw, 32px)/1 var(--lp-mono); letter-spacing: -.03em; }
+.lp-countdown .apply-countdown small { color: var(--lp-faint); font: 500 10px/1 var(--lp-mono); letter-spacing: .14em; text-transform: uppercase; }
+
+/* Newsroom: a signal meter; the record: a ledger of the latest documents; the directory: a constellation */
+.lp-signal { align-items: flex-end; display: flex; gap: 3px; height: 20px; }
+.lp-signal i { animation: lp-signal calc(1.05s + var(--bar) * .08s) ease-in-out infinite; animation-delay: calc(var(--bar) * -.21s); background: linear-gradient(180deg, var(--lp-gold), rgba(254,195,12,.2)); border-radius: 1px; height: 100%; transform-origin: 50% 100%; width: 3px; }
+@keyframes lp-signal { 0%, 100% { transform: scaleY(.2); } 50% { transform: scaleY(1); } }
+.lp-ledger { list-style: none; margin: 16px 0 0; padding: 0; position: relative; z-index: 2; }
+.lp-ledger li + li { border-top: 1px solid var(--lp-line); }
+.lp-ledger a { align-items: baseline; display: grid; gap: 6px 16px; grid-template-columns: minmax(0, 1fr) auto; padding: 13px 0; }
+.lp-ledger span { color: var(--lp-gold); font: 500 10px/1 var(--lp-mono); grid-column: 1 / -1; letter-spacing: .14em; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.lp-ledger strong { font-size: 14.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-ledger time { color: var(--lp-faint); font: 12px/1 var(--lp-mono); }
+.lp-ledger a:hover strong { text-decoration: underline; text-decoration-color: var(--lp-gold); text-underline-offset: 4px; }
+/* Faint behind the words, like the other cards' marks, brightening on hover */
+.lp-constellation { bottom: 18px; height: auto; opacity: .45; pointer-events: none; position: absolute; right: 18px; transition: opacity .6s ease; width: min(46%, 200px); z-index: -1; }
+.lp-card:hover .lp-constellation { opacity: 1; }
+.lp-constellation polyline { fill: none; stroke: rgba(255,255,255,.2); stroke-dasharray: 3 4; stroke-width: 1; }
+.lp-constellation circle { animation: lp-twinkle 3.6s ease-in-out infinite; animation-delay: calc(var(--twinkle) * -.45s); fill: var(--lp-gold-light); }
+@keyframes lp-twinkle { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+/* The creed: a statement that lights word by word as it scrolls up (lit-statement.tsx), then the principles */
+.lp-creed { background: radial-gradient(60% 50% at 50% 0%, rgba(66,84,190,.08), transparent 70%); border-top: 1px solid var(--lp-line); }
+.lp-statement { font-size: clamp(34px, 4.8vw, 80px); font-weight: 500; letter-spacing: -.052em; line-height: 1.05; margin: clamp(28px, 3vw, 44px) 0 0; max-width: 17em; }
+.lp-statement[data-lit] > span { opacity: calc(.14 + .86 * clamp(0, var(--lit, 1) * var(--words) - var(--word), 1)); transition: opacity .3s linear; }
+.lp-principles { display: grid; gap: 28px clamp(20px, 3vw, 48px); grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: clamp(64px, 8vw, 120px) 0 0; padding: 0; }
+.lp-principles li { border-top: 1px solid var(--lp-line-strong); padding-top: 24px; position: relative; }
+.lp-principles li::before { background: var(--lp-gold); box-shadow: 0 0 12px rgba(254,195,12,.6); content: ""; height: 1px; left: 0; position: absolute; top: -1px; transform-origin: left; transition: transform 1.4s var(--lp-ease) calc(var(--reveal-delay, 0s) + .2s); width: 64px; }
+.lp-principles li[data-reveal="waiting"]::before { transform: scaleX(0); }
+.lp-principles span { color: var(--lp-gold); font: 500 11px/1 var(--lp-mono); letter-spacing: .16em; }
+.lp-principles h3 { font-size: clamp(22px, 1.9vw, 28px); font-weight: 500; letter-spacing: -.035em; margin: 18px 0 0; }
+.lp-principles p { color: var(--lp-muted); font-size: 15px; line-height: 1.65; margin: 10px 0 0; max-width: 28em; }
+
+/* Finale: the logo in orbit, over a dark planet whose horizon glows gold (it runs on into the footer) */
+.lp-finale { isolation: isolate; overflow: hidden; padding: clamp(120px, 15vw, 210px) 0 clamp(260px, 30vw, 420px); position: relative; text-align: center; }
+.lp-finale::after { background: radial-gradient(closest-side, rgba(255,226,140,.34), rgba(254,195,12,.1) 45%, transparent); bottom: clamp(150px, 16vw, 250px); content: ""; height: 280px; left: 50%; pointer-events: none; position: absolute; transform: translate(-50%, 50%); width: min(1100px, 100vw); z-index: -1; }
+.lp-finale-inner { align-items: center; display: flex; flex-direction: column; }
+.lp-finale .lp-intro { margin-left: auto; margin-right: auto; max-width: 32em; }
+.lp-finale .lp-actions { justify-content: center; }
+.lp-finale-mark { display: grid; height: 88px; margin-bottom: clamp(48px, 5vw, 68px); place-items: center; position: relative; width: 88px; }
+.lp-finale-mark img { border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 0 60px rgba(254,195,12,.22); position: relative; }
+.lp-finale-mark::before { border: 1px solid rgba(255,255,255,.1); border-radius: 50%; content: ""; inset: -20px; position: absolute; }
+.lp-finale-mark::after { animation: lp-spin 60s linear infinite; border: 1px dashed rgba(254,195,12,.24); border-radius: 50%; content: ""; inset: -46px; position: absolute; }
+.lp-orbit { animation: lp-spin 10s linear infinite; inset: -20px; position: absolute; }
+.lp-orbit::before { background: var(--lp-gold); border-radius: 50%; box-shadow: 0 0 12px 2px rgba(254,195,12,.7); content: ""; height: 6px; left: 50%; margin: -3px 0 0 -3px; position: absolute; top: 0; width: 6px; }
+.lp-planet { aspect-ratio: 1; background: radial-gradient(circle at 50% 0, #17120a, #050403 16%, #000 36%); border-radius: 50%; box-shadow: inset 0 2px 1px rgba(255,236,190,.75), inset 0 18px 40px -16px rgba(254,195,12,.45), 0 -2px 20px rgba(254,195,12,.4), 0 -30px 120px -10px rgba(254,195,12,.26); left: 50%; pointer-events: none; position: absolute; top: calc(100% - clamp(150px, 16vw, 250px)); transform: translateX(-50%); width: max(1700px, 165vw); z-index: -1; }
+
+@media (max-width: 1100px) {
+	.lp-card.is-apply { grid-column: 1 / -1; grid-row: auto; min-height: 520px; }
+	.lp-card.is-news, .lp-card.is-record, .lp-card.is-filing { grid-column: span 6; }
+	.lp-card.is-people { grid-column: 1 / -1; }
+	.lp-pillar { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
+	.lp-pillar-glyph { font-size: clamp(56px, 8.6vw, 96px); }
+}
+
+@media (max-width: 760px) {
+	.lp-hero { min-height: calc(100svh - 74px); }
+	.lp-hero-inner { justify-content: flex-start; padding-top: 40px; }
+	.lp-reticle { display: none; }
+	/* The call on two lines: signal, label and arrow, then the countdown underneath */
+	.lp-call { font-size: 13px; }
+	.lp-call-arrow { margin-left: auto; order: 1; }
+	.lp-call-text { border-left: 0; flex-basis: 100%; order: 2; padding-left: 0; }
+	.lp-actions .lp-button { flex: 1 1 auto; justify-content: center; }
+	.lp-hud { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.lp-hud > div, .lp-hud > div + div { border-left: 0; padding: 16px 12px 18px 0; }
+	.lp-hud > div:nth-child(even) { border-left: 1px solid var(--lp-line); padding-left: 14px; }
+	.lp-hud > div:nth-child(n + 3) { border-top: 1px solid var(--lp-line); }
+	.lp-hud dd { font-size: 13px; }
+	.lp-head.is-split { align-items: flex-start; flex-direction: column; }
+	.lp-pillar { grid-template-columns: 1fr; }
+	.lp-pillar-glyph { font-size: clamp(60px, 22vw, 150px); }
+	.lp-pillar-index { margin-top: 0; }
+	.lp-bento { grid-template-columns: 1fr; }
+	.lp-card, .lp-card.is-apply, .lp-card.is-news, .lp-card.is-record, .lp-card.is-filing, .lp-card.is-people { grid-column: 1 / -1; min-height: 0; }
+	.lp-card.is-apply .lp-card-title { margin-top: 150px; }
+	/* Four equal countdown cells that always fit the card */
+	.lp-countdown .apply-countdown { align-items: stretch; }
+	.lp-countdown .apply-countdown ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+	.lp-countdown .apply-countdown li { min-width: 0; }
+	.lp-radar { right: -34%; top: -14%; width: 96%; }
+	.lp-principles { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lp *, .lp *::before, .lp *::after { animation: none !important; }
+	.lp [data-reveal], .lp-button, .lp-button::after, .lp-call, .lp-call::after, .lp-pillar-glyph .is-lit { transition: none; }
+}

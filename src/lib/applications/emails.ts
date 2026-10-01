@@ -11,18 +11,26 @@ export function siteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000").replace(/\/$/, "");
 }
 
-/** Wraps paragraphs in a simple, centred card with the commission's name on top. */
-export function layout(paragraphs: string[], code?: string) {
-  const body = paragraphs.map((text) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1d1c1b">${text}</p>`).join("");
-  const codeBlock = code
-    ? `<div style="background:#1d1c1b;border-radius:10px;color:#fff;margin:0 0 20px;padding:16px 20px"><div style="color:#b5b5b5;font-size:12px">Reference code</div><div style="font-size:24px;font-weight:700;letter-spacing:.06em;margin-top:4px">${escape(code)}</div></div>`
-    : "";
+/** One paragraph of an email. `text` is HTML: escape anything that came from a person. */
+export const paragraph = (text: string) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1d1c1b">${text}</p>`;
+
+/** A dark block with a small label over a large value: a reference code (spaced out, by default), or an event's name. */
+export const highlight = (label: string, value: string, valueStyle = "font-size:24px;font-weight:700;letter-spacing:.06em;margin-top:4px") =>
+  `<div style="background:#1d1c1b;border-radius:10px;color:#fff;margin:0 0 20px;padding:16px 20px"><div style="color:#b5b5b5;font-size:12px">${escape(label)}</div><div style="${valueStyle}">${escape(value)}</div></div>`;
+
+/** Wraps ready-made blocks (paragraph, highlight) in a simple, centred card with the commission's name on top. */
+export function card(blocks: string[]) {
   return `<!doctype html><html><body style="background:#f6f4ef;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;margin:0;padding:24px 12px">
 <div style="background:#fff;border:1px solid #e5e2da;border-radius:14px;margin:0 auto;max-width:560px;padding:28px">
 <div style="border-bottom:3px solid #d4a017;font-size:13px;font-weight:700;letter-spacing:.08em;margin:0 0 24px;padding-bottom:14px;text-transform:uppercase">UST Central Comelec</div>
-${codeBlock}${body}
+${blocks.join("")}
 <p style="color:#6b6b75;font-size:13px;line-height:1.6;margin:24px 0 0">UST Central Commission on Elections · <a href="mailto:comelec@ust.edu.ph" style="color:#6b6b75">comelec@ust.edu.ph</a></p>
 </div></body></html>`;
+}
+
+/** Paragraphs in the card, under the reference code when there is one. */
+export function layout(paragraphs: string[], code?: string) {
+  return card([code ? highlight("Reference code", code) : "", ...paragraphs.map(paragraph)]);
 }
 
 type Applicant = { email: string; firstName: string; referenceCode: string; position: string; division: string };

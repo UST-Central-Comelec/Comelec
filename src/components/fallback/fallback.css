@@ -1,0 +1,66 @@
+/* The screen shown when a page can't be: an error (error.tsx, global-error.tsx) or maintenance
+   (/maintenance). It has to stand on its own, since it can appear with none of the site's or the
+   portal's stylesheets loaded, so it carries its own colours and falls back to system fonts. The look
+   is the home page's: deep-space black, a scatter of stars, film grain, UST gold, mono capitals for
+   labels and the gold serif italic for the accent words. Everything is prefixed fb-. */
+
+/* The whole document, where this screen is the page (global-error.tsx and the maintenance layout). */
+body.fb-body { background: #030305; margin: 0; }
+
+.fb { --fb-bg: #030305; --fb-text: #f3f1eb; --fb-muted: #a3a1ac; --fb-faint: #7e7c87; --fb-line-strong: rgba(255,255,255,.15); --fb-gold: #fec30c; --fb-warn: #f5a524; --fb-ease: cubic-bezier(.22,1,.36,1); --fb-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --fb-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; -webkit-font-smoothing: antialiased; align-items: center; background: radial-gradient(50% 58% at 84% 18%, rgba(254,195,12,.08), transparent 70%), radial-gradient(46% 60% at 4% 6%, rgba(66,84,190,.16), transparent 72%), radial-gradient(42% 50% at 58% 112%, rgba(124,74,180,.11), transparent 70%), var(--fb-bg); box-sizing: border-box; color: var(--fb-text); color-scheme: dark; display: flex; font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; isolation: isolate; line-height: 1.5; min-height: 100svh; overflow: clip; position: relative; }
+.fb *, .fb *::before, .fb *::after { box-sizing: border-box; }
+/* Under the site's header, which the body already leaves 78px for. */
+.fb.is-below-header { min-height: calc(100svh - 78px); }
+/* A scatter of stars: one per tile, on tiles of different sizes so the pattern never lines up. */
+.fb::before { background-image: radial-gradient(circle at 31px 47px, rgba(255,255,255,.85) .6px, transparent 1.3px), radial-gradient(circle at 173px 121px, rgba(212,224,255,.7) .6px, transparent 1.3px), radial-gradient(circle at 88px 219px, rgba(255,255,255,.6) .5px, transparent 1.2px), radial-gradient(circle at 251px 73px, rgba(255,230,168,.75) .7px, transparent 1.5px), radial-gradient(circle at 402px 188px, rgba(255,255,255,.95) .9px, rgba(220,230,255,.22) 1.8px, transparent 3.4px), radial-gradient(circle at 330px 410px, rgba(255,255,255,.7) .6px, transparent 1.3px), radial-gradient(circle at 512px 61px, rgba(255,232,170,.9) .9px, rgba(254,195,12,.2) 1.8px, transparent 3.4px); background-size: 233px 211px, 307px 263px, 269px 331px, 419px 337px, 547px 431px, 613px 499px, 761px 577px; content: ""; inset: 0; -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); pointer-events: none; position: absolute; z-index: -2; }
+/* Film grain: texture, and it keeps the long dark gradients from banding. */
+.fb::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 3; }
+.fb ::selection { background: rgba(254,195,12,.32); color: #fff; }
+.fb :focus-visible { outline: 2px solid var(--fb-gold); outline-offset: 3px; }
+
+.fb-inner { margin: 0 auto; max-width: 1240px; padding: clamp(72px, 12vh, 140px) clamp(24px, 5vw, 96px); position: relative; width: 100%; }
+.fb-inner > * { animation: fb-in .7s var(--fb-ease) backwards; }
+.fb-inner > :nth-child(2) { animation-delay: .06s; }
+.fb-inner > :nth-child(3) { animation-delay: .12s; }
+.fb-inner > :nth-child(n + 4) { animation-delay: .18s; }
+@keyframes fb-in { from { opacity: 0; transform: translateY(14px); } }
+
+/* The status code, huge and barely there, behind the copy. */
+.fb-code { color: rgba(255,255,255,.045); font-size: clamp(190px, 34vw, 520px); font-weight: 650; letter-spacing: -.07em; line-height: .8; pointer-events: none; position: absolute; right: clamp(8px, 4vw, 72px); top: 50%; transform: translateY(-50%); user-select: none; z-index: -1; }
+
+/* A small glowing marker, then the label in mono capitals. */
+.fb .fb-eyebrow { align-items: center; color: var(--fb-muted); display: flex; font: 500 11px/1.2 var(--fb-mono); gap: 11px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
+.fb-eyebrow::before { background: var(--fb-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(254,195,12,.16), 0 0 12px rgba(254,195,12,.6); content: ""; flex: none; height: 6px; width: 6px; }
+/* Work in progress: the marker turns amber and pulses. */
+.fb-eyebrow.is-working::before { animation: fb-ping 2.4s var(--fb-ease) infinite; background: var(--fb-warn); border-radius: 50%; box-shadow: none; }
+@keyframes fb-ping { 0% { box-shadow: 0 0 0 0 rgba(245,165,36,.55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(245,165,36,0); } }
+
+.fb .fb-title { color: var(--fb-text); font-size: clamp(44px, 7vw, 104px); font-weight: 560; letter-spacing: -.058em; line-height: .94; margin: 22px 0 0; max-width: 11em; text-wrap: balance; }
+.fb .fb-title em { animation: fb-sheen 10s linear infinite; background: linear-gradient(100deg, #ffe7a3, var(--fb-gold) 28%, #f2a900 52%, var(--fb-gold) 76%, #ffe7a3) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--fb-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+@keyframes fb-sheen { to { background-position: 200% 0; } }
+.fb .fb-text { color: var(--fb-muted); font-size: clamp(15.5px, 1.2vw, 18px); line-height: 1.7; margin: 28px 0 0; max-width: 34em; }
+.fb .fb-text a { color: var(--fb-text); text-decoration: underline; text-decoration-color: rgba(254,195,12,.55); text-underline-offset: 3px; }
+.fb .fb-text a:hover { text-decoration-color: var(--fb-gold); }
+
+/* Buttons: gold with a sheen that sweeps across on hover, and glass. */
+.fb-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 14px; margin-top: clamp(28px, 3vw, 42px); }
+.fb .fb-button { align-items: center; background: rgba(255,255,255,.045); border: 1px solid var(--fb-line-strong); border-radius: 999px; color: var(--fb-text); cursor: pointer; display: inline-flex; font: inherit; font-size: 14px; font-weight: 550; gap: 10px; isolation: isolate; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 14px 21px; position: relative; text-decoration: none; transition: background-color .3s ease, border-color .3s ease, box-shadow .4s var(--fb-ease), transform .4s var(--fb-ease); white-space: nowrap; }
+.fb .fb-button:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.28); }
+.fb .fb-button.is-primary { background: var(--fb-gold); border-color: transparent; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(254,195,12,.75); color: #0c0b08; }
+.fb .fb-button.is-primary::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--fb-ease); z-index: -1; }
+.fb .fb-button.is-primary:hover { background: var(--fb-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(254,195,12,.9), 0 0 0 6px rgba(254,195,12,.14); transform: translateY(-1px); }
+.fb .fb-button.is-primary:hover::after { transform: translateX(120%); }
+
+/* What to quote when reporting the problem. */
+.fb .fb-ref { color: var(--fb-faint); font: 500 10.5px/1.4 var(--fb-mono); letter-spacing: .14em; margin: clamp(32px, 4vw, 52px) 0 0; overflow-wrap: anywhere; text-transform: uppercase; }
+.fb-ref b { color: var(--fb-muted); font-weight: 500; user-select: all; }
+
+@media (max-width: 560px) {
+	.fb-code { right: 50%; top: auto; bottom: 4%; transform: translateX(50%); }
+	.fb-actions { align-items: stretch; flex-direction: column; }
+	.fb .fb-button { justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.fb-inner > *, .fb .fb-title em, .fb-eyebrow.is-working::before { animation: none; }
+	.fb .fb-button, .fb .fb-button::after { transition: none; }
+}

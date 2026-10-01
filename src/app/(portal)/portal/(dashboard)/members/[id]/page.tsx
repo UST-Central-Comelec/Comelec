@@ -24,10 +24,9 @@ export default async function EditMemberPage({ params }: PageProps<"/portal/memb
           <h1>Edit member</h1>
           <p className="portal-muted">Last updated {new Date(member.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} by {member.updatedBy}.</p>
         </div>
-        <DeleteButton action={deleteMember.bind(null, member.id)} label="Remove member" />
       </header>
       <section className="portal-card">
-        <MemberForm action={updateMember.bind(null, member.id)} submitLabel="Save changes" initial={member} takenColleges={takenColleges(members, member.id)} lockedCollege={lockedCollege} />
+        <MemberForm action={updateMember.bind(null, member.id)} submitLabel="Save changes" initial={member} takenColleges={takenColleges(members, member.id)} lockedCollege={lockedCollege} danger={<DeleteButton action={deleteMember.bind(null, member.id)} label="Remove member" />} />
       </section>
     </main>
   );

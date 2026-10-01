@@ -18,24 +18,35 @@ const newsSchema = z.object({
 });
 
 function parse(formData: FormData) {
+  const category = text(formData, "category");
   return newsSchema.safeParse({
     title: text(formData, "title"),
-    category: text(formData, "category"),
+    category,
     date: text(formData, "date"),
     excerpt: text(formData, "excerpt"),
     body: text(formData, "body"),
-    featured: formData.get("featured") === "on",
+    // Only the News page has a featured post; an explainer is never one.
+    featured: category !== "explainer" && formData.get("featured") === "on",
   });
 }
 
+/** Why saving failed, in words a commissioner can act on. */
+function saveError(error: unknown): FormState {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("Couldn’t save the post:", message);
+  // The database still has the old list of categories, which has no Publication.
+  if (message.includes("news_category_check")) return { error: "The database doesn’t know this category yet. Run supabase/migrations/0020_news_categories_and_statistics.sql in the Supabase SQL Editor, then save again." };
+  return { error: "Something went wrong saving the post. Please try again." };
+}
+
 async function refresh(featuredId: string | null, author: string) {
-  // The newsroom leads with a single featured story, so featuring one un-features the rest.
+  // The News page sets a single featured post apart, so featuring one un-features the rest.
   if (featuredId) {
     for (const post of await store.list("news")) {
       if (post.featured && post.id !== featuredId) await store.update("news", post.id, { featured: false }, author);
     }
   }
-  // Every page: besides the newsroom, the menu's Featured carousel shows the latest posts.
+  // Every page: besides News and the Election Explainer, the menu's Featured carousel shows the latest posts.
   revalidatePath("/", "layout");
 }
 
@@ -44,7 +55,12 @@ export async function createNews(_state: FormState, formData: FormData): Promise
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
-  const post = await store.create("news", parsed.data, email, parsed.data.title);
+  let post;
+  try {
+    post = await store.create("news", parsed.data, email, parsed.data.title);
+  } catch (error) {
+    return saveError(error);
+  }
   await refresh(post.featured ? post.id : null, email);
   redirect("/portal/news?notice=created");
 }
@@ -54,7 +70,12 @@ export async function updateNews(id: string, _state: FormState, formData: FormDa
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
-  const post = await store.update("news", id, parsed.data, email);
+  let post;
+  try {
+    post = await store.update("news", id, parsed.data, email);
+  } catch (error) {
+    return saveError(error);
+  }
   if (!post) return { error: "This post no longer exists." };
   await refresh(post.featured ? post.id : null, email);
   redirect("/portal/news?notice=updated");

@@ -44,12 +44,14 @@ export function Field({ label, hint, error, children, wide }: { label: string; h
   );
 }
 
-export function FormFooter({ state, pending, submitLabel, cancelHref }: { state: FormState; pending: boolean; submitLabel: string; cancelHref: string }) {
+/** `danger` is the destructive action (a delete button), kept at the far left, away from Cancel and Save. */
+export function FormFooter({ state, pending, submitLabel, cancelHref, danger }: { state: FormState; pending: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode }) {
   const hydrated = useHydrated();
 
   return (
-    <div className="portal-form-footer">
-      {state?.error ? <p className="portal-form-error" role="alert">{state.error}</p> : <span />}
+    <div className={`portal-form-footer${danger ? " has-danger" : ""}`}>
+      {state?.error ? <p className="portal-form-error" role="alert">{state.error}</p> : !danger && <span />}
+      {danger}
       <div className="portal-form-actions">
         <Link className="portal-button is-ghost" href={cancelHref}>Cancel</Link>
         <button className="portal-button" type="submit" disabled={pending || !hydrated}>{pending ? "Saving…" : submitLabel}</button>

@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { createPass, PASS_COOKIE, passCookieOptions } from "@/lib/applications/verification";
 import { verificationFinishPage } from "@/lib/applications/verification-page";
 import { checkAccess } from "@/lib/auth/session";
+import { finishEventVerification } from "@/lib/events/callback";
+import { takeEventFlow } from "@/lib/events/verification";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
 import { createAdminClient, createAuthClient } from "@/lib/supabase/server";
 
@@ -9,11 +11,16 @@ import { createAdminClient, createAuthClient } from "@/lib/supabase/server";
 // UST account, end the Google session straight away, and hand the form a signed pass instead
 // (src/lib/applications/verification.ts). Nobody stays signed in on the public site. The reply is
 // a small page that reports back to the form and closes the popup (verification-page.ts).
+// Sign-ins started from an event's Register button come back here too, and are handed over to
+// finishEventVerification.
 
 type Metadata = { full_name?: string; name?: string; given_name?: string; family_name?: string };
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  const eventId = await takeEventFlow();
+  if (eventId) return finishEventVerification(request, code, eventId);
+
   if (!code) return verificationFinishPage("failed");
 
   const supabase = await createAuthClient();

@@ -1,0 +1,357 @@
+/* The site header (src/components/site-header.tsx and src/components/nav/): the navbar on every public page, in
+   the home page's COMET language. A night sky (src/components/night-sky.tsx) behind a bar that draws in to a
+   floating capsule past the top of the page; tabs that open a glass menu, with a gold reticle locking on to
+   whatever's open or pointed at; a search dialog; a full-screen menu where the tabs don't fit; and a comet
+   along the top of the window for how far you've read. Everything is prefixed sh- (keyframes and custom
+   properties too), bar the classes other stylesheets look for: .site-header(.is-visible) and .site-dim. */
+
+.sh { --sh-h: 78px; --sh-inset: max(12px, max(0px, (100vw - var(--site-max)) / 2) + var(--site-gutter) - 22px); --sh-text: #f3f1eb; --sh-muted: #a3a1ac; --sh-faint: #7e7c87; --sh-line: rgba(255,255,255,.08); --sh-line-strong: rgba(255,255,255,.15); --sh-gold: #fec30c; --sh-gold-light: #ffe28a; --sh-ok: #3ecf8e; --sh-ease: cubic-bezier(.22,1,.36,1); --sh-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --sh-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; -webkit-font-smoothing: antialiased; color: var(--sh-text); }
+.sh ::selection { background: rgba(254,195,12,.32); color: #fff; }
+.sh :focus-visible { outline: 2px solid var(--sh-gold); outline-offset: 3px; }
+/* The page holds still under the search and the full-screen menu (lockScroll in smooth-scroll.tsx) */
+html.is-scroll-locked { overflow: hidden; }
+
+/* Shared: mono labels, status dots (green and pulsing while something's open), signal bars, keys */
+.sh-label { align-items: center; color: var(--sh-faint); display: flex; font: 500 10.5px/1 var(--sh-mono); gap: 10px; letter-spacing: .18em; margin: 0; text-transform: uppercase; }
+.sh-dot, .sh-live { background: #6b6975; border-radius: 50%; flex: none; height: 6px; width: 6px; }
+.is-open > .sh-dot, .sh-dot.is-open, .sh-live { animation: sh-ping 2.4s var(--sh-ease) infinite; background: var(--sh-ok); }
+.sh-bars { align-items: flex-end; display: inline-flex; gap: 2px; height: 10px; }
+.sh-bars i { animation: sh-bar 1.2s ease-in-out infinite; background: var(--sh-gold); border-radius: 1px; height: 100%; transform-origin: 50% 100%; width: 2px; }
+.sh-bars i:nth-child(2) { animation-delay: -.35s; }
+.sh-bars i:nth-child(3) { animation-delay: -.7s; }
+.sh-bars i:nth-child(4) { animation-delay: -.2s; animation-duration: 1.5s; }
+.sh kbd { background: rgba(255,255,255,.07); border: 1px solid var(--sh-line); border-radius: 6px; color: var(--sh-muted); font: 500 10.5px/1 var(--sh-mono); letter-spacing: .04em; padding: 4px 6px; }
+@keyframes sh-ping { 0% { box-shadow: 0 0 0 0 rgba(62,207,142,.55); } 70%, 100% { box-shadow: 0 0 0 6px rgba(62,207,142,0); } }
+@keyframes sh-bar { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+@keyframes sh-spin { to { transform: rotate(1turn); } }
+@keyframes sh-rise { from { filter: blur(6px); opacity: 0; transform: translate3d(0, 12px, 0); } }
+
+/* The reticle (nav/use-reticle.ts): corner brackets that land on a tab or a link, then glide between them.
+   The search's chosen result wears the same brackets, standing still. */
+.sh-reticle, .sh-option[aria-selected="true"] { --c: rgba(254,195,12,.9); --arm: 7px; background: linear-gradient(var(--c), var(--c)) 0 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 0 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 100% / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 100% / 1px var(--arm), linear-gradient(rgba(255,255,255,.045), rgba(255,255,255,.045)); background-repeat: no-repeat; }
+.sh-reticle { left: 0; opacity: 0; pointer-events: none; position: absolute; top: 0; transition: height .2s var(--sh-ease), opacity .15s ease, transform .2s var(--sh-ease), width .2s var(--sh-ease); }
+.sh-reticle.is-locked { animation: sh-lock .22s var(--sh-ease); opacity: 1; }
+@keyframes sh-lock { from { opacity: 0; scale: 1.16; } }
+
+/* The bar. The header itself lets the pointer through: only its backdrop (as far as it's drawn in) and what's on it take clicks. */
+.site-header { --sh-cap: 0; --sh-cap-r: calc(20px * var(--sh-cap)); --sh-cap-x: calc(var(--sh-inset) * var(--sh-cap)); --sh-cap-y: calc(9px * var(--sh-cap)); height: var(--sh-h); left: 0; pointer-events: none; position: fixed; right: 0; top: 0; transform: translate3d(0, -110%, 0); transition: transform .8s cubic-bezier(.16,1,.3,1); will-change: transform; z-index: 10; }
+.site-header.is-visible { transform: translate3d(0, 0, 0); }
+/* Past the top of the page, the backdrop and its edge draw in to a capsule round the bar's contents, which stay where they are.
+   How far in follows the scroll itself (--sh-scroll, 0 to 1, from site-header.tsx) rather than a timer: by the time the page is
+   back at its top the bar is already whole, so the strip of page it sits over never shows round a half-drawn capsule. */
+.site-header.is-condensed { --sh-cap: var(--sh-scroll, 1); }
+/* Dark glass. The blur lives here rather than on the header, so the header isn't a backdrop root and its menu can blur the page too. */
+.sh-backdrop { -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); background-color: rgb(4 4 8 / calc(.96 - .06 * var(--sh-cap))); clip-path: inset(var(--sh-cap-y) var(--sh-cap-x) round var(--sh-cap-r)); inset: 0; pointer-events: auto; position: absolute; z-index: -2; }
+.sh-backdrop::after { background: linear-gradient(110deg, rgba(255,255,255,.045), transparent 32%, rgba(255,255,255,.02) 68%, transparent); content: ""; inset: 0; position: absolute; }
+/* A soft light under the pointer (--sh-mx/--sh-my, from site-header.tsx) */
+.sh-aurora { background: radial-gradient(280px circle at var(--sh-mx, 50%) var(--sh-my, 50%), rgba(254,195,12,.1), rgba(110,130,255,.05) 46%, transparent 72%); inset: 0; opacity: 0; position: absolute; transition: opacity .6s ease; }
+@media (hover: hover) { .site-header:hover .sh-aurora { opacity: 1; } }
+/* The edge: along the bar's foot, a hairline fading out toward both ends; round the capsule, a rim. A spark runs along its foot now and then, as along the home page's HUD. */
+.sh-edge { border: 1px solid transparent; border-radius: var(--sh-cap-r); bottom: var(--sh-cap-y); left: var(--sh-cap-x); overflow: hidden; pointer-events: none; position: absolute; right: var(--sh-cap-x); top: var(--sh-cap-y); transition: border-color .5s ease, box-shadow .5s ease; z-index: -1; }
+.is-condensed .sh-edge { border-color: rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 22px 60px -20px rgba(0,0,0,.75), 0 2px 12px rgba(0,0,0,.28); }
+.sh-edge::before { background: linear-gradient(90deg, transparent, rgba(255,255,255,.14) 16%, rgba(255,255,255,.14) 84%, transparent); bottom: 0; content: ""; height: 1px; left: 0; position: absolute; right: 0; transition: opacity .5s ease; }
+.is-condensed .sh-edge::before { opacity: 0; }
+.sh-edge::after { animation: sh-scan 11s var(--sh-ease) infinite; background: linear-gradient(90deg, transparent, var(--sh-gold), transparent); bottom: 0; content: ""; height: 1px; left: 0; opacity: 0; position: absolute; width: 18%; }
+@keyframes sh-scan { 0% { opacity: 0; transform: translateX(-100%); } 6%, 38% { opacity: 1; } 46%, 100% { opacity: 0; transform: translateX(560%); } }
+
+.sh-nav { height: 100%; }
+.sh-bar { align-items: center; display: flex; height: 100%; margin: 0 auto; max-width: var(--site-max); padding: 0 var(--site-gutter); }
+.sh-bar > * { pointer-events: auto; }
+/* Once the first-load screen starts to leave, the bar's pieces come in one after another ([data-live], from site-header.tsx) */
+.site-header[data-live] :is(.sh-brand, .sh-divider, .sh-tab, .sh-tools > *) { animation: sh-arrive .9s var(--sh-ease) backwards; animation-delay: .1s; }
+.site-header[data-live] .sh-tab { animation-delay: calc(.18s + var(--i, 0) * .05s); }
+.site-header[data-live] .sh-tools > * { animation-delay: .46s; }
+.site-header[data-live] .sh-tools > :nth-child(n + 2) { animation-delay: .52s; }
+@keyframes sh-arrive { from { filter: blur(8px); opacity: 0; transform: translate3d(0, -10px, 0); } }
+
+/* The logo and name. On hover, a ring forms round the logo and a gold satellite sets off round it, as round the home page's closing mark. */
+.sh-brand { align-items: center; display: flex; flex: 0 1 auto; gap: 12px; min-width: 0; }
+.sh-brand-mark { display: grid; flex: none; height: 42px; place-items: center; position: relative; width: 42px; }
+.sh-brand-mark img { display: block; height: 100%; object-fit: contain; width: 100%; }
+.sh-brand-mark::before { border: 1px solid rgba(255,255,255,.16); border-radius: 50%; content: ""; inset: -5px; opacity: 0; position: absolute; transform: scale(.84); transition: opacity .4s ease, transform .6s var(--sh-ease); }
+.sh-brand-orbit { animation: sh-spin 5s linear infinite paused; inset: -5px; opacity: 0; position: absolute; transition: opacity .4s ease; }
+.sh-brand-orbit::before { background: var(--sh-gold); border-radius: 50%; box-shadow: 0 0 8px 1px rgba(254,195,12,.75); content: ""; height: 4px; left: 50%; margin: -2px 0 0 -2px; position: absolute; top: 0; width: 4px; }
+.sh-brand:focus-visible .sh-brand-mark::before { opacity: 1; transform: none; }
+.sh-brand:focus-visible .sh-brand-orbit { animation-play-state: running; opacity: 1; }
+@media (hover: hover) {
+	.sh-brand:hover .sh-brand-mark::before { opacity: 1; transform: none; }
+	.sh-brand:hover .sh-brand-orbit { animation-play-state: running; opacity: 1; }
+}
+.sh-brand-text { min-width: 0; overflow: hidden; }
+.sh-brand-text strong { color: #fff; display: block; font-size: 16px; font-weight: 650; letter-spacing: .11em; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+.sh-brand-text small { color: var(--sh-muted); display: block; font: 500 8px/1 var(--sh-mono); letter-spacing: .045em; margin-top: 7px; text-transform: uppercase; white-space: nowrap; }
+.sh-divider { background: linear-gradient(180deg, transparent, rgba(255,255,255,.36) 28%, rgba(255,255,255,.36) 72%, transparent); flex: none; height: 30px; margin: 0 clamp(12px, 1.5vw, 24px) 0 clamp(16px, 1.8vw, 28px); width: 1px; }
+
+/* Tabs. The reticle sits on the one whose menu is open; a small gold star marks the section you're in. */
+.sh-tabs { align-items: center; display: flex; flex: 1; gap: 2px; min-width: 0; position: relative; }
+.sh-tab { align-items: center; color: rgba(243,241,235,.76); cursor: pointer; display: inline-flex; font-size: 13px; font-weight: 500; gap: 6px; letter-spacing: -.003em; line-height: 1; padding: 11px 12px; position: relative; transition: color .12s ease, scale .15s ease; white-space: nowrap; }
+/* Held down, a tab shrinks a touch; letting go springs it back (pressTab in site-header.tsx) */
+.sh-tab:active { scale: .95; }
+.sh-tab:hover, .sh-tab[aria-expanded="true"] { color: #fff; }
+.sh-tab-chevron { color: var(--sh-faint); flex: none; transition: color .12s ease, transform .3s var(--sh-ease); }
+.sh-tab:hover .sh-tab-chevron { color: var(--sh-muted); }
+.sh-tab[aria-expanded="true"] .sh-tab-chevron { color: var(--sh-gold); transform: rotate(180deg); }
+.sh-tab-label { position: relative; }
+.sh-tab.is-current .sh-tab-label::after { background: var(--sh-gold); border-radius: 50%; bottom: -9px; box-shadow: 0 0 0 3px rgba(254,195,12,.14), 0 0 10px rgba(254,195,12,.75); content: ""; height: 3px; left: calc(50% - 1.5px); position: absolute; width: 3px; }
+
+/* Search, EvoSys and (where the tabs fold away) the menu button */
+.sh-tools { align-items: center; display: flex; flex: none; gap: 10px; margin-left: auto; }
+.sh-search { align-items: center; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: 999px; color: var(--sh-muted); cursor: pointer; display: inline-flex; flex: none; font-size: 13px; gap: 9px; height: 38px; padding: 0 7px 0 13px; transition: background-color .25s ease, border-color .25s ease, color .25s ease; white-space: nowrap; }
+.sh-search:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.26); color: #fff; }
+.sh-search svg { color: var(--sh-text); flex: none; transition: color .25s ease; }
+.sh-search:hover svg { color: var(--sh-gold); }
+.sh-search span { padding-right: 14px; }
+/* EvoSys: the home page's gold button, with its sheen sweeping across on hover */
+.sh-cta { align-items: center; background: var(--sh-gold); border-radius: 999px; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 28px -12px rgba(254,195,12,.75); color: #0c0b08; display: inline-flex; flex: none; font-size: 13px; font-weight: 600; gap: 7px; height: 38px; isolation: isolate; letter-spacing: -.005em; overflow: hidden; padding: 0 15px 0 17px; position: relative; transition: box-shadow .4s var(--sh-ease), transform .4s var(--sh-ease); white-space: nowrap; }
+.sh-cta::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--sh-ease); z-index: -1; }
+.sh-cta:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 14px 34px -12px rgba(254,195,12,.9), 0 0 0 5px rgba(254,195,12,.14); transform: translateY(-1px); }
+.sh-cta:hover::after { transform: translateX(120%); }
+.sh-cta svg { flex: none; transition: transform .4s var(--sh-ease); }
+.sh-cta:hover svg { transform: translate(2px, -2px); }
+.sh-cta:focus-visible { outline-color: #fff; }
+/* Two lines that cross into an X while the full-screen menu is open */
+.sh-menu-button { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: 50%; color: var(--sh-text); cursor: pointer; display: none; flex: none; height: 40px; position: relative; transition: background-color .25s ease, border-color .25s ease; width: 40px; }
+.sh-menu-button:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.26); }
+.sh-menu-button i { background: currentColor; border-radius: 2px; height: 1.5px; left: calc(50% - 8px); position: absolute; top: calc(50% - .75px); transition: transform .5s var(--sh-ease); width: 16px; }
+.sh-menu-button i:first-child { transform: translateY(-3.5px); }
+.sh-menu-button i:last-child { transform: translateY(3.5px); }
+.sh-menu-button[aria-expanded="true"] i:first-child { transform: rotate(45deg); }
+.sh-menu-button[aria-expanded="true"] i:last-child { transform: rotate(-45deg); }
+
+/* The menu (nav/mega-menu.tsx): a glass panel as wide as the capsule, hanging just under the bar */
+.sh-mega { left: var(--sh-inset); pointer-events: none; position: absolute; right: var(--sh-inset); top: calc(100% - var(--sh-cap-y) + 8px); }
+.sh-mega.is-open { pointer-events: auto; }
+/* Bridges the gap between the bar and the panel, so the pointer never leaves the navbar on its way down */
+.sh-mega.is-open::before { content: ""; height: 18px; left: 0; position: absolute; right: 0; top: -18px; }
+.sh-mega-panel { -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%); background: radial-gradient(56% 120% at 0% 0%, rgba(66,84,190,.15), transparent 62%), radial-gradient(44% 110% at 100% 0%, rgba(254,195,12,.07), transparent 66%), linear-gradient(180deg, rgba(10,10,15,.93), rgba(4,4,8,.95)); border: 1px solid rgba(255,255,255,.09); border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 60px 120px -40px rgba(0,0,0,.9), 0 16px 40px -12px rgba(0,0,0,.5); isolation: isolate; opacity: 0; overflow: hidden; position: relative; transform: translate3d(0, -10px, 0) scale(.985); transform-origin: 50% 0; transition: opacity .2s ease, transform .3s ease, visibility 0s linear .3s; visibility: hidden; }
+.sh-mega.is-open .sh-mega-panel { opacity: 1; transform: none; transition: opacity .2s ease, transform .35s var(--sh-ease), visibility 0s; visibility: visible; }
+/* Film grain, as over the home page */
+.sh-mega-panel::after, .sh-sheet::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .04; pointer-events: none; position: absolute; z-index: -1; }
+/* A sky nobody can see needn't flicker */
+.sh-mega:not(.is-open) .night-sky span, .sh-sheet:not(.is-open) .night-sky span { animation-play-state: paused; }
+.sh-mega-grid { display: grid; gap: 0 clamp(16px, 1.8vw, 28px); grid-template-columns: minmax(0, clamp(212px, 14.5vw, 300px)) minmax(0, 1fr); padding: 28px 22px 24px; }
+.has-featured > .sh-mega-grid { grid-template-columns: minmax(0, clamp(212px, 14.5vw, 300px)) minmax(0, 1fr) clamp(264px, 20vw, 320px); }
+
+/* Left: the section's headline, its accent in the gold serif italic */
+.sh-mega-intro { display: flex; flex-direction: column; min-width: 0; padding: 10px 0 4px; }
+.sh-mega-title { font-size: clamp(25px, 1.95vw, 30px); font-weight: 520; letter-spacing: -.045em; line-height: 1.04; margin: 0; }
+.sh-mega-title em { background: linear-gradient(100deg, #ffe7a3, var(--sh-gold) 28%, #f2a900 52%, var(--sh-gold) 76%, #ffe7a3); -webkit-background-clip: text; background-clip: text; color: transparent; display: block; font-family: var(--sh-serif); font-size: 1.12em; font-style: italic; font-weight: 400; letter-spacing: -.015em; padding: 0 .08em .06em 0; width: fit-content; }
+.sh-mega-blurb { color: var(--sh-muted); font-size: 13px; line-height: 1.65; margin: 14px 0 0; }
+
+/* Middle: the links, an icon tile each. The reticle locks on to the one being pointed at (or focused). */
+.sh-mega-links { border-left: 1px solid var(--sh-line); min-width: 0; padding-left: clamp(8px, 1vw, 16px); position: relative; }
+.sh-mega-list { display: grid; gap: 2px 4px; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
+.sh-mega-link { align-items: flex-start; display: flex; gap: 12px; padding: 12px; position: relative; }
+.sh-mega-icon { align-items: center; background: rgba(255,255,255,.04); border: 1px solid var(--sh-line); border-radius: 10px; color: var(--sh-gold); display: inline-flex; flex: none; height: 36px; justify-content: center; position: relative; transition: background-color .15s ease, border-color .15s ease, box-shadow .2s ease; width: 36px; }
+/* Open right now: a green dot on the icon's corner */
+.sh-mega-icon .sh-live { outline: 2px solid #0a0a0f; position: absolute; right: -2px; top: -2px; }
+.sh-mega-text { display: block; flex: 1; min-width: 0; }
+.sh-mega-text strong { color: var(--sh-text); display: block; font-size: 14px; font-weight: 550; letter-spacing: -.01em; line-height: 1.3; }
+.sh-mega-text small { color: var(--sh-muted); display: block; font-size: 12.5px; line-height: 1.5; margin-top: 3px; }
+.sh-mega-arrow { color: var(--sh-gold); opacity: 0; position: absolute; right: 9px; top: 13px; transform: translate(-4px, 4px); transition: opacity .15s ease, transform .2s var(--sh-ease); }
+.sh-mega-link:is(:hover, :focus-visible) .sh-mega-icon { background: rgba(254,195,12,.1); border-color: rgba(254,195,12,.42); box-shadow: 0 0 18px -4px rgba(254,195,12,.5); }
+.sh-mega-link:is(:hover, :focus-visible) .sh-mega-arrow { opacity: 1; transform: none; }
+/* In the menu the reticle is the focus ring */
+.sh-mega-links .sh-mega-link:focus-visible { outline: none; }
+
+/* Opening, the headline and links rise in one after another; switching tabs with the menu open, they slide in from the side of the tab you moved to */
+.sh-mega-intro > :nth-child(2) { --i: 1; }
+.sh-mega :is(.sh-mega-intro, .sh-mega-list).is-opening > * { animation: sh-rise .45s var(--sh-ease) backwards; animation-delay: calc(20ms + var(--i, 0) * 25ms); }
+.sh-mega :is(.sh-mega-intro, .sh-mega-list).is-switching > * { animation: sh-slide .35s var(--sh-ease) backwards; animation-delay: calc(var(--i, 0) * 20ms); }
+.sh-mega .from-right { --sh-shift: 28px; }
+.sh-mega .from-left { --sh-shift: -28px; }
+@keyframes sh-slide { from { filter: blur(3px); opacity: 0; transform: translate3d(var(--sh-shift), 0, 0); } }
+
+/* Right: the Featured carousel (src/components/featured-carousel.tsx), one card at a time */
+.sh-feat { display: flex; flex-direction: column; min-width: 0; }
+.sh-mega .sh-feat { border-left: 1px solid var(--sh-line); padding-left: clamp(14px, 1.6vw, 24px); }
+.sh-feat-arrows { display: flex; gap: 6px; }
+.sh-feat-arrows button { align-items: center; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 50%; color: var(--sh-muted); cursor: pointer; display: inline-flex; height: 28px; justify-content: center; padding: 0; transition: background-color .2s ease, border-color .2s ease, color .2s ease; width: 28px; }
+.sh-feat-arrows button:hover { background: rgba(255,255,255,.1); border-color: rgba(254,195,12,.45); color: #fff; }
+.sh-feat-arrows button:focus-visible, .sh-feat-dots button:focus-visible { outline-offset: 2px; }
+.sh-feat-viewport { border-radius: 18px; flex: 1; min-height: 196px; overflow: hidden; touch-action: pan-y; }
+.sh-feat-track { display: flex; height: 100%; transition: transform .6s var(--sh-ease); }
+.sh-feat-slide { flex: 0 0 100%; height: 100%; min-width: 0; transition: opacity .45s ease; }
+.sh-feat-slide[inert] { opacity: .35; }
+/* Glass, with a faint gold wash from its corner; a dot grid fades in from the right, and a gold light follows the pointer */
+.sh-feat-card { background: radial-gradient(120% 90% at 100% 0%, rgba(254,195,12,.13), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); border: 1px solid rgba(255,255,255,.11); border-radius: 18px; color: #fff; display: flex; flex-direction: column; gap: 8px; height: 100%; isolation: isolate; overflow: hidden; padding: 18px 20px; position: relative; transition: border-color .3s ease; }
+.sh-feat-card::before { background: radial-gradient(rgba(255,255,255,.22) 1px, transparent 1.3px) 0 0 / 11px 11px; content: ""; inset: 0; -webkit-mask-image: linear-gradient(100deg, transparent 15%, #000 95%); mask-image: linear-gradient(100deg, transparent 15%, #000 95%); opacity: .5; position: absolute; z-index: -1; }
+.sh-feat-card::after { background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 0%), rgba(254,195,12,.14), transparent 62%); content: ""; inset: 0; opacity: 0; position: absolute; transition: opacity .5s ease; z-index: -1; }
+.sh-feat-card:hover { border-color: rgba(254,195,12,.45); }
+.sh-feat-card:hover::after { opacity: 1; }
+.sh-feat-card:focus-visible { outline-offset: -2px; }
+.sh-feat-tag { align-items: center; align-self: flex-start; border-radius: 99px; display: inline-flex; font: 500 9.5px/1 var(--sh-mono); gap: 7px; letter-spacing: .12em; padding: 5px 10px; text-transform: uppercase; }
+.sh-feat-tag.is-live { background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.28); color: #7be3b4; }
+.sh-feat-tag.is-news { background: rgba(254,195,12,.08); border: 1px solid rgba(254,195,12,.26); color: #f1cf6b; }
+.sh-feat-tag i { animation: sh-ping 2.4s var(--sh-ease) infinite; background: var(--sh-ok); border-radius: 50%; height: 6px; width: 6px; }
+.sh-feat-card strong { -webkit-box-orient: vertical; display: -webkit-box; font-size: 17px; font-weight: 550; letter-spacing: -.025em; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.25; margin: 6px 0 0; overflow: hidden; }
+.sh-feat-card small { -webkit-box-orient: vertical; color: var(--sh-muted); display: -webkit-box; font-size: 12.5px; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.55; overflow: hidden; }
+.sh-feat-foot { color: var(--sh-gold); display: block; font-size: 12.5px; font-weight: 550; line-height: 1.45; margin-top: auto; padding-top: 8px; }
+/* Its last word and the arrow stay together */
+.sh-feat-foot span { white-space: nowrap; }
+.sh-feat-foot svg { display: inline; margin-left: 6px; transition: transform .4s var(--sh-ease); vertical-align: -2px; }
+.sh-feat-card:hover .sh-feat-foot svg { transform: translate(2px, -2px); }
+/* Under the card: dots, the current one stretching into a bar that fills and moves the carousel on when full; and the arrows */
+.sh-feat-nav { align-items: center; display: flex; justify-content: space-between; margin-top: 10px; }
+.sh-feat-dots { display: flex; gap: 6px; }
+.sh-feat-dots button { cursor: pointer; padding: 6px 0; }
+.sh-feat-dots span { background: rgba(255,255,255,.2); border-radius: 99px; display: block; height: 3px; overflow: hidden; position: relative; transition: background-color .2s ease, width .4s var(--sh-ease); width: 8px; }
+.sh-feat-dots button:hover span { background: rgba(255,255,255,.4); }
+.sh-feat-dots .is-current span { background: rgba(255,255,255,.16); width: 34px; }
+.sh-feat-dots .is-current span::after { animation: sh-feat-progress 6s linear forwards; background: var(--sh-gold); border-radius: inherit; content: ""; inset: 0; position: absolute; transform: scaleX(0); transform-origin: left; }
+.sh-feat-dots.is-held .is-current span::after { animation-play-state: paused; }
+@keyframes sh-feat-progress { to { transform: scaleX(1); } }
+
+/* Along the foot: the Live mark and the way to the section itself (.sh-hud, what's open right now, is the full-screen menu's) */
+.sh-mega-hud { align-items: center; border-top: 1px solid var(--sh-line); display: flex; gap: 12px clamp(16px, 2vw, 30px); margin: 0 22px; padding: 14px 0 15px; }
+.sh-hud-live { align-items: center; color: var(--sh-gold); display: inline-flex; flex: none; font: 500 10.5px/1 var(--sh-mono); gap: 9px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
+.sh-hud { align-items: center; display: flex; flex-wrap: wrap; gap: 8px clamp(14px, 1.8vw, 28px); list-style: none; margin: 0; min-width: 0; padding: 0; }
+.sh-hud a { align-items: center; color: var(--sh-muted); display: inline-flex; font-size: 12.5px; gap: 8px; transition: color .25s ease; white-space: nowrap; }
+.sh-hud a span { color: var(--sh-faint); font: 500 10px/1 var(--sh-mono); letter-spacing: .14em; text-transform: uppercase; }
+.sh-hud a.is-open, .sh-hud a:hover { color: var(--sh-text); }
+.sh-mega-cta { align-items: center; color: var(--sh-gold); display: inline-flex; flex: none; font-size: 13px; font-weight: 550; gap: 6px; margin-left: auto; white-space: nowrap; }
+.sh-mega-cta svg { flex: none; transition: transform .4s var(--sh-ease); }
+.sh-mega-cta:hover svg { transform: translate(2px, -2px); }
+
+/* With a menu open, the page behind dims and blurs */
+.site-dim { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(2,2,5,.78); inset: 0; opacity: 0; pointer-events: none; position: fixed; transition: opacity .35s ease, visibility 0s linear .35s; visibility: hidden; z-index: 9; }
+.site-dim.is-on { opacity: 1; transition: opacity .35s ease, visibility 0s; visibility: visible; }
+.site-dim.is-below { top: var(--sh-h); }
+
+/* How far you've read: a comet along the top of the window, its tail fading back toward the left (--sh-progress, 0 to 1, from site-header.tsx) */
+.sh-progress { height: 2px; left: 0; pointer-events: none; position: fixed; right: 0; top: 0; z-index: 11; }
+.sh-progress span { background: linear-gradient(90deg, rgba(254,195,12,0), rgba(254,195,12,.5) 70%, var(--sh-gold-light)); display: block; height: 100%; transform: scaleX(var(--sh-progress, 0)); transform-origin: 0 50%; }
+.sh-progress i { background: #fff7de; border-radius: 50%; box-shadow: 0 0 8px 2px rgba(254,195,12,.8), 0 0 18px 4px rgba(254,195,12,.35); height: 3px; left: -3px; opacity: min(1, var(--sh-progress, 0) * 40); position: absolute; top: -.5px; transform: translateX(calc(var(--sh-progress, 0) * 100vw)); width: 3px; }
+
+/* Search (nav/command-palette.tsx): a dialog over the dimmed, blurred page */
+.sh-palette { background: none; border: 0; margin: min(14vh, 140px) auto auto; max-height: none; max-width: none; opacity: 0; overflow: visible; padding: 0; transform: translate3d(0, -14px, 0) scale(.98); transition-behavior: allow-discrete; transition-duration: .2s, .3s, .3s, .3s; transition-property: opacity, transform, overlay, display; transition-timing-function: ease; width: min(640px, calc(100vw - 28px)); }
+.sh-palette[open] { opacity: 1; transform: none; transition-duration: .3s, .5s, .5s, .5s; transition-timing-function: ease, var(--sh-ease), ease, ease; }
+.sh-palette::backdrop { -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px); background-color: rgba(2,2,5,0); transition-behavior: allow-discrete; transition-duration: .3s; transition-property: -webkit-backdrop-filter, backdrop-filter, background-color, overlay, display; }
+.sh-palette[open]::backdrop { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); background-color: rgba(2,2,5,.84); }
+@starting-style {
+	.sh-palette[open] { opacity: 0; transform: translate3d(0, -14px, 0) scale(.98); }
+	.sh-palette[open]::backdrop { -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px); background-color: rgba(2,2,5,0); }
+}
+.sh-palette-box { background: radial-gradient(70% 90% at 0% 0%, rgba(66,84,190,.15), transparent 64%), linear-gradient(180deg, rgba(13,13,19,.97), rgba(6,6,10,.98)); border: 1px solid rgba(255,255,255,.11); border-radius: 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 60px 120px -30px rgba(0,0,0,.9); overflow: hidden; }
+/* The field: a gold line draws out under it while it has focus */
+.sh-palette-field { align-items: center; border-bottom: 1px solid var(--sh-line); cursor: text; display: flex; gap: 14px; padding: 19px 20px; position: relative; }
+.sh-palette-field::after { background: linear-gradient(90deg, transparent, var(--sh-gold), transparent); bottom: -1px; content: ""; height: 1px; left: 0; opacity: 0; position: absolute; right: 0; transform: scaleX(.3); transition: opacity .4s ease, transform .8s var(--sh-ease); }
+.sh-palette-field:focus-within::after { opacity: .9; transform: none; }
+.sh-palette-field svg { color: var(--sh-gold); flex: none; }
+.sh-palette-field input, .sh-palette-field input:focus-visible { background: none; border: 0; color: var(--sh-text); flex: 1; font-size: 16px; letter-spacing: -.01em; min-width: 0; outline: none; padding: 0; }
+.sh-palette-field input::placeholder { color: var(--sh-faint); opacity: 1; }
+/* Closes it: a key cap where there's a keyboard, a cross where there isn't */
+.sh-palette-close { align-items: center; color: var(--sh-muted); cursor: pointer; display: inline-flex; flex: none; justify-content: center; }
+.sh-palette-close svg { color: inherit; display: none; }
+.sh-palette-close:hover kbd { border-color: rgba(255,255,255,.24); color: var(--sh-text); }
+.sh-palette-list { max-height: min(54vh, 430px); overflow-y: auto; overscroll-behavior: contain; padding: 4px 8px 10px; scrollbar-color: rgba(255,255,255,.18) transparent; scrollbar-width: thin; }
+.sh-palette-list .sh-label { padding: 14px 12px 8px; }
+.sh-palette-empty { color: var(--sh-muted); font-size: 13.5px; margin: 0; padding: 18px 12px 2px; }
+.sh-palette-empty b { color: var(--sh-text); font-weight: 500; }
+.sh-option { align-items: center; display: flex; gap: 12px; padding: 9px 12px; scroll-margin: 8px; }
+.sh-option:focus-visible { outline: none; }
+.sh-option-icon { align-items: center; background: rgba(255,255,255,.04); border: 1px solid var(--sh-line); border-radius: 9px; color: var(--sh-muted); display: inline-flex; flex: none; height: 32px; justify-content: center; transition: background-color .2s ease, border-color .2s ease, color .2s ease; width: 32px; }
+.sh-option[aria-selected="true"] .sh-option-icon { background: rgba(254,195,12,.1); border-color: rgba(254,195,12,.42); color: var(--sh-gold); }
+.sh-option-text { display: block; flex: 1; min-width: 0; }
+.sh-option-text strong { display: block; font-size: 14px; font-weight: 500; letter-spacing: -.01em; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sh-option-text small { align-items: center; color: var(--sh-muted); display: flex; font-size: 12px; gap: 7px; line-height: 1.4; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sh-option mark { background: none; color: var(--sh-gold); }
+.sh-option-meta { color: var(--sh-faint); flex: none; font: 500 9.5px/1 var(--sh-mono); letter-spacing: .14em; text-transform: uppercase; }
+.sh-option-enter { color: var(--sh-gold); flex: none; opacity: 0; }
+.sh-option[aria-selected="true"] .sh-option-enter { opacity: 1; }
+.sh-palette-foot { align-items: center; border-top: 1px solid var(--sh-line); color: var(--sh-faint); display: flex; font: 500 10px/1 var(--sh-mono); gap: 20px; letter-spacing: .12em; margin: 0; padding: 11px 20px; text-transform: uppercase; }
+.sh-palette-foot span { align-items: center; display: inline-flex; gap: 6px; }
+.sh-palette-foot span:last-child { margin-left: auto; }
+/* No keys to hint at on a touch screen */
+@media (hover: none) {
+	.sh-palette-foot, .sh-palette-close kbd, .sh-option-enter { display: none; }
+	.sh-palette-close { background: rgba(255,255,255,.06); border: 1px solid var(--sh-line-strong); border-radius: 50%; height: 34px; width: 34px; }
+	.sh-palette-close svg { display: block; }
+}
+
+/* The full-screen menu (nav/mobile-sheet.tsx), for widths the tabs don't fit: it opens out in a circle from the menu button */
+.sh-sheet { --sh-eye: calc(100% - var(--site-gutter) - 20px) calc(var(--sh-h) / 2); background: radial-gradient(90% 50% at 12% 0%, rgba(66,84,190,.2), transparent 70%), radial-gradient(70% 40% at 100% 22%, rgba(124,74,180,.12), transparent 70%), #030305; clip-path: circle(0px at var(--sh-eye)); display: none; inset: 0; isolation: isolate; overflow: hidden; position: fixed; transition: clip-path .55s var(--sh-ease), visibility 0s linear .55s; visibility: hidden; z-index: 9; }
+.sh-sheet.is-open { clip-path: circle(150% at var(--sh-eye)); transition: clip-path .9s var(--sh-ease), visibility 0s; visibility: visible; }
+/* A dark planet's gold horizon along the foot, as at the end of the home page */
+.sh-sheet-horizon { aspect-ratio: 1; background: radial-gradient(circle at 50% 0, #17120a, #050403 16%, #000 36%); border-radius: 50%; box-shadow: inset 0 2px 1px rgba(255,236,190,.75), inset 0 18px 40px -16px rgba(254,195,12,.45), 0 -2px 20px rgba(254,195,12,.4), 0 -30px 120px -10px rgba(254,195,12,.26); left: 50%; pointer-events: none; position: absolute; top: calc(100% - 56px); transform: translateX(-50%); width: max(900px, 230vw); z-index: -1; }
+.sh-sheet-scroll { display: block; height: 100%; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 132px), transparent calc(100% - 48px)); mask-image: linear-gradient(180deg, #000 calc(100% - 132px), transparent calc(100% - 48px)); overflow-y: auto; overscroll-behavior: contain; padding: calc(var(--sh-h) + 10px) var(--site-gutter) 150px; scrollbar-width: none; }
+.sh-sheet-scroll::-webkit-scrollbar { display: none; }
+.sh-sheet.is-open :is(.sh-acc, .sh-sheet-extra) { animation: sh-rise .9s var(--sh-ease) backwards; animation-delay: calc(.14s + var(--i, 0) * .055s); }
+/* The sections: an accordion of the same links as the dropdowns */
+.sh-acc-list { list-style: none; margin: 0; padding: 0; }
+.sh-acc { border-bottom: 1px solid var(--sh-line); }
+.sh-acc-head { align-items: center; color: var(--sh-text); cursor: pointer; display: flex; gap: 16px; padding: 19px 0; text-align: left; width: 100%; }
+.sh-acc-index { color: var(--sh-gold); flex: none; font: 500 11px/1 var(--sh-mono); letter-spacing: .16em; width: 22px; }
+.sh-acc-label { font-size: clamp(27px, 7.4vw, 38px); font-weight: 520; letter-spacing: -.045em; line-height: 1; }
+/* A plus that turns into a minus */
+.sh-acc-sign { flex: none; height: 14px; margin-left: auto; position: relative; width: 14px; }
+.sh-acc-sign::before, .sh-acc-sign::after { background: var(--sh-muted); border-radius: 2px; content: ""; height: 1.5px; left: 0; position: absolute; top: calc(50% - .75px); transition: background-color .3s ease, transform .5s var(--sh-ease); width: 100%; }
+.sh-acc-sign::after { transform: rotate(90deg); }
+.sh-acc.is-open .sh-acc-sign::before, .sh-acc.is-open .sh-acc-sign::after { background: var(--sh-gold); }
+.sh-acc.is-open .sh-acc-sign::after { transform: rotate(0deg); }
+.sh-acc-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .6s var(--sh-ease); }
+.sh-acc.is-open .sh-acc-body { grid-template-rows: 1fr; }
+.sh-acc-body > div { min-height: 0; overflow: hidden; }
+.sh-acc-links { display: grid; gap: 0 20px; list-style: none; margin: 0; padding: 0; }
+.sh-acc .sh-mega-link { padding: 11px 0; }
+.sh-acc .sh-mega-cta { margin: 8px 0 24px 49px; }
+/* Under them: Featured, EvoSys and search, and what's open right now */
+.sh-sheet-extra { display: flex; flex-direction: column; gap: 26px; margin-top: 30px; }
+.sh-sheet-actions { display: flex; gap: 10px; }
+.sh-sheet-actions > * { flex: 1; height: 48px; justify-content: center; }
+.sh-sheet-actions .sh-search { color: var(--sh-text); font-weight: 500; padding: 0 16px; width: auto; }
+.sh-sheet-actions .sh-search span { display: inline; padding: 0; }
+.sh-sheet .sh-hud { align-items: stretch; border-top: 1px solid var(--sh-line); display: block; }
+.sh-sheet .sh-hud li { border-bottom: 1px solid var(--sh-line); }
+.sh-sheet .sh-hud a { display: flex; padding: 14px 0; }
+.sh-sheet .sh-hud a span { margin-right: auto; }
+
+@media (max-width: 1279px) {
+	/* Search shrinks to its icon, and the menu drops its headline column */
+	.sh-bar .sh-search { justify-content: center; padding: 0; width: 38px; }
+	.sh-bar .sh-search span, .sh-bar .sh-search kbd { display: none; }
+	.sh-mega-intro { display: none; }
+	.sh-mega-grid { grid-template-columns: minmax(0, 1fr); }
+	.has-featured > .sh-mega-grid { grid-template-columns: minmax(0, 1fr) clamp(270px, 27vw, 320px); }
+	.sh-mega-links { border-left: 0; padding-left: 0; }
+}
+
+/* The tabs fold into the full-screen menu. Matches TABS_FROM in site-header.tsx. */
+@media (max-width: 1099px) {
+	.sh-divider, .sh-tabs, .sh-bar .sh-cta, .sh-mega, .site-dim { display: none; }
+	.sh-menu-button, .sh-sheet { display: block; }
+	.sh-bar .sh-search { height: 40px; width: 40px; }
+	.sh-tools { gap: 8px; }
+}
+@media (min-width: 640px) and (max-width: 1099px) {
+	.sh-acc-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.sh-sheet-extra { display: grid; gap: 30px clamp(28px, 5vw, 56px); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+	.sh-sheet-extra .sh-feat { grid-row: span 2; }
+}
+
+@media (max-width: 720px) {
+	.sh { --sh-h: 74px; }
+	.sh-brand { gap: 10px; }
+	.sh-brand-mark { height: 38px; width: 38px; }
+	.sh-brand-text strong { font-size: 15px; }
+	.sh-brand-text small { font-size: 7.75px; letter-spacing: .04em; margin-top: 6px; }
+	.sh-palette { margin-top: 12px; }
+	.sh-palette-list { max-height: min(62svh, 430px); }
+}
+/* Too narrow for the long name under the short one */
+@media (max-width: 374px) {
+	.sh-brand-text strong { font-size: 13.5px; letter-spacing: .08em; }
+	.sh-brand-text small { display: none; }
+}
+@media (max-width: 339px) {
+	.sh-brand { gap: 8px; }
+	.sh-brand-mark { height: 34px; width: 34px; }
+	.sh-brand-text strong { font-size: 12.5px; letter-spacing: .05em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sh, .sh *, .sh *::before, .sh *::after { animation: none !important; }
+	.site-header, .sh-backdrop, .sh-edge, .sh-reticle, .sh-mega, .sh-mega-panel, .sh-mega.is-open .sh-mega-panel, .sh-feat-track, .sh-feat-slide, .sh-feat-dots span, .sh-cta, .sh-cta::after, .sh-sheet, .sh-sheet.is-open, .sh-acc-body, .sh-palette, .sh-palette[open], .sh-palette::backdrop, .site-dim, .site-dim.is-on { transition: none; }
+	/* No autoplay: the bar sits full and the arrows and dots do the moving */
+	.sh-feat-dots .is-current span::after { transform: scaleX(1); }
+}

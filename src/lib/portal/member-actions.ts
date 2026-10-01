@@ -51,6 +51,8 @@ const endOf = (members: Member[], body: MemberBody) => members.filter((member) =
 
 function refresh() {
   revalidatePath("/about");
+  // The home page counts the commission's members.
+  revalidatePath("/");
   revalidatePath("/portal", "layout");
 }
 

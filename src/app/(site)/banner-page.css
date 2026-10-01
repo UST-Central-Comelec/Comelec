@@ -1,0 +1,97 @@
+/* The frame shared by the site's reference pages (News, Statistics, Election Explainer): the home page's
+   COMET language on pages to be read and searched, not toured. A short banner under the night sky
+   (src/components/page-banner.tsx), as on Events & activities, then the page's own content straight
+   away. Each page's stylesheet adds only what's its own. Everything is prefixed bp- (keyframes and
+   custom properties too): a page's stylesheet stays loaded after navigating away, so nothing here may
+   reach other pages. */
+
+.bp { --bp-bg: #030305; --bp-text: #f3f1eb; --bp-soft: #c9c7d0; --bp-muted: #a3a1ac; --bp-faint: #7e7c87; --bp-line: rgba(255,255,255,.08); --bp-line-strong: rgba(255,255,255,.15); --bp-gold: #fec30c; --bp-gold-light: #ffe28a; --bp-ok: #3ecf8e; --bp-glass: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.014)); --bp-ease: cubic-bezier(.22,1,.36,1); --bp-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --bp-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --bp-wrap: var(--site-max, 1240px); --bp-gutter: var(--site-gutter, 24px); --bp-header: 78px; -webkit-font-smoothing: antialiased; background: var(--bp-bg); color: var(--bp-text); min-height: calc(100svh - var(--bp-header)); overflow: clip; position: relative; }
+/* Film grain over everything, as on the home page: texture, and it keeps the dark gradients from banding */
+.bp::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 4; }
+.bp ::selection { background: rgba(254,195,12,.32); color: #fff; }
+.bp :focus-visible { outline: 2px solid var(--bp-gold); outline-offset: 3px; }
+
+/* Shared: the frame, mono labels, and the gold serif italic that carries accent words */
+.bp-wrap { margin: 0 auto; max-width: var(--bp-wrap); padding-inline: var(--bp-gutter); position: relative; }
+.bp-body { padding-block: clamp(26px, 3vw, 44px) clamp(80px, 9vw, 140px); }
+.bp-eyebrow { align-items: center; color: var(--bp-muted); display: flex; font: 500 11px/1 var(--bp-mono); gap: 11px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
+.bp-eyebrow::before { background: var(--bp-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(254,195,12,.16), 0 0 12px rgba(254,195,12,.6); content: ""; flex: none; height: 6px; width: 6px; }
+.bp-title em { animation: bp-sheen 10s linear infinite; background: linear-gradient(100deg, #ffe7a3, var(--bp-gold) 28%, #f2a900 52%, var(--bp-gold) 76%, #ffe7a3) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--bp-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+@keyframes bp-sheen { to { background-position: 200% 0; } }
+
+/* Buttons, as on the home page: gold with a sheen that sweeps across on hover, and glass */
+.bp-button { align-items: center; border: 0; border-radius: 999px; cursor: pointer; display: inline-flex; font: inherit; font-size: 14px; font-weight: 550; gap: 10px; isolation: isolate; justify-content: center; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: background-color .3s ease, box-shadow .4s var(--bp-ease), transform .4s var(--bp-ease); white-space: nowrap; }
+.bp-button svg { flex: none; }
+.bp-button.is-small { font-size: 13px; gap: 8px; padding: 11px 16px; }
+.bp-button.is-primary { background: var(--bp-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(254,195,12,.75); color: #0c0b08; }
+.bp-button.is-primary::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--bp-ease); z-index: -1; }
+.bp-button.is-primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(254,195,12,.9), 0 0 0 6px rgba(254,195,12,.14); transform: translateY(-1px); }
+.bp-button.is-primary:hover::after { transform: translateX(120%); }
+.bp-button.is-ghost { background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px var(--bp-line-strong); color: var(--bp-text); }
+.bp-button.is-ghost:hover { background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(254,195,12,.55); }
+
+/* The banner: a title and a line under the night sky, with a few readings to the right */
+.bp-banner { background: radial-gradient(46% 130% at 88% 0%, rgba(254,195,12,.09), transparent 70%), radial-gradient(44% 130% at 2% 0%, rgba(66,84,190,.18), transparent 72%), linear-gradient(180deg, #030306, #05050a 62%, var(--bp-bg)); border-bottom: 1px solid var(--bp-line); isolation: isolate; padding: clamp(40px, 5vw, 76px) 0 clamp(30px, 3.4vw, 48px); position: relative; }
+.bp-banner .night-sky { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent); }
+.bp-banner-inner { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 28px clamp(40px, 6vw, 110px); justify-content: space-between; }
+.bp-banner-copy { flex: 1 1 26em; min-width: 0; }
+.bp-title { color: var(--bp-text); font-size: clamp(40px, 5.2vw, 84px); font-weight: 560; letter-spacing: -.056em; line-height: .96; margin: 18px 0 0; text-wrap: balance; }
+/* A post's own headline: a size down, and free to run to a few lines */
+.bp-title.is-headline { font-size: clamp(30px, 3.5vw, 56px); letter-spacing: -.048em; line-height: 1.04; margin-top: 0; max-width: 19em; }
+.bp-lede { color: var(--bp-muted); font-size: clamp(15px, 1.15vw, 17.5px); line-height: 1.65; margin: 18px 0 0; max-width: 38em; }
+.bp-hud { border-top: 1px solid var(--bp-line); clip-path: inset(-100px 0); display: grid; flex: 0 1 auto; grid-auto-columns: minmax(0, auto); grid-auto-flow: column; margin: 0; position: relative; }
+/* A spark runs along its edge now and then, as along the home page's */
+.bp-hud::before { animation: bp-scan 9s var(--bp-ease) infinite; background: linear-gradient(90deg, transparent, var(--bp-gold), transparent); content: ""; height: 1px; left: 0; opacity: 0; position: absolute; top: -1px; width: 30%; }
+.bp-hud > div { padding: 16px 26px 4px 0; }
+.bp-hud > div + div { border-left: 1px solid var(--bp-line); padding-left: 26px; }
+.bp-hud > div:last-child { padding-right: 0; }
+.bp-hud dt { color: var(--bp-faint); font: 500 10px/1.2 var(--bp-mono); letter-spacing: .16em; margin-bottom: 10px; text-transform: uppercase; white-space: nowrap; }
+.bp-hud dd { color: var(--bp-text); font: 500 22px/1 var(--bp-mono); letter-spacing: -.03em; margin: 0; white-space: nowrap; }
+@keyframes bp-scan { 0% { opacity: 0; transform: translateX(-100%); } 8%, 42% { opacity: 1; } 50%, 100% { opacity: 0; transform: translateX(340%); } }
+.bp-crumbs { align-items: center; color: var(--bp-faint); display: flex; flex-wrap: wrap; font: 500 11px/1 var(--bp-mono); gap: 10px; letter-spacing: .14em; margin-bottom: clamp(20px, 2.4vw, 30px); text-transform: uppercase; }
+.bp-crumbs a { align-items: center; color: var(--bp-muted); display: inline-flex; gap: 7px; transition: color .2s ease; }
+.bp-crumbs a:hover { color: var(--bp-gold-light); }
+.bp-crumbs svg { transition: transform .4s var(--bp-ease); }
+.bp-crumbs a:hover svg { transform: translateX(-3px); }
+
+/* Entrances (src/components/home/reveal-on-scroll.tsx): the banner's pieces rise in one after another once it's live */
+.bp-banner[data-live] [data-enter] { animation: bp-rise 1.1s var(--bp-ease) both; animation-delay: calc(.1s + var(--enter, 0) * .08s); }
+@keyframes bp-rise { from { filter: blur(8px); opacity: 0; transform: translate3d(0, 22px, 0); } }
+
+/* Section heads inside a page: a title, a hairline running off to the right, and a note at its end */
+.bp-head { align-items: center; display: flex; gap: 14px; margin: 0 0 16px; }
+.bp-head h2 { color: var(--bp-text); font-size: clamp(19px, 1.6vw, 23px); font-weight: 560; letter-spacing: -.035em; line-height: 1.2; margin: 0; }
+.bp-head i { background: linear-gradient(90deg, var(--bp-line-strong), var(--bp-line) 70%, transparent); flex: 1; height: 1px; min-width: 24px; }
+.bp-head p { color: var(--bp-faint); font: 500 10.5px/1.3 var(--bp-mono); letter-spacing: .14em; margin: 0; text-align: right; text-transform: uppercase; white-space: nowrap; }
+.bp-head p a { color: var(--bp-soft); transition: color .2s ease; }
+.bp-head p a:hover { color: var(--bp-gold-light); }
+
+/* Nothing to show: a quiet scope, still sweeping */
+.bp-empty { align-items: center; background: radial-gradient(60% 80% at 50% 0%, rgba(254,195,12,.07), transparent 70%); border: 1px dashed var(--bp-line-strong); border-radius: 24px; display: flex; flex-direction: column; padding: clamp(48px, 6vw, 84px) 24px; text-align: center; }
+.bp-empty h2 { color: var(--bp-text); font-size: clamp(22px, 2.1vw, 30px); font-weight: 560; letter-spacing: -.04em; margin: 24px 0 0; }
+.bp-empty p { color: var(--bp-muted); font-size: 15px; line-height: 1.65; margin: 10px 0 0; max-width: 32em; }
+.bp-empty-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
+.bp-empty-scope { aspect-ratio: 1; background: repeating-radial-gradient(circle closest-side, transparent 0 calc(33.3% - 1px), var(--bp-line-strong) calc(33.3% - 1px) 33.3%), linear-gradient(var(--bp-line), var(--bp-line)) 50% 0 / 1px 100% no-repeat, linear-gradient(var(--bp-line), var(--bp-line)) 0 50% / 100% 1px no-repeat; border: 1px solid var(--bp-line-strong); border-radius: 50%; overflow: hidden; position: relative; width: 88px; }
+.bp-empty-scope i { animation: bp-spin 4s linear infinite; background: conic-gradient(transparent 0deg 290deg, rgba(254,195,12,.1) 310deg, rgba(254,195,12,.6) 359deg, transparent 360deg); border-radius: 50%; inset: 0; position: absolute; }
+@keyframes bp-spin { to { transform: rotate(1turn); } }
+
+@media (max-width: 980px) {
+	.bp-hud { flex: 1 1 100%; grid-auto-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+	.bp { --bp-header: 74px; }
+	/* Each reading is as wide as it needs, and they share what's left over; the values line up along the foot */
+	.bp-hud { grid-auto-columns: minmax(max-content, 1fr); }
+	.bp-hud > div { display: flex; flex-direction: column; padding: 14px 12px 4px 0; }
+	.bp-hud > div + div { padding-left: 12px; }
+	.bp-hud dt { letter-spacing: .14em; }
+	.bp-hud dd { font-size: 17px; margin-top: auto; }
+	.bp-head { flex-wrap: wrap; }
+	.bp-head p { white-space: normal; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bp *, .bp *::before, .bp *::after { animation: none !important; }
+	.bp-button, .bp-button::after { transition: none; }
+}

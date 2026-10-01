@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isDriveUploadConfigured } from "@/lib/data/drive-upload";
 import { DocumentForm } from "@/components/portal/document-form";
 import { requireCentral } from "@/lib/auth/session";
 import { isDocumentKind } from "@/lib/data/types";
@@ -21,7 +22,7 @@ export default async function NewDocumentPage({ searchParams }: PageProps<"/port
         </div>
       </header>
       <section className="portal-card">
-        <DocumentForm
+        <DocumentForm canUpload={isDriveUploadConfigured()}
           action={createDocument}
           submitLabel="Publish"
           initial={{ kind: typeof kind === "string" && isDocumentKind(kind) ? kind : "memorandum", title: "", reference: "", date: today, summary: "", body: "", signatories: [], fileUrl: null, fileName: null }}

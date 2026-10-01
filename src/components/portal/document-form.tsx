@@ -1,14 +1,16 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { documentKinds, type OfficialDocument } from "@/lib/data/types";
 import type { FormState } from "@/lib/portal/form";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 import { DocumentBodyField } from "./document-body-field";
+import { DriveFileField } from "./drive-file-field";
 import { SignatoriesField } from "./signatories-field";
 
 type Values = Pick<OfficialDocument, "kind" | "title" | "reference" | "date" | "summary" | "body" | "signatories" | "fileUrl" | "fileName">;
 
-export function DocumentForm({ action, initial, submitLabel }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string }) {
+export function DocumentForm({ action, initial, submitLabel, danger, canUpload }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode; canUpload: boolean }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
 
   return (
@@ -35,14 +37,9 @@ export function DocumentForm({ action, initial, submitLabel }: { action: (state:
           <DocumentBodyField defaultValue={initial.body} />
         </Field>
         <SignatoriesField initial={initial.signatories} error={errors.signatories} />
-        <Field label="Google Drive link" hint="In Drive: Share → General access → “Anyone with the link” (Viewer), then Copy link." error={errors.driveLink} wide>
-          <input name="driveLink" type="url" inputMode="url" defaultValue={initial.fileUrl ?? ""} placeholder="https://drive.google.com/file/d/…/view" />
-          {initial.fileUrl && (
-            <a className="portal-current-file" href={initial.fileUrl} target="_blank" rel="noreferrer">Open current link ↗</a>
-          )}
-        </Field>
+        <DriveFileField initialLink={initial.fileUrl} error={errors.driveLink} canUpload={canUpload} />
       </div>
-      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/documents" />
+      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/documents" danger={danger} />
     </form>
   );
 }

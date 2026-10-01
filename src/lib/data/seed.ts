@@ -21,7 +21,7 @@ export const seedContent: ContentDb = {
     {
       id: "what-makes-a-vote-count",
       title: "What makes a vote count? A guide to the ballot",
-      category: "election-watch",
+      category: "explainer",
       date: "2026-09-08",
       excerpt: "A quick, clear reference for making sure your voice is read exactly as you intend.",
       body: "A quick, clear reference for making sure your voice is read exactly as you intend.",
@@ -81,4 +81,7 @@ export const seedContent: ContentDb = {
   ],
   // The built-in executive comes from PORTAL_EXECUTIVE_EMAIL; executives add everyone else in the portal.
   accounts: [],
+  // Commissioners add events in the portal.
+  events: [],
+  statistics: [],
 };

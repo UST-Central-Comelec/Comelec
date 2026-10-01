@@ -50,4 +50,15 @@ export const limits = {
   track: { limit: 10, windowMs: 15 * 60_000 },
   /** Every portal request, as a ceiling against floods from one address. */
   portal: { limit: 300, windowMs: 60_000 },
+  /**
+   * Google sign-in starts for event registration. A whole class can register at once from the
+   * campus network, which reaches the site from one address, so this is a ceiling against scripts
+   * (one a second, sustained) rather than a limit on any one person.
+   */
+  eventVerify: { limit: 600, windowMs: 10 * 60_000 },
+  /**
+   * Event registrations saved from one address, for the same reason. What keeps each person to one
+   * registration is the verified pass (src/lib/events/verification.ts), not this.
+   */
+  eventRegister: { limit: 300, windowMs: 10 * 60_000 },
 };

@@ -5,7 +5,7 @@ import { UPLOADS_BUCKET } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
 
 // Member photo uploads, stored in the public Supabase Storage bucket `uploads`. Records keep the
-// file's public URL. (Official documents aren't uploaded — they link to Google Drive.)
+// file's public URL. (Official documents go to Google Drive instead: src/lib/data/drive-upload.ts.)
 // The portal compresses photos in the browser before sending (src/components/portal/photo-input.tsx).
 
 export const MAX_UPLOAD_BYTES = 1024 * 1024;
