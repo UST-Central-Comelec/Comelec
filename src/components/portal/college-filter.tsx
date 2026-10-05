@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Dropdown, optionsFrom } from "./dropdown";
 
 /** Narrows the Local Comelec list to one college. Kept in the URL (?college=) so it survives a reload. */
 export function CollegeFilter({ colleges, value }: { colleges: readonly string[]; value: string }) {
@@ -18,12 +19,6 @@ export function CollegeFilter({ colleges, value }: { colleges: readonly string[]
   };
 
   return (
-    <label className="directory-filter">
-      <span className="portal-visually-hidden">Show college</span>
-      <select value={value} onChange={(event) => choose(event.target.value)}>
-        <option value="">All colleges</option>
-        {colleges.map((college) => <option key={college} value={college}>{college}</option>)}
-      </select>
-    </label>
+    <Dropdown size="pill" label="Show college" value={value} onChange={choose} options={[{ value: "", label: "All colleges" }, ...optionsFrom(colleges)]} />
   );
 }

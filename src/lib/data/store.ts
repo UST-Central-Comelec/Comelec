@@ -15,14 +15,10 @@ export type Collection = keyof ContentDb;
 export type Item<C extends Collection> = ContentDb[C][number];
 type NewItem<C extends Collection> = Omit<Item<C>, "id" | "createdAt" | "updatedAt" | "updatedBy">;
 
-const tables: Record<Collection, string> = { news: "news", documents: "documents", members: "members", accounts: "portal_accounts", events: "events", statistics: "statistics" };
+const tables: Record<Collection, string> = { news: "news", documents: "documents", accounts: "portal_accounts", events: "events", statistics: "statistics" };
 
-// Fields whose column name isn't plain snake_case (`order` is a reserved word in SQL).
-const columnOverrides: Record<string, string> = { order: "display_order" };
-const fieldOverrides = Object.fromEntries(Object.entries(columnOverrides).map(([field, column]) => [column, field]));
-
-const toColumn = (field: string) => columnOverrides[field] ?? field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-const toField = (column: string) => fieldOverrides[column] ?? column.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+const toColumn = (field: string) => field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const toField = (column: string) => column.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
 
 function toRow(item: object) {
   return Object.fromEntries(Object.entries(item).map(([key, value]) => [toColumn(key), value]));

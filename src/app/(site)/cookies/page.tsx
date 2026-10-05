@@ -4,6 +4,7 @@ import { ArrowUpRight, EyeOff, Hourglass, LogIn } from "lucide-react";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { NightSky } from "@/components/night-sky";
 import { COOKIE_NOTICE_KEY, COOKIE_POLICY_UPDATED } from "@/lib/cookie-notice";
+import { SITE_THEME_KEY } from "@/lib/site-theme";
 import "./cookies.css";
 
 export const metadata: Metadata = {
@@ -75,6 +76,7 @@ const cookieGroups: Group[] = [
 /** Kept in the browser's local storage rather than in cookies: it never leaves the device. */
 const storageEntries: Entry[] = [
   { name: COOKIE_NOTICE_KEY, kind: "Preference", purpose: "Remembers that you dismissed the cookie notice, so it doesn’t come back on every page.", lasts: "Until you clear this site’s data, or this policy changes" },
+  { name: SITE_THEME_KEY, kind: "Preference", purpose: "Remembers whether you chose the light or the dark theme. It’s set only when you use that switch.", lasts: "Until you clear this site’s data" },
   { name: "portal:last-activity", kind: "Essential", purpose: "The time you were last active in the portal, shared between your open tabs so that working in one keeps the others signed in.", lasts: "Until you clear this site’s data" },
 ];
 
@@ -186,7 +188,7 @@ export default function CookiePolicyPage() {
           <section id="storage" className="ck-section" aria-labelledby="ck-storage-title">
             <p className="ck-serial">{serial(2)}</p>
             <h2 id="ck-storage-title">Other storage on <em>your device</em></h2>
-            <p>Two small notes are kept in your browser’s local storage instead of in a cookie. Unlike cookies, they are never sent to us: they stay on your device.</p>
+            <p>Three small notes are kept in your browser’s local storage instead of in a cookie. Unlike cookies, they are never sent to us: they stay on your device.</p>
             <Ledger caption="Local storage" entries={storageEntries} />
           </section>
 

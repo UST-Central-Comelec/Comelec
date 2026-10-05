@@ -5,7 +5,7 @@ import { EventsBoard } from "@/components/events/events-board";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { NightSky } from "@/components/night-sky";
 import { dateParts, manilaToday } from "@/lib/events/format";
-import { getEventsForSite } from "@/lib/events/queries";
+import { getListingsForSite } from "@/lib/events/queries";
 import "./events.css";
 
 export const metadata: Metadata = {
@@ -23,8 +23,9 @@ const enter = (order: number) => ({ "--enter": order }) as CSSProperties;
 const two = (value: number) => String(value).padStart(2, "0");
 
 export default async function EventsPage() {
-  // Central and Local events together, soonest first.
-  const events = (await getEventsForSite()).map((event) => toEventView(event));
+  // Central and Local events together, soonest first, with what each unit has open (its Recruitment,
+  // Political Party Registration or Filing of Candidacy) among them.
+  const events = (await getListingsForSite()).map((event) => toEventView(event));
   // As the list counts them: everything that hasn't ended, a cancelled event included until its date passes.
   const upcoming = events.filter((event) => !event.ended);
   const open = events.filter((event) => event.signUp === "register").length;

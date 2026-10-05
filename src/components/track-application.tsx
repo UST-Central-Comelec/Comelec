@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { ArrowRight, Check } from "lucide-react";
-import { trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication } from "@/lib/applications/actions";
+import { ArrowRight, Check, SquareCheck } from "lucide-react";
+import { trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication, type TrackedRegistration } from "@/lib/applications/actions";
 
 const statusLabels: Record<ApplicationStatus, string> = {
   pending: "Pending review",
@@ -26,9 +26,9 @@ const accessLabels: Record<TrackedAccessRequest["status"], string> = {
 };
 
 const accessNotes: Record<TrackedAccessRequest["status"], string> = {
-  pending: "We have your request and a Central Comelec executive is reviewing it. The decision will show here, and we’ll email your UST account.",
+  pending: "We have your request and the Executive Board is reviewing it. The decision will show here, and we’ll email your UST account.",
   approved: "You can now sign in to the Commission Portal with Google, using the UST account below.",
-  declined: "Your request wasn’t approved. If you think this is a mistake, contact a Central Comelec executive.",
+  declined: "Your request wasn’t approved. If you think this is a mistake, contact your Executive Board.",
 };
 
 const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso));
@@ -92,13 +92,34 @@ function TrackedAccess({ request }: { request: TrackedAccessRequest }) {
         <div><dt>Name</dt><dd>{request.name}</dd></div>
         <div><dt>Submitted</dt><dd>{formatSubmitted(request.submittedAt)}</dd></div>
         <div><dt>Request</dt><dd>Commission Portal access</dd></div>
-        <div><dt>Position</dt><dd>{request.position}</dd></div>
+        <div><dt>Role</dt><dd>{request.role}</dd></div>
         <div className="is-wide"><dt>UST email</dt><dd>{request.email}</dd></div>
         <div><dt>College or faculty</dt><dd>{request.college}</dd></div>
         <div><dt>Program</dt><dd>{request.program}</dd></div>
         <div><dt>Year level</dt><dd>{request.yearLevel}</dd></div>
       </dl>
       {request.status === "approved" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
+    </section>
+  );
+}
+
+function TrackedEvent({ registration }: { registration: TrackedRegistration }) {
+  return (
+    <section className="track-result" aria-live="polite" aria-label="Your event registration">
+      <header>
+        <div><span>Registration reference</span><strong>{registration.referenceCode}</strong></div>
+        <span className={`track-status is-${registration.status === "registered" ? "accepted" : "pending"}`}>{registration.status === "registered" ? "Registered" : "Waitlisted"}</span>
+      </header>
+      <dl className="apply-result-details">
+        <div><dt>Participant</dt><dd>{registration.name}</dd></div>
+        <div><dt>Submitted</dt><dd>{formatSubmitted(registration.submittedAt)}</dd></div>
+        <div><dt>Event</dt><dd><Link href={`/events/${registration.eventId}`}>{registration.eventName}</Link></dd></div>
+        <div><dt>Date</dt><dd>{registration.eventDate}</dd></div>
+      </dl>
+      <h3>Logistics requests</h3>
+      <dl className="apply-result-details">
+        {registration.requests.map((request) => <div key={request.label}><dt>{request.label}</dt><dd>{request.status}</dd></div>)}
+      </dl>
     </section>
   );
 }
@@ -110,29 +131,36 @@ export function TrackApplication({ initialReference }: { initialReference: strin
   return (
     <div className="apply-body track-body">
       <div className="apply-body-head">
-        <h2>Track your application</h2>
-        <p>Enter the reference code you got after submitting, and the student number you gave. This works for commissioner applications (CC-) and portal access requests (PA-).</p>
+        <h2>Track your submission</h2>
+        <ul className="track-types" aria-label="Supported submission types">
+          {["Event registrations", "Commissioner applications", "Portal access requests", "Political Party Registration", "Filing of Candidacy"].map((type) => (
+            <li key={type}><SquareCheck size={16} aria-hidden="true" />{type}</li>
+          ))}
+        </ul>
       </div>
+
+      <hr className="track-divider" />
 
       <form className="track-form" action={formAction} noValidate>
         <label className={`apply-field${errors.reference ? " has-error" : ""}`}>
           <span className="apply-field-label">Reference code</span>
-          <input name="reference" key={`reference-${state?.entered?.reference}`} defaultValue={state?.entered?.reference ?? initialReference} placeholder="CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
+          <input name="reference" key={`reference-${state?.entered?.reference}`} defaultValue={(state?.entered?.reference ?? initialReference).toUpperCase()} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="7K3MX or CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
           {errors.reference && <span className="apply-field-error">{errors.reference}</span>}
         </label>
-        <label className={`apply-field${errors.studentNumber ? " has-error" : ""}`}>
-          <span className="apply-field-label">Student number</span>
-          <input name="studentNumber" key={`student-${state?.entered?.studentNumber}`} defaultValue={state?.entered?.studentNumber} inputMode="numeric" placeholder="2023123456" autoComplete="off" maxLength={12} />
-          {errors.studentNumber && <span className="apply-field-error">{errors.studentNumber}</span>}
+        <label className={`apply-field${errors.identity ? " has-error" : ""}`}>
+          <span className="apply-field-label">Student number or last name</span>
+          <input name="identity" key={`identity-${state?.entered?.identity}`} defaultValue={state?.entered?.identity} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="2023123456 or DELA CRUZ" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={80} />
+          {errors.identity && <span className="apply-field-error">{errors.identity}</span>}
         </label>
         <button className="button-primary" type="submit" disabled={pending}>{pending ? "Looking up…" : <>Track <ArrowRight size={15} /></>}</button>
       </form>
 
-      {state?.error && !state.application && !state.accessRequest && <p className="apply-form-error" role="alert">{state.error}</p>}
+      {state?.error && !state.application && !state.accessRequest && !state.registration && <p className="apply-form-error" role="alert">{state.error}</p>}
+      {state?.registration && <TrackedEvent registration={state.registration} />}
       {state?.application && <TrackedResult application={state.application} />}
       {state?.accessRequest && <TrackedAccess request={state.accessRequest} />}
 
-      <p className="track-help">Lost your code? Email <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link> from your UST email. Haven’t applied yet? <Link href="/apply">Become a Commissioner</Link>.</p>
+      <p className="track-help">Lost your code? Email <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link> from your UST email.</p>
     </div>
   );
 }

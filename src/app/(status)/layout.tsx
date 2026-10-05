@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
-import { mono, serif } from "../(site)/fonts";
+import { serif } from "../(site)/fonts";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -19,7 +19,7 @@ export const viewport: Viewport = { themeColor: "#030305", colorScheme: "dark" }
  */
 export default function StatusLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geist.variable} ${mono.variable} ${serif.variable}`}>
+    <html lang="en" className={`${geist.variable} ${serif.variable}`}>
       <body className="fb-body">{children}</body>
     </html>
   );

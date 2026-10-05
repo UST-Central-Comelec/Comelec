@@ -1,0 +1,9 @@
+.toggle { align-items: center; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(var(--p-ink, 255,255,255),.05); border: 1px solid var(--sh-line-strong, var(--p-line-strong, rgba(255,255,255,.15))); border-radius: var(--ui-button-radius, 6px); box-shadow: none; color: var(--sh-text, var(--p-text, #f3f1eb)); cursor: pointer; display: inline-flex; flex: none; height: 38px; isolation: isolate; justify-content: center; overflow: hidden; padding: 0; position: relative; transition: background-color .25s ease, border-color .25s ease, color .25s ease; width: 38px; }
+.toggle:hover { background: rgba(var(--p-ink, 255,255,255),.1); border-color: rgba(var(--p-ink, 255,255,255),.26); color: var(--sh-gold, var(--p-gold-mark, #fec30c)); }
+.toggle.toggle:focus-visible { outline: 2px solid var(--sh-gold, var(--p-gold-edge, #fec30c)); outline-offset: 3px; }
+.toggle svg { position: absolute; transition: color .25s ease, opacity .25s ease, transform .4s cubic-bezier(.22,1,.36,1); }
+.toggle[aria-checked="false"] svg:first-child, .toggle[aria-checked="true"] svg:last-child { opacity: 0; transform: rotate(-45deg) scale(.5); }
+.toggle[aria-checked="false"] svg:last-child, .toggle[aria-checked="true"] svg:first-child { opacity: 1; transform: rotate(0) scale(1); }
+@media (prefers-reduced-motion: reduce) {
+  .toggle, .toggle svg { transition: none; }
+}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { chamberRoles, type ChamberRole } from "@/lib/data/types";
-import { setChamberRole } from "@/lib/portal/member-actions";
+import { setChamberRole } from "@/lib/portal/directory-actions";
 import { MemberAvatar } from "./member-avatar";
 
 export type ChamberMember = { id: string; name: string; college: string; photoUrl: string | null; role: ChamberRole | null };
@@ -17,10 +17,12 @@ const choices: Array<{ role: ChamberRole | null; label: string; note: string }> 
 ];
 
 /**
- * The Chamber of Chairpersons: every Local Comelec Chairperson, added automatically. Clicking a card
- * sets who is Primus and who is Vicar; there's one of each.
+ * The Chamber of Chairpersons: every Local Comelec Chairperson, read from Accounts. Clicking a card
+ * sets who is Primus and who is Vicar; there's one of each. `manageable` adds the way to their
+ * account, for whoever has the Accounts tab. Without `editable` (an Adviser or Admin, who only
+ * reads) the cards just show who holds what.
  */
-export function ChamberGroup({ members }: { members: ChamberMember[] }) {
+export function ChamberGroup({ members, editable, manageable }: { members: ChamberMember[]; editable: boolean; manageable: boolean }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const [selected, setSelected] = useState<ChamberMember | null>(null);
@@ -52,11 +54,19 @@ export function ChamberGroup({ members }: { members: ChamberMember[] }) {
       <ul className="portal-members">
         {members.map((member) => (
           <li key={member.id}>
-            <button type="button" className="directory-button" onClick={() => open(member)}>
-              <MemberAvatar photoUrl={member.photoUrl} />
-              <span><strong>{member.name}</strong><small>{member.college}</small></span>
-              {member.role ? <span className={`portal-tag chamber-tag is-${member.role}`}>{chamberRoles[member.role]}</span> : <span className="portal-muted">Set role</span>}
-            </button>
+            {editable ? (
+              <button type="button" className="directory-button" onClick={() => open(member)}>
+                <MemberAvatar photoUrl={member.photoUrl} />
+                <span><strong>{member.name}</strong><small>{member.college}</small></span>
+                {member.role ? <span className={`portal-tag chamber-tag is-${member.role}`}>{chamberRoles[member.role]}</span> : <span className="portal-muted">Set role</span>}
+              </button>
+            ) : (
+              <div className="directory-entry">
+                <MemberAvatar photoUrl={member.photoUrl} />
+                <span><strong>{member.name}</strong><small>{member.college}</small></span>
+                {member.role && <span className={`portal-tag chamber-tag is-${member.role}`}>{chamberRoles[member.role]}</span>}
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -88,7 +98,7 @@ export function ChamberGroup({ members }: { members: ChamberMember[] }) {
             </fieldset>
             {error && <p className="portal-form-error" role="alert">{error}</p>}
             <footer className="portal-help-foot chamber-dialog-foot">
-              <Link className="chamber-edit-link" href={`/portal/members/${selected.id}`}>Edit member details</Link>
+              {manageable ? <Link className="chamber-edit-link" href={`/portal/accounts/${selected.id}`}>Manage their account</Link> : <span />}
               <button type="button" className="portal-button" onClick={save} disabled={pending || role === selected.role}>{pending ? "Saving…" : "Save role"}</button>
             </footer>
           </div>

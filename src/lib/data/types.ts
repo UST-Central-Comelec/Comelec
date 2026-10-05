@@ -25,13 +25,7 @@ export const documentKinds = {
   proclamation: "Proclamation",
 } as const;
 
-/** Groups a member is entered into. En Banc and the Chamber of Chairpersons are built from these (directoryGroups). */
-export const memberBodies = {
-  central: "Central Comelec",
-  local: "Local Comelec",
-} as const;
-
-/** Every group in the Directory and on the About page, in display order. */
+/** Every group in the Directory and on the About page, in display order. All four are built from Accounts (getDirectory). */
 export const directoryGroups = {
   central: "Central Comelec",
   "en-banc": "En Banc",
@@ -41,9 +35,10 @@ export const directoryGroups = {
 
 export const CHAIRPERSON = "Chairperson";
 export const CENTRAL_REPRESENTATIVE = "Central Representative";
+export const DEPUTY = "Deputy";
 
-/** Central Comelec positions. The whole Central Comelec is its Executive Board, so all of them sit in En Banc. */
-export const centralPositions = [
+/** The Central Comelec's Executive Board, in order of rank. All of them sit in En Banc. */
+export const centralRoles = [
   CHAIRPERSON,
   "Vice Chairperson",
   "Secretary to the Executive",
@@ -57,12 +52,10 @@ export const centralPositions = [
 ] as const;
 
 /**
- * Local Comelec positions: the same, plus each college's Central Representative (one per college,
- * shown under En Banc). Local Chairpersons make up the Chamber of Chairpersons.
+ * A Local Comelec's Executive Board: the same, plus the college's Central Representative (one per
+ * college, shown under En Banc). Local Chairpersons make up the Chamber of Chairpersons.
  */
-export const localPositions = [...centralPositions, CENTRAL_REPRESENTATIVE] as const;
-
-export const positionsFor = (body: MemberBody): readonly string[] => (body === "central" ? centralPositions : localPositions);
+export const localRoles = [...centralRoles, CENTRAL_REPRESENTATIVE] as const;
 
 /** A Local Chairperson's role in the Chamber of Chairpersons, besides being a member. */
 export const chamberRoles = {
@@ -70,18 +63,43 @@ export const chamberRoles = {
   vicar: "Vicar",
 } as const;
 
-export const accountRoles = {
-  commissioner: "Commissioner",
-  executive: "Executive",
+/**
+ * Someone's standing in their unit. With the affiliation it decides what the portal opens to them
+ * (src/lib/portal/access.ts), and which roles they can hold (rolesFor in ./accounts.ts).
+ * Commissioners are students: Executive Board, Executive Associate or Deputy. Advisers and Admins
+ * aren't: they have no role, program or student ID, and they read the portal without changing it.
+ */
+export const accountPositions = {
+  "executive-board": "Executive Board",
+  "executive-associate": "Executive Associate",
+  deputy: "Deputy",
+  adviser: "Adviser",
+  admin: "Admin",
 } as const;
 
-/**
- * Where a portal account serves. Central sees everything; Local sees the Directory, Recruitment
- * applications, PolPaR and Filing of Candidacy, and only its own college's people there.
- */
+/** The positions commissioners hold, which Request access offers. */
+export const commissionerPositions = ["executive-board", "executive-associate", "deputy"] as const satisfies readonly (keyof typeof accountPositions)[];
+
+/** The two halves of the commission. A Local account sees and manages only its own college. */
 export const affiliations = {
   central: "Central Comelec",
   local: "Local Comelec",
+} as const;
+
+/** Where an account belongs: the commission, or the Office for Student Affairs, whose people are Admins. */
+export const accountAffiliations = {
+  ...affiliations,
+  osa: "Office for Student Affairs",
+} as const;
+
+/**
+ * What an account is. A personal account is a person's own: a commissioner, an adviser or an admin.
+ * An official account is a unit's shared mailbox (comelec.sci@ust.edu.ph), with none of a person's
+ * details; it acts as its unit's Executive Board.
+ */
+export const accountKinds = {
+  personal: "Commissioner account",
+  official: "Official account",
 } as const;
 
 export type NewsCategory = keyof typeof newsCategories;
@@ -100,11 +118,13 @@ export type DocumentKind = keyof typeof documentKinds;
 
 /** Kinds listed in the public Archive. The others (Constitution, Elections Code, Proclamation) are reached from Voter Info, each on its own. */
 export const archiveKinds: readonly DocumentKind[] = ["executive-order", "memorandum", "resolution"];
-export type MemberBody = keyof typeof memberBodies;
 export type DirectoryGroup = keyof typeof directoryGroups;
 export type ChamberRole = keyof typeof chamberRoles;
-export type AccountRole = keyof typeof accountRoles;
+export type AccountPosition = keyof typeof accountPositions;
+export type CommissionerPosition = (typeof commissionerPositions)[number];
 export type Affiliation = keyof typeof affiliations;
+export type AccountAffiliation = keyof typeof accountAffiliations;
+export type AccountKind = keyof typeof accountKinds;
 
 type Record = {
   id: string;
@@ -141,41 +161,80 @@ export type OfficialDocument = Record & {
 
 export type Signatory = { name: string; position: string };
 
-export type Member = Record & {
-  name: string;
-  position: string;
-  body: MemberBody;
-  /** College or faculty: required for Local Comelec, optional for Central Comelec. */
-  unit: string;
-  photoUrl: string | null;
-  /** Position within its body, set by dragging in the Directory. Lower comes first. */
-  order: number;
-  /** Local Chairpersons only: Primus or Vicar of the Chamber of Chairpersons. Missing before 0012. */
-  chamberRole?: ChamberRole | null;
-};
-
 /**
- * Who may sign in to the portal. People sign in with their @ust.edu.ph Google account, and only
- * emails listed here (and active) get in. Commissioners manage content; executives also manage accounts.
+ * Who may sign in to the portal, and who they are in the commission. People sign in with their
+ * @ust.edu.ph Google account, and only emails listed here (and active) get in. The Directory and
+ * the About page's "Meet the commission" are built from these too.
+ *
+ * Everything from `lastName` down was added by supabase/migrations/0021 and is missing on rows read
+ * before it's run; read accounts through toSummary (./accounts.ts), which fills the gaps.
  */
 export type PortalAccount = Record & {
+  /** "Juan P. Dela Cruz": the name parts put together, for everywhere a name is shown. */
   name: string;
   /** Stored lower-case. */
   email: string;
-  role: AccountRole;
+  /**
+   * What they are in their unit: "Chairperson", "Office of the Chairperson", "Deputy". Empty until
+   * it's picked. Before 0021 this column held "commissioner" or "executive".
+   */
+  role: string;
   active: boolean;
+  /** Missing before supabase/migrations/0022; treated as personal. */
+  kind?: AccountKind;
   /** Missing before supabase/migrations/0017; treated as Central. */
-  affiliation?: Affiliation;
+  affiliation?: AccountAffiliation;
   /** College or faculty. Required for Local; null for accounts added before 0017. */
   college?: string | null;
+  lastName?: string | null;
+  firstName?: string | null;
+  middleInitial?: string | null;
+  middleName?: string | null;
+  yearLevel?: string | null;
+  studentNumber?: string | null;
+  program?: string | null;
+  facebookUrl?: string | null;
+  position?: AccountPosition | null;
+  /** When the email was proved with Google: on approval of an access request, or at the first sign-in. Null until then. */
+  emailVerifiedAt?: string | null;
+  /** Shown in the Directory and on the About page. */
+  photoUrl?: string | null;
+  /** Local Chairpersons only: Primus or Vicar of the Chamber of Chairpersons. */
+  chamberRole?: ChamberRole | null;
 };
 
-export type AccountSummary = Omit<PortalAccount, "affiliation" | "college"> & { affiliation: Affiliation; college: string | null; builtIn: boolean };
+/** An account with every gap filled in, as pages and forms read it. */
+export type AccountSummary = Record & {
+  name: string;
+  email: string;
+  role: string;
+  active: boolean;
+  kind: AccountKind;
+  affiliation: AccountAffiliation;
+  college: string | null;
+  /** Empty for an official account, and for one added before accounts had name parts; `name` holds the whole name. */
+  lastName: string;
+  firstName: string;
+  middleInitial: string;
+  middleName: string;
+  yearLevel: string | null;
+  studentNumber: string | null;
+  program: string | null;
+  facebookUrl: string | null;
+  position: AccountPosition;
+  emailVerifiedAt: string | null;
+  photoUrl: string | null;
+  chamberRole: ChamberRole | null;
+  /** The executive set on the server as PORTAL_EXECUTIVE_EMAIL. */
+  builtIn: boolean;
+};
+
+/** One person in the Directory: an active commissioner's account with a role. `email` and the rest are for the portal's view only. */
+export type DirectoryEntry = Pick<AccountSummary, "id" | "name" | "role" | "position" | "college" | "program" | "email" | "facebookUrl" | "photoUrl" | "chamberRole"> & { affiliation: Affiliation };
 
 export type ContentDb = {
   news: NewsPost[];
   documents: OfficialDocument[];
-  members: Member[];
   accounts: PortalAccount[];
   /** Events and activities. Their shape and options live in src/lib/events/options.ts. */
   events: CommissionEvent[];
@@ -195,21 +254,26 @@ export function isDocumentKind(value: string): value is DocumentKind {
   return value in documentKinds;
 }
 
-export function isMemberBody(value: string): value is MemberBody {
-  return value in memberBodies;
-}
-
-export function isAccountRole(value: string): value is AccountRole {
-  return value in accountRoles;
+export function isAccountPosition(value: unknown): value is AccountPosition {
+  return typeof value === "string" && value in accountPositions;
 }
 
 export function isAffiliation(value: unknown): value is Affiliation {
   return typeof value === "string" && value in affiliations;
 }
 
-/** "Central Comelec", or "Local Comelec · College of Science". */
-export function describeAffiliation(affiliation: Affiliation, college: string | null | undefined) {
-  return affiliation === "local" && college ? `${affiliations.local} · ${college}` : affiliations[affiliation];
+export function isAccountAffiliation(value: unknown): value is AccountAffiliation {
+  return typeof value === "string" && value in accountAffiliations;
+}
+
+export const isCommissionerPosition = (value: unknown): value is CommissionerPosition => (commissionerPositions as readonly unknown[]).includes(value);
+
+/** Advisers and Admins read the portal; they don't change it. */
+export const isViewerPosition = (position: AccountPosition) => position === "adviser" || position === "admin";
+
+/** "Central Comelec", "Local Comelec · College of Science" or "Office for Student Affairs". */
+export function describeAffiliation(affiliation: AccountAffiliation, college: string | null | undefined) {
+  return affiliation === "local" && college ? `${affiliations.local} · ${college}` : accountAffiliations[affiliation];
 }
 
 export function formatDate(iso: string) {

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { FilingSettings } from "@/components/portal/filing-settings";
+import { PeriodSettings } from "@/components/portal/period-settings";
 
 export const metadata: Metadata = { title: "PolPaR settings" };
 
 export default async function PortalPolParSettingsPage({ searchParams }: PageProps<"/portal/polpar/settings">) {
-  const { notice } = await searchParams;
-  return <FilingSettings kind="party-registration" notice={notice} />;
+  const { notice, unit } = await searchParams;
+  return <PeriodSettings kind="party-registration" notice={notice} unit={unit} />;
 }

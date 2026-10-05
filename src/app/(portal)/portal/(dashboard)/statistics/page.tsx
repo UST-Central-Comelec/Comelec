@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
-import { requireCentral, withPortalUser } from "@/lib/auth/session";
+import { ViewOnlyTag } from "@/components/portal/view-only";
+import { allowed, withPortalUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/data/types";
 import { settle } from "@/lib/portal/settle";
 import { getStatistics } from "@/lib/statistics/queries";
@@ -12,7 +13,7 @@ import { byPeriod, sizeLabel } from "@/lib/statistics/table";
 export const metadata: Metadata = { title: "Statistics" };
 
 export default async function PortalStatisticsPage({ searchParams }: PageProps<"/portal/statistics">) {
-  const [, [{ value, error: loadError }, { notice }]] = await withPortalUser(Promise.all([settle(getStatistics()), searchParams]), requireCentral);
+  const [{ readOnly }, [{ value, error: loadError }, { notice }]] = await withPortalUser(Promise.all([settle(getStatistics()), searchParams]), allowed("statistics"));
   // In the order of the website's page: by election or period, the most recent figures first.
   const tables = byPeriod(value ?? []).flatMap((group) => group.tables);
 
@@ -23,7 +24,7 @@ export default async function PortalStatisticsPage({ searchParams }: PageProps<"
           <p className="portal-eyebrow">Website content</p>
           <TitleWithInfo info="Tables of figures shown on the website’s Statistics page: voters, turnout, candidates, results. Each is pasted from a spreadsheet, and the page groups them by the election or period they belong to.">Statistics</TitleWithInfo>
         </div>
-        <Link className="portal-button" href="/portal/statistics/new"><Plus size={16} /> Add table</Link>
+        {readOnly ? <ViewOnlyTag /> : <Link className="portal-button" href="/portal/statistics/new"><Plus size={16} /> Add table</Link>}
       </header>
       <Notice notice={notice} />
 
@@ -34,7 +35,7 @@ export default async function PortalStatisticsPage({ searchParams }: PageProps<"
       ) : (
         <section className="portal-card is-flush">
           {tables.length === 0 ? (
-            <p className="portal-empty">No tables yet. <Link href="/portal/statistics/new">Add the first one.</Link></p>
+            <p className="portal-empty">No tables yet.{!readOnly && <> <Link href="/portal/statistics/new">Add the first one.</Link></>}</p>
           ) : (
             <div className="portal-table-wrap">
               <table className="portal-table portal-stat-list">
@@ -46,7 +47,7 @@ export default async function PortalStatisticsPage({ searchParams }: PageProps<"
                       <td><span className="portal-tag">{table.period}</span></td>
                       <td className="portal-muted">{formatDate(table.asOf)}</td>
                       <td className="portal-muted">{sizeLabel(table)}</td>
-                      <td className="portal-row-actions"><Link href={`/portal/statistics/${table.id}`}>Edit</Link></td>
+                      <td className="portal-row-actions"><Link href={`/portal/statistics/${table.id}`}>{readOnly ? "View" : "Edit"}</Link></td>
                     </tr>
                   ))}
                 </tbody>

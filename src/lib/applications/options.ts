@@ -9,6 +9,22 @@ const ab = (name: string) => `Bachelor of Arts in ${name}`;
 const performance = (instrument: string) => `Bachelor of Music in Performance, major in ${instrument}`;
 
 export const programsByCollege = {
+  "Education High School": [],
+  "Junior High School": [],
+  "Senior High School": [
+    "Science, Technology, Engineering, and Mathematics (STEM)",
+    "Accountancy, Business, and Management (ABM)",
+    "General Academics Strand (GAS)",
+    "Health-Allied and Wellness (HA)",
+    "Humanities and Social Sciences (HUMSS)",
+    "Music, Arts, and Design (MAD)",
+    "Physical Education and Sports (PES)",
+    "Information and Communications Technology (ICT)",
+    "Home Economics (HE)",
+    "Industrial Arts (IA)",
+    "Agri-Fishery Arts (AFA)",
+    "Others",
+  ],
   "Alfredo M. Velayo College of Accountancy": [bs("Accountancy"), bs("Accounting Information System"), bs("Management Accounting")],
   "College of Architecture": [bs("Architecture")],
   "Faculty of Arts and Letters": [
@@ -85,6 +101,37 @@ export type College = keyof typeof programsByCollege;
 
 export const colleges = (Object.keys(programsByCollege) as College[]).sort((a, b) => a.localeCompare(b));
 
+/** Every academic unit with a Local Comelec, including the three high schools. */
+export const comelecUnits: readonly string[] = colleges;
+
+/** Each unit's short name, as the commission writes it: what lists show in place of the full name. */
+export const unitAbbreviations: Readonly<Record<string, string>> = {
+  "Alfredo M. Velayo College of Accountancy": "AMV",
+  "College of Architecture": "ARCHI",
+  "Faculty of Arts and Letters": "AB",
+  "Faculty of Civil Law": "FCL",
+  "College of Commerce and Business Administration": "CCBA",
+  "College of Education": "EDUC",
+  "Faculty of Engineering": "FOE",
+  "College of Fine Arts and Design": "CFAD",
+  "College of Information and Computing Sciences": "CICS",
+  "Faculty of Medicine and Surgery": "FMS",
+  "Conservatory of Music": "MUSIC",
+  "College of Nursing": "NURSING",
+  "Faculty of Pharmacy": "PHARMA",
+  "Institute of Physical Education and Athletics": "IPEA",
+  "College of Rehabilitation Sciences": "CRS",
+  "College of Science": "COS",
+  "College of Tourism and Hospitality Management": "CTHM",
+  "Faculty of Canon Law": "CANON LAW",
+  "Faculty of Philosophy": "PHILO",
+  "Faculty of Sacred Theology": "SACRED THEO",
+  "Senior High School": "SHS",
+  "Junior High School": "JHS",
+  "Education High School": "EHS",
+};
+
+
 /**
  * Applications are deleted this many days after they're submitted (the nightly job in
  * supabase/migrations/0007_application_retention.sql); the site hides them from that moment.
@@ -100,7 +147,19 @@ export const deletionDate = (submittedAt: string) => new Date(new Date(submitted
 /** Whole days until an application is deleted, counting a part day as one: 60 on the day it's submitted, 1 on its last day. */
 export const daysUntilDeletion = (submittedAt: string, now = Date.now()) => Math.max(0, Math.ceil((new Date(deletionDate(submittedAt)).getTime() - now) / 86_400_000));
 
-export const yearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", "5": "5th year", swis: "SWIS" } as const;
+const collegeYearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", "5": "5th year", swis: "SWIS" } as const;
+const juniorGrades = { "7": "Grade 7", "8": "Grade 8", "9": "Grade 9", "10": "Grade 10" } as const;
+const seniorGrades = { "11": "Grade 11", "12": "Grade 12" } as const;
+/** All stored levels, for display; forms use yearLevelsFor for the selected school. */
+export const yearLevels = { ...collegeYearLevels, ...juniorGrades, ...seniorGrades } as const;
+
+export const programLocked = (college: string | null | undefined) => college === "Education High School" || college === "Junior High School";
+
+export function yearLevelsFor(college: string | null | undefined): Readonly<Record<string, string>> {
+  return college === "Junior High School" ? juniorGrades : college === "Senior High School" ? seniorGrades : collegeYearLevels;
+}
+
+export const isYearLevelFor = (college: string, level: string) => Object.hasOwn(yearLevelsFor(college), level);
 
 export const preferredBodies = {
   central: "Central Comelec",
@@ -195,12 +254,24 @@ export const divisions = {
       "ea-public-information-officer": "Executive Assistant to the Public Information Officer",
     },
   },
+  central: {
+    label: "Central Division",
+    positions: {
+      "ea-central-representative": "Executive Assistant to the Central Representative",
+    },
+  },
 } as const satisfies Record<string, { label: string; positions: Record<string, string> }>;
 
 export type DivisionId = keyof typeof divisions;
 
+/** Central Division serves the Central Representative of a Local Comelec only. */
+export function divisionIdsForBody(body: string): DivisionId[] {
+  return (Object.keys(divisions) as DivisionId[]).filter((id) => id !== "central" || body === "local");
+}
+
 /** What each division does, shown when an applicant expands it. */
 export const divisionDescriptions: Record<DivisionId, string> = {
+  central: "The Central Division connects the Local Comelec with Central Comelec. It supports the Central Representative with coordination, correspondence, and follow-through on university-wide election matters.",
   executive: "The Executive Division serves as the backbone of Central COMELEC. This team oversees the organization’s internal and external affairs, ensures smooth coordination across all divisions, and spearheads initiatives that uphold transparency and efficiency. They lead with vision and strategy to guarantee that every operation aligns with the commission’s mission.",
   legal: "The Legals Division is the guardian of rules, policies, and due process. This team handles the interpretation and enforcement of election laws, organizational policies, and student governance guidelines. They ensure that all activities are compliant, fair, and just, protecting both the commission and the Thomasian student body.",
   operations: "The Operations Division is the action force of Central COMELEC. From planning to execution, this team makes sure that every event, election, and initiative runs seamlessly. They handle logistics, manage timelines and schedules, and coordinate with stakeholders to transform plans into concrete outcomes.",
@@ -209,6 +280,7 @@ export const divisionDescriptions: Record<DivisionId, string> = {
 
 /** What each position does, by position id. */
 export const positionDescriptions: Record<string, string> = {
+  "ea-central-representative": "Supports the Local Comelec’s Central Representative with communications, meeting preparation, records, and coordination with Central Comelec.",
   "ea-chairperson": "Assists in overseeing the entire commission, ensuring that all divisions are aligned with Central COMELEC’s mission and goals.",
   "ea-vice-chairperson": "Supports in managing operations and coordination between divisions, promoting efficiency in daily tasks.",
   "ea-secretary-executive": "Helps with documentation, records, and correspondence to keep organizational communication seamless.",
@@ -225,6 +297,11 @@ export const positions = (Object.entries(divisions) as Array<[DivisionId, (typeo
   Object.entries(list).map(([id, label]) => ({ id, label, division })),
 );
 
+export function positionsForUnit(college = "") {
+  const available = divisionIdsForBody(college ? "local" : "central");
+  return positions.filter((position) => available.includes(position.division));
+}
+
 export type PositionId = (typeof positions)[number]["id"];
 
 /** Divisions whose applicants must also share a portfolio. */
@@ -232,3 +309,5 @@ export const portfolioDivisions: readonly DivisionId[] = ["public-information"];
 
 /** Open slots per position id. */
 export type SlotCounts = Record<string, number>;
+/** Central uses an empty key; each Local unit uses its college name. */
+export type UnitSlotCounts = Record<string, SlotCounts>;

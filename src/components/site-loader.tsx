@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ComelecLoadingScreen } from "./comelec-loading-screen";
 import { useEffect, useState } from "react";
 
 const MIN_DISPLAY_MS = 2600;
@@ -35,16 +35,5 @@ export function SiteLoader() {
 
   if (phase === "done") return null;
 
-  return (
-    <div className={`site-loader${phase === "leaving" ? " is-leaving" : ""}`} role="status" aria-label="Loading UST Central Comelec">
-      <noscript><style>{".site-loader { display: none; }"}</style></noscript>
-      <div className="site-loader-mark">
-        <Image src="/images/Logo-1.png" alt="" width={120} height={120} priority />
-        <span>
-          <strong>CENTRAL COMELEC</strong>
-          <small>UST Central Commission on Elections</small>
-        </span>
-      </div>
-    </div>
-  );
+  return <ComelecLoadingScreen leaving={phase === "leaving"} />;
 }

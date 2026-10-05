@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireCentral } from "@/lib/auth/session";
+import { requireEditor } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
 import { newsCategories, type NewsCategory } from "@/lib/data/types";
 import { text, toFormState, type FormState } from "./form";
@@ -51,7 +51,7 @@ async function refresh(featuredId: string | null, author: string) {
 }
 
 export async function createNews(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("news");
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
@@ -66,7 +66,7 @@ export async function createNews(_state: FormState, formData: FormData): Promise
 }
 
 export async function updateNews(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("news");
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
@@ -82,7 +82,7 @@ export async function updateNews(id: string, _state: FormState, formData: FormDa
 }
 
 export async function deleteNews(id: string) {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("news");
   await store.remove("news", id);
   await refresh(null, email);
   redirect("/portal/news?notice=deleted");

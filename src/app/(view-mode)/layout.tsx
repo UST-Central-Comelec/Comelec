@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 import { Geist } from "next/font/google";
 import { ViewModeStrip } from "@/components/view-mode-strip";
+import { FormInputGuard } from "@/components/form-input-guard";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -18,6 +19,7 @@ export default function ViewModeLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className="view-mode">
+        <FormInputGuard />
         <ViewModeStrip />
         {children}
       </body>

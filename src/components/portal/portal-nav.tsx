@@ -3,114 +3,89 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useState, type ComponentType } from "react";
-import { Briefcase, Calendar, CalendarCheck, CalendarDays, ChartColumn, ChevronDown, ClipboardList, FileText, Flag, Globe, Hash, Inbox, LayoutDashboard, LayoutGrid, ListChecks, Newspaper, Scale, ScrollText, Send, Settings2, ShieldCheck, Ticket, UserCog, Users, Vote, Wrench } from "lucide-react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { BookOpenText, Briefcase, Calendar, CalendarCheck, CalendarDays, ChartColumn, ChevronDown, ClipboardList, FileText, Flag, Gavel, Globe, Hash, Inbox, LayoutDashboard, LayoutGrid, ListChecks, Newspaper, Scale, ScrollText, Send, Settings2, ShieldCheck, Stamp, Ticket, UserCog, Users, Vote, Wrench } from "lucide-react";
+import { tabGroups, tabHref, type GroupLabel, type TabKey } from "@/lib/portal/access";
 
 type Icon = ComponentType<{ size?: number; strokeWidth?: number; "aria-hidden"?: boolean | "true" }>;
 /** `item` is the top bar's word for one of the tab's own pages, such as an application under Applications ("Edit" if not given). */
-type Tab = { href: string; label: string; icon: Icon; item?: string };
+type Tab = { key: TabKey; href: string; label: string; icon: Icon; item?: string };
 /** A main tab with subtabs. Clicking it folds the subtabs open or shut (in the icon strip, it opens the first subtab). */
 type Group = { label: string; icon: Icon; items: Tab[] };
 type Entry = Tab | Group;
 /** A run of tabs, under a small heading if it has a `label`. */
 type Section = { label?: string; entries: Entry[] };
 
-const sections: Section[] = [
-  { entries: [{ href: "/portal", label: "Dashboard", icon: LayoutDashboard }] },
-  {
-    entries: [
-      {
-        label: "Apps",
-        icon: LayoutGrid,
-        items: [
-          { href: "/portal/apps/secretariat", label: "Secretariat", icon: Briefcase },
-          { href: "/portal/apps/email", label: "Email Sender", icon: Send },
-          { href: "/portal/apps/calendar", label: "Calendar", icon: Calendar },
-          { href: "/portal/apps/tickets", label: "Tickets", icon: Ticket },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Website",
-    entries: [
-      {
-        label: "Publications",
-        icon: Globe,
-        items: [
-          { href: "/portal/news", label: "News", icon: Newspaper },
-          { href: "/portal/statistics", label: "Statistics", icon: ChartColumn },
-          { href: "/portal/events", label: "Events", icon: CalendarCheck, item: "Event" },
-          { href: "/portal/members", label: "Directory", icon: Users },
-          { href: "/portal/documents", label: "Documents", icon: FileText },
-        ],
-      },
-      {
-        label: "Petitions & Cases",
-        icon: Scale,
-        items: [
-          { href: "/portal/petitions/submissions", label: "Submissions", icon: Inbox },
-          { href: "/portal/petitions/settings", label: "Settings", icon: Settings2 },
-        ],
-      },
-      {
-        label: "Recruitment",
-        icon: ClipboardList,
-        items: [
-          { href: "/portal/recruitment/applications", label: "Applicants", icon: Inbox, item: "Review" },
-          { href: "/portal/recruitment/interviews", label: "Interviews", icon: CalendarDays },
-          { href: "/portal/recruitment/slots", label: "Slots", icon: Hash },
-          { href: "/portal/recruitment/settings", label: "Settings", icon: Settings2 },
-        ],
-      },
-      {
-        label: "Political Party",
-        icon: Flag,
-        items: [
-          { href: "/portal/polpar/registrations", label: "Applicants", icon: Inbox },
-          { href: "/portal/polpar/requirements", label: "Requirements", icon: ListChecks },
-          { href: "/portal/polpar/settings", label: "Settings", icon: Settings2 },
-        ],
-      },
-      {
-        label: "Filing of Candidacy",
-        icon: Vote,
-        items: [
-          { href: "/portal/candidacy/filings", label: "Applicants", icon: Inbox },
-          { href: "/portal/candidacy/requirements", label: "Requirements", icon: ListChecks },
-          { href: "/portal/candidacy/settings", label: "Settings", icon: Settings2 },
-        ],
-      },
-    ],
-  },
-];
-
-const executiveSection: Section = {
-  entries: [
-    {
-      label: "Administrative",
-      icon: ShieldCheck,
-      items: [
-        { href: "/portal/accounts", label: "Accounts", icon: UserCog, item: "Manage" },
-        { href: "/portal/maintenance", label: "Maintenance", icon: Wrench, item: "Test" },
-        { href: "/portal/logs", label: "Logs", icon: ScrollText },
-      ],
-    },
-  ],
+// The tabs themselves, their order and their main tabs come from src/lib/portal/access.ts, which
+// also decides who may open each. Here they get what the sidebar adds: an icon, and the top bar's
+// word for a page inside them.
+const tabIcons: Record<TabKey, Icon> = {
+  dashboard: LayoutDashboard,
+  "apps/secretariat": Briefcase,
+  "apps/email": Send,
+  "apps/calendar": Calendar,
+  "apps/tickets": Ticket,
+  "apps/approvals": Stamp,
+  news: Newspaper,
+  statistics: ChartColumn,
+  events: CalendarCheck,
+  members: Users,
+  documents: FileText,
+  "codes/constitution": BookOpenText,
+  "codes/elections-code": Gavel,
+  "petitions/submissions": Inbox,
+  "petitions/settings": Settings2,
+  "recruitment/applications": Inbox,
+  "recruitment/interviews": CalendarDays,
+  "recruitment/slots": Hash,
+  "recruitment/settings": Settings2,
+  "polpar/registrations": Inbox,
+  "polpar/requirements": ListChecks,
+  "polpar/settings": Settings2,
+  "candidacy/filings": Inbox,
+  "candidacy/requirements": ListChecks,
+  "candidacy/settings": Settings2,
+  accounts: UserCog,
+  maintenance: Wrench,
+  logs: ScrollText,
 };
+
+const groupIcons: Record<GroupLabel, Icon> = {
+  Apps: LayoutGrid,
+  Publications: Globe,
+  "Petitions & Cases": Scale,
+  Recruitment: ClipboardList,
+  "Political Party": Flag,
+  "Filing of Candidacy": Vote,
+  Administrative: ShieldCheck,
+};
+
+const tabItems: Partial<Record<TabKey, string>> = { "apps/email": "Email", "apps/approvals": "Review", events: "Details", "codes/constitution": "Revision", "codes/elections-code": "Revision", "recruitment/applications": "Review", accounts: "Manage", maintenance: "Test" };
+
+/** Pages inside a tab that have a name of their own in the top bar. */
+const namedPages: Record<string, string> = { "/portal/accounts/access-control": "Access Control", "/portal/accounts/expiration": "Expiration", "/portal/apps/email/outbox": "Outbox", "/portal/apps/email/automatic": "Automatic" };
 
 const isGroup = (entry: Entry): entry is Group => "items" in entry;
 
-/**
- * The tabs a Local account sees: its college's people, not the commission-wide settings. Groups
- * keep only these subtabs, and sections left with nothing are dropped. The pages check this on the server too.
- */
-const localTabs = new Set(["/portal/events", "/portal/members", "/portal/recruitment/applications", "/portal/polpar/registrations", "/portal/candidacy/filings"]);
+// Runs of main tabs under the same heading ("Website") make one section.
+const sections = tabGroups.reduce<Array<Section & { key: string | null }>>((list, group) => {
+  const items: Tab[] = group.tabs.map((tab) => ({ key: tab.key, href: tabHref(tab.key), label: tab.label, icon: tabIcons[tab.key], item: tabItems[tab.key] }));
+  const entries: Entry[] = group.label ? [{ label: group.label, icon: groupIcons[group.label], items }] : items;
+  const last = list.at(-1);
+  if (last && group.section && last.key === group.section) last.entries.push(...entries);
+  else list.push({ key: group.section, label: group.section ?? undefined, entries });
+  return list;
+}, []);
 
-function localSections(list: Section[]): Section[] {
-  return list.flatMap((section): Section[] => {
+/**
+ * The tabs open to this account. Main tabs keep only their open subtabs, and sections left with
+ * nothing are dropped. The pages check this on the server too.
+ */
+function openSections(open: readonly TabKey[]): Section[] {
+  return sections.flatMap((section): Section[] => {
     const entries = section.entries.flatMap((entry): Entry[] => {
-      if (!isGroup(entry)) return localTabs.has(entry.href) ? [entry] : [];
-      const items = entry.items.filter((item) => localTabs.has(item.href));
+      if (!isGroup(entry)) return open.includes(entry.key) ? [entry] : [];
+      const items = entry.items.filter((item) => open.includes(item.key));
       return items.length ? [{ ...entry, items }] : [];
     });
     return entries.length ? [{ ...section, entries }] : [];
@@ -122,19 +97,26 @@ export type Crumb = { label: string; href?: string };
 
 /**
  * Where `pathname` sits in the portal, for the top bar: its group, its tab, then "New" or the tab's
- * word for one of its own pages (or "Edit", for a page that has its own edit page). The last crumb is
- * the page itself, so it has no link.
+ * word for one of its own pages (or "Edit", for a page that has its own edit page; "View" for an
+ * Adviser or Admin, who only reads). The last crumb is the page itself, so it has no link.
  */
-export function trail(pathname: string): Crumb[] {
+export function trail(pathname: string, viewOnly = false): Crumb[] {
   if (pathname === "/portal/account") return [{ label: "My account" }];
-  for (const entry of [...sections, executiveSection].flatMap((section) => section.entries)) {
+  for (const entry of sections.flatMap((section) => section.entries)) {
     for (const tab of isGroup(entry) ? entry.items : [entry]) {
       if (!isActive(tab.href, pathname)) continue;
       const within = pathname !== tab.href;
+      const eventSection = tab.key === "events" ? pathname.match(/^\/portal\/events\/([^/]+)\/(registrants|analytics)$/) : null;
+      if (eventSection) return [
+        ...(isGroup(entry) ? [{ label: entry.label }] : []),
+        { label: tab.label, href: tab.href },
+        { label: "Details", href: `/portal/events/${eventSection[1]}` },
+        { label: eventSection[2] === "registrants" ? "Registrants" : "Analytics" },
+      ];
       return [
         ...(isGroup(entry) ? [{ label: entry.label }] : []),
         within ? { label: tab.label, href: tab.href } : { label: tab.label },
-        ...(within ? [{ label: pathname.endsWith("/new") ? "New" : pathname.endsWith("/edit") ? "Edit" : (tab.item ?? "Edit") }] : []),
+        ...(within ? [{ label: namedPages[pathname] ?? (pathname.endsWith("/new") ? "New" : viewOnly && tab.key !== "events" ? "View" : pathname.endsWith("/edit") ? "Edit" : (tab.item ?? "Edit")) }] : []),
       ];
     }
   }
@@ -142,68 +124,79 @@ export function trail(pathname: string): Crumb[] {
 }
 
 /**
- * `isExecutive` and `isLocal` only decide what's shown; the pages check the role and affiliation on the server.
+ * `tabs` (the ones open to this account) only decides what's shown; the pages check access on the server.
  * When `collapsed`, the sidebar is a strip of icons: labels show as tooltips, and a group's
  * subtabs show in a flyout on hover or keyboard focus instead of expanding in place.
  */
-export function PortalNav({ isExecutive, isLocal, collapsed }: { isExecutive: boolean; isLocal: boolean; collapsed: boolean }) {
+export function PortalNav({ tabs, collapsed }: { tabs: readonly TabKey[]; collapsed: boolean }) {
   const pathname = usePathname();
-  const shown = isLocal ? localSections(sections) : isExecutive ? [...sections, executiveSection] : sections;
+  const shown = openSections(tabs);
   const activeGroup = shown.flatMap((section) => section.entries).find((entry) => isGroup(entry) && entry.items.some((item) => isActive(item.href, pathname)))?.label ?? null;
 
-  // A group opened or closed by hand stays that way from page to page. Groups you haven't touched
-  // follow the page: only the one you're in is open.
-  const [locked, setLocked] = useState<Record<string, boolean>>({});
+  // One expanded group at a time. Navigation opens the destination's group, including Back/Forward.
+  const [expanded, setExpanded] = useState<{ pathname: string; group: string | null }>({ pathname, group: activeGroup });
+  if (expanded.pathname !== pathname) {
+    setExpanded({ pathname, group: activeGroup });
+  }
 
   return (
-    <nav className="portal-nav" aria-label="Portal">
-      {shown.map((section, index) => (
-        <Fragment key={index}>
-          {section.label && <span className="portal-nav-section">{section.label}</span>}
-          {section.entries.map((entry) => {
-            if (!isGroup(entry)) return <NavLink key={entry.href} tab={entry} active={isActive(entry.href, pathname)} />;
-
-            const { label, icon: GroupIcon, items } = entry;
-            const within = activeGroup === label;
-            const open = locked[label] ?? within;
-            const subId = `portal-nav-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
-            return (
-              <div key={label} className={`portal-nav-group${open ? " is-open" : ""}${within ? " is-within" : ""}`}>
-                <Link
-                  href={items[0].href}
-                  className="portal-nav-parent"
-                  aria-expanded={collapsed ? undefined : open}
-                  aria-controls={subId}
-                  onClick={(event) => {
-                    // In the icon strip it goes to the first subtab; the flyout covers the rest.
-                    if (collapsed) return;
-                    event.preventDefault();
-                    setLocked((current) => ({ ...current, [label]: !open }));
-                  }}
-                >
-                  <GroupIcon size={17} strokeWidth={1.7} aria-hidden="true" />
-                  <span className="portal-nav-label">{label}</span>
-                  <ChevronDown className="portal-nav-chevron" size={15} strokeWidth={1.8} aria-hidden="true" />
-                </Link>
-                {/* Closed subtabs are inert so Tab skips them; in the icon strip they're a hover/focus flyout instead. */}
-                <div className="portal-nav-sub" id={subId} inert={!collapsed && !open}>
-                  <div className="portal-nav-sub-inner">
-                    <span className="portal-nav-flyout-title" aria-hidden="true">{label}</span>
-                    {items.map((item) => <NavLink key={item.href} tab={item} active={isActive(item.href, pathname)} />)}
+    <LayoutGroup id="portal-sidebar">
+      <motion.nav layoutScroll className="portal-nav" aria-label="Portal">
+        {shown.map((section, index) => (
+          <Fragment key={index}>
+            {section.label && <span className="portal-nav-section">{section.label}</span>}
+            {section.entries.map((entry) => {
+              if (!isGroup(entry)) return <NavLink key={entry.href} tab={entry} active={isActive(entry.href, pathname)} />;
+  
+              const { label, icon: GroupIcon, items } = entry;
+              const within = activeGroup === label;
+              const open = expanded.group === label;
+              const subId = `portal-nav-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+              return (
+                <div key={label} className={`portal-nav-group${open ? " is-open" : ""}${within ? " is-within" : ""}`}>
+                  <Link
+                    href={items[0].href}
+                    className={`portal-nav-parent${within ? " is-current-group" : ""}`}
+                    aria-expanded={collapsed ? undefined : open}
+                    aria-controls={subId}
+                    onClick={(event) => {
+                      // In the icon strip it goes to the first subtab; the flyout covers the rest.
+                      if (collapsed) return;
+                      event.preventDefault();
+                      setExpanded({ pathname, group: open ? null : label });
+                    }}
+                  >
+                    {within && <NavHighlight />}
+                    <GroupIcon size={17} strokeWidth={1.7} aria-hidden="true" />
+                    <span className="portal-nav-label">{label}</span>
+                    <ChevronDown className="portal-nav-chevron" size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                  {/* Closed subtabs are inert so Tab skips them; in the icon strip they're a hover/focus flyout instead. */}
+                  <div className="portal-nav-sub" id={subId} inert={!collapsed && !open}>
+                    <div className="portal-nav-sub-inner">
+                      <span className="portal-nav-flyout-title" aria-hidden="true">{label}</span>
+                      {items.map((item) => <NavLink key={item.href} tab={item} active={isActive(item.href, pathname)} subtab />)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </Fragment>
-      ))}
-    </nav>
+              );
+            })}
+          </Fragment>
+        ))}
+      </motion.nav>
+    </LayoutGroup>
   );
 }
 
-function NavLink({ tab: { href, label, icon: TabIcon }, active }: { tab: Tab; active: boolean }) {
+function NavHighlight({ subtab = false }: { subtab?: boolean }) {
+  const reducedMotion = useReducedMotion();
+  return <motion.span layoutId={subtab ? "active-subtab" : "active-tab"} className={`portal-nav-highlight${subtab ? " is-subtab" : ""}`} initial={false} transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 34 }} aria-hidden="true" />;
+}
+
+function NavLink({ tab: { href, label, icon: TabIcon }, active, subtab = false }: { tab: Tab; active: boolean; subtab?: boolean }) {
   return (
     <Link href={href} className={active ? "is-active" : undefined} aria-current={active ? "page" : undefined}>
+      {active && <NavHighlight subtab={subtab} />}
       <TabIcon size={17} strokeWidth={1.7} aria-hidden="true" />
       <span className="portal-nav-label">{label}</span>
     </Link>

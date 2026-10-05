@@ -2,7 +2,11 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { describeSlot, type InterviewMode } from "./interview-format";
+import { fullName, upperName } from "@/lib/data/accounts";
+import { store } from "@/lib/data/store";
+import { applicantName } from "./name";
+import { getApplicationEmailLogs, type ApplicationEmailLog } from "./email-log";
+import { describeSlot, type InterviewMode, type InterviewSlot } from "./interview-format";
 import { isConflictId, preferredBodies, retentionCutoff, yearLevels, type DeclaredConflict } from "./options";
 
 export type PreferredBody = keyof typeof preferredBodies;
@@ -10,26 +14,15 @@ export type PreferredBody = keyof typeof preferredBodies;
 // Applications as the portal sees them: everything the applicant sent, including contact details.
 // Stored in public.applications (supabase/migrations/0004, 0005, 0013 and 0014).
 
-export const applicationStatuses = {
-  pending: "Pending review",
-  reviewing: "Under review",
-  accepted: "Accepted",
-  declined: "Rejected",
-} as const;
-
-export type ApplicationStatus = keyof typeof applicationStatuses;
-
-/** portal-tag colour per status. */
-export const statusTag: Record<ApplicationStatus, string> = { pending: "is-gold", reviewing: "is-gold", accepted: "is-ok", declined: "is-warn" };
-
-export const isApplicationStatus = (value: unknown): value is ApplicationStatus => typeof value === "string" && value in applicationStatuses;
+export { applicationStatuses, statusTag, isApplicationStatus, type ApplicationStatus } from "./status";
+import { isApplicationStatus, type ApplicationStatus } from "./status";
 
 export type ApplicationRecord = {
   id: string;
   referenceCode: string;
   lastName: string;
   firstName: string;
-  middleInitial: string;
+  middleName: string;
   name: string;
   studentNumber: string;
   email: string;
@@ -45,14 +38,20 @@ export type ApplicationRecord = {
   position: string;
   positionId: string;
   cvUrl: string;
+  registrationFormUrl: string | null;
+  letterOfIntentUrl: string | null;
   endorsementUrl: string | null;
   portfolioUrl: string | null;
+  gradesUrl: string | null;
   /** Conflicts the applicant pledged to resolve. Null when they applied before the form asked. */
   conflicts: DeclaredConflict[] | null;
   interview: string | null;
+  interviewDetails: Pick<InterviewSlot, "startsAt" | "durationMinutes" | "mode" | "location"> | null;
   status: ApplicationStatus;
   statusUpdatedAt: string | null;
   statusUpdatedBy: string | null;
+  emailLogs: ApplicationEmailLog[];
+  emailLogsAvailable: boolean;
   submittedAt: string;
 };
 
@@ -62,7 +61,7 @@ const withInterview = "*, interview_slots(starts_at, duration_minutes, mode, loc
 
 function interviewOf(slot: unknown) {
   const row = (Array.isArray(slot) ? slot[0] : slot) as { starts_at: string; duration_minutes: number; mode: InterviewMode; location: string | null } | null | undefined;
-  return row ? describeSlot({ startsAt: row.starts_at, durationMinutes: row.duration_minutes, mode: row.mode, location: row.location }) : null;
+  return row ? { startsAt: row.starts_at, durationMinutes: row.duration_minutes, mode: row.mode, location: row.location } : null;
 }
 
 function conflictsOf(value: unknown): DeclaredConflict[] | null {
@@ -72,13 +71,14 @@ function conflictsOf(value: unknown): DeclaredConflict[] | null {
 
 function toRecord(row: Row): ApplicationRecord {
   const value = (key: string) => (row[key] ?? "") as string;
+  const interviewDetails = interviewOf(row.interview_slots);
   return {
     id: value("id"),
     referenceCode: value("reference_code"),
     lastName: value("last_name"),
     firstName: value("first_name"),
-    middleInitial: value("middle_initial"),
-    name: `${value("first_name")} ${value("middle_initial")}. ${value("last_name")}`,
+    middleName: value("middle_name") || value("middle_initial"),
+    name: applicantName({ first_name: value("first_name"), middle_name: value("middle_name"), middle_initial: value("middle_initial"), last_name: value("last_name") }),
     studentNumber: value("student_number"),
     email: value("email"),
     contactNumber: (row.contact_number as string | null) || null,
@@ -92,15 +92,42 @@ function toRecord(row: Row): ApplicationRecord {
     position: value("position"),
     positionId: value("position_id"),
     cvUrl: value("cv_url"),
+    registrationFormUrl: (row.registration_form_url as string | null) ?? null,
+    letterOfIntentUrl: (row.letter_of_intent_url as string | null) ?? null,
     endorsementUrl: (row.endorsement_url as string | null) ?? null,
     portfolioUrl: (row.portfolio_url as string | null) ?? null,
+    gradesUrl: (row.grades_url as string | null) ?? null,
     conflicts: conflictsOf(row.conflicts),
-    interview: interviewOf(row.interview_slots),
+    interview: interviewDetails ? describeSlot(interviewDetails) : null,
+    interviewDetails,
     status: isApplicationStatus(row.status) ? row.status : "pending",
     statusUpdatedAt: (row.status_updated_at as string | null) ?? null,
     statusUpdatedBy: (row.status_updated_by as string | null) ?? null,
+    emailLogs: [],
+    emailLogsAvailable: false,
     submittedAt: value("created_at"),
   };
+}
+
+/** Resolve reviewer emails saved by older versions using their portal account profile. */
+async function withReviewerNames(rows: Row[]): Promise<ApplicationRecord[]> {
+  const records = rows.map(toRecord);
+  const hasReviewerEmails = records.some((record) => record.statusUpdatedBy?.includes("@"));
+  const [accounts, emailLogs] = await Promise.all([
+    hasReviewerEmails ? store.list("accounts") : Promise.resolve([]),
+    getApplicationEmailLogs(records.map((record) => record.id)),
+  ]);
+  const names = new Map(accounts.map((account) => [account.email.trim().toLowerCase(), upperName(account.firstName && account.lastName ? fullName({ firstName: account.firstName, middleInitial: "", lastName: account.lastName }) : account.name).replace(/\s+\p{L}\.(?=\s)/gu, "")]));
+  const executiveEmail = process.env.PORTAL_EXECUTIVE_EMAIL?.trim().toLowerCase();
+  if (executiveEmail && !names.has(executiveEmail) && process.env.PORTAL_EXECUTIVE_NAME) names.set(executiveEmail, upperName(process.env.PORTAL_EXECUTIVE_NAME).replace(/\s+\p{L}\.(?=\s)/gu, ""));
+  return records.map((record) => ({
+    ...record,
+    emailLogs: emailLogs?.get(record.id) ?? [],
+    emailLogsAvailable: emailLogs !== null,
+    statusUpdatedBy: record.statusUpdatedBy?.includes("@")
+      ? names.get(record.statusUpdatedBy.trim().toLowerCase()) || null
+      : record.statusUpdatedBy ? upperName(record.statusUpdatedBy).replace(/\s+\p{L}\.(?=\s)/gu, "") : null,
+  }));
 }
 
 /**
@@ -116,14 +143,14 @@ export async function listApplications({ status, body, college }: { status?: App
   if (college !== undefined) query = query.eq("college", college);
   const { data, error } = await query;
   if (error) throw new Error(`Couldn’t load applications: ${error.message}`);
-  return data.map(toRecord);
+  return withReviewerNames(data);
 }
 
 export async function getApplication(id: string): Promise<ApplicationRecord | null> {
   if (!isSupabaseConfigured() || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const { data, error } = await createAdminClient().from("applications").select(withInterview).eq("id", id).gte("created_at", retentionCutoff()).maybeSingle();
   if (error) throw new Error(`Couldn’t load the application: ${error.message}`);
-  return data ? toRecord(data) : null;
+  return data ? (await withReviewerNames([data]))[0] : null;
 }
 
 /**

@@ -12,11 +12,12 @@ import { MobileSheet } from "@/components/nav/mobile-sheet";
 import { sectionFor, sections, type NavStatus } from "@/components/nav/nav-data";
 import { useReticle } from "@/components/nav/use-reticle";
 import { NightSky } from "@/components/night-sky";
+import { SiteThemeToggle } from "@/components/site-theme";
 import { lockScroll } from "@/components/smooth-scroll";
 
 /**
  * The navbar on every public page, in the home page's COMET language: a night sky behind the tabs,
- * gold reticle brackets that lock on to what's open, mono labels and a serif italic for the accents.
+ * gold reticle brackets that lock on to what's open, small capital labels and a serif italic for the accents.
  *
  * At the top of a page it's a bar across the full width; as the page scrolls on past it, it
  * draws in to a floating capsule, which slips away while you scroll down and comes back when you
@@ -385,7 +386,7 @@ export function SiteHeader({ featured = [], status }: { featured?: Featured[]; s
         }}
       >
         <div className="sh-backdrop" aria-hidden="true">
-          <NightSky dimAround=".sh-brand, .sh-tab" within=".site-header" />
+          <NightSky dimAround=".sh-brand, .sh-tab" within=".site-header" meteors={false} />
           <i ref={auroraRef} className="sh-aurora" />
         </div>
         <i className="sh-edge" aria-hidden="true" />
@@ -440,6 +441,7 @@ export function SiteHeader({ featured = [], status }: { featured?: Featured[]; s
                 <span>Search</span>
                 <kbd>{shortcut}</kbd>
               </button>
+              <SiteThemeToggle />
               <Link href="/news" className="sh-cta" onClick={closeAll}>EvoSys<ArrowUpRight size={15} aria-hidden="true" /></Link>
               <button ref={menuButtonRef} type="button" className="sh-menu-button" aria-label={cover === "sheet" ? "Close menu" : "Open menu"} aria-expanded={cover === "sheet"} aria-controls={SHEET_ID} onClick={toggleSheet}>
                 <i aria-hidden="true" />

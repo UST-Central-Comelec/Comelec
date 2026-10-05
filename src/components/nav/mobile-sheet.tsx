@@ -7,6 +7,7 @@ import { FeaturedCarousel, type Featured } from "@/components/featured-carousel"
 import { isCurrent, sectionFor, sections, two, type NavStatus } from "@/components/nav/nav-data";
 import { LinkBody, Readings } from "@/components/nav/nav-parts";
 import { NightSky } from "@/components/night-sky";
+import { SiteThemeToggle } from "@/components/site-theme";
 
 type SheetProps = {
   status: NavStatus;
@@ -60,6 +61,7 @@ function SheetBody({ id, open, status, pathname, featured, featuredIndex, onFeat
           <Link href="/news" className="sh-cta" onClick={onNavigate}>EvoSys<ArrowUpRight size={15} aria-hidden="true" /></Link>
           <button type="button" className="sh-search" onClick={onSearch}><Search size={16} strokeWidth={1.8} aria-hidden="true" /><span>Search</span></button>
         </div>
+        <p className="sh-sheet-theme"><span>Appearance</span><SiteThemeToggle /></p>
         <Readings status={status} onNavigate={onNavigate} />
       </div>
     </nav>
@@ -75,7 +77,7 @@ function SheetBody({ id, open, status, pathname, featured, featuredIndex, onFeat
 export function MobileSheet({ id, open, session, ...body }: SheetProps & { id: string; open: boolean; session: number }) {
   return (
     <div id={id} className={`sh sh-sheet${open ? " is-open" : ""}`} inert={!open}>
-      <NightSky seed={42} count={64} />
+      <NightSky seed={42} count={64} meteors={false} />
       <i className="sh-sheet-horizon" aria-hidden="true" />
       <SheetBody key={session} id={id} open={open} {...body} />
     </div>

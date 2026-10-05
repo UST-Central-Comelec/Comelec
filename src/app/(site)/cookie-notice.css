@@ -3,29 +3,29 @@
    waits for the first-load screen before rising in. It never covers the page: no backdrop, no scroll
    lock. Everything is prefixed cn- (keyframes and custom properties too). */
 
-.cn { --cn-text: #f3f1eb; --cn-muted: #a3a1ac; --cn-gold: #fec30c; --cn-ok: #3ecf8e; --cn-ease: cubic-bezier(.22,1,.36,1); --cn-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --cn-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --cn-edge: clamp(12px, 2vw, 28px); --c: rgba(254,195,12,.85); --arm: 11px; -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); -webkit-font-smoothing: antialiased; animation: cn-arrive .9s var(--cn-ease) .35s both; background: linear-gradient(var(--c), var(--c)) 0 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 0 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 100% / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 100% / 1px var(--arm), radial-gradient(120% 90% at 100% 0%, rgba(254,195,12,.1), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(66,84,190,.16), transparent 70%), rgb(5 5 10 / .9); background-repeat: no-repeat; bottom: var(--cn-edge); box-shadow: 0 0 0 1px rgba(255,255,255,.09), 0 28px 70px -24px rgba(0,0,0,.8), 0 2px 12px rgba(0,0,0,.3); color: var(--cn-text); left: var(--cn-edge); padding: 22px 24px 24px; position: fixed; width: min(404px, calc(100vw - 2 * var(--cn-edge))); z-index: 8; }
+.cn { --cn-text: var(--ui-text-on-dark, #f3f1eb); --cn-muted: #a3a1ac; --cn-gold: var(--ui-accent, #fec30c); --cn-ok: #3ecf8e; --cn-ease: cubic-bezier(.22,1,.36,1); --cn-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif; --cn-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --cn-edge: clamp(12px, 2vw, 28px); --c: rgba(var(--ui-accent-rgb, 254,195,12),.85); --arm: 11px; -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); -webkit-font-smoothing: antialiased; animation: cn-arrive .9s var(--cn-ease) .35s both; background: linear-gradient(var(--c), var(--c)) 0 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 0 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 100% / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 100% / 1px var(--arm), radial-gradient(120% 90% at 100% 0%, rgba(var(--ui-accent-rgb, 254,195,12),.1), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(66,84,190,.16), transparent 70%), rgb(5 5 10 / .9); background-repeat: no-repeat; bottom: var(--cn-edge); box-shadow: 0 0 0 1px rgba(255,255,255,.09), 0 28px 70px -24px rgba(0,0,0,.8), 0 2px 12px rgba(0,0,0,.3); color: var(--cn-text); left: var(--cn-edge); padding: 22px 24px 24px; position: fixed; width: min(404px, calc(100vw - 2 * var(--cn-edge))); z-index: 8; }
 /* Held at its first frame, out of sight and out of the tab order, until the first-load screen starts to leave */
 body:has(.site-loader:not(.is-leaving)) .cn { animation-play-state: paused; }
 .cn.is-leaving { animation: cn-leave .42s ease forwards; pointer-events: none; }
-.cn ::selection { background: rgba(254,195,12,.32); color: #fff; }
+.cn ::selection { background: rgba(var(--ui-accent-rgb, 254,195,12),.32); color: #fff; }
 .cn :focus-visible { outline: 2px solid var(--cn-gold); outline-offset: 3px; }
 @keyframes cn-arrive { from { filter: blur(8px); opacity: 0; transform: translate3d(0, 18px, 0); visibility: hidden; } }
 @keyframes cn-leave { to { filter: blur(6px); opacity: 0; transform: translate3d(0, 12px, 0); } }
 
-.cn-label { align-items: center; color: var(--cn-muted); display: flex; font: 500 10.5px/1 var(--cn-mono); gap: 10px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
+.cn-label { align-items: center; color: var(--cn-muted); display: flex; font: 500 10.5px/1 var(--cn-sans); gap: 10px; margin: 0; text-transform: uppercase; }
 .cn-dot { animation: cn-ping 2.4s var(--cn-ease) infinite; background: var(--cn-ok); border-radius: 50%; flex: none; height: 6px; width: 6px; }
 @keyframes cn-ping { 0% { box-shadow: 0 0 0 0 rgba(62,207,142,.55); } 70%, 100% { box-shadow: 0 0 0 6px rgba(62,207,142,0); } }
 .cn-title { color: #fff; font-size: 23px; font-weight: 560; letter-spacing: -.04em; line-height: 1.1; margin: 16px 0 0; }
-.cn-title em { background: linear-gradient(100deg, #ffe7a3, var(--cn-gold) 40%, #f2a900); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--cn-serif); font-size: 1.1em; font-style: italic; font-weight: 400; letter-spacing: -.015em; padding-right: .08em; }
+.cn-title em { background: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--cn-gold) 40%, var(--ui-accent, #f2a900)); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--cn-serif); font-size: 1.1em; font-style: italic; font-weight: 400; letter-spacing: -.015em; padding-right: .08em; }
 .cn-text { color: var(--cn-muted); font-size: 13.5px; line-height: 1.65; margin: 10px 0 0; }
 
 .cn-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-.cn-button { align-items: center; border: 0; border-radius: 999px; cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; font-weight: 550; gap: 8px; letter-spacing: -.005em; line-height: 1; padding: 12px 18px; transition: background-color .3s ease, box-shadow .4s var(--cn-ease), transform .4s var(--cn-ease); white-space: nowrap; }
+.cn-button { align-items: center; border: 0; border-radius: 6px; cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; font-weight: 600; gap: 8px; letter-spacing: -.005em; line-height: 1; padding: 12px 18px; transition: background-color .16s ease, border-color .16s ease, color .16s ease; white-space: nowrap; }
 .cn-button svg { flex: none; transition: transform .4s var(--cn-ease); }
 .cn-button:hover svg { transform: translate(2px, -2px); }
-.cn-button.is-primary { background: var(--cn-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 32px -12px rgba(254,195,12,.75); color: #0c0b08; }
-.cn-button.is-primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 14px 38px -12px rgba(254,195,12,.9), 0 0 0 5px rgba(254,195,12,.14); transform: translateY(-1px); }
-.cn-button.is-ghost { background: rgba(255,255,255,.045); box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); color: var(--cn-text); }
+.cn-button.is-primary { background: var(--cn-gold); box-shadow: none; color: var(--ui-accent-foreground, #0c0b08); }
+.cn-button.is-primary:hover { box-shadow: none; transform: none; filter: brightness(.94); }
+.cn-button.is-ghost { background: rgba(255,255,255,.045); box-shadow: inset 0 0 0 1px var(--cn-line-strong, rgba(255,255,255,.18)); color: var(--cn-text); }
 .cn-button.is-ghost:hover { background: rgba(255,255,255,.09); }
 
 @media (max-width: 600px) {

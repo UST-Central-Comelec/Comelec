@@ -9,6 +9,8 @@ export const interviewModes: Record<InterviewMode, string> = { online: "Online",
 /** A bookable slot as the apply form sees it. */
 export type InterviewSlot = {
   id: string;
+  /** Empty for Central Comelec; otherwise the Local unit’s college. */
+  college?: string;
   /** Each division runs its own interviews. Null only for slots added before divisions existed. */
   division: DivisionId | null;
   startsAt: string;
@@ -46,10 +48,10 @@ export function slotTimeRange(startsAt: string, durationMinutes: number) {
     : `${clock(start)} ${period(start.hour)} – ${clock(end)} ${period(end.hour)}`;
 }
 
-/** "Monday, October 5, 2026" */
-export const slotDate = (iso: string) => new Intl.DateTimeFormat("en-PH", { timeZone: zone, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date(iso));
+/** "October 05, 2026" */
+export const slotDate = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "long", day: "2-digit", year: "numeric" }).format(new Date(iso));
 
-/** "Monday, October 5, 2026, 9:00 – 9:30 AM · Online" */
+/** "October 05, 2026, 9:00 – 9:30 AM · Online" */
 export function describeSlot(slot: Pick<InterviewSlot, "startsAt" | "durationMinutes" | "mode" | "location">) {
   const where = [interviewModes[slot.mode], slot.location].filter(Boolean).join(", ");
   return `${slotDate(slot.startsAt)}, ${slotTimeRange(slot.startsAt, slot.durationMinutes)} · ${where}`;

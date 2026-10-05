@@ -4,17 +4,20 @@ import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, Copy, Download } from "lucide-react";
 import { Combobox } from "@/components/combobox";
+import { FacebookProfileInput } from "@/components/facebook-profile-input";
 import { GoogleMark } from "@/components/portal/login-form";
+import { Dropdown, optionsOf } from "@/components/portal/dropdown";
 import { useHydrated } from "@/components/portal/portal-form";
+import { RoleSelect, useRoleChoice } from "@/components/portal/role-field";
 import { forgetAccessVerification, submitAccessRequest, type SubmittedAccessRequest } from "@/lib/access-requests/actions";
 import { ACCESS_CHANNEL, accessStatusMessages, type AccessMessage, type AccessProfile, type AccessStep } from "@/lib/access-requests/channel";
 import { checkAccessRequest, readAccessRequest } from "@/lib/access-requests/schema";
-import { colleges, programsByCollege, yearLevels, type College } from "@/lib/applications/options";
+import { colleges, programsByCollege, programLocked, yearLevelsFor, type College } from "@/lib/applications/options";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
-import { affiliations } from "@/lib/data/types";
+import { accountPositions, affiliations, commissionerPositions, type AccountPosition, type Affiliation } from "@/lib/data/types";
 
-const yearLevelLabels: readonly string[] = Object.values(yearLevels);
-const yearLevelValue = (label: string) => Object.entries(yearLevels).find(([, text]) => text === label)?.[0] ?? "";
+
+
 
 const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso));
 
@@ -84,7 +87,7 @@ function AccessReceipt({ result, onBack }: { result?: SubmittedAccessRequest; on
     <div className="portal-request" role="status">
       <p className="portal-eyebrow">Request access</p>
       <h1 ref={headingRef} tabIndex={-1}>Request received</h1>
-      <p className="portal-muted portal-login-lede">A Central Comelec executive will review it. We’ll email your UST account once it’s decided.</p>
+      <p className="portal-muted portal-login-lede">The Executive Board will review it. We’ll email your UST account once it’s decided.</p>
 
       {result && (
         <>
@@ -95,7 +98,7 @@ function AccessReceipt({ result, onBack }: { result?: SubmittedAccessRequest; on
             </div>
             <button type="button" onClick={copy}>{copied ? <><Check size={15} aria-hidden="true" /> Copied</> : <><Copy size={15} aria-hidden="true" /> Copy</>}</button>
           </div>
-          <p className="portal-receipt-note">Save this code. To check on your request, open <strong>Track application</strong> and enter it with your student number.</p>
+          <p className="portal-receipt-note">Save this code. To check on your request, open <strong>Track application</strong> and enter it with your student number or last name.</p>
           <dl className="portal-receipt-details">
             {result.answers.flatMap((section) => section.rows).filter(([, value]) => value).map(([label, value]) => (
               <div key={label}><dt>{label}</dt><dd>{label === "UST email" ? <span className="portal-receipt-verified">{value} <VerifiedMark label="Verified with Google" /></span> : value}</dd></div>
@@ -132,12 +135,16 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
   const [college, setCollege] = useState("");
   const [program, setProgram] = useState("");
   const [yearLevel, setYearLevel] = useState("");
+  const unit = useRoleChoice({ affiliation: "", position: "", role: "" });
   const [forgetting, startForgetting] = useTransition();
   /** The answers waiting for the Google confirmation, sent once it comes back. */
   const waitingData = useRef<FormData | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const programs: readonly string[] = programsByCollege[college as College] ?? [];
+  const levels = yearLevelsFor(college);
+  const yearLevelLabels = Object.values(levels);
+  const yearLevelValue = (label: string) => Object.entries(levels).find(([, text]) => text === label)?.[0] ?? "";
 
   // Take in the server's field errors.
   const [seenState, setSeenState] = useState(state);
@@ -227,7 +234,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
       <div className="portal-request">
         <p className="portal-eyebrow">Request access</p>
         <h1>Request portal access</h1>
-        <p className="portal-muted portal-login-lede">For Central Comelec commissioners and officers who don’t have an account yet. First, verify your UST Google account; then tell us about yourself. An executive reviews every request.</p>
+        <p className="portal-muted portal-login-lede">For Central and Local Comelec commissioners who don’t have an account yet. First, verify your UST Google account; then tell us about yourself. The Executive Board reviews every request.</p>
 
         {alert && <p className="portal-form-error portal-login-alert" role="alert">{alert}</p>}
 
@@ -295,14 +302,24 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
           <Field label="Mobile number" error={errors.contactNumber} optional>
             <input name="contactNumber" type="tel" autoComplete="tel" placeholder="0917 123 4567" maxLength={16} onChange={() => clearError("contactNumber")} />
           </Field>
-          <Field label="Serves in" error={errors.affiliation}>
-            <select name="affiliation" defaultValue="" required onChange={() => clearError("affiliation")}>
-              <option value="" disabled>Select</option>
-              {Object.entries(affiliations).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
+          <Field label="Facebook link" error={errors.facebookUrl} optional wide>
+            <FacebookProfileInput invalid={Boolean(errors.facebookUrl)} onChange={() => clearError("facebookUrl")} />
           </Field>
-          <Field label="Position in the commission" error={errors.position}>
-            <input name="position" maxLength={120} placeholder="e.g. Commissioner, Documentation" onChange={() => clearError("position")} />
+        </div>
+      </fieldset>
+
+      <fieldset className="portal-request-group" disabled={busy}>
+        <legend>In the commission</legend>
+        <div className="portal-form-grid">
+          <Field label="Serves in" error={errors.affiliation}>
+            <Dropdown name="affiliation" value={unit.affiliation} onChange={(next) => { unit.setAffiliation(next as Affiliation); clearError("affiliation"); clearError("role"); }} options={optionsOf(affiliations)} invalid={Boolean(errors.affiliation)} />
+          </Field>
+          <Field label="Position" error={errors.position}>
+            {/* Commissioners ask here; advisers and admins are added by the Executive Board. */}
+            <Dropdown name="position" value={unit.position} onChange={(next) => { unit.setPosition(next as AccountPosition); clearError("position"); clearError("role"); }} options={commissionerPositions.map((value) => ({ value, label: accountPositions[value] }))} invalid={Boolean(errors.position)} />
+          </Field>
+          <Field label="Role" error={errors.role} wide>
+            <RoleSelect name="role" position={unit.position} role={unit.role} options={unit.options} onChange={(next) => { unit.setRole(next); clearError("role"); }} />
           </Field>
         </div>
       </fieldset>
@@ -312,12 +329,14 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
         <div className="portal-form-grid">
           <div className={`portal-field is-wide${errors.college ? " has-error" : ""}`}>
             <span className="portal-field-label" id="request-college-label">College or faculty</span>
-            <Combobox name="college" options={colleges} value={college} onChange={(next) => { if (next === college) return; setCollege(next); setProgram(""); clearError("college"); }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy="request-college-label" />
+            <Combobox name="college" options={colleges} value={college} onChange={(next) => { if (next === college) return; setCollege(next); setYearLevel(""); setProgram(""); clearError("college"); }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy="request-college-label" />
             {errors.college && <span className="portal-field-error">{errors.college}</span>}
           </div>
           <div className={`portal-field${errors.program ? " has-error" : ""}`}>
             <span className="portal-field-label" id="request-program-label">Program</span>
-            <Combobox key={college} name="program" options={programs} value={program} onChange={(next) => { setProgram(next); clearError("program"); }} placeholder={college ? "Type or pick your program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!college} invalid={Boolean(errors.program)} labelledBy="request-program-label" />
+            {programLocked(college) ? <input value="None" readOnly aria-label="Program" /> : (
+              <Combobox key={college} name="program" options={programs} value={program} onChange={(next) => { setProgram(next); clearError("program"); }} placeholder={college ? "Type or pick your program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!college} invalid={Boolean(errors.program)} labelledBy="request-program-label" />
+            )}
             {errors.program && <span className="portal-field-error">{errors.program}</span>}
           </div>
           <div className={`portal-field${errors.yearLevel ? " has-error" : ""}`}>

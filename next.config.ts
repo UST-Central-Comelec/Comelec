@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/portal/applications/:path*", destination: "/portal/recruitment/applications/:path*", permanent: true },
       { source: "/portal/interviews", destination: "/portal/recruitment/interviews", permanent: true },
+      // Accounts → Settings became Access Control.
+      { source: "/portal/accounts/settings", destination: "/portal/accounts/access-control", permanent: true },
     ];
   },
   images: {
@@ -44,8 +46,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: { bodySizeLimit: uploadLimit },
-    // Portal requests pass through src/proxy.ts, which buffers bodies up to this size.
-    proxyClientMaxBodySize: uploadLimit,
+    // PolPaR's multipart route accepts a 30 MB document packet plus form overhead.
+    // The route independently bounds the incoming stream; Server Actions retain the smaller limit.
+    proxyClientMaxBodySize: "34mb",
   },
 };
 

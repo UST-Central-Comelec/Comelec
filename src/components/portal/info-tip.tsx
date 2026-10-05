@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, type ReactNode } from "react";
-import { Info } from "lucide-react";
+import { Info, TriangleAlert } from "lucide-react";
 
 /** How close a tip may come to the edge of the window, in px. */
 const EDGE = 12;
@@ -10,8 +10,9 @@ const EDGE = 12;
  * An "i" icon that shows guide text on hover or keyboard focus. The portal keeps explanations in
  * these rather than as text under headings and fields, so pages stay uncluttered. The tip opens
  * below the icon, running right; near the window's right edge it slides back so none of it is cut off.
+ * `warn` makes it a warning sign instead, for something to know before relying on what it's beside.
  */
-export function InfoTip({ children, label = "More info" }: { children: ReactNode; label?: string }) {
+export function InfoTip({ children, label = "More info", warn = false, icon }: { children: ReactNode; label?: string; warn?: boolean; icon?: ReactNode }) {
   const id = useId();
   const tip = useRef<HTMLSpanElement>(null);
 
@@ -24,9 +25,9 @@ export function InfoTip({ children, label = "More info" }: { children: ReactNode
   };
 
   return (
-    <span className="portal-info" onPointerEnter={place} onFocus={place}>
+    <span className={`portal-info${warn ? " is-warn" : ""}`} onPointerEnter={place} onFocus={place}>
       <button type="button" className="portal-info-button" aria-label={label} aria-describedby={id}>
-        <Info size={14} strokeWidth={2} aria-hidden="true" />
+        {icon ?? (warn ? <TriangleAlert size={14} strokeWidth={2} aria-hidden="true" /> : <Info size={14} strokeWidth={2} aria-hidden="true" />)}
       </button>
       <span ref={tip} className="portal-info-tip" role="tooltip" id={id}>{children}</span>
     </span>

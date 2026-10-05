@@ -1,14 +1,14 @@
 "use server";
 
 import { headers } from "next/headers";
-import { requireCentral } from "@/lib/auth/session";
+import { requireEditor } from "@/lib/auth/session";
 import { isDriveUploadConfigured, MAX_DOCUMENT_BYTES, publishDriveUpload, startDriveUpload } from "@/lib/data/drive-upload";
 
 const failed = { error: "Couldn’t reach Google Drive. Try again, or paste a Drive link instead." };
 
 /** Step 1: the browser asks where to send the PDF. */
 export async function startDocumentUpload(fileName: string, size: number): Promise<{ session: string } | { error: string }> {
-  await requireCentral();
+  await requireEditor("documents");
   if (!isDriveUploadConfigured()) return { error: "Uploading isn’t set up yet. Paste a Drive link instead." };
   const name = typeof fileName === "string" ? fileName.trim().slice(0, 200) : "";
   if (!/\.pdf$/i.test(name) || !Number.isInteger(size) || size <= 0 || size > MAX_DOCUMENT_BYTES) return { error: `Upload a PDF up to ${MAX_DOCUMENT_BYTES / 1024 / 1024} MB.` };
@@ -25,7 +25,7 @@ export async function startDocumentUpload(fileName: string, size: number): Promi
 
 /** Step 2: once the file is in Drive, share it and hand back its link for the form. */
 export async function finishDocumentUpload(fileId: string): Promise<{ link: string } | { error: string }> {
-  await requireCentral();
+  await requireEditor("documents");
   if (!isDriveUploadConfigured() || typeof fileId !== "string" || !/^[\w-]{10,}$/.test(fileId)) return failed;
   try {
     const link = await publishDriveUpload(fileId);

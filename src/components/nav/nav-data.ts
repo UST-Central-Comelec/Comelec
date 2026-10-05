@@ -73,10 +73,10 @@ export const sections: NavSection[] = [
     accent: "in plain sight.",
     blurb: "What governs a Thomasian election, and where to turn when something looks wrong.",
     cta: { label: "All official records", href: "/archive" },
-    paths: [],
+    paths: ["/constitution", "/elections-code"],
     items: [
-      { label: "Constitution", href: "/archive?type=constitution", description: "Read the rules that guide student elections", icon: Landmark, keywords: "charter" },
-      { label: "Elections Code", href: "/archive?type=elections-code", description: "Understand the code behind the electoral process", icon: Scale, keywords: "rules law omnibus" },
+      { label: "Constitution", href: "/constitution", description: "Read the rules that guide student elections", icon: Landmark, keywords: "charter" },
+      { label: "Elections Code", href: "/elections-code", description: "Understand the code behind the electoral process", icon: Scale, keywords: "rules law omnibus usec 2011 students election code" },
       { label: "Proclamation", href: "/archive?type=proclamation", description: "View official proclamations from the commission", icon: Stamp, keywords: "results winners official" },
       { label: "Cases & Concerns", href: "/about#contact", description: "Raise concerns and review election-related cases", icon: MessageSquareWarning, keywords: "complaint petition protest report" },
     ],
@@ -138,7 +138,7 @@ export const readingText = ({ open, closes }: PeriodReading, closed: string) => 
 export const topSearches: Array<{ label: string; href: string }> = [
   { label: "Election calendar", href: "/events" },
   { label: "Official results", href: "/archive?type=proclamation" },
-  { label: "Elections Code", href: "/archive?type=elections-code" },
+  { label: "Elections Code", href: "/elections-code" },
   { label: "Latest news", href: "/news" },
   { label: "Cases & Concerns", href: "/about#contact" },
   { label: "Contact the commission", href: "/about#contact" },

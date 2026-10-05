@@ -3,10 +3,14 @@
 import { useState, type ReactNode } from "react";
 import { newsCategories, type NewsCategory, type NewsPost } from "@/lib/data/types";
 import type { FormState } from "@/lib/portal/form";
+import { Dropdown, type DropdownOption } from "./dropdown";
 import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 
 type Values = Pick<NewsPost, "title" | "category" | "date" | "excerpt" | "body" | "featured">;
+
+/** The categories under the page each is shown on. */
+const categoryOptions: DropdownOption[] = Object.entries(newsCategories).map(([value, label]) => ({ value, label, group: value === "explainer" ? "Election Explainer page" : "News page" }));
 
 export function NewsForm({ action, initial, submitLabel, danger }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
@@ -21,14 +25,7 @@ export function NewsForm({ action, initial, submitLabel, danger }: { action: (st
           <input name="title" defaultValue={initial.title} maxLength={160} required />
         </Field>
         <Field label="Category" hint="Press releases, announcements and publications are shown on the News page. An explainer is shown on the Election Explainer page instead." error={errors.category}>
-          <select name="category" value={category} onChange={(event) => setCategory(event.target.value as NewsCategory)}>
-            <optgroup label="News page">
-              {Object.entries(newsCategories).filter(([value]) => value !== "explainer").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </optgroup>
-            <optgroup label="Election Explainer page">
-              <option value="explainer">{newsCategories.explainer}</option>
-            </optgroup>
-          </select>
+          <Dropdown name="category" value={category} onChange={(next) => setCategory(next as NewsCategory)} options={categoryOptions} />
         </Field>
         <Field label="Publish date" error={errors.date}>
           <input name="date" type="date" defaultValue={initial.date} required />

@@ -3,15 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireCentral } from "@/lib/auth/session";
+import { requireEditor } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
-import { documentKinds, type DocumentKind } from "@/lib/data/types";
+import { archiveKinds } from "@/lib/data/types";
 import { checkDriveSharing, normalizeDriveLink } from "@/lib/data/drive";
 import { deleteUpload } from "@/lib/data/uploads";
 import { text, toFormState, type FormState } from "./form";
 
 const documentSchema = z.object({
-  kind: z.enum(Object.keys(documentKinds) as [DocumentKind, ...DocumentKind[]], "Pick a document type."),
+  kind: z.enum(archiveKinds, "Pick a document type."),
   title: z.string().trim().min(3, "Add a title.").max(200, "Keep the title under 200 characters."),
   reference: z.string().trim().max(80, "Keep the reference number under 80 characters."),
   date: z.iso.date("Pick the date it was issued."),
@@ -69,7 +69,7 @@ async function readDriveLink(formData: FormData, required: boolean): Promise<{ l
 }
 
 export async function createDocument(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("documents");
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
   const drive = await readDriveLink(formData, true);
@@ -81,7 +81,7 @@ export async function createDocument(_state: FormState, formData: FormData): Pro
 }
 
 export async function updateDocument(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("documents");
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
   const drive = await readDriveLink(formData, false);
@@ -98,7 +98,7 @@ export async function updateDocument(id: string, _state: FormState, formData: Fo
 }
 
 export async function deleteDocument(id: string) {
-  await requireCentral();
+  await requireEditor("documents");
   const removed = await store.remove("documents", id);
   await deleteUpload(removed?.fileUrl ?? null);
   refresh();

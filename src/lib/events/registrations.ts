@@ -1,79 +1,123 @@
 import "server-only";
 
-import { yearLevels } from "@/lib/applications/options";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { sexes, type RegistrationKind, type Sex } from "./options";
+import { affiliationChoices, isRequestKind, requestStatuses, sexes, type AffiliationChoice, type AttendingChoice, type RegistrationKind, type RequestEntry, type Requests, type Sex } from "./options";
 
 // Who registered for an event, or joined its waitlist, with the answers they gave. Stored in
 // public.event_registrations (supabase/migrations/0019_events.sql), one entry per email per event.
 
 export type Registration = {
   id: string;
+  referenceCode: string;
   eventId: string;
   status: RegistrationKind;
   lastName: string;
   firstName: string;
-  /** Empty for someone without a middle name. */
-  middleInitial: string;
-  /** "JUAN P. DELA CRUZ". */
+  /** Empty for someone without a middle name. Registrations before 0029 have only its initial. */
+  middleName: string;
+  /** "JUAN PEDRO DELA CRUZ". */
   name: string;
-  studentNumber: string;
   email: string;
+  /** The email was verified through UST Google sign-in. */
+  verified: boolean;
   sex: Sex;
-  college: string;
-  program: string;
-  /** "2", "swis": what the form saves. */
-  yearLevel: string;
-  /** "2nd year", "SWIS". */
-  yearLevelLabel: string;
-  organizations: string[];
-  /** 1 (not interested) to 5 (extremely interested). */
-  interest: number;
+  age: number | null;
+  affiliation: AffiliationChoice;
+  /** A UST student's. */
+  college: string | null;
+  program: string | null;
+  yearLevel: string | null;
+  /** UST faculty or staff: their college, faculty or office. */
+  office: string | null;
+  /** Another institution, or what an independent participant gave (often N/A). */
+  institution: string | null;
+  attendingAs: AttendingChoice;
+  organizationName: string | null;
+  organizationCommittee: string | null;
+  organizationPosition: string | null;
+  requests: Requests;
   registeredAt: string;
+  studentNumber: string | null;
+  attendanceConfirmedAt: string | null;
 };
 
 type Row = {
   id: string;
+  reference_code: string;
   event_id: string;
   status: string;
   last_name: string;
   first_name: string;
   middle_initial: string | null;
-  student_number: string;
+  middle_name?: string | null;
   email: string;
+  verified?: boolean | null;
   sex: string;
-  college: string;
-  program: string;
-  year_level: string;
-  organizations: string[] | null;
-  interest: number;
+  age?: number | null;
+  affiliation?: string | null;
+  college: string | null;
+  program: string | null;
+  year_level: string | null;
+  office?: string | null;
+  institution?: string | null;
+  attending_as?: string | null;
+  organization_name?: string | null;
+  organization_committee?: string | null;
+  organization_position?: string | null;
+  organizations?: string[] | null;
+  requests?: unknown;
   created_at: string;
+  student_number?: string | null;
+  attendance_confirmed_at?: string | null;
 };
 
-/** "JUAN P. DELA CRUZ", or "JUAN DELA CRUZ" without a middle initial. */
-export const fullName = (firstName: string, middleInitial: string, lastName: string) => [firstName, middleInitial && `${middleInitial}.`, lastName].filter(Boolean).join(" ");
+/** "JUAN PEDRO DELA CRUZ", "JUAN P. DELA CRUZ" from an older registration's initial, or "JUAN DELA CRUZ". */
+export const fullName = (firstName: string, middleName: string, lastName: string) => [firstName, middleName.length === 1 ? `${middleName}.` : middleName, lastName].filter(Boolean).join(" ");
+
+/** Only the requests the form offers, each with an answer. */
+function requestsOf(value: unknown): Requests {
+  if (!value || typeof value !== "object") return {};
+  const requests: Requests = {};
+  for (const [kind, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (!isRequestKind(kind) || !entry || typeof entry !== "object") continue;
+    const item = entry as RequestEntry;
+    requests[kind] = { ...item, status: item.status in requestStatuses ? item.status : "pending" };
+  }
+  return requests;
+}
 
 function toRegistration(row: Row): Registration {
-  const middleInitial = row.middle_initial ?? "";
+  const middleName = row.middle_name || row.middle_initial || "";
+  // Before 0029 only UST students registered, and someone in an organization listed it.
+  const legacyOrganization = row.organizations?.[0] ?? null;
   return {
     id: row.id,
+    referenceCode: row.reference_code,
     eventId: row.event_id,
     status: row.status === "waitlisted" ? "waitlisted" : "registered",
     lastName: row.last_name,
     firstName: row.first_name,
-    middleInitial,
-    name: fullName(row.first_name, middleInitial, row.last_name),
-    studentNumber: row.student_number,
+    middleName,
+    name: fullName(row.first_name, middleName, row.last_name),
     email: row.email,
+    verified: row.verified !== false,
     sex: row.sex in sexes ? (row.sex as Sex) : "undisclosed",
-    college: row.college,
-    program: row.program,
-    yearLevel: row.year_level,
-    yearLevelLabel: yearLevels[row.year_level as keyof typeof yearLevels] ?? row.year_level,
-    organizations: Array.isArray(row.organizations) ? row.organizations : [],
-    interest: row.interest,
+    age: typeof row.age === "number" ? row.age : null,
+    affiliation: row.affiliation && row.affiliation in affiliationChoices ? (row.affiliation as AffiliationChoice) : "ust-student",
+    college: row.college ?? null,
+    program: row.program ?? null,
+    yearLevel: row.year_level ?? null,
+    office: row.office ?? null,
+    institution: row.institution ?? null,
+    attendingAs: row.attending_as === "representative" || (!row.attending_as && legacyOrganization) ? "representative" : "independent",
+    organizationName: row.organization_name ?? legacyOrganization,
+    organizationCommittee: row.organization_committee ?? null,
+    organizationPosition: row.organization_position ?? null,
+    requests: requestsOf(row.requests),
     registeredAt: row.created_at,
+    studentNumber: row.student_number ?? null,
+    attendanceConfirmedAt: row.attendance_confirmed_at ?? null,
   };
 }
 
@@ -118,6 +162,13 @@ export async function findRegistration(eventId: string, email: string): Promise<
   return data ? toRegistration(data as Row) : null;
 }
 
+/** A confirmed registration identified by its reference, scoped to the event being evaluated. */
+export async function findEventRegistrationByReference(eventId: string, referenceCode: string): Promise<Registration | null> {
+  const { data, error } = await createAdminClient().from("event_registrations").select("*").eq("event_id", eventId).eq("reference_code", referenceCode).eq("status", "registered").maybeSingle();
+  if (error) throw new Error(`Couldn’t look up the registration: ${error.message}`);
+  return data ? toRegistration(data as Row) : null;
+}
+
 export async function getRegistration(id: string): Promise<Registration | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const { data, error } = await createAdminClient().from("event_registrations").select("*").eq("id", id).maybeSingle();
@@ -128,4 +179,23 @@ export async function getRegistration(id: string): Promise<Registration | null> 
 export async function deleteRegistration(id: string) {
   const { error } = await createAdminClient().from("event_registrations").delete().eq("id", id);
   if (error) throw new Error(`Couldn’t remove the registration: ${error.message}`);
+}
+
+/** Records the unit's answer to one thing a registrant asked for. False when the registration or the request is gone. */
+export async function setRequestStatuses(registration: Registration, statuses: Partial<Record<keyof Requests, RequestEntry["status"]>>) {
+  const requests = { ...registration.requests };
+  for (const [kind, status] of Object.entries(statuses) as Array<[keyof Requests, RequestEntry["status"]]>) {
+    const current = requests[kind];
+    if (current) requests[kind] = { ...current, status };
+  }
+  const { data, error } = await createAdminClient().from("event_registrations").update({ requests, updated_at: new Date().toISOString() }).eq("id", registration.id).select("id");
+  if (error) throw new Error(`Couldn’t save the answer: ${error.message}`);
+  return data.length > 0;
+}
+
+/** Public tracking requires both the public reference and an exact surname match. */
+export async function findRegistrationByReference(referenceCode: string, lastNamePattern: string): Promise<Registration | null> {
+  const { data, error } = await createAdminClient().from("event_registrations").select("*").eq("reference_code", referenceCode).ilike("last_name", lastNamePattern).maybeSingle();
+  if (error) throw new Error(`Couldn’t track the registration: ${error.message}`);
+  return data ? toRegistration(data as Row) : null;
 }

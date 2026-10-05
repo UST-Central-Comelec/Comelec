@@ -2,7 +2,7 @@
 
 import { Geist } from "next/font/google";
 import { ErrorScreen, type ErrorProps } from "@/components/fallback/error-screen";
-import { mono, serif } from "./(site)/fonts";
+import { serif } from "./(site)/fonts";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -12,7 +12,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export default function GlobalError({ error, retry }: ErrorProps) {
   return (
-    <html lang="en" className={`${geist.variable} ${mono.variable} ${serif.variable}`}>
+    <html lang="en" className={`${geist.variable} ${serif.variable}`}>
       <body className="fb-body">
         <title>Something went wrong | UST Central Comelec</title>
         <ErrorScreen error={error} retry={retry} />

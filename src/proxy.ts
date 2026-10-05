@@ -58,6 +58,8 @@ function maintenanceResponse(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (lockedDown()) return maintenanceResponse(request);
+  // The cron address that sends scheduled emails belongs to the portal's work, which carries on while the public site is down.
+  if (pathname === "/api/email/dispatch") return NextResponse.next();
   if (pathname !== "/portal" && !pathname.startsWith("/portal/")) return (await isSiteUnderMaintenance()) ? maintenanceResponse(request) : NextResponse.next();
 
   const ip = clientIp(request.headers);

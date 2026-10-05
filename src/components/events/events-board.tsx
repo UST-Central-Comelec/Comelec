@@ -1,249 +1,210 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Clock, MapPin, Video, X } from "lucide-react";
-import { dateParts, formatDayLabel, formatMonth, monthCells, monthsBetween } from "@/lib/events/format";
+import { Popover } from "@base-ui/react/popover";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, X } from "lucide-react";
+import { dateParts, daysOf, formatDayLabel, formatMonth, monthCells, monthsBetween } from "@/lib/events/format";
+import { comelecUnits, unitAbbreviations } from "@/lib/applications/options";
+import { FACEBOOK_PAGE } from "@/lib/content";
 import { venueModes } from "@/lib/events/options";
-import { Facts, Organizer, SignUp, StatusTag } from "./event-parts";
+import { SignUp, StatusTag } from "./event-parts";
+import { periodKinds, type PeriodKind } from "@/lib/periods/kinds";
 import type { EventView } from "./event-view";
+import styles from "./events-board.module.css";
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 type Tab = "upcoming" | "past";
-
+// The application choices cover undergraduate and first professional degrees. Event
+// organizers also include UST's graduate schools and any unit present in the listings.
+const academicUnits = [...comelecUnits, "Graduate School", "Graduate School of Law"];
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
-
-const subscribeToHash = (onChange: () => void) => {
-  window.addEventListener("hashchange", onChange);
-  return () => window.removeEventListener("hashchange", onChange);
+const subscribeToHash = (notify: () => void) => {
+  window.addEventListener("hashchange", notify);
+  return () => window.removeEventListener("hashchange", notify);
 };
-
 function readHash() {
-  try {
-    return decodeURIComponent(window.location.hash.slice(1));
-  } catch {
-    return "";
-  }
+  try { return decodeURIComponent(window.location.hash.slice(1)); } catch { return ""; }
 }
 
-/** The address's #fragment: an event's id, when a link points at one (/events#voters-forum). Empty on the server. */
-const useHash = () => useSyncExternalStore(subscribeToHash, readHash, () => "");
+function EventCopyLink({ event }: { event: EventView }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  useEffect(() => {
+    if (status !== "copied") return;
+    const timer = setTimeout(() => setStatus("idle"), 2200);
+    return () => clearTimeout(timer);
+  }, [status]);
 
-/**
- * The Events page's two columns. On the left, the events as an accordion: opening one shows its
- * short description, its schedule and venue, and the buttons to read more and to register. On the
- * right, a month calendar with a dot on each day that has an event; picking a day narrows the list
- * to that day, and opening an event turns the calendar to its month. `events` come soonest first.
- */
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(new URL(`/events/${event.id}`, window.location.origin).href);
+      setStatus("copied");
+    } catch {
+      setStatus("failed");
+    }
+  }
+
+  const label = status === "copied" ? "Link copied" : `Copy link to ${event.name}`;
+  return <>
+    <button type="button" className={styles.copyLink} onClick={copy} aria-label={label} title={label}>
+      {status === "copied" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+    </button>
+    <span className={status === "failed" ? styles.copyError : styles.srOnly} role="status">{status === "copied" ? "Link copied" : status === "failed" ? "Couldn't copy the link. Try again." : ""}</span>
+  </>;
+}
+
+/** An agenda filtered by organizing unit with a compact calendar. Event and registration destinations are shared with the detail pages. */
 export function EventsBoard({ events, today }: { events: EventView[]; today: string }) {
-  const upcoming = events.filter((event) => !event.ended);
-  // The most recent first.
-  const past = events.filter((event) => event.ended).reverse();
-  // The one that starts open: the next event that's still going ahead.
-  const next = upcoming.find((event) => event.status !== "cancelled") ?? upcoming[0] ?? null;
-
+  const organizerUnits = [...new Set([...academicUnits, ...events.flatMap((event) => event.organizer === "local" && event.college ? [event.college] : [])])].sort((a, b) => a.localeCompare(b));
+  const organizers = [
+    { value: "central", label: "Central Comelec" },
+    ...organizerUnits.map((unit) => ({ value: unit, label: unit })),
+  ];
+  const allUnits = organizers.map(({ value }) => value);
+  const reduceMotion = useReducedMotion();
   const [tab, setTab] = useState<Tab>("upcoming");
-  /** The calendar day the list is narrowed to. */
+  const [selectedUnits, setUnits] = useState<string[] | null>(null);
+  const units = selectedUnits ?? allUnits;
   const [day, setDay] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(next?.id ?? null);
-  const [month, setMonth] = useState((next?.date ?? today).slice(0, 7));
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // A link to one event (/events#its-id) opens it, on whichever tab it's under, and brings it into view.
-  const hash = useHash();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [month, setMonth] = useState(today.slice(0, 7));
+  const [monthDirection, setMonthDirection] = useState(0);
+  const listRef = useRef<HTMLElement>(null);
+  const hash = useSyncExternalStore(subscribeToHash, readHash, () => "");
   const [seenHash, setSeenHash] = useState("");
-  const [arrivedAt, setArrivedAt] = useState<string | null>(null);
+  const [arrivedAt, setArrivedAt] = useState<{ id: string } | null>(null);
+
+  // A shared event link reveals its details, even after the visitor narrowed the list.
   if (hash !== seenHash) {
     setSeenHash(hash);
     const linked = events.find((event) => event.id === hash);
     if (linked) {
-      setDay(null);
+      setDay(null); setUnits(null);
       setTab(linked.ended ? "past" : "upcoming");
-      setOpenId(linked.id);
-      setMonth(linked.date.slice(0, 7));
-      setArrivedAt(linked.id);
+      setOpenId(linked.id); setMonth(linked.date.slice(0, 7)); setArrivedAt({ id: linked.id });
     }
   }
-  // Before paint, with the folding held still for a frame: the page arrives with that event already
-  // open and in place, instead of landing on it and then watching the list shift as panels fold.
   useLayoutEffect(() => {
-    const list = listRef.current;
-    const target = arrivedAt ? document.getElementById(arrivedAt) : null;
-    if (!list || !target) return;
-    list.classList.add("is-arriving");
-    target.scrollIntoView({ block: "start" });
-    const frame = requestAnimationFrame(() => list.classList.remove("is-arriving"));
-    return () => cancelAnimationFrame(frame);
+    if (!arrivedAt) return;
+    document.getElementById(arrivedAt.id)?.scrollIntoView({ block: "nearest" });
   }, [arrivedAt]);
 
+  const allOrganizers = units.length === organizers.length;
+  const organizerLabel = allOrganizers ? "All organizers" : units.length === 0 ? "Select organizers" : units.length === 1 ? organizers.find(({ value }) => value === units[0])!.label : plural(units.length, "organizer");
+  const filtered = events.filter((event) => allOrganizers || units.includes(event.organizer === "central" ? "central" : event.college ?? ""));
+  const upcoming = filtered.filter((event) => !event.ended);
+  const past = filtered.filter((event) => event.ended).reverse();
   const byDay = new Map<string, EventView[]>();
-  for (const event of events) byDay.set(event.date, [...(byDay.get(event.date) ?? []), event]);
-
-  // The calendar turns from the earliest event's month to the latest's, and always reaches this month.
-  const reach = [today.slice(0, 7), ...events.map((event) => event.date.slice(0, 7))].sort();
+  for (const event of filtered) for (const date of daysOf({ eventDate: event.date, endDate: event.endDate })) byDay.set(date, [...(byDay.get(date) ?? []), event]);
+  const shown = day ? (byDay.get(day) ?? []) : tab === "upcoming" ? upcoming : past;
+  const reach = [today.slice(0, 7), ...events.flatMap((event) => [event.date.slice(0, 7), event.endDate.slice(0, 7)])].sort();
   const months = monthsBetween(reach[0], reach[reach.length - 1]);
   const monthIndex = months.indexOf(month);
-  const inMonth = events.filter((event) => event.date.startsWith(month)).length;
-
-  const shown = day ? (byDay.get(day) ?? []) : tab === "upcoming" ? upcoming : past;
-
-  const toggle = (event: EventView) => {
-    const opening = openId !== event.id;
-    setOpenId(opening ? event.id : null);
-    if (opening) setMonth(event.date.slice(0, 7));
+  const monthEvents = filtered.filter((event) => event.date.slice(0, 7) <= month && event.endDate.slice(0, 7) >= month);
+  const changeMonth = (direction: -1 | 1) => {
+    const nextMonth = months[monthIndex + direction];
+    if (!nextMonth) return;
+    setMonthDirection(direction);
+    setMonth(nextMonth);
   };
 
   const pickDay = (date: string) => {
-    if (day === date) return setDay(null);
-    setDay(date);
-    setOpenId(byDay.get(date)?.[0]?.id ?? null);
-    // Scrolled past the top of the list (or on a phone, where the calendar sits below it)? Come back up to it.
-    const list = listRef.current;
-    if (list && list.getBoundingClientRect().top < 0) list.scrollIntoView({ behavior: "smooth", block: "start" });
+    setDay(day === date ? null : date); setOpenId(null);
+    if (listRef.current && listRef.current.getBoundingClientRect().top < 0) listRef.current.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   };
-
-  const showTab = (value: Tab) => {
-    setDay(null);
-    setTab(value);
+  const showEvent = (event: EventView) => {
+    setDay(null); setTab(event.ended ? "past" : "upcoming"); setOpenId(event.id); setArrivedAt({ id: event.id });
   };
+  const resetFilters = () => { setUnits(null); setDay(null); };
 
   return (
-    <div className="ev-layout">
-      <section className="ev-list" ref={listRef} aria-labelledby="ev_list_title">
-        <header className="ev-list-head">
-          <h2 id="ev_list_title" className="ev-list-title">{day ? formatDayLabel(day) : tab === "upcoming" ? "Coming up" : "Past events"}</h2>
-          {day ? (
-            <button type="button" className="ev-clear" onClick={() => setDay(null)}>
-              <X size={14} aria-hidden="true" />Show all events
-            </button>
-          ) : (
-            <div className="ev-tabs" role="group" aria-label="Which events to list">
-              {(["upcoming", "past"] as const).map((value) => (
-                <button key={value} type="button" className={`ev-tab${tab === value ? " is-active" : ""}`} aria-pressed={tab === value} onClick={() => showTab(value)}>
-                  {value === "upcoming" ? "Upcoming" : "Past"}
-                  <small>{String(value === "upcoming" ? upcoming.length : past.length).padStart(2, "0")}</small>
-                </button>
-              ))}
+    <div className={styles.board}>
+      <div className={styles.layout}>
+        <section ref={listRef} className={styles.list} aria-label="Events and activities">
+          <div className={styles.toolbar}>
+            <LayoutGroup>
+              <div className={styles.tabs} role="group" aria-label="Event schedule">
+                {(["upcoming", "past"] as const).map((value) => <button key={value} type="button" aria-pressed={tab === value && !day} onClick={() => { setTab(value); setDay(null); }}><span>{value === "upcoming" ? "Upcoming" : "Past events"}</span><small>{value === "upcoming" ? upcoming.length : past.length}</small>{tab === value && !day && <motion.span className={styles.tabIndicator} layoutId="event-schedule-indicator" transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 34 }} aria-hidden="true" />}</button>)}
+              </div>
+            </LayoutGroup>
+            <div className={styles.organizerFilter}>
+              <Popover.Root>
+                <Popover.Trigger className={styles.organizerTrigger} aria-label={`Filter organizers: ${organizerLabel}`}>
+                  <span className={styles.organizerValue}>{organizerLabel}</span>
+                  <span className={styles.organizerSizer} aria-hidden="true">{organizers.map(({ value, label }) => <span key={value}>{label}</span>)}</span>
+                  <ChevronDown size={14} aria-hidden="true" />
+                </Popover.Trigger>
+                <Popover.Portal>
+                  <Popover.Positioner className={styles.organizerPositioner} sideOffset={8} align="end">
+                    <Popover.Popup className={styles.organizerPopup} data-lenis-prevent>
+                      <Popover.Title className={styles.srOnly}>Filter organizers</Popover.Title>
+                      <label>
+                        <input type="checkbox" checked={allOrganizers} ref={(input) => { if (input) input.indeterminate = units.length > 0 && !allOrganizers; }} onChange={() => setUnits(allOrganizers ? [] : null)} />
+                        <span>All organizers</span>
+                      </label>
+                      {organizers.map(({ value, label }) => <label key={value}>
+                        <input type="checkbox" checked={units.includes(value)} onChange={() => setUnits(units.includes(value) ? units.filter((unit) => unit !== value) : [...units, value])} />
+                        <span>{label}</span>
+                      </label>)}
+                    </Popover.Popup>
+                  </Popover.Positioner>
+                </Popover.Portal>
+              </Popover.Root>
             </div>
-          )}
-        </header>
-        <p className="visually-hidden" role="status">{day ? `${plural(shown.length, "event")} on ${formatDayLabel(day)}` : `${plural(shown.length, tab === "upcoming" ? "upcoming event" : "past event")}`}</p>
-
-        {shown.length > 0 ? (
-          // Keyed so a new view plays in, rather than the old one's items rearranging.
-          <ol className="ev-items" key={day ?? tab}>
-            {shown.map((event) => {
-              const open = openId === event.id;
-              const parts = dateParts(event.date);
-              const VenueIcon = event.venueMode === "online" ? Video : MapPin;
-              return (
-                <li key={event.id} id={event.id} className={`ev-item${open ? " is-open" : ""}${event.ended || event.status === "cancelled" ? " is-over" : ""}`}>
-                  <Organizer event={event} />
-                  <h3 className="ev-item-head">
-                    <button type="button" className="ev-toggle" aria-expanded={open} aria-controls={`${event.id}_details`} onClick={() => toggle(event)}>
-                      <span className="ev-date" aria-hidden="true">
-                        <span>{parts.month}</span>
-                        <b>{parts.day}</b>
-                        <small>{parts.weekday}</small>
-                      </span>
-                      <span className="ev-item-main">
-                        <span className="ev-item-title">{event.name}</span>
-                        <span className="visually-hidden">, {event.dateLabel}</span>
-                        <span className="ev-item-meta">
-                          <span><Clock size={13} strokeWidth={1.8} aria-hidden="true" />{event.time}</span>
-                          <span><VenueIcon size={13} strokeWidth={1.8} aria-hidden="true" />{venueModes[event.venueMode]} · {event.venue}</span>
-                        </span>
-                      </span>
-                      <span className="ev-item-end">
-                        <StatusTag event={event} />
-                        <ChevronDown className="ev-chevron" size={18} strokeWidth={1.8} aria-hidden="true" />
-                      </span>
-                    </button>
-                  </h3>
-                  {/* Closed panels are inert, so Tab skips the buttons inside them. */}
-                  <div className="ev-panel" id={`${event.id}_details`} role="region" aria-label={`${event.name}: details`} inert={!open}>
-                    <div>
-                      <div className="ev-panel-inner">
-                        <p className="ev-summary">{event.summary}</p>
-                        <Facts event={event} />
-                        <div className="ev-actions">
-                          <Link className="ev-button is-ghost is-small" href={`/events/${event.id}`}>Read more<ArrowUpRight size={15} aria-hidden="true" /></Link>
-                          <SignUp event={event} small />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <div className="ev-empty">
-            <span className="ev-empty-scope" aria-hidden="true"><i /></span>
-            {events.length === 0 ? (
-              <>
-                <h3>Nothing on the calendar yet.</h3>
-                <p>Events and activities from the Central Comelec and every college’s unit appear here as soon as they’re announced.</p>
-              </>
-            ) : tab === "upcoming" ? (
-              <>
-                <h3>Nothing coming up right now.</h3>
-                <p>The next event appears here as soon as it’s announced. Meanwhile, see what the commission has held so far.</p>
-                <button type="button" className="ev-button is-ghost is-small" onClick={() => showTab("past")}>See past events</button>
-              </>
-            ) : (
-              <>
-                <h3>No past events yet.</h3>
-                <p>Events move here once they’ve ended.</p>
-              </>
-            )}
           </div>
-        )}
-      </section>
+          <div className={styles.filters}>
+            <span>{plural(shown.length, "event")}</span>
+          </div>
+          {day && <div className={styles.dayFilter}><span>{formatDayLabel(day)}</span><button type="button" onClick={() => setDay(null)}>Clear date <X size={14} aria-hidden="true" /></button></div>}
+          <p className={styles.srOnly} role="status">{plural(shown.length, "event")}{day ? ` on ${formatDayLabel(day)}` : ` in ${tab}`}</p>
+          {shown.length ? <ol className={styles.items}>{shown.map((event) => {
+            const parts = dateParts(event.date);
+            const open = openId === event.id;
+            const organizerLabel = event.organizer === "central" ? "Central Comelec" : unitAbbreviations[event.college ?? ""] ?? (event.college === "Graduate School" ? "GS" : event.college === "Graduate School of Law" ? "GSL" : (event.college ?? "Local").split(/\s+/).map((word) => word[0]).join("").toUpperCase());
+            return <li key={event.id} id={event.id} className={styles.item} onClick={(click) => {
+              // Keep the card's links and Details button independent of this shortcut.
+              if ((click.target as HTMLElement).closest("a, button") || window.getSelection()?.toString()) return;
+              setOpenId((current) => current === event.id ? null : event.id);
+            }}>
+              <span className={styles.organizer} data-unit={organizerLabel} title={event.unit} aria-label={`Organized by ${event.unit}`}>{organizerLabel}</span>
+              <button type="button" className={styles.detailToggle} aria-expanded={open} aria-controls={`${event.id}_details`} onClick={() => setOpenId(open ? null : event.id)}>{open ? "Less detail" : "Details"}<ChevronDown size={15} aria-hidden="true" /></button>
+              <div className={styles.itemHeader}>
+                <time className={styles.date} dateTime={event.date}><span>{parts.month}</span><strong>{parts.day}</strong><small>{parts.weekday}</small></time>
+                <div className={styles.itemContent}>
+                  <div className={styles.eventStatus}><StatusTag event={event} /></div>
+                  <div className={styles.titleRow}><h3>{event.name}</h3><EventCopyLink event={event} /></div>
+                  <p className={styles.meta}><span>{event.time}</span><span>{venueModes[event.venueMode]}</span></p>
+                </div>
+              </div>
+              <div className={`${styles.details}${open ? ` ${styles.openDetails}` : ""}`} id={`${event.id}_details`} role="region" aria-label={`${event.name}: details`} inert={!open}>
+                <div><p className={styles.summary}>{event.summary}</p><dl><div><dt>When</dt><dd>{event.dateLabel}</dd></div><div><dt>Where</dt><dd>{event.venue}</dd></div><div><dt>Who can join</dt><dd>{event.audience}</dd></div>{event.period?.closes && <div><dt>Sign-up deadline</dt><dd>{event.period.closes}</dd></div>}{event.ingress && <div><dt>Ingress</dt><dd>{event.ingress}</dd></div>}{event.egress && <div><dt>Egress</dt><dd>{event.egress}</dd></div>}</dl></div>
+              </div>
+              <footer className={styles.itemFooter}>
+                <Link className={styles.viewLink} href={`/events/${event.id}`}>Learn more<ArrowRight size={15} aria-hidden="true" /></Link>
+                {event.signUp && <div className={styles.actions}><SignUp event={event} small /></div>}
+              </footer>
+            </li>;
+          })}</ol> : <div className={styles.empty}><CalendarDays size={28} strokeWidth={1.4} aria-hidden="true" /><h3>{!allOrganizers || day ? "No events match your filters." : tab === "past" ? "No past events yet." : "Nothing scheduled just yet."}</h3><p>{!allOrganizers || day ? "Try another organizer or date." : "Check back for the next activity from the commission."}</p>{(!allOrganizers || day) && <button type="button" onClick={resetFilters}>Reset filters<ArrowRight size={15} aria-hidden="true" /></button>}</div>}
+        </section>
 
-      <aside className="ev-side" aria-label="Calendar of events">
-        <div className="ev-calendar">
-          <header className="ev-calendar-head">
-            <h2 className="ev-calendar-month" aria-live="polite">{formatMonth(month)}</h2>
-            <div className="ev-calendar-nav">
-              {month !== today.slice(0, 7) && <button type="button" className="ev-calendar-today" onClick={() => setMonth(today.slice(0, 7))}>Today</button>}
-              <button type="button" onClick={() => setMonth(months[monthIndex - 1])} disabled={monthIndex <= 0} aria-label="Previous month"><ChevronLeft size={16} aria-hidden="true" /></button>
-              <button type="button" onClick={() => setMonth(months[monthIndex + 1])} disabled={monthIndex >= months.length - 1} aria-label="Next month"><ChevronRight size={16} aria-hidden="true" /></button>
-            </div>
-          </header>
-          <div className="ev-weekdays" aria-hidden="true">{weekdays.map((name) => <span key={name}>{name}</span>)}</div>
-          {/* Keyed so the days play in as the month turns. */}
-          <div className="ev-days" key={month} role="group" aria-label={`Days in ${formatMonth(month)}`}>
-            {monthCells(month).map((cell, index) => {
+        <aside className={styles.side} aria-label="Calendar of events">
+          <section className={styles.calendar}>
+            <header className={styles.calendarHead}><h3 aria-live="polite">{formatMonth(month)}</h3><div><button type="button" onClick={() => changeMonth(-1)} disabled={monthIndex <= 0} aria-label="Previous month"><ChevronLeft size={17} aria-hidden="true" /></button><button type="button" onClick={() => changeMonth(1)} disabled={monthIndex >= months.length - 1} aria-label="Next month"><ChevronRight size={17} aria-hidden="true" /></button></div></header>
+            <div className={styles.weekdays} aria-hidden="true">{weekdays.map((name) => <span key={name}>{name.slice(0, 1)}</span>)}</div>
+            <motion.div key={month} className={styles.days} initial={reduceMotion || !monthDirection ? false : { x: monthDirection * 18, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : .28, ease: [.22, 1, .36, 1] }} role="group" aria-label={`Days in ${formatMonth(month)}`}>{monthCells(month).map((cell, index) => {
               if (!cell) return <span key={`blank-${index}`} />;
               const list = byDay.get(cell);
-              const number = Number(cell.slice(8));
-              const state = `${cell === today ? " is-today" : ""}${cell < today ? " is-past" : ""}`;
-              if (!list) return <span key={cell} className={`ev-day${state}`}><span className="ev-day-number">{number}</span></span>;
-              return (
-                <button
-                  key={cell}
-                  type="button"
-                  className={`ev-day has-events${state}${day === cell ? " is-selected" : ""}${list.some((event) => event.id === openId) ? " is-open" : ""}`}
-                  aria-pressed={day === cell}
-                  aria-label={`${formatDayLabel(cell)}${cell === today ? ", today" : ""}: ${list.map((event) => event.name).join(", ")}`}
-                  onClick={() => pickDay(cell)}
-                >
-                  <span className="ev-day-number">{number}</span>
-                  <span className="ev-day-dots" aria-hidden="true">
-                    {list.slice(0, 3).map((event) => <i key={event.id} className={`is-${event.organizer}${event.ended || event.status === "cancelled" ? " is-over" : ""}`} />)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <footer className="ev-calendar-foot">
-            <p className="ev-legend"><span className="is-central"><i aria-hidden="true" />Central Comelec</span><span className="is-local"><i aria-hidden="true" />Local units</span></p>
-            <p className="ev-calendar-count">{inMonth === 0 ? "No events this month" : `${plural(inMonth, "event")} this month`}</p>
-          </footer>
-        </div>
-      </aside>
+              const hasEvents = !!list?.length;
+              const regularEvent = list?.some((event) => !event.period) ?? false;
+              const periods = (Object.keys(periodKinds) as PeriodKind[]).filter((kind) => list?.some((event) => event.period?.kind === kind));
+              return <button key={cell} type="button" className={styles.day} data-today={cell === today} data-events={hasEvents} data-regular-event={regularEvent} aria-pressed={day === cell} aria-current={cell === today ? "date" : undefined} aria-label={`${formatDayLabel(cell)}${cell === today ? ", today" : ""}${hasEvents ? `: ${plural(list.length, "event")}${regularEvent ? ", event scheduled" : ""}${periods.map((kind) => `, ${periodKinds[kind].title}`).join("")}` : ": no events"}`} disabled={!hasEvents} onClick={() => pickDay(cell)}><span>{Number(cell.slice(8))}</span>{hasEvents && <span className={styles.dayDots} aria-hidden="true">{regularEvent && <i />}{periods.map((kind) => <i key={kind} data-kind={kind} />)}</span>}</button>;
+            })}</motion.div>
+            <div className={styles.monthAgenda}>{monthEvents.length ? <ul>{monthEvents.slice(0, 3).map((event) => <li key={event.id}><button type="button" onClick={() => showEvent(event)}><span className={styles.agendaDate}>{event.date.slice(0, 7) < month ? "Now" : dateParts(event.date).day}</span><span><strong>{event.name}</strong><small>{event.dateLabel}</small></span><ArrowUpRight size={14} aria-hidden="true" /></button></li>)}</ul> : <p>No events scheduled for this month.</p>}{monthEvents.length > 3 && <p>+{monthEvents.length - 3} more in the event list</p>}</div>
+          </section>
+          <a className={styles.updates} href={FACEBOOK_PAGE} target="_blank" rel="noreferrer"><span><strong>Commission updates</strong><small>Announcements and reminders on Facebook</small></span><ArrowUpRight size={19} aria-hidden="true" /></a>
+        </aside>
+      </div>
     </div>
   );
 }

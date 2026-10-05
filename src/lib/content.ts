@@ -1,3 +1,6 @@
+/** The Central Comelec's Facebook page: where its latest updates go up first. */
+export const FACEBOOK_PAGE = "https://web.facebook.com/USTCentralCOMELEC";
+
 export const principles = [
   ["01", "Impartiality", "We protect every voter’s right to a fair and independent election."],
   ["02", "Transparency", "We make the process visible, understandable, and accountable."],
@@ -14,7 +17,7 @@ export const cometPillars = [
     copy: "The independent body that runs UST’s student elections, with its people, its rules and its decisions published for every Thomasian to read.",
     links: [
       { label: "Meet the commission", href: "/about" },
-      { label: "Elections Code", href: "/archive?type=elections-code" },
+      { label: "Elections Code", href: "/elections-code" },
       { label: "Contact", href: "/about#contact" },
     ],
   },
@@ -40,7 +43,7 @@ export const cometPillars = [
     links: [
       { label: "Browse the archive", href: "/archive" },
       { label: "Track an application", href: "/apply/track" },
-      { label: "Constitution", href: "/archive?type=constitution" },
+      { label: "Constitution", href: "/constitution" },
     ],
   },
 ];

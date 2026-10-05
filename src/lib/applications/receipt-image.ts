@@ -169,7 +169,7 @@ export async function renderReceipt(result: ReceiptData, trackUrl: string, label
 
   // How to track it.
   const noteY = y;
-  const note = `Keep this receipt. To check on your ${labels.subject}, go to ${trackUrl} and enter your reference code with your student number.`;
+  const note = `Keep this receipt. To check on your ${labels.subject}, go to ${trackUrl} and enter your reference code with your student number or last name.`;
   measure.font = font(400, 13);
   const noteLines = wrap(measure, note, INNER - 36);
   const noteHeight = 28 + noteLines.length * 20;

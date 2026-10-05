@@ -1,32 +1,7 @@
-import { CLOSE_GRACE_MINUTES, fromManilaInput, isPeriodMode, toManilaInput, type ApplicationPeriod, type PeriodMode } from "@/lib/applications/period";
-import { text, type FormState } from "./form";
+import { CLOSE_GRACE_MINUTES, isUpcoming, type ApplicationPeriod, type PeriodMode } from "@/lib/applications/period";
 
-// The open/close settings form (components/portal/application-period-form.tsx), shared by
-// Recruitment → Settings, PolPaR → Settings and Filing of Candidacy → Settings.
-
-/**
- * The period the form asks for, or the errors to show. The closing date is kept in every mode, so
- * switching back to a schedule remembers it.
- */
-export function readPeriodForm(formData: FormData): { mode: PeriodMode; closesAt: string | null } | { error: FormState } {
-  const mode = text(formData, "mode");
-  if (!isPeriodMode(mode)) return { error: { error: "Choose whether it’s open or closed." } };
-
-  // Keep the saved time to the second when its field wasn't touched (the field only shows minutes).
-  const input = text(formData, "closesAt").trim();
-  const loaded = text(formData, "loadedClosesAt");
-  const closesAt = loaded && input === toManilaInput(loaded) ? loaded : input ? fromManilaInput(input) : null;
-
-  if (mode === "scheduled") {
-    if (!closesAt) return { error: { error: "Check the highlighted fields.", fieldErrors: { closesAt: "Pick the date and time it closes." } } };
-    if (Date.parse(closesAt) <= Date.now()) {
-      return { error: { error: "Check the highlighted fields.", fieldErrors: { closesAt: "That time has already passed. Pick a later one, or choose Close now." } } };
-    }
-  } else if (input && !closesAt) {
-    return { error: { error: "Check the highlighted fields.", fieldErrors: { closesAt: "Use a valid date and time, or clear the field." } } };
-  }
-  return { mode, closesAt };
-}
+// Closing a period from its Settings (src/lib/portal/period-actions.ts): the grace period that lets
+// anyone partway through the form finish, and cancelling it.
 
 /**
  * When a close saved now really takes effect: CLOSE_GRACE_MINUTES from now, so anyone partway
@@ -35,6 +10,8 @@ export function readPeriodForm(formData: FormData): { mode: PeriodMode; closesAt
  */
 export function graceEnd(current: ApplicationPeriod) {
   if (current.mode === "closed") return current.graceEndsAt;
+  // One that hasn't opened yet has nobody partway through.
+  if (isUpcoming(current)) return null;
   const end = Date.now() + CLOSE_GRACE_MINUTES * 60_000;
   const scheduled = current.mode === "scheduled" && current.closesAt ? Date.parse(current.closesAt) : Infinity;
   return new Date(Math.min(end, Math.max(scheduled, Date.now()))).toISOString();

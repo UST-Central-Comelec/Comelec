@@ -1,7 +1,8 @@
 import "server-only";
 
+import { isCentralRepresentative, isLocalChairperson, listName, roleRank, toSummary } from "./accounts";
 import { store } from "./store";
-import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, isNewsCategory, isNewsroomCategory, type AccountSummary, type DirectoryGroup, type DocumentKind, type Member, type MemberBody, type NewsCategory, type NewsPost, type OfficialDocument, type PortalAccount } from "./types";
+import { accountPositions, isNewsCategory, isNewsroomCategory, type AccountSummary, type DirectoryEntry, type DirectoryGroup, type DocumentKind, type NewsCategory, type NewsPost, type OfficialDocument } from "./types";
 
 const byDateDesc = (a: { date: string }, b: { date: string }) => b.date.localeCompare(a.date);
 
@@ -55,51 +56,54 @@ export async function getDocument(id: string) {
   return doc ? withDocumentDefaults(doc) : null;
 }
 
-export async function getMembers(body?: MemberBody) {
-  const members = (await store.list("members")).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
-  return body ? members.filter((member) => member.body === body) : members;
-}
+const byName = (a: AccountSummary, b: AccountSummary) => listName(a).localeCompare(listName(b));
+const byRank = (a: AccountSummary, b: AccountSummary) => roleRank(a) - roleRank(b) || byName(a, b);
+const byCollege = (a: AccountSummary, b: AccountSummary) => (a.college ?? "").localeCompare(b.college ?? "") || byName(a, b);
+const chamberRank = (account: AccountSummary) => (account.chamberRole === "primus" ? 0 : account.chamberRole === "vicar" ? 1 : 2);
 
-const byCollege = (a: Member, b: Member) => a.unit.localeCompare(b.unit) || a.name.localeCompare(b.name);
-const chamberRank = (member: Member) => (member.chamberRole === "primus" ? 0 : member.chamberRole === "vicar" ? 1 : 2);
+function toEntry({ id, name, role, position, affiliation, college, program, email, facebookUrl, photoUrl, chamberRole }: AccountSummary): DirectoryEntry {
+  // An adviser has no role of their own; the Directory lists them as what they are.
+  return { id, name, role: position === "adviser" ? accountPositions.adviser : role, position, affiliation: affiliation === "local" ? "local" : "central", college, program, email, facebookUrl, photoUrl, chamberRole };
+}
 
 /**
- * Every group of the Directory. Central and Local Comelec are entered by hand, in their
- * dragged order; the other two are built from them:
- *   En Banc: the Central Comelec (its Executive Board), then each college's Central Representative.
+ * Everyone the Directory lists: commissioners with an active account whose role has been picked
+ * (one without a role yet isn't shown until it has one), and advisers, after their unit's
+ * commissioners. Admins and the units' official accounts aren't listed.
+ */
+export const isListed = (account: AccountSummary) => account.active && account.kind === "personal" && account.affiliation !== "osa" && (account.position === "adviser" || Boolean(account.role));
+
+/**
+ * Every group of the Directory, built from Accounts. Nobody is entered by hand: to add someone, or
+ * change how they're listed, add or edit their account.
+ *   Central Comelec: every Central account — the Executive Board by rank, then their offices, then deputies.
+ *   Local Comelec: the same for every college (the About page and the portal group them by college).
+ *   En Banc: the Central Executive Board, then each college's Central Representative.
  *   Chamber of Chairpersons: the Local Chairpersons — Primus, then Vicar, then the rest by college.
  */
-export async function getDirectory(): Promise<Record<DirectoryGroup, Member[]>> {
-  const members = await getMembers();
-  const central = members.filter((member) => member.body === "central");
-  const local = members.filter((member) => member.body === "local");
-  // Rows still marked "en-banc" (before supabase/migrations/0012 is run) are representatives too.
-  const legacy = members.filter((member) => (member.body as string) === "en-banc");
-  const representatives = [...local.filter((member) => member.position === CENTRAL_REPRESENTATIVE), ...legacy].sort(byCollege);
-  const chairpersons = local.filter((member) => member.position === CHAIRPERSON).sort((a, b) => chamberRank(a) - chamberRank(b) || byCollege(a, b));
-  return { central, local, "en-banc": [...central, ...representatives], chamber: chairpersons };
+export async function getDirectory(): Promise<Record<DirectoryGroup, DirectoryEntry[]>> {
+  const listed = (await store.list("accounts")).map(toSummary).filter(isListed);
+  const central = listed.filter((account) => account.affiliation === "central").sort(byRank);
+  const local = listed.filter((account) => account.affiliation === "local").sort((a, b) => (a.college ?? "").localeCompare(b.college ?? "") || byRank(a, b));
+  const board = central.filter((account) => account.position === "executive-board");
+  const representatives = local.filter(isCentralRepresentative).sort(byCollege);
+  const chairpersons = local.filter(isLocalChairperson).sort((a, b) => chamberRank(a) - chamberRank(b) || byCollege(a, b));
+  return { central: central.map(toEntry), local: local.map(toEntry), "en-banc": [...board, ...representatives].map(toEntry), chamber: chairpersons.map(toEntry) };
 }
 
-/** Colleges that already have a Central Representative, mapped to that person's name (leaving out `exceptId`). */
-export function takenColleges(members: Member[], exceptId?: string) {
-  return Object.fromEntries(
-    members.filter((member) => member.body === "local" && member.position === CENTRAL_REPRESENTATIVE && member.unit && member.id !== exceptId).map((member) => [member.unit, member.name]),
-  );
+/** How many people the Directory lists. */
+export async function countDirectory() {
+  return (await store.list("accounts")).map(toSummary).filter(isListed).length;
 }
 
-export function getMember(id: string) {
-  return store.get("members", id);
-}
-
-function toSummary(account: PortalAccount): AccountSummary {
-  const { id, name, email, role, active, createdAt, updatedAt, updatedBy } = account;
-  return { id, name, email, role, active, affiliation: account.affiliation ?? "central", college: account.college ?? null, createdAt, updatedAt, updatedBy, builtIn: false };
-}
-
-/** Portal accounts without password hashes. Callers must already have checked for an executive. */
-export async function getAccounts(builtIn: AccountSummary | null) {
-  const accounts = (await store.list("accounts")).map(toSummary).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));
-  return builtIn ? [builtIn, ...accounts] : accounts;
+/**
+ * Portal accounts, active first, then by name. `builtInEmail` marks the built-in executive's own
+ * row, if it has one. Callers must already have checked that the Accounts tab is open to the reader.
+ */
+export async function getAccounts(builtInEmail?: string | null): Promise<AccountSummary[]> {
+  return (await store.list("accounts"))
+    .map((account) => ({ ...toSummary(account), builtIn: account.email === builtInEmail }))
+    .sort((a, b) => Number(b.active) - Number(a.active) || byName(a, b));
 }
 
 export async function getAccount(id: string) {

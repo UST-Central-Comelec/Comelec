@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { StatTable } from "@/components/statistics/stat-table";
 import type { FormState } from "@/lib/portal/form";
 import { barColumns, columnKinds, parseTable, sizeLabel, toPasteText, type StatisticTable } from "@/lib/statistics/table";
+import { Dropdown } from "./dropdown";
 import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 
@@ -79,10 +80,7 @@ export function StatisticForm({ action, initial, periods, submitLabel, danger }:
             />
           </Field>
           <Field label="Draw bars for" hint="Optional. One column of figures can have a bar beside each number, so the rows are easy to compare. Percentages are drawn out of 100.">
-            <select name="barColumn" value={barColumn === null ? "" : String(barColumn)} onChange={(event) => setBar(event.target.value)} disabled={!figures.length}>
-              <option value="">No bars</option>
-              {table && figures.map((index) => <option key={index} value={index}>{table.columns[index]}</option>)}
-            </select>
+            <Dropdown name="barColumn" value={barColumn === null ? "" : String(barColumn)} onChange={setBar} disabled={!figures.length} options={[{ value: "", label: "No bars" }, ...(table ? figures.map((index) => ({ value: String(index), label: table.columns[index] })) : [])]} />
           </Field>
           <label className="portal-check portal-stat-total">
             <input name="showTotal" type="checkbox" checked={showTotal && canTotal} onChange={(event) => setShowTotal(event.target.checked)} disabled={!canTotal} />

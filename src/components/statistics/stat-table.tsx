@@ -13,8 +13,8 @@ type Props = {
 };
 
 /**
- * A table of figures: the first column names each row, columns of figures sit right-aligned in the
- * mono, one of them can carry a bar beside each figure, and a row of totals can close it. No hooks,
+ * A table of figures: the first column names each row, columns of figures sit right-aligned in
+ * tabular numerals, one of them can carry a bar beside each figure, and a row of totals can close it. No hooks,
  * so the website renders it on the server and the portal's form previews with it as you type.
  */
 export function StatTable({ table, barColumn, showTotal, label, prefix }: Props) {

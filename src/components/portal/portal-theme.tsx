@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { Moon, Sun } from "lucide-react";
+import { ThemeToggleButton } from "@/components/theme-toggle";
 import { PHONE_QUERY, readTheme, THEME_COLOR, THEME_COOKIE, type PortalTheme } from "@/lib/portal/theme";
 
 const ThemeContext = createContext<{ theme: PortalTheme; toggle: (from: HTMLElement) => void } | null>(null);
@@ -64,17 +64,13 @@ export function PortalShell({ initialTheme, children }: { initialTheme: PortalTh
   );
 }
 
-/** The sun-and-moon switch: in the top bar, and in the bar the sidebar becomes on a phone. */
+/** Shared sun/moon switch in the top bar and mobile sidebar. */
 export function ThemeToggle() {
   const context = useContext(ThemeContext);
   if (!context) return null;
   const light = context.theme === "light";
 
   return (
-    <button className="portal-theme-toggle" type="button" role="switch" aria-checked={light} aria-label="Light theme" title={light ? "Switch to dark theme" : "Switch to light theme"} onClick={(event) => context.toggle(event.currentTarget)}>
-      <span className="portal-theme-thumb" aria-hidden="true" />
-      <Sun size={14} strokeWidth={2.2} aria-hidden="true" />
-      <Moon size={14} strokeWidth={2.2} aria-hidden="true" />
-    </button>
+    <ThemeToggleButton light={light} onToggle={context.toggle} className="portal-theme-toggle" />
   );
 }

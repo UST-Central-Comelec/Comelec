@@ -11,7 +11,7 @@ export const COOKIE_NOTICE_KEY = "comelec:cookie-notice";
 export const COOKIE_POLICY_UPDATED = "2026-10-01";
 
 /**
- * What dismissing the notice stores. It also changes when an executive presses "Show again to
+ * What dismissing the notice stores. It also changes when someone in the portal presses "Show again to
  * everyone" in the portal (Maintenance), which brings the notice back the same way.
  */
 export const cookieNoticeVersion = (resetAt: string | null) => (resetAt ? `${COOKIE_POLICY_UPDATED}/${resetAt}` : COOKIE_POLICY_UPDATED);

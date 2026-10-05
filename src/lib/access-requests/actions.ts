@@ -4,12 +4,15 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { newReferenceCode } from "@/lib/applications/reference";
 import { checkAccess } from "@/lib/auth/session";
-import { sendEmail } from "@/lib/email/send";
+import { facebookHref } from "@/lib/data/accounts";
+import { accountPositions, describeAffiliation, type AccountPosition, type Affiliation } from "@/lib/data/types";
+import { concernOf } from "@/lib/notifications/concern";
+import { emailUnit, sendAutomatic } from "@/lib/notifications/notify";
 import { text, type FormState } from "@/lib/portal/form";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { accessReceivedEmail } from "./emails";
+import { accessReceivedEmail, accessRequestNoticeEmail } from "./emails";
 import { checkAccessRequest, describeAccessRequest, readAccessRequest, type AccessRequestSection } from "./schema";
 import { clearAccessVerification, isConfirmed, readAccessPass } from "./verification";
 
@@ -38,7 +41,7 @@ export async function submitAccessRequest(_state: AccessRequestState, formData: 
 
   const access = await checkAccess(pass.email);
   if ("user" in access) return { error: "This account already has portal access. Go back and sign in with Google." };
-  if (access.denied === "revoked") return { error: "This account’s portal access was revoked. Contact a Central Comelec executive." };
+  if (access.denied === "revoked") return { error: "This account’s portal access was revoked. Contact your Executive Board." };
 
   const values = { ...readAccessRequest(formData), email: pass.email };
   const fieldErrors = checkAccessRequest(values);
@@ -51,39 +54,64 @@ export async function submitAccessRequest(_state: AccessRequestState, formData: 
     student_number: values.studentNumber.trim(),
     contact_number: values.contactNumber.replace(/[\s-]/g, "") || null,
     email: pass.email,
-    position: values.position.trim(),
+    // `position` holds the role in words, as it always has; the position itself is `account_position`.
+    position: values.role.trim(),
     affiliation: values.affiliation,
     college: values.college,
     program: values.program,
     year_level: values.yearLevel,
   };
+  const added = { account_position: values.position, facebook_url: values.facebookUrl ? facebookHref(values.facebookUrl) : null };
+  const insert = (fields: object) => createAdminClient().from("access_requests").insert(fields).select("created_at").single();
 
   // A new code on the rare chance one is already taken; any other duplicate is an open request from this email.
   for (let attempt = 0; attempt < 3; attempt++) {
     const referenceCode = newReferenceCode("PA");
-    const { data: saved, error } = await createAdminClient().from("access_requests").insert({ ...row, reference_code: referenceCode }).select("created_at").single();
+    let { data: saved, error } = await insert({ ...row, ...added, reference_code: referenceCode });
+    // Before supabase/migrations/0021 the table has no place for the last two; the request still goes in.
+    if (error?.code === "PGRST204") ({ data: saved, error } = await insert({ ...row, reference_code: referenceCode }));
 
     if (error?.code === "23505" && error.message.includes("reference_code")) continue;
     if (error?.code === "23505") return { error: "You already have a request waiting for review. Track it with the reference code from your receipt or confirmation email." };
-    if (error) {
-      console.error("Couldn’t save access request:", error.message);
+    if (error || !saved) {
+      console.error("Couldn’t save access request:", error?.message);
       return { error: failed };
     }
 
     // One request per verification.
     await clearAccessVerification();
 
-    // After the response, so a slow or failing mail server never holds up the requester.
-    after(() => sendEmail(accessReceivedEmail({ email: row.email, firstName: row.first_name, referenceCode })));
+    const submittedAt = saved.created_at as string;
+    const answers = describeAccessRequest(values);
+
+    // The receipt, after the response, so a slow or failing mail server never holds up the requester.
+    // The request is the Central Comelec's or their college's Local Comelec's, by where they said they serve.
+    const requester = { email: row.email, firstName: row.first_name, referenceCode, concern: concernOf(row.affiliation, row.college) };
+    after(() => sendAutomatic("access-received", () => accessReceivedEmail(requester, { answers, submittedAt })));
+    // The unit it's for is told too, where that's switched on under Email Sender → Automatic: its official account and its Executive Board.
+    const name = `${row.first_name} ${row.middle_initial}. ${row.last_name}`;
+    after(() =>
+      emailUnit("access-notice", requester.concern, (to) =>
+        accessRequestNoticeEmail(to, { ...requester, name }, [
+          ["Name", name],
+          ["UST email", row.email],
+          ["Requested for", describeAffiliation(row.affiliation as Affiliation, row.college)],
+          ["Position", accountPositions[values.position as AccountPosition] ?? ""],
+          ["Role", row.position],
+          ["Program", row.program],
+          ["Student number", row.student_number],
+        ]),
+      ),
+    );
 
     return {
       submitted: true,
       result: {
         referenceCode,
-        name: `${row.first_name} ${row.middle_initial}. ${row.last_name}`,
+        name,
         email: row.email,
-        submittedAt: saved.created_at as string,
-        answers: describeAccessRequest(values),
+        submittedAt,
+        answers,
       },
     };
   }

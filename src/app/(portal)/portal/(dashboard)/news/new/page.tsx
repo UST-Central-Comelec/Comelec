@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NewsForm } from "@/components/portal/news-form";
-import { requireCentral } from "@/lib/auth/session";
+import { requireEditor } from "@/lib/auth/session";
 import { createNews } from "@/lib/portal/news-actions";
 
 export const metadata: Metadata = { title: "New post" };
 
 export default async function NewNewsPage() {
-  await requireCentral();
+  // Advisers and Admins, who only read, are sent back to the list.
+  await requireEditor("news");
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
   return (

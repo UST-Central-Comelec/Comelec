@@ -1,0 +1,78 @@
+/* The site footer (src/components/site-footer.tsx and src/components/nav/footer-links.tsx): the foot of every public
+   page, in the navbar's language. It wears .sh, so the navbar's tokens, labels, status dots, signal bars, reticle and
+   logo (header.css) are its own; what's only the footer's is prefixed sf-. Dark in both themes, like the navbar. */
+
+.sf { background: radial-gradient(46% 70% at 0% 0%, rgba(66,84,190,.13), transparent 64%), radial-gradient(38% 60% at 100% 0%, rgba(var(--ui-accent-rgb, 254,195,12),.06), transparent 66%), linear-gradient(180deg, #000, #040408 160px); font-family: var(--sh-sans); isolation: isolate; overflow: hidden; padding: clamp(56px, 6vw, 88px) var(--site-gutter) 26px; position: relative; }
+/* Film grain, as over the navbar's menus */
+.sf::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .04; pointer-events: none; position: absolute; z-index: -1; }
+/* The navbar's edge, turned over: a hairline along the top fading out toward both ends, with its spark running along now and then */
+.sf-edge { height: 1px; left: 0; overflow: hidden; pointer-events: none; position: absolute; right: 0; top: 0; }
+.sf-edge::before { background: linear-gradient(90deg, transparent, rgba(255,255,255,.14) 16%, rgba(255,255,255,.14) 84%, transparent); content: ""; inset: 0; position: absolute; }
+.sf-edge::after { animation: sh-scan 11s var(--sh-ease) infinite; background: linear-gradient(90deg, transparent, var(--sh-gold), transparent); content: ""; height: 1px; left: 0; opacity: 0; position: absolute; top: 0; width: 18%; }
+.sf-inner { margin: 0 auto; max-width: var(--site-content); }
+.sf p { margin: 0; }
+
+/* The commission's line, set like a menu's headline, beside what's open right now */
+.sf-lead { align-items: end; display: grid; gap: 36px clamp(32px, 5vw, 96px); grid-template-columns: minmax(0, 1fr) minmax(0, clamp(380px, 34vw, 480px)); }
+.sf-title { font-size: clamp(34px, 3.7vw, 58px); font-weight: 520; letter-spacing: -.045em; line-height: 1.02; }
+.sf-title em { background: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--sh-gold) 28%, var(--ui-accent, #f2a900) 52%, var(--sh-gold) 76%, var(--ui-accent-pale, #ffe7a3)); -webkit-background-clip: text; background-clip: text; color: transparent; display: block; font-family: var(--sh-serif); font-size: 1.12em; font-style: italic; font-weight: 400; letter-spacing: -.015em; padding: 0 .08em .08em 0; width: fit-content; }
+.sf-blurb { color: var(--sh-muted); font-size: 14px; line-height: 1.65; margin-top: 16px; max-width: 30em; }
+/* Glass, like the menu's Featured card: one row per period, a green dot pulsing on those that are open */
+.sf-status { background: radial-gradient(120% 90% at 100% 0%, rgba(var(--ui-accent-rgb, 254,195,12),.1), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); border: 1px solid rgba(255,255,255,.11); border-radius: 18px; padding: 16px 20px 6px; }
+.sf-status ul { list-style: none; margin: 10px 0 0; padding: 0; }
+.sf-status li { border-top: 1px solid var(--sh-line); }
+.sf-status a { align-items: center; color: var(--sh-muted); display: flex; font-size: 13px; gap: 8px; padding: 13px 0; transition: color .25s ease; white-space: nowrap; }
+.sf-status a span { color: var(--sh-text); font-weight: 500; margin-right: auto; overflow: hidden; text-overflow: ellipsis; }
+.sf-status a.is-open { color: var(--sh-text); }
+.sf-status a svg { color: var(--sh-faint); flex: none; transition: color .25s ease, transform .4s var(--sh-ease); }
+.sf-status a:hover svg { color: var(--sh-gold); transform: translate(2px, -2px); }
+
+/* The navbar's five sections, a column each. The reticle locks on to the link being pointed at (or focused). */
+.sf-links { border-top: 1px solid var(--sh-line); display: grid; gap: 36px clamp(16px, 2vw, 32px); grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: clamp(40px, 4.5vw, 64px); padding-top: clamp(30px, 3vw, 40px); position: relative; }
+.sf-col .sh-label b { color: var(--sh-gold); font-variant-numeric: tabular-nums; font-weight: 500; }
+.sf-col ul { list-style: none; margin: 12px 0 0 -10px; padding: 0; }
+.sf-col a { color: rgba(243,241,235,.76); display: inline-block; font-size: 13.5px; letter-spacing: -.003em; line-height: 1.35; padding: 7px 10px; transition: color .12s ease; }
+.sf-col a:hover, .sf-col a[aria-current="page"] { color: #fff; }
+/* Open right now: the green dot, after the link's last word */
+.sf-live { white-space: nowrap; }
+.sf-col a .sh-live { display: inline-block; margin-left: 8px; vertical-align: .12em; }
+/* Here the reticle is the focus ring, as in the menus */
+.sf-col a:focus-visible { color: #fff; outline: none; }
+
+/* The office: the navbar's logo and name, where to find the commission, and how to write to it */
+.sf-office { align-items: start; border-top: 1px solid var(--sh-line); display: grid; gap: 28px clamp(24px, 4vw, 72px); grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) auto; margin-top: clamp(36px, 4vw, 56px); padding-top: clamp(28px, 3vw, 36px); }
+.sf-office .sh-brand { justify-self: start; }
+.sf-office address { color: var(--sh-muted); font-size: 13px; font-style: normal; line-height: 1.65; margin-top: 12px; max-width: 34em; }
+.sf-email { align-items: center; color: var(--sh-gold); display: inline-flex; font-size: 14px; font-weight: 550; gap: 6px; margin-top: 10px; }
+.sf-email svg { flex: none; transition: transform .4s var(--sh-ease); }
+.sf-email:hover svg { transform: translate(2px, -2px); }
+.sf-office .sf-label-next { margin-top: 22px; }
+
+/* Small print and a compact control to return to the top. */
+.sf-base { align-items: center; border-top: 1px solid var(--sh-line); color: var(--sh-faint); display: flex; flex-wrap: wrap; font-size: 12px; gap: 10px 28px; margin-top: clamp(28px, 3vw, 36px); padding-top: 20px; }
+.sf-base > a { color: var(--sh-muted); transition: color .25s ease; }
+.sf-base > a:hover { color: #fff; }
+.sf-base > p:first-child { margin-right: auto; }
+.sf-top { align-items: center; display: inline-flex; gap: 10px; }
+.sf-top span { background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: 6px; color: var(--sh-gold); display: inline-grid; height: 34px; place-items: center; transition: background-color .25s ease, border-color .25s ease; width: 34px; }
+.sf-top:hover span { background: rgba(255,255,255,.1); border-color: rgba(var(--ui-accent-rgb, 254,195,12),.45); }
+.sf-top svg { transition: transform .4s var(--sh-ease); }
+.sf-top:hover svg { transform: translateY(-2px); }
+
+@media (max-width: 1099px) {
+	.sf-lead { align-items: start; grid-template-columns: minmax(0, 1fr); }
+	.sf-status { max-width: 560px; }
+	.sf-links { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.sf-office { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+	.sf-office .sh-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+	.sf-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.sf-office { grid-template-columns: minmax(0, 1fr); }
+	.sf-status a span { white-space: normal; }
+	.sf-base > p:first-child { flex-basis: 100%; }
+	.sf-top { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.sf-edge::after { animation: none; }
+}

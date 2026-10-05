@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireCentral } from "@/lib/auth/session";
+import { requireEditor } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
 import { barColumns, columnKinds, parseTable } from "@/lib/statistics/table";
 import { text, toFormState, type FormState } from "./form";
@@ -65,7 +65,7 @@ function refresh() {
 }
 
 export async function createStatistic(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("statistics");
   const { fields, state } = read(formData);
   if (!fields) return state;
 
@@ -80,7 +80,7 @@ export async function createStatistic(_state: FormState, formData: FormData): Pr
 }
 
 export async function updateStatistic(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const { email } = await requireEditor("statistics");
   const { fields, state } = read(formData);
   if (!fields) return state;
 
@@ -96,7 +96,7 @@ export async function updateStatistic(id: string, _state: FormState, formData: F
 }
 
 export async function deleteStatistic(id: string) {
-  await requireCentral();
+  await requireEditor("statistics");
   await store.remove("statistics", id);
   refresh();
   redirect("/portal/statistics?notice=statistic-deleted");

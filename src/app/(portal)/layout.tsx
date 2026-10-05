@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Instrument_Serif } from "next/font/google";
 import "./portal.css";
+import { FormInputGuard } from "@/components/form-input-guard";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-// Code, reference codes and pasted data only; labels and figures use the sans face.
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 // The home page's gold italic, for accent words in headings.
 const instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: "italic", variable: "--font-serif" });
 
@@ -20,8 +19,8 @@ export const viewport: Viewport = { themeColor: "#030305", colorScheme: "dark" }
 
 export default function PortalRootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`}>
-      <body className="portal">{children}</body>
+    <html lang="en" className={`${geist.variable} ${instrumentSerif.variable}`}>
+      <body className="portal"><FormInputGuard />{children}</body>
     </html>
   );
 }

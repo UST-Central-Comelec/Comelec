@@ -1,6 +1,8 @@
-// Shared by the Apply page, the portal and the server: whether commissioner applications are open.
-// Set in the portal (Recruitment → Settings), stored in public.recruitment_settings
-// (supabase/migrations/0010_application_period.sql). All times are Manila time.
+// Shared by the Apply page, the portal and the server: whether something people apply or file
+// through is open. Commissioner applications, Political Party Registration and the Filing of
+// Candidacy all follow these rules, and every unit of the commission has a period of its own for
+// each, set in the portal under that section's Settings (src/lib/periods/kinds.ts, public.unit_periods).
+// All times are Manila time.
 
 export type PeriodMode = "scheduled" | "open" | "closed";
 
@@ -18,11 +20,13 @@ export type ApplicationPeriod = {
   closesAt: string | null;
   /** For 'closed': when it really closes, after the grace period. Null: closed straight away. */
   graceEndsAt: string | null;
+  /** For 'scheduled': when it opens. Null or missing: it's open from the moment it's saved. */
+  opensAt?: string | null;
   updatedAt: string | null;
   updatedBy: string | null;
 };
 
-/** Used before 0010 is run: the closing date the site had before this setting existed. */
+/** Used where no database is set up: the closing date the site had before this setting existed. */
 export const defaultPeriod: ApplicationPeriod = { mode: "scheduled", closesAt: "2026-10-29T15:59:59.000Z", graceEndsAt: null, updatedAt: null, updatedBy: null };
 
 /** Closing from the portal waits this long, so anyone partway through the form can still submit. */
@@ -38,7 +42,11 @@ export function closingTime(period: ApplicationPeriod) {
   return null;
 }
 
+/** Scheduled, but its start is still ahead. */
+export const isUpcoming = (period: ApplicationPeriod, now = Date.now()) => period.mode === "scheduled" && Boolean(period.opensAt) && now < Date.parse(period.opensAt!);
+
 export function isAccepting(period: ApplicationPeriod, now = Date.now()) {
+  if (isUpcoming(period, now)) return false;
   const closes = closingTime(period);
   if (period.mode === "closed") return closes !== null && now < closes;
   return closes === null || now < closes;

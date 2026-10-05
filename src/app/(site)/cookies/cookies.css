@@ -4,43 +4,46 @@
    of glass and hairlines. Everything is prefixed ck- (keyframes and custom properties too): a page's
    stylesheet stays loaded after navigating away, so nothing here may reach other pages. */
 
-.ck { --ck-bg: #030305; --ck-text: #f3f1eb; --ck-soft: #c9c7d0; --ck-muted: #a3a1ac; --ck-faint: #7e7c87; --ck-line: rgba(255,255,255,.08); --ck-line-strong: rgba(255,255,255,.15); --ck-gold: #fec30c; --ck-gold-light: #ffe28a; --ck-ok: #3ecf8e; --ck-ease: cubic-bezier(.22,1,.36,1); --ck-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --ck-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --ck-wrap: var(--site-max, 1240px); --ck-gutter: var(--site-gutter, 24px); --ck-header: 78px; -webkit-font-smoothing: antialiased; background: var(--ck-bg); color: var(--ck-text); overflow: clip; position: relative; }
+/* Night: the page's colours, as tokens. They sit on the page and again on its hero, which keeps them when the rest of the page
+   goes light (Daylight, at the end). */
+.ck, .ck-hero { --ck-bg: #030305; --ck-ink: 255,255,255; --ck-base: 10,10,15; --ck-surface: #0c0c12; --ck-raised: #15151d; --ck-shade: 1; --ck-text: var(--ui-text-on-dark, #f3f1eb); --ck-bright: #fff; --ck-soft: #c9c7d0; --ck-muted: #a3a1ac; --ck-faint: #7e7c87; --ck-placeholder: #6c6a76; --ck-dim: #55535d; --ck-on-bright: var(--ui-on-accent, #0c0b08); --ck-on-bright-muted: rgba(var(--ui-on-accent-rgb, 12,11,8),.56); --ck-on-bright-mark: var(--ui-accent-deep, #7a5d00); --ck-line: rgba(var(--ck-ink),.08); --ck-line-strong: rgba(var(--ck-ink),.15); --ck-gold: var(--ui-accent, #fec30c); --ck-gold-mark: var(--ui-accent, #fec30c); --ck-gold-edge: var(--ui-accent, #fec30c); --ck-gold-rgb: var(--ui-accent-rgb, 254,195,12); --ck-gold-light: var(--ui-accent-soft, #ffe28a); --ck-gold-serif: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--ck-gold) 28%, var(--ui-accent, #f2a900) 52%, var(--ck-gold) 76%, var(--ui-accent-pale, #ffe7a3)); --ck-ok: #3ecf8e; --ck-ok-ink: #7be3b4; --ck-glass-card: linear-gradient(180deg, rgba(var(--ck-ink),.045), rgba(var(--ck-ink),.015)); --ck-glass-ledger: linear-gradient(180deg, rgba(var(--ck-ink),.04), rgba(var(--ck-ink),.012)); --ck-glass: linear-gradient(180deg, rgba(var(--ck-ink),.05), rgba(var(--ck-ink),.014)); --ck-lit: inset 0 1px 0 rgba(255,255,255,.06); --ck-shadow: 0 40px 80px -48px rgba(0,0,0,.9); --ck-shadow-pop: inset 0 1px 0 rgba(255,255,255,.08), 0 30px 80px -20px rgba(0,0,0,.9); --ck-action: var(--ck-gold); --ck-on-action: var(--ui-accent-foreground, #0c0b08); --ck-action-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(var(--ui-accent-rgb, 254,195,12),.75); --ck-action-shadow-hover: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(var(--ui-accent-rgb, 254,195,12),.9), 0 0 0 6px rgba(var(--ui-accent-rgb, 254,195,12),.14); --ck-action-sheen: rgba(255,255,255,.6); }
+.ck { --ck-ease: cubic-bezier(.22,1,.36,1); --ck-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif; --ck-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --ck-wrap: var(--site-max, 1240px); --ck-gutter: var(--site-gutter, 24px); --ck-header: 78px; -webkit-font-smoothing: antialiased; background: var(--ck-bg); color: var(--ck-text); overflow: clip; position: relative; }
 /* Film grain over everything, as on the home page: texture, and it keeps the dark gradients from banding */
 .ck::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 4; }
-.ck ::selection { background: rgba(254,195,12,.32); color: #fff; }
-.ck :focus-visible { outline: 2px solid var(--ck-gold); outline-offset: 3px; }
+.ck ::selection { background: rgba(var(--ck-gold-rgb),.32); color: var(--ck-bright); }
+.ck :focus-visible { outline: 2px solid var(--ck-gold-edge); outline-offset: 3px; }
 
-/* Shared: the frame, mono labels, a status dot, and the gold serif italic that carries accent words */
+/* Shared: the frame, small capital labels, a status dot, and the gold serif italic that carries accent words */
 .ck-wrap { margin: 0 auto; max-width: var(--ck-wrap); padding: 0 var(--ck-gutter); position: relative; }
-.ck-eyebrow { align-items: center; color: var(--ck-muted); display: flex; font: 500 11px/1 var(--ck-mono); gap: 11px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
-.ck-eyebrow::before { background: var(--ck-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(254,195,12,.16), 0 0 12px rgba(254,195,12,.6); content: ""; flex: none; height: 6px; width: 6px; }
+.ck-eyebrow { align-items: center; color: var(--ck-muted); display: flex; font: 500 11px/1 var(--ck-sans); gap: 11px; margin: 0; text-transform: uppercase; }
+.ck-eyebrow::before { background: var(--ck-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(var(--ck-gold-rgb),.16), 0 0 12px rgba(var(--ck-gold-rgb),.6); content: ""; flex: none; height: 6px; width: 6px; }
 .ck-dot { animation: ck-ping 2.4s var(--ck-ease) infinite; background: var(--ck-ok); border-radius: 50%; flex: none; height: 6px; width: 6px; }
 @keyframes ck-ping { 0% { box-shadow: 0 0 0 0 rgba(62,207,142,.55); } 70%, 100% { box-shadow: 0 0 0 6px rgba(62,207,142,0); } }
-.ck-title em, .ck-section h2 em { background: linear-gradient(100deg, #ffe7a3, var(--ck-gold) 28%, #f2a900 52%, var(--ck-gold) 76%, #ffe7a3) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--ck-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+.ck-title em, .ck-section h2 em { background: var(--ck-gold-serif) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--ck-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
 .ck-title em { animation: ck-sheen 10s linear infinite; }
 @keyframes ck-sheen { to { background-position: 200% 0; } }
 
 /* Hero: the title and what the policy comes to on the left, the reading of the site on the right */
-.ck-hero { background: radial-gradient(50% 80% at 84% 10%, rgba(254,195,12,.08), transparent 70%), radial-gradient(46% 80% at 4% 0%, rgba(66,84,190,.17), transparent 72%), radial-gradient(40% 60% at 60% 120%, rgba(124,74,180,.1), transparent 70%), linear-gradient(180deg, #030306, #05050a 58%, var(--ck-bg)); border-bottom: 1px solid var(--ck-line); isolation: isolate; padding: clamp(56px, 7.5vw, 124px) 0 clamp(48px, 5.5vw, 88px); position: relative; }
+.ck-hero { background: radial-gradient(50% 80% at 84% 10%, rgba(var(--ck-gold-rgb),.08), transparent 70%), radial-gradient(46% 80% at 4% 0%, rgba(66,84,190,.17), transparent 72%), radial-gradient(40% 60% at 60% 120%, rgba(124,74,180,.1), transparent 70%), linear-gradient(180deg, #030306, #05050a 58%, var(--ck-bg)); border-bottom: 1px solid var(--ck-line); color: var(--ck-text); isolation: isolate; padding: clamp(56px, 7.5vw, 124px) 0 clamp(48px, 5.5vw, 88px); position: relative; }
 .ck-hero .night-sky { -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
 .ck-hero-inner { align-items: end; display: grid; gap: 48px clamp(40px, 6vw, 110px); grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); }
 .ck-title { color: var(--ck-text); font-size: clamp(46px, 6.4vw, 108px); font-weight: 560; letter-spacing: -.058em; line-height: .94; margin: 24px 0 0; }
 .ck-lede { color: var(--ck-muted); font-size: clamp(16px, 1.25vw, 19px); line-height: 1.7; margin: 30px 0 0; max-width: 34em; }
-.ck-meta { color: var(--ck-faint); display: flex; flex-wrap: wrap; font: 500 10.5px/1.4 var(--ck-mono); gap: 8px 0; letter-spacing: .14em; margin: 30px 0 0; text-transform: uppercase; }
+.ck-meta { color: var(--ck-faint); display: flex; flex-wrap: wrap; font: 500 10.5px/1.4 var(--ck-sans); gap: 8px 0; margin: 30px 0 0; text-transform: uppercase; }
 .ck-meta span + span { border-left: 1px solid var(--ck-line-strong); margin-left: 16px; padding-left: 16px; }
 .ck-meta time { color: var(--ck-soft); }
 
 /* The reading: telemetry in the comet reticle's gold corner brackets. A spark runs along its foot now and then, as along the home page's HUD. */
-.ck-scan { --c: rgba(254,195,12,.8); --arm: 12px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); background: linear-gradient(var(--c), var(--c)) 0 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 0 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 100% / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 100% / 1px var(--arm), linear-gradient(160deg, rgba(254,195,12,.07), rgba(255,255,255,.02) 46%, rgba(255,255,255,.03)); background-repeat: no-repeat; overflow: hidden; padding: 22px 24px 8px; position: relative; }
+.ck-scan { --c: rgba(var(--ck-gold-rgb),.8); --arm: 12px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); background: linear-gradient(var(--c), var(--c)) 0 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 0 / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 0 / 1px var(--arm), linear-gradient(var(--c), var(--c)) 0 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 0 100% / 1px var(--arm), linear-gradient(var(--c), var(--c)) 100% 100% / var(--arm) 1px, linear-gradient(var(--c), var(--c)) 100% 100% / 1px var(--arm), linear-gradient(160deg, rgba(var(--ck-gold-rgb),.07), rgba(var(--ck-ink),.02) 46%, rgba(var(--ck-ink),.03)); background-repeat: no-repeat; overflow: hidden; padding: 22px 24px 8px; position: relative; }
 .ck-scan::after { animation: ck-scan 9s var(--ck-ease) infinite; background: linear-gradient(90deg, transparent, var(--ck-gold), transparent); bottom: 0; content: ""; height: 1px; left: 0; opacity: 0; position: absolute; width: 30%; }
 @keyframes ck-scan { 0% { opacity: 0; transform: translateX(-100%); } 8%, 42% { opacity: 1; } 50%, 100% { opacity: 0; transform: translateX(340%); } }
-.ck-scan-label { align-items: center; color: var(--ck-gold); display: flex; font: 500 10.5px/1 var(--ck-mono); gap: 10px; letter-spacing: .2em; margin: 0 0 10px; text-transform: uppercase; }
+.ck-scan-label { align-items: center; color: var(--ck-gold-mark); display: flex; font: 500 10.5px/1 var(--ck-sans); gap: 10px; margin: 0 0 10px; text-transform: uppercase; }
 .ck-scan dl { margin: 0; }
 .ck-scan dl > div { align-items: baseline; border-top: 1px solid var(--ck-line); display: flex; gap: 16px; justify-content: space-between; padding: 14px 0; }
 .ck-scan dt { color: var(--ck-muted); font-size: 14px; }
-.ck-scan dd { color: #fff; font: 500 20px/1 var(--ck-mono); font-variant-numeric: tabular-nums; margin: 0; }
+.ck-scan dd { color: var(--ck-bright); font: 500 20px/1 var(--ck-sans); font-variant-numeric: tabular-nums; margin: 0; }
 .ck-scan .is-total dt { color: var(--ck-text); }
-.ck-scan .is-total dd { color: var(--ck-gold); }
+.ck-scan .is-total dd { color: var(--ck-gold-mark); }
 
 /* The policy: contents down the left, following the page; the sections beside it */
 .ck-layout { align-items: start; display: grid; gap: clamp(32px, 6vw, 110px); grid-template-columns: 210px minmax(0, 1fr); padding-bottom: clamp(88px, 10vw, 160px); padding-top: clamp(48px, 6vw, 92px); }
@@ -48,9 +51,9 @@
 body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); }
 .ck-toc ol { border-left: 1px solid var(--ck-line); list-style: none; margin: 22px 0 0; padding: 0; }
 .ck-toc a { align-items: baseline; border-left: 1px solid transparent; color: var(--ck-muted); display: flex; font-size: 13.5px; gap: 12px; line-height: 1.35; margin-left: -1px; padding: 8px 0 8px 16px; transition: border-color .25s ease, color .25s ease; }
-.ck-toc a span { color: var(--ck-faint); font: 500 10.5px/1 var(--ck-mono); letter-spacing: .1em; transition: color .25s ease; }
-.ck-toc a:hover { border-left-color: var(--ck-gold); color: #fff; }
-.ck-toc a:hover span { color: var(--ck-gold); }
+.ck-toc a span { color: var(--ck-faint); font: 500 10.5px/1 var(--ck-sans); transition: color .25s ease; }
+.ck-toc a:hover { border-left-color: var(--ck-gold-edge); color: var(--ck-bright); }
+.ck-toc a:hover span { color: var(--ck-gold-mark); }
 
 .ck-body { max-width: 860px; min-width: 0; }
 .ck-section { scroll-margin-top: calc(var(--ck-header) + 28px); }
@@ -58,34 +61,34 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 .ck-section h2 { color: var(--ck-text); font-size: clamp(30px, 3.2vw, 46px); font-weight: 560; letter-spacing: -.045em; line-height: 1.02; margin: 16px 0 0; }
 .ck-section > p { color: var(--ck-muted); font-size: 16.5px; line-height: 1.75; margin: 22px 0 0; max-width: 42em; }
 .ck-section > p strong { color: var(--ck-text); font-weight: 600; }
-.ck-section > .ck-serial { color: var(--ck-gold); font: 500 11px/1 var(--ck-mono); letter-spacing: .2em; margin: 0; }
+.ck-section > .ck-serial { color: var(--ck-gold-mark); font: 500 11px/1 var(--ck-sans); margin: 0; }
 .ck-section > p.ck-fine { color: var(--ck-faint); font-size: 13.5px; line-height: 1.7; }
-.ck-section a:not(.ck-button) { border-bottom: 1px solid rgba(254,195,12,.55); color: var(--ck-text); transition: border-color .2s ease, color .2s ease; }
-.ck-section a:not(.ck-button):hover { border-bottom-color: var(--ck-gold); color: var(--ck-gold-light); }
+.ck-section a:not(.ck-button) { border-bottom: 1px solid rgba(var(--ck-gold-rgb),.55); color: var(--ck-text); transition: background-color .16s ease, border-color .16s ease, color .16s ease; }
+.ck-section a:not(.ck-button):hover { border-bottom-color: var(--ck-gold-edge); color: var(--ck-gold-light); filter: brightness(.94); }
 
 /* The short version: three cards of glass */
 .ck-cards { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 34px 0 0; padding: 0; }
-.ck-cards li { background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); border: 1px solid var(--ck-line); border-radius: 20px; padding: 22px 22px 24px; position: relative; }
+.ck-cards li { background: var(--ck-glass-card); border: 1px solid var(--ck-line); border-radius: 20px; padding: 22px 22px 24px; position: relative; }
 .ck-cards li:hover { border-color: var(--ck-line-strong); }
-.ck-card-icon { align-items: center; background: rgba(254,195,12,.09); border: 1px solid rgba(254,195,12,.26); border-radius: 12px; color: var(--ck-gold); display: inline-flex; height: 40px; justify-content: center; width: 40px; }
+.ck-card-icon { align-items: center; background: rgba(var(--ck-gold-rgb),.09); border: 1px solid rgba(var(--ck-gold-rgb),.26); border-radius: 12px; color: var(--ck-gold-mark); display: inline-flex; height: 40px; justify-content: center; width: 40px; }
 .ck-cards h3 { color: var(--ck-text); font-size: 17px; font-weight: 580; letter-spacing: -.02em; line-height: 1.25; margin: 20px 0 0; }
 .ck-cards p { color: var(--ck-muted); font-size: 14px; line-height: 1.65; margin: 8px 0 0; }
 
 /* A ledger: what's set, what it's for and how long it lasts, a hairline between each */
-.ck-ledger { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012)); border: 1px solid var(--ck-line); border-radius: 20px; margin-top: 26px; overflow: hidden; }
+.ck-ledger { background: var(--ck-glass-ledger); border: 1px solid var(--ck-line); border-radius: 20px; margin-top: 26px; overflow: hidden; }
 .ck-ledger table { border-collapse: collapse; table-layout: fixed; width: 100%; }
 .ck-ledger caption { border-bottom: 1px solid var(--ck-line); caption-side: top; padding: 20px 24px 18px; text-align: left; }
 .ck-ledger caption strong { color: var(--ck-text); display: block; font-size: 17px; font-weight: 580; letter-spacing: -.02em; }
 .ck-ledger caption span { color: var(--ck-muted); display: block; font-size: 13.5px; line-height: 1.6; margin-top: 5px; }
-.ck-ledger thead th { color: var(--ck-faint); font: 500 10.5px/1 var(--ck-mono); letter-spacing: .16em; padding: 16px 24px 0; text-align: left; text-transform: uppercase; }
+.ck-ledger thead th { color: var(--ck-faint); font: 500 10.5px/1 var(--ck-sans); padding: 16px 24px 0; text-align: left; text-transform: uppercase; }
 .ck-ledger thead th:first-child { width: 33%; }
 .ck-ledger thead th:last-child { width: 24%; }
 .ck-ledger tbody :is(th, td) { color: var(--ck-muted); font-size: 14px; font-weight: 400; line-height: 1.65; padding: 16px 24px 20px; text-align: left; vertical-align: top; }
 .ck-ledger tbody tr + tr :is(th, td) { border-top: 1px solid var(--ck-line); padding-top: 20px; }
-.ck-ledger code { color: var(--ck-text); display: block; font: 500 13px/1.5 var(--ck-mono); letter-spacing: -.01em; overflow-wrap: anywhere; }
+.ck-ledger code { color: var(--ck-text); display: block; font: 500 13px/1.5 var(--ck-sans); font-variant-numeric: tabular-nums; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .ck-ledger tbody td:last-child { color: var(--ck-soft); }
-.ck-kind { align-items: center; background: rgba(62,207,142,.08); border: 1px solid rgba(62,207,142,.3); border-radius: 999px; color: #7be3b4; display: inline-flex; font: 500 9.5px/1 var(--ck-mono); letter-spacing: .14em; margin-top: 10px; padding: 5px 9px; text-transform: uppercase; }
-.ck-kind.is-preference { background: rgba(254,195,12,.08); border-color: rgba(254,195,12,.3); color: var(--ck-gold-light); }
+.ck-kind { align-items: center; background: rgba(62,207,142,.08); border: 1px solid rgba(62,207,142,.3); border-radius: 3px; color: var(--ck-ok-ink); display: inline-flex; font: 500 9.5px/1 var(--ck-sans); margin-top: 10px; padding: 5px 9px; text-transform: uppercase; }
+.ck-kind.is-preference { background: rgba(var(--ck-gold-rgb),.08); border-color: rgba(var(--ck-gold-rgb),.3); color: var(--ck-gold-light); }
 
 /* Other services: who, then what they do */
 .ck-list { margin: 30px 0 0; }
@@ -95,13 +98,11 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 .ck-list dd { color: var(--ck-muted); font-size: 15px; line-height: 1.7; margin: 0; max-width: 40em; }
 
 /* Contact: where to write, and the home page's gold button */
-.ck-contact { align-items: center; background: radial-gradient(70% 140% at 100% 0%, rgba(254,195,12,.1), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); border: 1px solid var(--ck-line); border-radius: 20px; display: flex; flex-wrap: wrap; gap: 20px 32px; justify-content: space-between; margin-top: 30px; padding: 26px 28px; }
+.ck-contact { align-items: center; background: radial-gradient(70% 140% at 100% 0%, rgba(var(--ck-gold-rgb),.1), transparent 70%), var(--ck-glass-card); border: 1px solid var(--ck-line); border-radius: 20px; display: flex; flex-wrap: wrap; gap: 20px 32px; justify-content: space-between; margin-top: 30px; padding: 26px 28px; }
 .ck-contact p:not(.ck-eyebrow) { color: var(--ck-muted); font-size: 14.5px; line-height: 1.65; margin: 12px 0 0; max-width: 30em; }
-.ck-button { align-items: center; background: var(--ck-gold); border-radius: 999px; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(254,195,12,.75); color: #0c0b08; display: inline-flex; font-size: 14px; font-weight: 550; gap: 10px; isolation: isolate; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: box-shadow .4s var(--ck-ease), transform .4s var(--ck-ease); white-space: nowrap; }
-.ck-button::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--ck-ease); z-index: -1; }
+.ck-button { align-items: center; background: var(--ck-action); border-radius: 6px; box-shadow: none; color: var(--ck-on-action); display: inline-flex; font-size: 14px; font-weight: 600; gap: 10px; isolation: isolate; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: background-color .16s ease, border-color .16s ease, color .16s ease; white-space: nowrap; }
 .ck-button svg { flex: none; transition: transform .4s var(--ck-ease); }
-.ck-button:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(254,195,12,.9), 0 0 0 6px rgba(254,195,12,.14); transform: translateY(-1px); }
-.ck-button:hover::after { transform: translateX(120%); }
+.ck-button:hover { box-shadow: none; transform: none; filter: brightness(.94); }
 .ck-button:hover svg { transform: translate(2px, -2px); }
 
 /* Entrances (reveal-on-scroll.tsx): the hero's pieces rise in one after another once it goes live; further down, things rise as they first scroll into view */
@@ -117,8 +118,8 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 	/* The contents list becomes a row of chips above the policy, and stops following the page */
 	.ck-toc { position: static; }
 	.ck-toc ol { border-left: 0; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-	.ck-toc a { border: 1px solid var(--ck-line-strong); border-radius: 999px; font-size: 13px; gap: 8px; margin: 0; padding: 9px 14px; }
-	.ck-toc a:hover { border-color: var(--ck-gold); }
+	.ck-toc a { border: 1px solid var(--ck-line-strong); border-radius: 6px; font-size: 13px; gap: 8px; margin: 0; padding: 9px 14px; }
+	.ck-toc a:hover { border-color: var(--ck-gold-edge); }
 }
 @media (max-width: 760px) {
 	.ck-cards { grid-template-columns: 1fr; }
@@ -132,7 +133,7 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 	.ck-ledger tbody tr + tr { border-top: 1px solid var(--ck-line); }
 	.ck-ledger tbody :is(th, td), .ck-ledger tbody tr + tr :is(th, td) { border-top: 0; padding: 0; }
 	.ck-ledger tbody td { margin-top: 12px; }
-	.ck-ledger tbody td[data-label]::before { color: var(--ck-faint); content: attr(data-label); display: block; font: 500 10px/1 var(--ck-mono); letter-spacing: .16em; margin-bottom: 6px; text-transform: uppercase; }
+	.ck-ledger tbody td[data-label]::before { color: var(--ck-faint); content: attr(data-label); display: block; font: 500 10px/1 var(--ck-sans); margin-bottom: 6px; text-transform: uppercase; }
 	.ck-list > div { grid-template-columns: 1fr; }
 	.ck-contact { padding: 22px 20px; }
 	.ck-button { justify-content: center; width: 100%; }
@@ -140,4 +141,35 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 @media (prefers-reduced-motion: reduce) {
 	.ck-title em, .ck-dot, .ck-scan::after, .ck-hero[data-live] [data-enter] { animation: none; }
 	.ck [data-reveal], .ck-toc, .ck-toc a, .ck-button, .ck-button::after, .ck-button svg { transition: none; }
+}
+
+/* Daylight (data-theme="light" on <html>, from src/components/site-theme.tsx): the portal's light theme, on the site. A cool,
+   neutral light: the page is a pale grey, panels are plain white, and the grain is put away. The hero keeps the night's colours
+   (it carries them itself, at the top of this file), as do the navbar and the footer, and gold actions sit against cool slate text. Text colours here hold 4.5:1 on the page and on a panel. */
+:root[data-theme="light"] .ck {
+	--ck-bg: var(--ui-surface); --ck-ink: var(--ui-ink-rgb); --ck-base: var(--ui-panel-rgb); --ck-surface: var(--ui-panel); --ck-raised: var(--ui-panel); --ck-shade: .16;
+	--ck-text: var(--ui-text); --ck-bright: var(--ui-bright); --ck-soft: var(--ui-soft); --ck-muted: var(--ui-muted); --ck-faint: var(--ui-faint); --ck-placeholder: var(--ui-placeholder); --ck-dim: var(--ui-dim);
+	--ck-on-bright: #fff; --ck-on-bright-muted: rgba(255,255,255,.62); --ck-on-bright-mark: var(--ui-accent, #fec30c);
+	--ck-gold-mark: var(--ui-accent-mark, #946200); --ck-gold-edge: var(--ui-accent-edge, #b98300); --ck-gold-rgb: var(--ui-accent-rgb, 214,152,0); --ck-gold-light: var(--ui-accent-deep, #7a5100);
+	--ck-gold-serif: linear-gradient(var(--ui-accent-mark), var(--ui-accent-mark));
+	--ck-ok: #1fae70; --ck-ok-ink: #0b7347; --ck-glass-card: linear-gradient(var(--ui-panel), var(--ui-panel)); --ck-glass-ledger: linear-gradient(var(--ui-panel), var(--ui-panel));
+	--ck-glass: linear-gradient(var(--ui-panel), var(--ui-panel));
+	--ck-lit: 0 1px 2px rgba(0,0,0,.04); --ck-shadow: 0 22px 44px -30px rgba(20,20,45,.2); --ck-shadow-pop: 0 0 0 1px rgba(0,0,0,.04), 0 30px 70px -22px rgba(20,20,45,.3);
+	--ck-action: var(--ui-accent); --ck-on-action: var(--ui-accent-foreground); --ck-action-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 20px -10px rgba(0,0,0,.45);
+	--ck-action-shadow-hover: inset 0 1px 0 rgba(255,255,255,.2), 0 12px 26px -10px rgba(0,0,0,.5), 0 0 0 4px rgba(var(--ck-ink),.1); --ck-action-sheen: rgba(255,255,255,.2);
+	--ck-line: var(--ui-border); --ck-line-strong: var(--ui-border-strong);
+	--ck-lit: inset 0 1px 0 #fff; --ck-shadow: var(--ui-card-shadow);
+}
+:root[data-theme="light"] .ck::after { display: none; }
+
+/* Light policy panels retain the dark hero's existing treatment. */
+:root[data-theme="light"] .ck :is(.ck-toc, .ck-ledger, .ck-contact) { border-color: var(--ui-border); border-radius: var(--ui-card-radius); box-shadow: var(--ui-card-shadow); }
+:root[data-theme="light"] .ck .ck-contact { background: var(--ui-panel); padding: clamp(24px, 3vw, 36px); }
+:root[data-theme="light"] .ck .ck-contact .ck-button { border-radius: var(--ui-control-radius); }
+:root[data-theme="light"] .ck .ck-ledger thead th { background: var(--ui-panel-tint); }
+:root[data-theme="light"] .ck-body .ck-cards li { background: var(--ui-panel); border-color: var(--ui-border); border-radius: var(--ui-card-radius); box-shadow: var(--ui-card-shadow); }
+:root[data-theme="light"] .ck-body .ck-card-icon { background: var(--ui-panel-tint); border-color: var(--ui-border); }
+/* On a phone the contents list is a row of chips: white, like every other panel. */
+@media (max-width: 1000px) {
+	:where([data-theme="light"]) .ck-toc a { background: var(--ui-panel); }
 }

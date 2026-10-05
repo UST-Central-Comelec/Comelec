@@ -27,7 +27,7 @@ export async function createAuthClient() {
 
 /**
  * Server-only client with the secret key. It bypasses Row Level Security, so every caller must
- * check permissions first (portal actions do, via requirePortalUser / requireExecutive).
+ * check permissions first (portal actions do, via requirePortalUser / requireAccess).
  */
 export function createAdminClient() {
   return createClient(supabaseUrl, supabaseSecretKey(), { auth: { persistSession: false, autoRefreshToken: false } });

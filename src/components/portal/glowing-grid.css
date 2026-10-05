@@ -1,0 +1,82 @@
+@property --dashboard-glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: true;
+}
+
+/* Recreated from the Aceternity glowing-card reference, scoped to the dashboard. */
+.dashboard-glowing-grid > .portal-card[data-glow] {
+  --dashboard-glow-opacity: 0;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-strong);
+  border-radius: 26px;
+  box-shadow: 0 4px 20px -12px rgba(0,0,0,calc(.5 * var(--p-shade)));
+  isolation: isolate;
+  min-width: 0;
+  padding: 30px;
+  position: relative;
+  transition: --dashboard-glow-angle .45s ease-out, border-color .25s ease;
+}
+
+.dashboard-glowing-grid > [data-glow]:not(.portal-hero)::before {
+  border: 1px solid var(--p-line);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgba(var(--p-ink),.035);
+  content: "";
+  inset: 6px;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.dashboard-glowing-grid > [data-glow]::after {
+  background: conic-gradient(from calc(var(--dashboard-glow-angle) - 45deg), transparent 0deg, #d7a46c 10deg, #dd7bbb 28deg, #9d8ce5 45deg, #70bcb0 62deg, #e9ca83 80deg, transparent 90deg);
+  border-radius: inherit;
+  content: "";
+  inset: -1px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: var(--dashboard-glow-opacity);
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity .3s ease;
+  z-index: 3;
+}
+
+.dashboard-glowing-grid > [data-glow]:focus-within { border-color: var(--p-gold-edge); }
+.dashboard-hero-glow > .portal-hero[data-glow] {
+  --dashboard-glow-opacity: 0;
+  border-color: var(--p-line-strong);
+  transition: --dashboard-glow-angle .45s ease-out, border-color .25s ease;
+}
+.dashboard-hero-glow > .portal-hero[data-glow]::after { inset: 0; }
+.dashboard-hero-inset {
+  border: 1px solid var(--p-line);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(var(--p-ink),.035);
+  inset: 6px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+.dashboard-glowing-grid .portal-stat { min-height: 248px; }
+.dashboard-glowing-grid .portal-stat-head { align-items: flex-start; }
+.dashboard-card-label { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 10px; min-width: 0; }
+.dashboard-card-icon { align-items: center; background: rgba(var(--p-ink),.025); border: 1px solid var(--p-line-strong); border-radius: 12px; color: var(--p-soft); display: inline-flex; flex: none; height: 38px; justify-content: center; width: 38px; }
+.dashboard-glowing-grid .portal-stat strong { padding-top: 26px; }
+.dashboard-glowing-grid .portal-card-head { align-items: flex-start; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  .dashboard-glowing-grid > .portal-card[data-glow] { border-radius: 22px; padding: 24px; }
+  .dashboard-glowing-grid > [data-glow]:not(.portal-hero)::before { border-radius: 16px; }
+  .dashboard-glowing-grid .portal-stat { min-height: 210px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-glowing-grid > [data-glow],
+  .dashboard-glowing-grid > [data-glow]::after { transition: none; }
+  .dashboard-glowing-grid > [data-glow]::after { display: none; }
+}

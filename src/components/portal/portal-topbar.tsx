@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Eye } from "lucide-react";
 import { useNow } from "./period-overview";
 import { trail } from "./portal-nav";
-import { ThemeToggle } from "./portal-theme";
 
 const zone = "Asia/Manila";
 const dayFormat = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "short", day: "numeric" });
@@ -27,9 +27,13 @@ function ManilaClock() {
   );
 }
 
-/** The bar across the top of every portal page: where you are, the time, and the theme switch. `home` is where "Portal" leads. */
-export function PortalTopbar({ home }: { home: string }) {
-  const crumbs = trail(usePathname());
+/**
+ * The bar across the top of every portal page: where you are and the time.
+ * `home` is where "Portal" leads. `viewOnly` says so beside the time, for an Adviser or Admin: it
+ * holds on every page, so it's said once here rather than on each.
+ */
+export function PortalTopbar({ home, viewOnly }: { home: string; viewOnly?: boolean }) {
+  const crumbs = trail(usePathname(), viewOnly);
 
   return (
     <div className="portal-topbar">
@@ -44,8 +48,8 @@ export function PortalTopbar({ home }: { home: string }) {
         </ol>
       </nav>
       <div className="portal-topbar-tools">
+        {viewOnly && <span className="portal-topbar-mode" title="Your account reads the portal and changes nothing."><Eye size={13} aria-hidden="true" /> View only</span>}
         <ManilaClock />
-        <ThemeToggle />
       </div>
     </div>
   );

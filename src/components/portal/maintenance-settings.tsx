@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { InfoTip, TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
+import { ViewOnly } from "@/components/portal/view-only";
 import { CookieNoticeForm, MaintenanceForm, ResetNoticeButton } from "@/components/portal/site-settings-forms";
 import { formatClosing } from "@/lib/applications/period";
 import { resetCookieNotice, updateCookieNotice, updateMaintenance } from "@/lib/portal/site-settings-actions";
@@ -15,8 +16,8 @@ const fallbackScreens = [
   { name: "Full-screen error", where: "Everywhere", detail: "The last resort, when even the header or the portal’s shell can’t load.", href: "/portal/fallback-test" },
 ];
 
-/** The portal's Maintenance tab. `settings` is null when they couldn't be loaded, with `loadError` saying why. */
-export function MaintenanceSettings({ settings, loadError, notice }: { settings: SiteSettings | null; loadError: string | null; notice?: string | string[] }) {
+/** The portal's Maintenance tab. `settings` is null when they couldn't be loaded, with `loadError` saying why. `readOnly` is for an Adviser or Admin: the settings as they stand, with nothing to change them with. */
+export function MaintenanceSettings({ settings, loadError, notice, readOnly }: { settings: SiteSettings | null; loadError: string | null; notice?: string | string[]; readOnly: boolean }) {
   // The seeded row says "system"; only name a person once someone has changed it.
   const updated = settings?.updatedAt && settings.updatedBy && settings.updatedBy !== "system" ? `Last changed by ${settings.updatedBy} · ${formatClosing(settings.updatedAt)}` : null;
 
@@ -24,7 +25,7 @@ export function MaintenanceSettings({ settings, loadError, notice }: { settings:
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Executive</p>
+          <p className="portal-eyebrow">Administrative</p>
           <TitleWithInfo info="Settings for the website as a whole: take it offline while it’s being worked on, control its cookie notice, and check the screens visitors see when something goes wrong.">Maintenance</TitleWithInfo>
         </div>
         <Link className="portal-button is-ghost" href="/" target="_blank">View website <ArrowUpRight size={15} /></Link>
@@ -50,7 +51,9 @@ export function MaintenanceSettings({ settings, loadError, notice }: { settings:
             <header className="portal-settings-head">
               <TitleWithInfo as="h2" className="portal-card-title" id="maintenance-mode-title" info="Takes the public website offline while it’s being worked on. Nothing is deleted: applications, filings and everything published come back exactly as they were.">Maintenance mode</TitleWithInfo>
             </header>
-            <MaintenanceForm key={`${settings.maintenance}-${settings.maintenanceMessage}`} action={updateMaintenance} maintenance={settings.maintenance} message={settings.maintenanceMessage ?? ""} maxLength={MAINTENANCE_MESSAGE_MAX} />
+            <ViewOnly when={readOnly}>
+              <MaintenanceForm key={`${settings.maintenance}-${settings.maintenanceMessage}`} action={updateMaintenance} maintenance={settings.maintenance} message={settings.maintenanceMessage ?? ""} maxLength={MAINTENANCE_MESSAGE_MAX} />
+            </ViewOnly>
           </section>
 
           <section className="portal-card portal-settings" aria-labelledby="cookie-notice-title">
@@ -65,12 +68,14 @@ export function MaintenanceSettings({ settings, loadError, notice }: { settings:
               </div>
               <div className="portal-setting-control">
                 <form className="portal-setting-inline" action={resetCookieNotice}>
-                  <ResetNoticeButton />
+                  {!readOnly && <ResetNoticeButton />}
                   <span className="portal-chip">{settings.cookieNoticeResetAt ? <>Last reset <strong>{formatClosing(settings.cookieNoticeResetAt)}</strong></> : "Never reset"}</span>
                 </form>
               </div>
             </div>
-            <CookieNoticeForm key={String(settings.cookieNotice)} action={updateCookieNotice} shown={settings.cookieNotice} />
+            <ViewOnly when={readOnly}>
+              <CookieNoticeForm key={String(settings.cookieNotice)} action={updateCookieNotice} shown={settings.cookieNotice} />
+            </ViewOnly>
           </section>
         </>
       ) : (
@@ -81,7 +86,7 @@ export function MaintenanceSettings({ settings, loadError, notice }: { settings:
 
       <section className="portal-card portal-settings" aria-labelledby="fallback-screens-title">
         <header className="portal-settings-head">
-          <TitleWithInfo as="h2" className="portal-card-title" id="fallback-screens-title" info="Each link opens the real screen in a new tab, by loading a page that fails on purpose. Only executives signed in to the portal can open the error tests; they change nothing.">Fallback screens</TitleWithInfo>
+          <TitleWithInfo as="h2" className="portal-card-title" id="fallback-screens-title" info="Each link opens the real screen in a new tab, by loading a page that fails on purpose. Only accounts with this tab, signed in to the portal, can open the error tests; they change nothing.">Fallback screens</TitleWithInfo>
         </header>
         <ul className="portal-fallbacks">
           {fallbackScreens.map((screen) => (

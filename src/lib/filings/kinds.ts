@@ -1,6 +1,8 @@
 // Political Party Registration (PolPaR) and Filing of Candidacy: the public page and portal section
-// for each. Whether each is open is set in the portal and stored in public.filing_periods
-// (supabase/migrations/0015_filing_periods.sql).
+// for each. Whether each is open is every unit's own to set, in the portal
+// (src/lib/periods/kinds.ts, public.unit_periods).
+
+import type { TabKey } from "@/lib/portal/access";
 
 export type FilingKind = "party-registration" | "candidacy";
 
@@ -15,6 +17,8 @@ export const filingKinds: Record<FilingKind, {
   href: string;
   /** The portal section; its subtabs sit under it. */
   portalHref: string;
+  /** Its subtabs, as access control knows them (src/lib/portal/access.ts). */
+  tabs: { submissions: TabKey; settings: TabKey };
 }> = {
   "party-registration": {
     title: "Political Party Registration",
@@ -22,6 +26,7 @@ export const filingKinds: Record<FilingKind, {
     noun: "registrations",
     href: "/party-registration",
     portalHref: "/portal/polpar",
+    tabs: { submissions: "polpar/registrations", settings: "polpar/settings" },
   },
   candidacy: {
     title: "Filing of Candidacy",
@@ -29,6 +34,7 @@ export const filingKinds: Record<FilingKind, {
     noun: "filings",
     href: "/candidacy",
     portalHref: "/portal/candidacy",
+    tabs: { submissions: "candidacy/filings", settings: "candidacy/settings" },
   },
 };
 

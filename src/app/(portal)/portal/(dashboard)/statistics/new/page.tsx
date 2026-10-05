@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StatisticForm } from "@/components/portal/statistic-form";
-import { requireCentral } from "@/lib/auth/session";
+import { requireEditor } from "@/lib/auth/session";
 import { settle } from "@/lib/portal/settle";
 import { createStatistic } from "@/lib/portal/statistic-actions";
 import { getStatistics } from "@/lib/statistics/queries";
@@ -10,7 +10,8 @@ import { byPeriod } from "@/lib/statistics/table";
 export const metadata: Metadata = { title: "Add table" };
 
 export default async function NewStatisticPage() {
-  await requireCentral();
+  // Advisers and Admins, who only read, are sent back to the list.
+  await requireEditor("statistics");
   // The groups already in use, to suggest. If they can't be loaded, the form still works without them.
   const periods = byPeriod((await settle(getStatistics())).value ?? []).map((group) => group.period);
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });

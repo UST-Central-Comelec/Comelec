@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { getCommissionAccounts } from "@/lib/applications/account-lookup";
 import { createPass, PASS_COOKIE, passCookieOptions } from "@/lib/applications/verification";
 import { verificationFinishPage } from "@/lib/applications/verification-page";
 import { checkAccess } from "@/lib/auth/session";
@@ -41,7 +42,14 @@ export async function GET(request: NextRequest) {
   if (!email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) return verificationFinishPage("not-ust");
 
   const profile = { email, firstName: metadata.given_name?.trim() ?? "", lastName: metadata.family_name?.trim() ?? "" };
-  const response = verificationFinishPage("ok", profile);
+  let commissionAccounts;
+  try {
+    commissionAccounts = await getCommissionAccounts(email);
+  } catch (lookupError) {
+    console.error("Couldn’t check commission accounts:", lookupError);
+    return verificationFinishPage("unavailable");
+  }
+  const response = verificationFinishPage("ok", { ...profile, commissionAccounts });
   response.cookies.set(PASS_COOKIE, await createPass({ ...profile, consentAt: Date.now() }), passCookieOptions);
   return response;
 }

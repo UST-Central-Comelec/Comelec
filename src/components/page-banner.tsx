@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { NightSky } from "@/components/night-sky";
 
-/** One of the readings to the banner's right: a mono label over its value. */
+/** One of the readings to the banner's right: a small label over its value. */
 export type BannerReading = { label: string; value: string };
 
 /** The banner's pieces come in one after another, in this order. */

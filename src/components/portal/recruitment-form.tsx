@@ -1,31 +1,60 @@
 "use client";
 
-import { divisions, type DivisionId, type SlotCounts } from "@/lib/applications/options";
+import { useState } from "react";
+import { divisions, divisionIdsForBody, type SlotCounts } from "@/lib/applications/options";
 import type { FormState } from "@/lib/portal/form";
-import { Field, FormFooter, usePortalForm } from "./portal-form";
+import { FormFooter, usePortalForm } from "./portal-form";
 
-export function RecruitmentForm({ action, slots }: { action: (state: FormState, formData: FormData) => Promise<FormState>; slots: SlotCounts }) {
+export function RecruitmentForm({ action, slots, unit = "" }: { action: (state: FormState, formData: FormData) => Promise<FormState>; slots: SlotCounts; unit?: string }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const ids = divisionIdsForBody(unit ? "local" : "central");
+  const positions = ids.flatMap((id) => Object.keys(divisions[id].positions));
+  const [counts, setCounts] = useState<Record<string, string>>(() => Object.fromEntries(positions.map((id) => [id, String(slots[id] ?? 0)])));
+  const count = (id: string) => {
+    const value = Number(counts[id]);
+    return Number.isInteger(value) && value >= 0 && value <= 999 ? value : 0;
+  };
+  const open = positions.filter((id) => count(id) > 0).length;
+  const changed = positions.filter((id) => counts[id] !== String(slots[id] ?? 0)).length;
 
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <div className="portal-recruitment">
-        {(Object.entries(divisions) as Array<[DivisionId, (typeof divisions)[DivisionId]]>).map(([division, item]) => (
-          <section className="portal-card" key={division}>
-            <h2 className="portal-card-title">{item.label}</h2>
-            <div className="portal-form-grid">
-              {Object.entries(item.positions).map(([id, label]) => (
-                <Field key={id} label={label} error={errors[`slots-${id}`]}>
-                  <input name={`slots-${id}`} type="number" inputMode="numeric" min={0} max={999} step={1} defaultValue={slots[id] ?? 0} />
-                  {/* The count this page loaded with, so saving only touches the ones you changed. */}
-                  <input name={`loaded-${id}`} type="hidden" value={slots[id] ?? 0} />
-                </Field>
-              ))}
-            </div>
-          </section>
-        ))}
+    <form onSubmit={onSubmit} noValidate className="recruitment-slots-form">
+      <input type="hidden" name="unit" value={unit} />
+      <div className="recruitment-slots-summary" aria-live="polite">
+        <div><strong>{positions.reduce((total, id) => total + count(id), 0)}</strong><span>Open slots</span></div>
+        <div><strong>{open}<small> / {positions.length}</small></strong><span>Open positions</span></div>
+        <div><strong>{changed}</strong><span>Unsaved changes</span></div>
       </div>
-      <FormFooter state={state} pending={pending} submitLabel="Save slots" cancelHref="/portal" />
+      <div className="portal-recruitment">
+        {ids.map((division) => {
+          const item = divisions[division];
+          const total = Object.keys(item.positions).reduce((sum, id) => sum + count(id), 0);
+          return (
+            <section className={`portal-card recruitment-division is-${division}`} key={division}>
+              <header className="recruitment-division-head">
+                <h2 className="portal-card-title">{item.label}</h2>
+                <span className="portal-tag">{total} open {total === 1 ? "slot" : "slots"}</span>
+              </header>
+              <div className="recruitment-position-list">
+                {Object.entries(item.positions).map(([id, label]) => (
+                  <div className={`recruitment-position${errors[`slots-${id}`] ? " has-error" : ""}`} key={id}>
+                    <div className="recruitment-position-label">
+                      <label htmlFor={`slots-${id}`}>{label}</label>
+                      <span className={count(id) > 0 ? "is-open" : ""}>{count(id) > 0 ? "Open for applications" : "Closed"}{counts[id] !== String(slots[id] ?? 0) ? " · Edited" : ""}</span>
+                    </div>
+                    <div className="portal-field recruitment-position-count">
+                      <input id={`slots-${id}`} aria-label={`${label}: open slots`} aria-invalid={Boolean(errors[`slots-${id}`])} aria-describedby={errors[`slots-${id}`] ? `error-${id}` : undefined} name={`slots-${id}`} type="number" inputMode="numeric" min={0} max={999} step={1} value={counts[id]} onChange={(event) => setCounts((current) => ({ ...current, [id]: event.target.value }))} disabled={pending} />
+                      <input name={`loaded-${id}`} type="hidden" value={slots[id] ?? 0} />
+                    </div>
+                    {errors[`slots-${id}`] && <span id={`error-${id}`} className="portal-field-error recruitment-position-error">{errors[`slots-${id}`]}</span>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <FormFooter state={state} pending={pending} submitLabel={changed ? `Save ${changed} ${changed === 1 ? "change" : "changes"}` : "Save slots"} cancelHref="/portal" />
     </form>
   );
 }

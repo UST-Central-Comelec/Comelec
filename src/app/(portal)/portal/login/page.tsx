@@ -15,17 +15,17 @@ export const metadata: Metadata = { title: "Sign in" };
 
 const errors: Record<string, string> = {
   "not-ust": "Sign in with your @ust.edu.ph Google account. Personal Google accounts can’t access the portal.",
-  "not-registered": "That UST account doesn’t have portal access yet. Use Request access below, and an executive will review it.",
-  revoked: "Your portal access has been revoked. Contact an executive if you think this is a mistake.",
+  "not-registered": "That UST account doesn’t have portal access yet. Use Request access below, and the Executive Board will review it.",
+  revoked: "Your portal access has been revoked. Contact your Executive Board if you think this is a mistake.",
   failed: "Google sign-in didn’t complete. Please try again.",
   "not-configured": "Sign-in isn’t configured on this server yet.",
   "rate-limited": "Too many sign-in attempts from this network. Wait a few minutes, then try again.",
 };
 
-/** Why the last session ended, when it wasn't the person signing out. */
-const reasons: Record<string, string> = {
-  idle: "You were signed out after 30 minutes of inactivity. Sign in again to continue.",
-  expired: "For security, sessions end after 8 hours. Sign in again to continue.",
+/** Why the last session ended, when it wasn't the person signing out: the limit that closed it, then what happened. */
+const reasons: Record<string, { figure: string; unit: string; title: string; detail: string }> = {
+  idle: { figure: "30", unit: "min", title: "Signed out while you were away", detail: "Sessions close after 30 minutes of inactivity. Sign in again to continue." },
+  expired: { figure: "8", unit: "hrs", title: "Your session reached its limit", detail: "For security, sessions end after 8 hours. Sign in again to continue." },
 };
 
 // Where the voting system and Facebook quick links lead.
@@ -41,7 +41,7 @@ export default async function PortalLoginPage({ searchParams }: PageProps<"/port
   if (await getPortalUser()) redirect("/portal");
   const { error, reason, access } = await searchParams;
   const message = typeof error === "string" ? errors[error] : undefined;
-  const info = typeof reason === "string" ? reasons[reason] : undefined;
+  const ended = !message && typeof reason === "string" ? reasons[reason] : undefined;
   const configured = isLoginConfigured();
   // A UST account already verified for Request access, so the form doesn't ask again.
   const pass = configured ? await readAccessPass() : null;
@@ -95,12 +95,19 @@ export default async function PortalLoginPage({ searchParams }: PageProps<"/port
         <LoginPanel
           signIn={
             <>
-              <p className="portal-eyebrow">Secure sign-in</p>
+              <p className="portal-eyebrow">{ended ? "Session ended" : "Secure sign-in"}</p>
               <h1>Sign in to <em>continue.</em></h1>
-              <p className="portal-muted portal-login-lede">Use the Google account the University issued you. Only accounts approved by an executive can sign in.</p>
+              {/* A session that timed out says so in place of the usual introduction. */}
+              {ended ? (
+                <div className="portal-login-ended" role="status">
+                  <p aria-hidden="true"><em>{ended.figure}</em> {ended.unit}</p>
+                  <p><strong>{ended.title}</strong> {ended.detail}</p>
+                </div>
+              ) : (
+                <p className="portal-muted portal-login-lede">Use the Google account the University issued you. Only accounts approved by the Executive Board can sign in.</p>
+              )}
 
               {message && <p className="portal-form-error portal-login-alert" role="alert">{message}</p>}
-              {!message && info && <p className="portal-notice portal-login-alert" role="status">{info}</p>}
 
               {configured ? (
                 <LoginForm />

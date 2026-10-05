@@ -2,13 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireCentral } from "@/lib/auth/session";
-import { positions } from "@/lib/applications/options";
+import { requireEditor } from "@/lib/auth/session";
+import { comelecUnits, positionsForUnit } from "@/lib/applications/options";
 import { clearApplyPageCache } from "@/lib/applications/apply-cache";
-import { getApplicationPeriod, saveApplicationPeriod } from "@/lib/applications/period-store";
-import { saveSlots } from "@/lib/applications/slots";
+import { getSlots, saveSlots } from "@/lib/applications/slots";
+import { canManageEvent, isOwn } from "@/lib/events/access";
+import { unitFromKey } from "@/lib/periods/kinds";
+import { concernOf } from "@/lib/notifications/concern";
+import { actorOf } from "@/lib/notifications/notify";
+import { settingChanged } from "@/lib/notifications/settings-emails";
 import { text, type FormState } from "./form";
-import { canCancelClosing, graceEnd, modeAfterCancel, readPeriodForm } from "./period-form";
 
 /**
  * Saves the counts a commissioner changed. Accepting applicants lowers the counts on its own
@@ -16,8 +19,15 @@ import { canCancelClosing, graceEnd, modeAfterCancel, readPeriodForm } from "./p
  * opened before an acceptance would otherwise restore the old number.
  */
 export async function updateRecruitmentSlots(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
+  const user = await requireEditor("recruitment/slots");
+  const { email } = user;
+  const college = text(formData, "unit");
+  const unit = unitFromKey(college);
+  if ((college && !comelecUnits.includes(college) && !isOwn(user, unit)) || !canManageEvent(user, unit)) return { error: "You can’t manage recruitment slots for this unit." };
+  const href = `/portal/recruitment/slots${college ? `?unit=${encodeURIComponent(college)}` : ""}`;
+  const back = (notice: string) => `${href}${college ? "&" : "?"}notice=${notice}`;
 
+  const positions = positionsForUnit(college);
   const counts: Record<string, number> = {};
   const fieldErrors: Record<string, string> = {};
   for (const position of positions) {
@@ -27,56 +37,32 @@ export async function updateRecruitmentSlots(_state: FormState, formData: FormDa
     else if (value !== Number(text(formData, `loaded-${position.id}`))) counts[position.id] = value;
   }
   if (Object.keys(fieldErrors).length) return { error: "Check the highlighted fields.", fieldErrors };
-  if (!Object.keys(counts).length) redirect("/portal/recruitment/slots?notice=slots-unchanged");
+  if (!Object.keys(counts).length) redirect(back("slots-unchanged"));
 
   try {
-    await saveSlots(counts, email);
+    const before = await getSlots(college);
+    await saveSlots(counts, email, college);
     clearApplyPageCache();
+    const changed = positions.filter((position) => position.id in counts && counts[position.id] !== before[position.id]);
+    if (changed.length) {
+      const by = actorOf(user);
+      settingChanged({
+        key: "setting-recruitment",
+        section: "Recruitment",
+        headline: changed.length === 1 ? `Open slots changed for ${changed[0].label}` : `Open slots changed for ${changed.length} positions`,
+        title: "Open slots *changed*",
+        summary: `${by.name} changed how many slots are open for ${changed.length === 1 ? "one position" : `${changed.length} positions`}. The Apply page shows the new counts, and a position with none left can’t be applied for.`,
+        rows: changed.map((position) => [position.label, `${counts[position.id]} open (was ${before[position.id]})`]),
+        by,
+        path: href,
+        concern: concernOf(unit.organizer, unit.college),
+      });
+    }
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Couldn’t save the slots." };
   }
 
   revalidatePath("/apply");
   revalidatePath("/portal/recruitment/slots");
-  redirect("/portal/recruitment/slots?notice=slots-saved");
-}
-
-/**
- * Opens or closes commissioner applications: close on a set date (with the countdown on /apply),
- * keep open with no end, or close right now. The closing date is kept in every mode, so switching
- * back to a schedule remembers it.
- */
-export async function updateApplicationPeriod(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireCentral();
-
-  const form = readPeriodForm(formData);
-  if ("error" in form) return form.error;
-  const { mode, closesAt } = form;
-
-  try {
-    await saveApplicationPeriod({ mode, closesAt, graceEndsAt: mode === "closed" ? graceEnd(await getApplicationPeriod()) : null }, email);
-    clearApplyPageCache();
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Couldn’t save the application period." };
-  }
-
-  refreshPeriodPages();
-  redirect(`/portal/recruitment/settings?notice=period-${mode}`);
-}
-
-/** Stops a close that's still in its grace period: back to the schedule if its date is still ahead, otherwise open. */
-export async function cancelClosing() {
-  const { email } = await requireCentral();
-  const current = await getApplicationPeriod();
-  if (!canCancelClosing(current)) redirect("/portal/recruitment/settings?notice=period-cancel-too-late");
-  await saveApplicationPeriod({ mode: modeAfterCancel(current), closesAt: current.closesAt, graceEndsAt: null }, email);
-  clearApplyPageCache();
-  refreshPeriodPages();
-  redirect("/portal/recruitment/settings?notice=period-close-cancelled");
-}
-
-function refreshPeriodPages() {
-  // Every site page: the menu's Featured card and the home page announcement follow the period.
-  revalidatePath("/", "layout");
-  revalidatePath("/portal/recruitment/settings");
+  redirect(back("slots-saved"));
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { useEffect, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { FeaturedCarousel, type Featured } from "@/components/featured-carousel";
 import { isCurrent, type NavSection, type NavStatus } from "@/components/nav/nav-data";
 import { LinkBody } from "@/components/nav/nav-parts";
@@ -28,8 +28,47 @@ type MegaMenuProps = {
   onExit: (direction: "back" | "on") => void;
 };
 
+/** The panel's corner radius, and how far its point rises and spreads. Match header.css (.sh-mega-panel). */
+const RADIUS = 24;
+const POINT_RISE = 12;
+const POINT_SPREAD = 14;
+/** Switching tabs, the point takes this long (ms) to slide over to the new one. */
+const POINT_SLIDE = 350;
+
 /**
- * The menu under the navbar's tabs: a glass panel with its own night sky. On the left, the section's
+ * The panel's outline as one path: a rounded box whose top edge rises to a soft point at `x`. The
+ * panel is clipped to it and its rim is drawn along it, so the point is the panel, not a piece on it.
+ */
+function outline(width: number, height: number, x: number) {
+  const r = Math.min(RADIUS, height / 2);
+  const top = POINT_RISE;
+  const at = Math.min(Math.max(x, r + POINT_SPREAD + 6), width - r - POINT_SPREAD - 6);
+  const n = (value: number) => value.toFixed(2);
+  // Up one flank and down the other, eased where it leaves the edge and rounded at the top.
+  const flank = (side: 1 | -1) => {
+    const foot = at - side * POINT_SPREAD;
+    return {
+      out: `${n(foot - side * 4)},${top}`,
+      foot: `${n(foot)},${top}`,
+      low: `${n(foot + side * POINT_SPREAD * 0.26)},${n(top - POINT_RISE * 0.26)}`,
+      high: `${n(at - side * POINT_SPREAD * 0.2)},${n(top - POINT_RISE * 0.8)}`,
+    };
+  };
+  const left = flank(1);
+  const right = flank(-1);
+  return [
+    `M${r},${top}`,
+    `L${left.out} Q${left.foot} ${left.low} L${left.high} Q${n(at)},0 ${right.high} L${right.low} Q${right.foot} ${right.out}`,
+    `L${n(width - r)},${top} A${r},${r} 0 0 1 ${n(width)},${top + r}`,
+    `L${n(width)},${n(height - r)} A${r},${r} 0 0 1 ${n(width - r)},${n(height)}`,
+    `L${r},${n(height)} A${r},${r} 0 0 1 0,${n(height - r)}`,
+    `L0,${top + r} A${r},${r} 0 0 1 ${r},${top} Z`,
+  ].join(" ");
+}
+
+/**
+ * The menu under the navbar's tabs: a glass panel with its own night sky, whose top edge rises to a
+ * point under the tab it hangs from. On the left, the section's
  * headline; in the middle, its links, with a reticle that locks on to the one being pointed at; on
  * the right, the Featured carousel; and along the foot, the Live mark and the way to the section
  * itself.
@@ -40,6 +79,58 @@ export function MegaMenu({ id, open, section, opening, entrance, status, pathnam
 
   // Nothing's pointed at in a menu that has just opened, switched or shut.
   useEffect(() => lock(null), [lock, sectionId, opening, open]);
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const rimRef = useRef<SVGPathElement>(null);
+  /** Where the point is drawn, and the frame of its slide if it's on the move. */
+  const point = useRef<{ x: number | null; frame: number }>({ x: null, frame: 0 });
+
+  // The panel's shape: cut to its outline, with the point under the tab whose menu is open. Drawn
+  // through styles rather than state, so the point sliding between tabs never re-renders the menu.
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const root = panel?.parentElement;
+    if (!panel || !root) return;
+
+    const draw = (x: number) => {
+      const width = panel.offsetWidth;
+      const height = panel.offsetHeight;
+      if (!width || !height) return;
+      point.current.x = x;
+      const path = outline(width, height, x);
+      panel.style.clipPath = `path("${path}")`;
+      rimRef.current?.setAttribute("d", path);
+    };
+    /** The middle of the open tab, measured from the panel's left edge (off `root`, which the panel's entrance doesn't move). */
+    const aim = () => {
+      const tab = open ? root.closest(".site-header")?.querySelector<HTMLElement>('.sh-tab[aria-expanded="true"]') : null;
+      if (!tab) return point.current.x ?? panel.offsetWidth / 2;
+      const { left, width } = tab.getBoundingClientRect();
+      return left + width / 2 - root.getBoundingClientRect().left;
+    };
+
+    const from = point.current.x;
+    const to = aim();
+    if (open && entrance && from !== null && from !== to && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const started = performance.now();
+      const step = (now: number) => {
+        const t = Math.min((now - started) / POINT_SLIDE, 1);
+        draw(from + (to - from) * (1 - (1 - t) ** 3));
+        point.current.frame = t < 1 ? requestAnimationFrame(step) : 0;
+      };
+      step(started);
+    } else draw(to);
+
+    // The panel changes height from one tab's menu to the next, and width with the window.
+    const slide = point.current;
+    const observer = new ResizeObserver(() => draw(slide.frame ? (slide.x ?? aim()) : aim()));
+    observer.observe(panel);
+    return () => {
+      cancelAnimationFrame(slide.frame);
+      slide.frame = 0;
+      observer.disconnect();
+    };
+  }, [open, entrance, sectionId, opening]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Tab") return;
@@ -55,8 +146,9 @@ export function MegaMenu({ id, open, section, opening, entrance, status, pathnam
 
   return (
     <div id={id} className={`sh-mega${open ? " is-open" : ""}`} inert={!open} onKeyDown={handleKeyDown}>
-      <div className={`sh-mega-panel${featured.length ? " has-featured" : ""}`}>
+      <div ref={panelRef} className={`sh-mega-panel${featured.length ? " has-featured" : ""}`}>
         <NightSky seed={93} count={46} meteors={false} />
+        <svg className="sh-mega-rim" aria-hidden="true"><path ref={rimRef} /></svg>
         {section && (
           <div className="sh-mega-grid">
             <div className={`sh-mega-intro${enter}`} key={`intro:${stamp}`}>

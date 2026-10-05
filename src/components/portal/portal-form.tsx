@@ -23,6 +23,14 @@ export function usePortalForm(action: FormAction) {
   return { state, pending, onSubmit, errors: state?.fieldErrors ?? {} };
 }
 
+/** For `onInput` on a name field: capitals as it's typed, keeping the cursor where it was. Names are kept in capitals. */
+export function uppercaseInput(event: FormEvent<HTMLInputElement>) {
+  const input = event.currentTarget;
+  const { selectionStart, selectionEnd } = input;
+  input.value = input.value.toUpperCase();
+  input.setSelectionRange(selectionStart, selectionEnd);
+}
+
 const noopSubscribe = () => () => {};
 
 /**
@@ -45,7 +53,7 @@ export function Field({ label, hint, error, children, wide }: { label: string; h
 }
 
 /** `danger` is the destructive action (a delete button), kept at the far left, away from Cancel and Save. */
-export function FormFooter({ state, pending, submitLabel, cancelHref, danger }: { state: FormState; pending: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode }) {
+export function FormFooter({ state, pending, submitLabel, cancelHref, danger, beforeActions }: { state: FormState; pending: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; beforeActions?: ReactNode }) {
   const hydrated = useHydrated();
 
   return (
@@ -53,6 +61,7 @@ export function FormFooter({ state, pending, submitLabel, cancelHref, danger }: 
       {state?.error ? <p className="portal-form-error" role="alert">{state.error}</p> : !danger && <span />}
       {danger}
       <div className="portal-form-actions">
+        {beforeActions}
         <Link className="portal-button is-ghost" href={cancelHref}>Cancel</Link>
         <button className="portal-button" type="submit" disabled={pending || !hydrated}>{pending ? "Saving…" : submitLabel}</button>
       </div>

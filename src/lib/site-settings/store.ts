@@ -25,10 +25,11 @@ export const MAINTENANCE_MESSAGE_MAX = 300;
 /** Until the migration is run, and whenever the settings can't be read: live, with the notice on. */
 export const defaultSettings: SiteSettings = { maintenance: false, maintenanceMessage: null, maintenanceSince: null, cookieNotice: true, cookieNoticeResetAt: null, updatedAt: null, updatedBy: null };
 
-export async function getSiteSettings(): Promise<SiteSettings> {
+export async function getSiteSettings(signal?: AbortSignal): Promise<SiteSettings> {
   if (!isSupabaseConfigured()) return defaultSettings;
 
-  const { data, error } = await createAdminClient().from("site_settings").select("*").maybeSingle();
+  const query = createAdminClient().from("site_settings").select("*");
+  const { data, error } = await (signal ? query.abortSignal(signal) : query).maybeSingle();
   if (error) throw new Error(`Couldn’t load the site settings: ${error.message}`);
   if (!data) return defaultSettings;
 
@@ -49,15 +50,32 @@ const TTL_MS = 15_000;
 /** The maintenance page mustn't hang on a database that's down: that's when it's needed most. */
 const TIMEOUT_MS = 2_500;
 let cached: { value: Promise<SiteSettings>; expiresAt: number } | null = null;
+let lastKnown: SiteSettings | null = null;
 
-/** For pages: settings that can't be read count as the defaults rather than breaking the page. */
+/** For pages: keep the last known settings during an outage, or use defaults on the first read. */
 export function getSiteSettingsForSite(): Promise<SiteSettings> {
   const now = Date.now();
   if (cached && cached.expiresAt > now) return cached.value;
-  const value = Promise.race([getSiteSettings(), new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timed out loading the site settings.")), TIMEOUT_MS))]).catch((error) => {
-    console.error(error);
-    return defaultSettings;
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("Timed out loading the site settings."));
+      controller.abort();
+    }, TIMEOUT_MS);
   });
+  const value = Promise.race([getSiteSettings(controller.signal), timeout])
+    .then((settings) => {
+      // A save or a newer read may have invalidated this request while it was loading.
+      if (cached?.value === value) lastKnown = settings;
+      return settings;
+    })
+    .catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : "Unknown database error.";
+      console.warn(`Site settings unavailable; using ${lastKnown ? "last known settings" : "defaults"}. ${reason}`);
+      return lastKnown ?? defaultSettings;
+    })
+    .finally(() => clearTimeout(timer));
   cached = { value, expiresAt: now + TTL_MS };
   return value;
 }
@@ -71,6 +89,7 @@ export async function saveSiteSettings(changes: Partial<Pick<SiteSettings, "main
   if ("cookieNoticeResetAt" in changes) row.cookie_notice_reset_at = changes.cookieNoticeResetAt;
 
   const { error } = await createAdminClient().from("site_settings").upsert(row, { onConflict: "id" });
-  cached = null;
   if (error) throw new Error(`Couldn’t save the site settings: ${error.message}`);
+  cached = null;
+  lastKnown = null;
 }

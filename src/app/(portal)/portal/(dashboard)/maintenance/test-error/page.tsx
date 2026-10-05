@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireExecutive } from "@/lib/auth/session";
+import { requireAccess } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Error test" };
 
@@ -7,6 +7,6 @@ export const metadata: Metadata = { title: "Error test" };
 // Fallback screens.
 
 export default async function PortalErrorTestPage(): Promise<never> {
-  await requireExecutive();
+  await requireAccess("maintenance");
   throw new Error("Test error, opened from Maintenance → Fallback screens. Nothing is wrong.");
 }

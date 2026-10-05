@@ -3,27 +3,30 @@ import Image from "next/image";
 import Link from "next/link";
 import { UserRound } from "lucide-react";
 import { getDirectory } from "@/lib/data/queries";
-import { chamberRoles, directoryGroups, type DirectoryGroup, type Member } from "@/lib/data/types";
+import { accountPositions, chamberRoles, directoryGroups, type DirectoryEntry, type DirectoryGroup } from "@/lib/data/types";
 
 export const metadata: Metadata = { title: "About us" };
 
 const anchors: Record<DirectoryGroup, string> = { central: "central-comelec", local: "local-comelec", "en-banc": "en-banc", chamber: "chamber-of-chairpersons" };
 
+// "Meet the commission" is read from the portal's Accounts (getDirectory): everyone with an active
+// account and a role. Only the name, role, college and photo are shown here.
+
 /** The role line under a member's name: in the Chamber, Primus or Vicar where they hold it. */
-function roleOf(member: Member, group: DirectoryGroup) {
+function roleOf(member: DirectoryEntry, group: DirectoryGroup) {
   if (group === "chamber" && member.chamberRole) return `${chamberRoles[member.chamberRole]} · Chairperson`;
-  if (group === "en-banc" && member.body === "central") return `${member.position} · Executive Board`;
-  return member.position;
+  if (group === "en-banc" && member.affiliation === "central") return `${member.role} · ${accountPositions["executive-board"]}`;
+  return member.role;
 }
 
-/** Local Comelec members by college, colleges in alphabetical order; each keeps its dragged order. */
-function byCollege(members: Member[]) {
-  const colleges = new Map<string, Member[]>();
-  for (const member of members) colleges.set(member.unit, [...(colleges.get(member.unit) ?? []), member]);
+/** Local Comelec members by college, colleges in alphabetical order; each keeps its order of rank. */
+function byCollege(members: DirectoryEntry[]) {
+  const colleges = new Map<string, DirectoryEntry[]>();
+  for (const member of members) colleges.set(member.college ?? "", [...(colleges.get(member.college ?? "") ?? []), member]);
   return [...colleges].sort(([a], [b]) => a.localeCompare(b));
 }
 
-function MemberGrid({ members, group, showCollege }: { members: Member[]; group: DirectoryGroup; showCollege: boolean }) {
+function MemberGrid({ members, group, showCollege }: { members: DirectoryEntry[]; group: DirectoryGroup; showCollege: boolean }) {
   return (
     <div className="member-grid">
       {members.map((member) => (
@@ -31,7 +34,7 @@ function MemberGrid({ members, group, showCollege }: { members: Member[]; group:
           {member.photoUrl ? <Image className="member-photo" src={member.photoUrl} alt={member.name} width={160} height={160} /> : <span className="member-photo is-empty" aria-hidden="true"><UserRound strokeWidth={1.4} /></span>}
           <strong>{member.name}</strong>
           <span>{roleOf(member, group)}</span>
-          {showCollege && member.unit && <small>{member.unit}</small>}
+          {showCollege && member.college && <small>{member.college}</small>}
         </article>
       ))}
     </div>

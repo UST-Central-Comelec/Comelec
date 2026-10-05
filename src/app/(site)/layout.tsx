@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "../globals.css";
 import "./header.css";
+import "./footer.css";
 import "./cookie-notice.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { CookieNotice } from "@/components/cookie-notice";
+import { FormInputGuard } from "@/components/form-input-guard";
 import { SiteFooter } from "@/components/site-footer";
 import type { Featured } from "@/components/featured-carousel";
 import type { NavStatus, PeriodReading } from "@/components/nav/nav-data";
@@ -17,9 +19,10 @@ import { closingTime, formatClosing, isAccepting, type ApplicationPeriod } from 
 import { getNews } from "@/lib/data/queries";
 import { formatDate, newsCategories } from "@/lib/data/types";
 import { cookieNoticeVersion } from "@/lib/cookie-notice";
-import { getFilingPeriodForSite } from "@/lib/filings/period-store";
+import { listUnitPeriodsForSite } from "@/lib/periods/store";
+import { combinePeriods } from "@/lib/periods/summary";
 import { getSiteSettingsForSite } from "@/lib/site-settings/store";
-import { mono, serif } from "./fonts";
+import { serif } from "./fonts";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -89,21 +92,26 @@ function reading(period: ApplicationPeriod): PeriodReading {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [applicationPeriod, candidacyPeriod, partyPeriod, news, settings] = await Promise.all([getPeriodForApplyPage(), getFilingPeriodForSite("candidacy"), getFilingPeriodForSite("party-registration"), newsCards(), getSiteSettingsForSite()]);
+  // Every unit opens and closes its own; the menu says each is open while any unit has it open.
+  const [applicationPeriod, filings, news, settings] = await Promise.all([getPeriodForApplyPage(), listUnitPeriodsForSite(), newsCards(), getSiteSettingsForSite()]);
+  const candidacyPeriod = combinePeriods(filings.filter((period) => period.kind === "candidacy"));
+  const partyPeriod = combinePeriods(filings.filter((period) => period.kind === "party-registration"));
   // The cards in the menu's Featured carousel, most important first.
   const featured = [...applicationsCard(applicationPeriod), ...news].slice(0, MAX_FEATURED);
   const status: NavStatus = { applications: reading(applicationPeriod), candidacy: reading(candidacyPeriod), parties: reading(partyPeriod) };
   return (
-    // The mono and the serif italic are the navbar's too (labels, accents), so they load on every page.
-    <html lang="en" className={cn("font-sans", geist.variable, mono.variable, serif.variable)}>
+    // The serif italic is the navbar's too (accents), so it loads on every page.
+    // The theme toggle restores the visitor's preference on <html> during hydration.
+    <html lang="en" className={cn("font-sans", geist.variable, serif.variable)} suppressHydrationWarning>
       <body>
+        <FormInputGuard />
         <SiteLoader />
         <SmoothScroll>
           <SiteHeader featured={featured} status={status} />
           {/* Before the page in the tab order, so a keyboard reaches it without crossing the whole page. */}
           {settings.cookieNotice && <CookieNotice version={cookieNoticeVersion(settings.cookieNoticeResetAt)} />}
           {children}
-          <SiteFooter />
+          <SiteFooter status={status} />
         </SmoothScroll>
       </body>
     </html>

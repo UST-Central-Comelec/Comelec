@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SquishTabs } from "@/components/squish-tabs";
 
@@ -66,17 +66,19 @@ export function PeriodStatus({ period, noun = "Applications" }: { period: Banner
 
 /**
  * Black banner across the Apply section: title, the Become a Commissioner / Track application tabs, and the
- * countdown. View mode leaves out the tabs, since they lead off the preview.
+ * countdown on the commissioner form. Tracking uses its own title without recruitment status.
+ * View mode leaves out the tabs, since they lead off the preview.
  */
 export function ApplyBanner({ period, tabs: showTabs = true }: { period: BannerPeriod; tabs?: boolean }) {
+  const isTracking = usePathname() === "/apply/track";
   return (
     <header className="apply-top">
       <div className="apply-top-inner">
         <div className="apply-top-title">
-          <h1>Commissioner application</h1>
+          <h1>{isTracking ? "Track submission" : "Commissioner application"}</h1>
           {showTabs && <SquishTabs tabs={tabs} label="Application" />}
         </div>
-        <PeriodStatus period={period} />
+        {!isTracking && <PeriodStatus period={period} />}
       </div>
     </header>
   );

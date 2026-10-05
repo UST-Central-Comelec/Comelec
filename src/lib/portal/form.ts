@@ -1,4 +1,5 @@
 import type { ZodError } from "zod";
+import { withoutEmoji } from "@/lib/forms/input";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> } | undefined;
 
@@ -13,5 +14,5 @@ export function toFormState(error: ZodError): FormState {
 
 export function text(formData: FormData, name: string) {
   const value = formData.get(name);
-  return typeof value === "string" ? value : "";
+  return typeof value === "string" ? withoutEmoji(value) : "";
 }

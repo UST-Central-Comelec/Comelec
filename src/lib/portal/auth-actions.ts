@@ -1,9 +1,12 @@
 "use server";
 
+import type { FormState } from "./form";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { endAccessFlow } from "@/lib/access-requests/verification";
-import { isLoginConfigured } from "@/lib/auth/session";
+import { revalidatePath } from "next/cache";
+import { ACCOUNT_COOKIE, accountCookieOptions } from "./account-selection";
+import { getPortalMemberships, homeFor, isLoginConfigured } from "@/lib/auth/session";
 import { ACTIVITY_COOKIE, activityCookieOptions, type TimeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
@@ -36,7 +39,20 @@ export async function signInWithGoogle() {
 
 async function endSession() {
   await (await createAuthClient()).auth.signOut({ scope: "local" });
-  (await cookies()).delete({ name: ACTIVITY_COOKIE, path: activityCookieOptions.path });
+  const cookieStore = await cookies();
+  cookieStore.delete({ name: ACTIVITY_COOKIE, path: activityCookieOptions.path });
+  cookieStore.delete({ name: ACCOUNT_COOKIE, path: accountCookieOptions.path });
+}
+
+/** Switch only between enabled memberships of the current Google identity. */
+export async function switchPortalAccount(_state: FormState, formData: FormData): Promise<FormState> {
+  const accountId = formData.get("accountId");
+  const memberships = await getPortalMemberships();
+  const target = memberships.find((account) => account.id === accountId);
+  if (!target) return { error: "This account is no longer available to switch to. Refresh the page and try again." };
+  (await cookies()).set(ACCOUNT_COOKIE, target.id, accountCookieOptions);
+  revalidatePath("/portal", "layout");
+  redirect(homeFor(target));
 }
 
 export async function logout() {

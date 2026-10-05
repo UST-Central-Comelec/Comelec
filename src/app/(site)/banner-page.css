@@ -5,33 +5,34 @@
    custom properties too): a page's stylesheet stays loaded after navigating away, so nothing here may
    reach other pages. */
 
-.bp { --bp-bg: #030305; --bp-text: #f3f1eb; --bp-soft: #c9c7d0; --bp-muted: #a3a1ac; --bp-faint: #7e7c87; --bp-line: rgba(255,255,255,.08); --bp-line-strong: rgba(255,255,255,.15); --bp-gold: #fec30c; --bp-gold-light: #ffe28a; --bp-ok: #3ecf8e; --bp-glass: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.014)); --bp-ease: cubic-bezier(.22,1,.36,1); --bp-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace; --bp-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --bp-wrap: var(--site-max, 1240px); --bp-gutter: var(--site-gutter, 24px); --bp-header: 78px; -webkit-font-smoothing: antialiased; background: var(--bp-bg); color: var(--bp-text); min-height: calc(100svh - var(--bp-header)); overflow: clip; position: relative; }
+/* Night: the page's colours, as tokens. They sit on the page and again on its banner, which keeps them when the rest of the page
+   goes light (Daylight, at the end). */
+.bp, .bp-banner { --bp-bg: #030305; --bp-ink: 255,255,255; --bp-base: 10,10,15; --bp-surface: #0c0c12; --bp-raised: #15151d; --bp-shade: 1; --bp-text: var(--ui-text-on-dark, #f3f1eb); --bp-bright: #fff; --bp-soft: #c9c7d0; --bp-muted: #a3a1ac; --bp-faint: #7e7c87; --bp-placeholder: #6c6a76; --bp-dim: #55535d; --bp-on-bright: var(--ui-on-accent, #0c0b08); --bp-on-bright-muted: rgba(var(--ui-on-accent-rgb, 12,11,8),.56); --bp-on-bright-mark: var(--ui-accent-deep, #7a5d00); --bp-line: rgba(var(--bp-ink),.08); --bp-line-strong: rgba(var(--bp-ink),.15); --bp-gold: var(--ui-accent, #fec30c); --bp-gold-mark: var(--ui-accent, #fec30c); --bp-gold-edge: var(--ui-accent, #fec30c); --bp-gold-rgb: var(--ui-accent-rgb, 254,195,12); --bp-gold-light: var(--ui-accent-soft, #ffe28a); --bp-gold-serif: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--bp-gold) 28%, var(--ui-accent, #f2a900) 52%, var(--bp-gold) 76%, var(--ui-accent-pale, #ffe7a3)); --bp-ok: #3ecf8e; --bp-ok-ink: #7be3b4; --bp-glass: linear-gradient(180deg, rgba(var(--bp-ink),.05), rgba(var(--bp-ink),.014)); --bp-lit: inset 0 1px 0 rgba(255,255,255,.06); --bp-shadow: 0 40px 80px -48px rgba(0,0,0,.9); --bp-shadow-pop: inset 0 1px 0 rgba(255,255,255,.08), 0 30px 80px -20px rgba(0,0,0,.9); --bp-action: var(--bp-gold); --bp-on-action: var(--ui-accent-foreground, #0c0b08); --bp-action-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(var(--ui-accent-rgb, 254,195,12),.75); --bp-action-shadow-hover: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(var(--ui-accent-rgb, 254,195,12),.9), 0 0 0 6px rgba(var(--ui-accent-rgb, 254,195,12),.14); --bp-action-sheen: rgba(255,255,255,.6); }
+.bp { --bp-ease: cubic-bezier(.22,1,.36,1); --bp-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif; --bp-serif: var(--font-serif), "Iowan Old Style", Georgia, serif; --bp-wrap: var(--site-max, 1240px); --bp-gutter: var(--site-gutter, 24px); --bp-header: 78px; -webkit-font-smoothing: antialiased; background: var(--bp-bg); color: var(--bp-text); min-height: calc(100svh - var(--bp-header)); overflow: clip; position: relative; }
 /* Film grain over everything, as on the home page: texture, and it keeps the dark gradients from banding */
 .bp::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 4; }
-.bp ::selection { background: rgba(254,195,12,.32); color: #fff; }
-.bp :focus-visible { outline: 2px solid var(--bp-gold); outline-offset: 3px; }
+.bp ::selection { background: rgba(var(--bp-gold-rgb),.32); color: var(--bp-bright); }
+.bp :focus-visible { outline: 2px solid var(--bp-gold-edge); outline-offset: 3px; }
 
-/* Shared: the frame, mono labels, and the gold serif italic that carries accent words */
+/* Shared: the frame, small capital labels, and the gold serif italic that carries accent words */
 .bp-wrap { margin: 0 auto; max-width: var(--bp-wrap); padding-inline: var(--bp-gutter); position: relative; }
 .bp-body { padding-block: clamp(26px, 3vw, 44px) clamp(80px, 9vw, 140px); }
-.bp-eyebrow { align-items: center; color: var(--bp-muted); display: flex; font: 500 11px/1 var(--bp-mono); gap: 11px; letter-spacing: .2em; margin: 0; text-transform: uppercase; }
-.bp-eyebrow::before { background: var(--bp-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(254,195,12,.16), 0 0 12px rgba(254,195,12,.6); content: ""; flex: none; height: 6px; width: 6px; }
-.bp-title em { animation: bp-sheen 10s linear infinite; background: linear-gradient(100deg, #ffe7a3, var(--bp-gold) 28%, #f2a900 52%, var(--bp-gold) 76%, #ffe7a3) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--bp-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+.bp-eyebrow { align-items: center; color: var(--bp-muted); display: flex; font: 500 11px/1 var(--bp-sans); gap: 11px; margin: 0; text-transform: uppercase; }
+.bp-eyebrow::before { background: var(--bp-gold); border-radius: 2px; box-shadow: 0 0 0 3px rgba(var(--bp-gold-rgb),.16), 0 0 12px rgba(var(--bp-gold-rgb),.6); content: ""; flex: none; height: 6px; width: 6px; }
+.bp-title em { animation: bp-sheen 10s linear infinite; background: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--bp-gold) 28%, var(--ui-accent, #f2a900) 52%, var(--bp-gold) 76%, var(--ui-accent-pale, #ffe7a3)) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--bp-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
 @keyframes bp-sheen { to { background-position: 200% 0; } }
 
-/* Buttons, as on the home page: gold with a sheen that sweeps across on hover, and glass */
-.bp-button { align-items: center; border: 0; border-radius: 999px; cursor: pointer; display: inline-flex; font: inherit; font-size: 14px; font-weight: 550; gap: 10px; isolation: isolate; justify-content: center; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: background-color .3s ease, box-shadow .4s var(--bp-ease), transform .4s var(--bp-ease); white-space: nowrap; }
+/* Actions share the site’s compact, solid button treatment. */
+.bp-button { align-items: center; border: 0; border-radius: 6px; cursor: pointer; display: inline-flex; font: inherit; font-size: 14px; font-weight: 600; gap: 10px; isolation: isolate; justify-content: center; letter-spacing: -.005em; line-height: 1; overflow: hidden; padding: 15px 22px; position: relative; transition: background-color .16s ease, border-color .16s ease, color .16s ease; white-space: nowrap; }
 .bp-button svg { flex: none; }
 .bp-button.is-small { font-size: 13px; gap: 8px; padding: 11px 16px; }
-.bp-button.is-primary { background: var(--bp-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 36px -12px rgba(254,195,12,.75); color: #0c0b08; }
-.bp-button.is-primary::after { background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%); content: ""; inset: 0; position: absolute; transform: translateX(-120%); transition: transform .9s var(--bp-ease); z-index: -1; }
-.bp-button.is-primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 44px -12px rgba(254,195,12,.9), 0 0 0 6px rgba(254,195,12,.14); transform: translateY(-1px); }
-.bp-button.is-primary:hover::after { transform: translateX(120%); }
-.bp-button.is-ghost { background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px var(--bp-line-strong); color: var(--bp-text); }
-.bp-button.is-ghost:hover { background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(254,195,12,.55); }
+.bp-button.is-primary { background: var(--bp-action); box-shadow: none; color: var(--bp-on-action); }
+.bp-button.is-primary:hover { box-shadow: none; transform: none; filter: brightness(.94); }
+.bp-button.is-ghost { background: rgba(var(--bp-ink),.04); box-shadow: inset 0 0 0 1px var(--bp-line-strong, rgba(255,255,255,.18)); color: var(--bp-text); }
+.bp-button.is-ghost:hover { background: rgba(var(--bp-ink),.08); box-shadow: inset 0 0 0 1px var(--bp-line-strong, rgba(255,255,255,.18)); }
 
 /* The banner: a title and a line under the night sky, with a few readings to the right */
-.bp-banner { background: radial-gradient(46% 130% at 88% 0%, rgba(254,195,12,.09), transparent 70%), radial-gradient(44% 130% at 2% 0%, rgba(66,84,190,.18), transparent 72%), linear-gradient(180deg, #030306, #05050a 62%, var(--bp-bg)); border-bottom: 1px solid var(--bp-line); isolation: isolate; padding: clamp(40px, 5vw, 76px) 0 clamp(30px, 3.4vw, 48px); position: relative; }
+.bp-banner { background: radial-gradient(46% 130% at 88% 0%, rgba(var(--bp-gold-rgb),.09), transparent 70%), radial-gradient(44% 130% at 2% 0%, rgba(66,84,190,.18), transparent 72%), linear-gradient(180deg, #030306, #05050a 62%, var(--bp-bg)); border-bottom: 1px solid var(--bp-line); color: var(--bp-text); isolation: isolate; padding: clamp(40px, 5vw, 76px) 0 clamp(30px, 3.4vw, 48px); position: relative; }
 .bp-banner .night-sky { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent); }
 .bp-banner-inner { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 28px clamp(40px, 6vw, 110px); justify-content: space-between; }
 .bp-banner-copy { flex: 1 1 26em; min-width: 0; }
@@ -45,10 +46,10 @@
 .bp-hud > div { padding: 16px 26px 4px 0; }
 .bp-hud > div + div { border-left: 1px solid var(--bp-line); padding-left: 26px; }
 .bp-hud > div:last-child { padding-right: 0; }
-.bp-hud dt { color: var(--bp-faint); font: 500 10px/1.2 var(--bp-mono); letter-spacing: .16em; margin-bottom: 10px; text-transform: uppercase; white-space: nowrap; }
-.bp-hud dd { color: var(--bp-text); font: 500 22px/1 var(--bp-mono); letter-spacing: -.03em; margin: 0; white-space: nowrap; }
+.bp-hud dt { color: var(--bp-faint); font: 500 10px/1.2 var(--bp-sans); margin-bottom: 10px; text-transform: uppercase; white-space: nowrap; }
+.bp-hud dd { color: var(--bp-text); font: 500 22px/1 var(--bp-sans); font-variant-numeric: tabular-nums; letter-spacing: -.03em; margin: 0; white-space: nowrap; }
 @keyframes bp-scan { 0% { opacity: 0; transform: translateX(-100%); } 8%, 42% { opacity: 1; } 50%, 100% { opacity: 0; transform: translateX(340%); } }
-.bp-crumbs { align-items: center; color: var(--bp-faint); display: flex; flex-wrap: wrap; font: 500 11px/1 var(--bp-mono); gap: 10px; letter-spacing: .14em; margin-bottom: clamp(20px, 2.4vw, 30px); text-transform: uppercase; }
+.bp-crumbs { align-items: center; color: var(--bp-faint); display: flex; flex-wrap: wrap; font: 500 11px/1 var(--bp-sans); gap: 10px; margin-bottom: clamp(20px, 2.4vw, 30px); text-transform: uppercase; }
 .bp-crumbs a { align-items: center; color: var(--bp-muted); display: inline-flex; gap: 7px; transition: color .2s ease; }
 .bp-crumbs a:hover { color: var(--bp-gold-light); }
 .bp-crumbs svg { transition: transform .4s var(--bp-ease); }
@@ -62,17 +63,17 @@
 .bp-head { align-items: center; display: flex; gap: 14px; margin: 0 0 16px; }
 .bp-head h2 { color: var(--bp-text); font-size: clamp(19px, 1.6vw, 23px); font-weight: 560; letter-spacing: -.035em; line-height: 1.2; margin: 0; }
 .bp-head i { background: linear-gradient(90deg, var(--bp-line-strong), var(--bp-line) 70%, transparent); flex: 1; height: 1px; min-width: 24px; }
-.bp-head p { color: var(--bp-faint); font: 500 10.5px/1.3 var(--bp-mono); letter-spacing: .14em; margin: 0; text-align: right; text-transform: uppercase; white-space: nowrap; }
+.bp-head p { color: var(--bp-faint); font: 500 10.5px/1.3 var(--bp-sans); margin: 0; text-align: right; text-transform: uppercase; white-space: nowrap; }
 .bp-head p a { color: var(--bp-soft); transition: color .2s ease; }
 .bp-head p a:hover { color: var(--bp-gold-light); }
 
 /* Nothing to show: a quiet scope, still sweeping */
-.bp-empty { align-items: center; background: radial-gradient(60% 80% at 50% 0%, rgba(254,195,12,.07), transparent 70%); border: 1px dashed var(--bp-line-strong); border-radius: 24px; display: flex; flex-direction: column; padding: clamp(48px, 6vw, 84px) 24px; text-align: center; }
+.bp-empty { align-items: center; background: radial-gradient(60% 80% at 50% 0%, rgba(var(--bp-gold-rgb),.07), transparent 70%); border: 1px dashed var(--bp-line-strong); border-radius: 24px; display: flex; flex-direction: column; padding: clamp(48px, 6vw, 84px) 24px; text-align: center; }
 .bp-empty h2 { color: var(--bp-text); font-size: clamp(22px, 2.1vw, 30px); font-weight: 560; letter-spacing: -.04em; margin: 24px 0 0; }
 .bp-empty p { color: var(--bp-muted); font-size: 15px; line-height: 1.65; margin: 10px 0 0; max-width: 32em; }
 .bp-empty-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
-.bp-empty-scope { aspect-ratio: 1; background: repeating-radial-gradient(circle closest-side, transparent 0 calc(33.3% - 1px), var(--bp-line-strong) calc(33.3% - 1px) 33.3%), linear-gradient(var(--bp-line), var(--bp-line)) 50% 0 / 1px 100% no-repeat, linear-gradient(var(--bp-line), var(--bp-line)) 0 50% / 100% 1px no-repeat; border: 1px solid var(--bp-line-strong); border-radius: 50%; overflow: hidden; position: relative; width: 88px; }
-.bp-empty-scope i { animation: bp-spin 4s linear infinite; background: conic-gradient(transparent 0deg 290deg, rgba(254,195,12,.1) 310deg, rgba(254,195,12,.6) 359deg, transparent 360deg); border-radius: 50%; inset: 0; position: absolute; }
+.bp-empty-scope { aspect-ratio: 1; background: repeating-radial-gradient(circle closest-side, transparent 0 calc(33.3% - 1px), var(--bp-line-strong) calc(33.3% - 1px) 33.3%), linear-gradient(var(--bp-line), var(--bp-line)) 50% 0 / 1px 100% no-repeat, linear-gradient(var(--bp-line), var(--bp-line)) 0 50% / 100% 1px no-repeat; border: 1px solid var(--bp-line-strong); border-radius: 3px; overflow: hidden; position: relative; width: 88px; }
+.bp-empty-scope i { animation: none; background: conic-gradient(transparent 0deg 290deg, rgba(var(--bp-gold-rgb),.1) 310deg, rgba(var(--bp-gold-rgb),.6) 359deg, transparent 360deg); border-radius: 50%; inset: 0; position: absolute; }
 @keyframes bp-spin { to { transform: rotate(1turn); } }
 
 @media (max-width: 980px) {
@@ -85,7 +86,6 @@
 	.bp-hud { grid-auto-columns: minmax(max-content, 1fr); }
 	.bp-hud > div { display: flex; flex-direction: column; padding: 14px 12px 4px 0; }
 	.bp-hud > div + div { padding-left: 12px; }
-	.bp-hud dt { letter-spacing: .14em; }
 	.bp-hud dd { font-size: 17px; margin-top: auto; }
 	.bp-head { flex-wrap: wrap; }
 	.bp-head p { white-space: normal; }
@@ -95,3 +95,31 @@
 	.bp *, .bp *::before, .bp *::after { animation: none !important; }
 	.bp-button, .bp-button::after { transition: none; }
 }
+
+/* Daylight (data-theme="light" on <html>, from src/components/site-theme.tsx): the portal's light theme, on the site. A cool,
+   neutral light: the page is a pale grey, panels are plain white, and the grain is put away. The banner keeps the night's colours
+   (it carries them itself, at the top of this file), as do the navbar and the footer, and gold actions sit against cool slate text. Text colours here hold 4.5:1 on the page and on a panel. */
+:root[data-theme="light"] .bp {
+	--bp-bg: var(--ui-surface); --bp-ink: var(--ui-ink-rgb); --bp-base: var(--ui-panel-rgb); --bp-surface: var(--ui-panel); --bp-raised: var(--ui-panel); --bp-shade: .16;
+	--bp-text: var(--ui-text); --bp-bright: var(--ui-bright); --bp-soft: var(--ui-soft); --bp-muted: var(--ui-muted); --bp-faint: var(--ui-faint); --bp-placeholder: var(--ui-placeholder); --bp-dim: var(--ui-dim);
+	--bp-on-bright: #fff; --bp-on-bright-muted: rgba(255,255,255,.62); --bp-on-bright-mark: var(--ui-accent, #fec30c);
+	--bp-gold-mark: var(--ui-accent-mark, #946200); --bp-gold-edge: var(--ui-accent-edge, #b98300); --bp-gold-rgb: var(--ui-accent-rgb, 214,152,0); --bp-gold-light: var(--ui-accent-deep, #7a5100);
+	--bp-gold-serif: linear-gradient(var(--ui-accent-mark), var(--ui-accent-mark));
+	--bp-ok: #1fae70; --bp-ok-ink: #0b7347;
+	--bp-glass: linear-gradient(var(--ui-panel), var(--ui-panel));
+	--bp-lit: 0 1px 2px rgba(0,0,0,.04); --bp-shadow: 0 22px 44px -30px rgba(20,20,45,.2); --bp-shadow-pop: 0 0 0 1px rgba(0,0,0,.04), 0 30px 70px -22px rgba(20,20,45,.3);
+	--bp-action: var(--ui-accent); --bp-on-action: var(--ui-accent-foreground); --bp-action-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 20px -10px rgba(0,0,0,.45);
+	--bp-action-shadow-hover: inset 0 1px 0 rgba(255,255,255,.2), 0 12px 26px -10px rgba(0,0,0,.5), 0 0 0 4px rgba(var(--bp-ink),.1); --bp-action-sheen: rgba(255,255,255,.2);
+	--bp-line: var(--ui-border); --bp-line-strong: var(--ui-border-strong);
+	--bp-lit: inset 0 1px 0 #fff; --bp-shadow: var(--ui-card-shadow);
+}
+:root[data-theme="light"] .bp::after { display: none; }
+/* What can't be said with a token. :where() keeps each of these exactly as strong as the rule it restates, so a hovered or
+   picked state still wins over it. */
+:where([data-theme="light"]) .bp-button.is-ghost { background: var(--ui-panel); }
+:where([data-theme="light"]) .bp-banner .bp-button.is-ghost { background: rgba(var(--bp-ink),.04); }
+
+/* Rounded controls and quiet empty states in the content, outside the banner. */
+:root[data-theme="light"] .bp :is(.bp-body, .nr-story, .st-layout) .bp-button { border-radius: var(--ui-control-radius); }
+:root[data-theme="light"] .bp .bp-empty { background: var(--ui-panel-tint); border: 1px solid var(--ui-border); box-shadow: var(--ui-card-shadow); }
+:root[data-theme="light"] .bp .bp-head h2 { letter-spacing: -.025em; }

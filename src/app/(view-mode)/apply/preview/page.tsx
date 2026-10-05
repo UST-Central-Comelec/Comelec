@@ -3,8 +3,7 @@ import { ApplicationForm } from "@/components/application-form";
 import { ApplyBanner } from "@/components/apply-banner";
 import { withPortalUser } from "@/lib/auth/session";
 import { settle } from "@/lib/portal/settle";
-import { positions, type SlotCounts } from "@/lib/applications/options";
-import { getInterviewsForApplyPage, getPeriodForApplyPage, getSlotsForApplyPage } from "@/lib/applications/apply-cache";
+import { getInterviewsForApplyPage, getPeriodForApplyPage, getUnitSlotsForApplyPage } from "@/lib/applications/apply-cache";
 import { closingTime, formatClosing, isAccepting } from "@/lib/applications/period";
 
 export const metadata: Metadata = { title: "Become a Commissioner (view mode)" };
@@ -14,15 +13,16 @@ export const metadata: Metadata = { title: "Become a Commissioner (view mode)" }
  * period, slots and interview times, open or closed, but skips checks and verification and never submits.
  */
 export default async function ApplyPreviewPage() {
-  const [, [period, slots, interviews]] = await withPortalUser(Promise.all([getPeriodForApplyPage(), settle(getSlotsForApplyPage()), settle(getInterviewsForApplyPage())]));
+  const [, [period, slots, interviews]] = await withPortalUser(Promise.all([getPeriodForApplyPage(), settle(getUnitSlotsForApplyPage()), settle(getInterviewsForApplyPage())]));
   const closesAt = closingTime(period);
 
   return (
     <main className="apply-page">
-      <ApplyBanner tabs={false} period={{ accepting: isAccepting(period), closesAt, closesLabel: closesAt === null ? null : formatClosing(period.closesAt!) }} />
+      <ApplyBanner tabs={false} period={{ accepting: isAccepting(period), closesAt, closesLabel: closesAt === null ? null : formatClosing(new Date(closesAt).toISOString()) }} />
       <ApplicationForm
         preview
-        slots={slots.value ?? (Object.fromEntries(positions.map((position) => [position.id, 0])) as SlotCounts)}
+        slots={slots.value?.[""] ?? {}}
+        unitSlots={slots.value ?? {}}
         interviews={interviews.value ?? []}
         verified={null}
       />

@@ -71,7 +71,8 @@ export function PeriodOverview({
   detail: string;
   closesAt: number | null;
   updated: string | null;
-  cancelAction: () => Promise<void>;
+  /** Left out for an Adviser or Admin, who only reads: there's then nothing to cancel with. */
+  cancelAction?: () => Promise<void>;
   label?: string;
 }) {
   return (
@@ -79,12 +80,12 @@ export function PeriodOverview({
       <div className="period-overview-main">
         <span className="period-overview-state"><i aria-hidden="true" />{stateLabels[state]}</span>
         <h2>{headline}</h2>
-        <p>{detail}</p>
+        {detail && <p>{detail}</p>}
       </div>
       {state !== "closed" && closesAt !== null && (
         <div className="period-overview-side">
           <Countdown closesAt={closesAt} short={state === "closing"} />
-          {state === "closing" && (
+          {state === "closing" && cancelAction && (
             <form action={cancelAction}>
               <CancelButton />
             </form>

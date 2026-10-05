@@ -1,0 +1,94 @@
+:root { --ui-button-radius: 6px; }
+
+/* Light content uses a cool blue-gray canvas and slate neutrals, with UST yellow for actions.
+   Gold used as text is darker for contrast; always-dark sections retain their local palette. */
+:root[data-theme="light"],
+:root:has(.portal-shell[data-theme="light"]) {
+	--ui-accent: #fec30c;
+	--ui-accent-foreground: #111827;
+	--ui-accent-edge: #a17c00;
+	--ui-accent-mark: #756000;
+	--ui-accent-deep: #665400;
+	--ui-accent-soft: #ffe05c;
+	--ui-accent-pale: #fff4b8;
+	--ui-accent-mid: #bd9500;
+	--ui-scale-2: #a17c00;
+	--ui-scale-3: #856800;
+	--ui-scale-4: #6b5500;
+	--ui-scale-5: #514100;
+	--ui-notice: #0891b2;
+	--ui-notice-ink: #0e7490;
+	--ui-on-accent: #111827;
+	--ui-surface: #f1f3f7;
+	--ui-surface-rgb: 241,243,247;
+	--ui-surface-muted: #eceef3;
+	--ui-surface-highlight: #f0f2f6;
+	--ui-text: #20242e;
+	--ui-text-on-dark: #f1f5f9;
+	--ui-bright: #121620;
+	--ui-soft: #454c59;
+	--ui-muted: #535d6d;
+	--ui-faint: #626d7e;
+	--ui-placeholder: #707b8d;
+	--ui-panel: #f6f7fa;
+	--ui-panel-rgb: 246,247,250;
+	--ui-panel-tint: #f8f9fb;
+	--ui-border: #e1e5ec;
+	--ui-border-strong: #d4dae4;
+	--ui-card-radius: 24px;
+	--ui-control-radius: 12px;
+	--ui-card-shadow: 0 2px 4px rgba(20,28,44,.025), 0 18px 40px -28px rgba(20,28,44,.2);
+	--ui-control-shadow: inset 0 1px 0 #fff, 0 1px 3px rgba(20,28,44,.08);
+	--ui-dim: #cbd5e1;
+	--ui-ink-rgb: 32,36,46;
+	--ui-accent-rgb: 254,195,12;
+	--ui-accent-soft-rgb: 255,224,92;
+	--ui-notice-rgb: 8,145,178;
+	--ui-on-accent-rgb: 17,24,39;
+}
+
+/* Dark landing sections, banners and navigation always use gold night colours.
+   Set gold accents locally and reset other inherited light tokens,
+   including menus, search, mobile navigation and collapsed sidebar flyouts. */
+.lp, .sh, .bp-banner, .ev-banner, .ck-hero, .apply-top,
+.portal-sidebar, .portal-hero, .period-overview {
+	--ui-accent: #fec30c;
+	--ui-accent-foreground: #0c0b08;
+	--ui-accent-edge: #fec30c;
+	--ui-accent-mark: #fec30c;
+	--ui-accent-deep: #7a5d00;
+	--ui-accent-soft: #ffe28a;
+	--ui-accent-pale: #ffe7a3;
+	--ui-accent-mid: initial;
+	--ui-scale-2: initial;
+	--ui-scale-3: initial;
+	--ui-scale-4: initial;
+	--ui-scale-5: initial;
+	--ui-notice: initial;
+	--ui-notice-ink: initial;
+	--ui-on-accent: #0c0b08;
+	--ui-surface: initial;
+	--ui-surface-muted: initial;
+	--ui-surface-highlight: initial;
+	--ui-text: initial;
+	--ui-text-on-dark: #f3f1eb;
+	--ui-accent-rgb: 254,195,12;
+	--ui-accent-soft-rgb: 255,226,138;
+	--ui-notice-rgb: initial;
+	--ui-on-accent-rgb: 12,11,8;
+	color-scheme: dark;
+}
+
+/* This older banner uses the global gold alias; resolve it on the banner itself. */
+.apply-top { --gold: var(--ui-accent); }
+
+/* Gold actions on the application receipt and view-mode strip. */
+:root[data-theme="light"] :is(.apply-result-code button, .view-mode-strip) { background: var(--ui-accent); color: var(--ui-accent-foreground); }
+/* This notice inherited blue accents on its dark surface in light mode. */
+:root[data-theme="light"] .cn {
+	--ui-accent: #fff;
+	--ui-accent-foreground: #081426;
+	--ui-accent-soft: #d4d4d4;
+	--ui-accent-pale: #e5e5e5;
+	--ui-accent-rgb: 255,255,255;
+}

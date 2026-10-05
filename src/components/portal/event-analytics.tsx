@@ -63,9 +63,9 @@ function BarChart({ title, rows, note, fold, wide, empty }: { title: string; row
 }
 
 export function EventAnalyticsView({ analytics }: { analytics: EventAnalytics }) {
-  const { total, registered, waitlisted, averageInterest, interest } = analytics;
-  const answered = interest.filter((level) => level.count > 0);
-  const keen = interest.filter((level) => level.value >= 4).reduce((sum, level) => sum + level.share, 0);
+  const { total, registered, waitlisted, verified, medianAge } = analytics;
+  const asked = analytics.requests.reduce((sum, request) => sum + request.count, 0);
+  const waiting = analytics.requests.reduce((sum, request) => sum + request.pending, 0);
 
   return (
     <section className="portal-card portal-analytics portal-event-section" id="analytics" aria-labelledby="analytics-title">
@@ -82,42 +82,25 @@ export function EventAnalyticsView({ analytics }: { analytics: EventAnalytics })
             <div className="is-lead"><dt>Signed up</dt><dd>{total}</dd></div>
             <div><dt>Registered</dt><dd>{registered}</dd></div>
             <div><dt>On the waitlist</dt><dd>{waitlisted}</dd></div>
-            <div><dt>Average interest</dt><dd>{averageInterest === null ? "–" : averageInterest.toFixed(1)}<small>out of 5</small></dd></div>
-            <div><dt>Colleges represented</dt><dd>{analytics.colleges.length}</dd></div>
+            <div><dt>Verified UST accounts</dt><dd>{verified}</dd></div>
+            <div><dt>Median age</dt><dd>{medianAge ?? "–"}</dd></div>
           </dl>
 
           <div className="portal-charts">
-            <figure className="portal-chart is-wide">
-              <figcaption><strong>Interest level</strong><span>{percent(keen)} very or extremely interested</span></figcaption>
-              {/* One bar split by answer, lowest to highest. The legend underneath carries every number. */}
-              <div className="portal-likert" role="img" aria-label={`Interest level: ${interest.map((level) => `${level.label} ${percent(level.share)}`).join(", ")}`}>
-                {answered.map((level) => (
-                  <span key={level.value} className={`portal-level-${level.value}`} style={{ flexGrow: level.count, flexBasis: 0 }}>
-                    <span className="portal-chart-tip"><b>{level.count}</b>{level.label} · {percent(level.share)}</span>
-                  </span>
-                ))}
-              </div>
-              <ol className="portal-likert-legend">
-                {interest.map((level) => (
-                  <li key={level.value} className={`portal-level-${level.value}`}>
-                    <i aria-hidden="true" />
-                    <span>{level.value} · {level.label}</span>
-                    <b>{level.count}<small>{percent(level.share)}</small></b>
-                  </li>
-                ))}
-              </ol>
-            </figure>
-
-            <BarChart title="College or faculty" rows={analytics.colleges} note={plural(analytics.colleges.length, "college")} fold="college" />
-            <BarChart title="Program" rows={analytics.programs} note={plural(analytics.programs.length, "program")} fold="program" />
-            <BarChart title="Year level" rows={analytics.yearLevels} />
+            <BarChart title="University affiliation" rows={analytics.affiliation} />
+            <BarChart title="Attending as" rows={analytics.attending} />
             <BarChart title="Sex" rows={analytics.sex} />
+            <BarChart title="Age" rows={analytics.ages} empty="Nobody gave an age." />
+            <BarChart title="College or faculty" rows={analytics.colleges} note={`UST students · ${plural(analytics.colleges.length, "college")}`} fold="college" empty="No UST students yet." />
+            <BarChart title="Program" rows={analytics.programs} note={plural(analytics.programs.length, "program")} fold="program" empty="No UST students yet." />
+            {analytics.offices.length > 0 && <BarChart title="College, faculty or office" rows={analytics.offices} note="UST faculty and staff" fold="office" />}
+            {analytics.institutions.length > 0 && <BarChart title="University or institution" rows={analytics.institutions} note="From outside UST" fold="institution" />}
+            <BarChart title="Organizations represented" rows={analytics.organizations} note={plural(analytics.organizations.length, "organization")} fold="organization" empty="Nobody came as an organization’s representative." wide />
             <BarChart
-              title="Organization affiliation"
-              rows={analytics.organizations}
-              note={`${plural(analytics.organizations.length, "organization")} · ${analytics.unaffiliated} listed none`}
-              fold="organization"
-              empty="Nobody listed an organization."
+              title="Logistics requests"
+              rows={analytics.requests.map((request) => ({ ...request, label: `${request.label} · ${request.approved} approved, ${request.unavailable} not available, ${request.pending} waiting` }))}
+              note={asked ? `${plural(asked, "request")} · ${waiting} waiting for an answer` : undefined}
+              empty="Nobody asked for anything."
               wide
             />
           </div>

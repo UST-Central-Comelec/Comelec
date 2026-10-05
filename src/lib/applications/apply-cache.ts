@@ -1,9 +1,9 @@
 import "server-only";
 
+import { listUnitPeriodsForSite } from "@/lib/periods/store";
+import { combinePeriods, openBodies } from "@/lib/periods/summary";
 import { getOpenSlots } from "./interviews";
-import { defaultPeriod } from "./period";
-import { getApplicationPeriod } from "./period-store";
-import { getSlots } from "./slots";
+import { getSlots, getUnitSlots } from "./slots";
 
 // The Apply page shows position and interview slot counts from Supabase, which costs a round trip
 // or two on every visit. Those counts rarely change, so the page reuses them for a few seconds.
@@ -26,15 +26,21 @@ function remember<T>(key: string, load: () => Promise<T>): Promise<T> {
   return value;
 }
 
+export const getUnitSlotsForApplyPage = () => remember("unit-position-slots", getUnitSlots);
 export const getSlotsForApplyPage = () => remember("position-slots", getSlots);
 export const getInterviewsForApplyPage = () => remember("interview-slots", getOpenSlots);
 
-/** Whether applications are open. Falls back to the original closing date until 0010 is run. */
-export const getPeriodForApplyPage = () =>
-  remember("period", getApplicationPeriod).catch((error) => {
-    console.error(error);
-    return defaultPeriod;
-  });
+/** Every unit's recruitment period. One that can't be read counts as closed rather than breaking the page. */
+const getRecruitmentPeriods = () => remember("periods", () => listUnitPeriodsForSite("recruitment"));
+
+/**
+ * Whether applications are open, as the site says it in one line: open while any unit is recruiting
+ * (src/lib/periods/summary.ts). Each unit opens and closes its own under Recruitment → Settings.
+ */
+export const getPeriodForApplyPage = async () => combinePeriods(await getRecruitmentPeriods());
+
+/** Which units an applicant can ask to serve in right now. */
+export const getOpenBodiesForApplyPage = async () => openBodies(await getRecruitmentPeriods());
 
 /** Call after anything that changes slot counts or the application period. */
 export function clearApplyPageCache() {

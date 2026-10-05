@@ -46,11 +46,48 @@ export function formatTimeRange(start: string, end: string) {
   return from.slice(-2) === to.slice(-2) ? `${from.slice(0, -3)} – ${to}` : `${from} – ${to}`;
 }
 
+const dayShort = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+
+type Span = Pick<CommissionEvent, "eventDate" | "endDate">;
+const isOneDay = (event: Span) => !event.endDate || event.endDate === event.eventDate;
+
+/** "Tuesday, October 20, 2026", or "October 20 – 22, 2026" / "October 30 – November 2, 2026" for a run of days. */
+export function formatEventDates(event: Span) {
+  if (isOneDay(event)) return formatEventDate(event.eventDate);
+  const [from, to] = [day(event.eventDate), day(event.endDate)];
+  const sameYear = event.eventDate.slice(0, 4) === event.endDate.slice(0, 4);
+  const sameMonth = sameYear && event.eventDate.slice(0, 7) === event.endDate.slice(0, 7);
+  const monthDay = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long", day: "numeric" });
+  if (sameMonth) return `${monthDay.format(from)} – ${to.getUTCDate()}, ${event.endDate.slice(0, 4)}`;
+  if (sameYear) return `${monthDay.format(from)} – ${monthDay.format(to)}, ${event.endDate.slice(0, 4)}`;
+  return `${monthDay.format(from)}, ${event.eventDate.slice(0, 4)} – ${monthDay.format(to)}, ${event.endDate.slice(0, 4)}`;
+}
+
+/** "Tue, Oct 20, 2026", or "Oct 20 – Oct 22, 2026" for a run of days, for tables. */
+export function formatEventDatesShort(event: Span) {
+  if (isOneDay(event)) return formatEventDateShort(event.eventDate);
+  const year = event.endDate.slice(0, 4);
+  return event.eventDate.slice(0, 4) === year ? `${dayShort.format(day(event.eventDate))} – ${dayShort.format(day(event.endDate))}, ${year}` : `${formatEventDateShort(event.eventDate)} – ${formatEventDateShort(event.endDate)}`;
+}
+
+/** "1:00 – 4:00 PM" on one day; "Oct 20, 1:00 PM – Oct 22, 5:00 PM" across several. */
+export function formatEventTimes(event: Span & Pick<CommissionEvent, "startsTime" | "endsTime">) {
+  if (isOneDay(event)) return formatTimeRange(event.startsTime, event.endsTime);
+  return `${dayShort.format(day(event.eventDate))}, ${formatTime(event.startsTime)} – ${dayShort.format(day(event.endDate))}, ${formatTime(event.endsTime)}`;
+}
+
+/** Every day an event runs, first to last, as YYYY-MM-DD; at most 62, so a mistyped year can't fill a calendar. */
+export function daysOf(event: Span) {
+  const days: string[] = [];
+  for (let at = Date.parse(`${event.eventDate}T00:00:00Z`), last = Date.parse(`${event.endDate || event.eventDate}T00:00:00Z`); at <= last && days.length < 62; at += 86_400_000) days.push(new Date(at).toISOString().slice(0, 10));
+  return days;
+}
+
 /** An event's schedule, one row per line that's set: the form's ingress, activity time and egress. */
-export function scheduleRows(event: Pick<CommissionEvent, "ingressTime" | "startsTime" | "endsTime" | "egressTime">): Array<[label: string, value: string]> {
+export function scheduleRows(event: Span & Pick<CommissionEvent, "ingressTime" | "startsTime" | "endsTime" | "egressTime">): Array<[label: string, value: string]> {
   return [
     ...(event.ingressTime ? [["Ingress", formatTime(event.ingressTime)] as [string, string]] : []),
-    ["Activity time", formatTimeRange(event.startsTime, event.endsTime)],
+    ["Activity time", formatEventTimes(event)],
     ...(event.egressTime ? [["Egress", formatTime(event.egressTime)] as [string, string]] : []),
   ];
 }

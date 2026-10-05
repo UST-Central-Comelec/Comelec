@@ -12,10 +12,11 @@ import { NightSky } from "@/components/night-sky";
 import { getPeriodForApplyPage } from "@/lib/applications/apply-cache";
 import { closingTime, formatClosing, isAccepting, type ApplicationPeriod } from "@/lib/applications/period";
 import { cometPillars, principles } from "@/lib/content";
-import { getDocuments, getMembers, getNews } from "@/lib/data/queries";
+import { countDirectory, getDocuments, getNews } from "@/lib/data/queries";
 import { documentKinds, formatDate, newsCategories } from "@/lib/data/types";
-import { getFilingPeriodForSite } from "@/lib/filings/period-store";
-import { mono, serif } from "./fonts";
+import { listUnitPeriodsForSite } from "@/lib/periods/store";
+import { combinePeriods } from "@/lib/periods/summary";
+import { serif } from "./fonts";
 import "./landing.css";
 
 // Rebuilt at most once a minute, so the page follows the application and filing periods, the newsroom,
@@ -86,14 +87,17 @@ function Constellation() {
 }
 
 export default async function Home() {
-  const [applicationPeriod, candidacyPeriod, partyPeriod, news, documents, members] = await Promise.all([
+  const [applicationPeriod, filings, news, documents, members] = await Promise.all([
     getPeriodForApplyPage(),
-    getFilingPeriodForSite("candidacy"),
-    getFilingPeriodForSite("party-registration"),
+    // Every unit opens and closes its own; each reads as open while any unit has it open.
+    listUnitPeriodsForSite(),
     orNothing(getNews()),
     orNothing(getDocuments()),
-    orNothing(getMembers()),
+    // Everyone the Directory lists: the portal accounts with a role.
+    countDirectory().catch(() => 0),
   ]);
+  const candidacyPeriod = combinePeriods(filings.filter((period) => period.kind === "candidacy"));
+  const partyPeriod = combinePeriods(filings.filter((period) => period.kind === "party-registration"));
   const applications = periodInfo(applicationPeriod);
   const closingLabel = applications.closesAt === null ? null : formatClosing(new Date(applications.closesAt).toISOString());
   const candidacy = periodInfo(candidacyPeriod);
@@ -101,7 +105,7 @@ export default async function Home() {
   const latest = news[0];
 
   return (
-    <main className={`lp ${mono.variable} ${serif.variable}`}>
+    <main className={`lp ${serif.variable}`}>
       <RevealOnScroll />
 
       <section className="lp-hero" data-hero aria-labelledby="lp-title">
@@ -297,8 +301,8 @@ export default async function Home() {
               <header className="lp-card-head"><span className="lp-card-index">06 · Directory</span></header>
               <h3 className="lp-card-title is-small"><Link href="/about" className="lp-stretch">The people behind the process</Link></h3>
               <p className="lp-card-copy">
-                {members.length > 0
-                  ? `${plural(members.length, "member")} of the Central and Local Comelec, named and accountable.`
+                {members > 0
+                  ? `${plural(members, "member")} of the Central and Local Comelec, named and accountable.`
                   : "The students entrusted with running fair, credible elections for the Thomasian community."}
               </p>
               <span className="lp-card-foot">Meet the commission <ArrowUpRight size={14} aria-hidden="true" /></span>
