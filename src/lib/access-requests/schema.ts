@@ -61,7 +61,7 @@ export function checkAccessRequest(values: AccessRequestValues) {
   }
   if (!isYearLevelFor(values.college, values.yearLevel)) errors.yearLevel = "Pick a year or grade level from your school’s list.";
   // The role has to be one that position holds in that unit.
-  if (!errors.role && !errors.position && !errors.affiliation && !isRoleFor(values.affiliation as Affiliation, values.position as AccountPosition, values.role.trim())) errors.role = "Pick your role.";
+  if (!errors.role && !errors.position && !errors.affiliation && !isRoleFor(values.affiliation as Affiliation, values.position as AccountPosition, values.role.trim(), values.college)) errors.role = "Pick your role.";
   return errors;
 }
 

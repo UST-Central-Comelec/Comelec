@@ -4,7 +4,6 @@ import { useId, type ReactNode } from "react";
 import { ExternalLink, Trash2 } from "lucide-react";
 import type { AdminInterviewSlot } from "@/lib/applications/interviews";
 import { interviewModes, slotDate, slotDay, slotTimeRange } from "@/lib/applications/interview-format";
-import { divisions } from "@/lib/applications/options";
 import { applicantDisplayName } from "@/lib/applications/name";
 import { deleteInterviewSlot } from "@/lib/portal/interview-actions";
 import { ApplicationModal } from "./application-modal";
@@ -40,7 +39,6 @@ export function InterviewSlotModal({ slot, readOnly, onClose }: {
               <Detail label="Date">{slotDate(slot.startsAt)}</Detail>
               <Detail label="Time">{slotTimeRange(slot.startsAt, slot.durationMinutes)}</Detail>
               <Detail label="Online or Onsite">{interviewModes[slot.mode]}</Detail>
-              <Detail label="Division">{slot.division ? divisions[slot.division].label : "No division"}</Detail>
               <Detail label="Available or Booked">{status}</Detail>
               {slot.location && <Detail label="Location">{slot.location}</Detail>}
             </ReviewModalDetailsGroup>

@@ -5,6 +5,7 @@ import { ArrowUpRight, BookOpenText, History, PencilLine } from "lucide-react";
 import { CodeReader } from "@/components/portal/code-reader";
 import { Signers, formatWhen } from "@/components/portal/code-revision";
 import { TitleWithInfo } from "@/components/portal/info-tip";
+import { SlidingSubtabs } from "@/components/portal/sliding-subtabs";
 import { Notice } from "@/components/portal/notice";
 import { ViewOnlyTag } from "@/components/portal/view-only";
 import { formatClosing } from "@/lib/applications/period";
@@ -88,10 +89,10 @@ export default async function PortalCodePage({ params, searchParams }: PageProps
         </div>
       </section>
 
-      <nav className="portal-subtabs" aria-label={title}>
-        <Link href={home} aria-current={view === "text" ? "page" : undefined}><BookOpenText size={15} strokeWidth={1.8} aria-hidden="true" /> The text</Link>
-        <Link href={`${home}?show=revisions`} aria-current={view === "revisions" ? "page" : undefined}><History size={15} strokeWidth={1.8} aria-hidden="true" /> Revisions{all.length > 0 && <span className="portal-tag">{all.length}</span>}</Link>
-      </nav>
+      <SlidingSubtabs active={view} label={title} scope={`codes:${code}`} items={[
+        { key: "text", href: home, label: <><BookOpenText size={15} strokeWidth={1.8} aria-hidden="true" /> The text</> },
+        { key: "revisions", href: `${home}?show=revisions`, label: <><History size={15} strokeWidth={1.8} aria-hidden="true" /> Revisions{all.length > 0 && <span className="portal-tag">{all.length}</span>}</> },
+      ]} />
 
       {view === "text" ? (
         <CodeReader articles={published.articles} />

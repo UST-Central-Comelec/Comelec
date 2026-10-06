@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
+import { ArrowRight, Bell, CheckCheck } from "lucide-react";
 import type { InboxMessage } from "@/lib/notifications/inbox-rules";
+import { senderLabel } from "@/lib/notifications/inbox-presentation";
+import { documentBodyText, parseDocumentBody } from "@/lib/data/document-body";
+
+const timeFormat = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const panelId = useId();
@@ -12,6 +16,8 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [inboxAvailable, setInboxAvailable] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -27,6 +33,8 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
         if (!response.ok) throw new Error("Unavailable");
         const data = await response.json();
         setMessages(data.messages);
+        setUnread(data.unreadCount);
+        setInboxAvailable(data.inboxAvailable);
         setError(false);
         setLoaded(true);
       } catch {
@@ -61,22 +69,24 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open]);
 
-  const unread = messages.filter((message) => !message.readAt).length;
+  const historyHref = inboxAvailable ? "/portal/apps/inbox?tab=all" : "/portal/notifications";
   return <div className="portal-notifications" ref={container} onBlur={(event) => {
     if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
   }}>
-    <button ref={button} type="button" className="portal-notification-bell" aria-label={`Notifications${unread ? ", unread notifications" : ""}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
-      <Bell size={19} aria-hidden="true" />{unread > 0 && <span className="portal-notification-dot" aria-hidden="true" />}
+    <button ref={button} type="button" className={`portal-notification-bell${unread > 0 ? " has-unread" : ""}`} aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+      <Bell size={16} aria-hidden="true" />{unread > 0 && <span className="portal-notification-dot" aria-hidden="true" />}
     </button>
     {open && <section id={panelId} className="portal-notification-panel" aria-label="Latest notifications">
-      <div className="portal-notification-heading"><strong>Notifications</strong>{unread > 0 && <span>Unread items</span>}</div>
+      <div className="portal-notification-heading"><div><strong>Notifications</strong><p>Your latest updates, at a glance.</p></div>{unread > 0 ? <span className="portal-notification-count">{unread} unread</span> : loaded && !error && <CheckCheck size={18} aria-label="All read" />}</div>
       {error ? <p role="status" className="portal-empty">Notifications are unavailable. Try again shortly.</p>
         : !loaded ? <p className="portal-empty">Loading notifications…</p>
         : !messages.length ? <p className="portal-empty">You’re all caught up.</p>
-        : <ul>{messages.slice(0, 6).map((message) => <li key={message.id}><Link href={`/portal/notifications#message-${message.id}`} className={message.readAt ? undefined : "is-unread"} onClick={() => setOpen(false)}>
-          <strong>{message.title}</strong><span>{message.senderName}</span><time dateTime={message.createdAt}>{new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time>
-        </Link></li>)}</ul>}
-      <Link href="/portal/notifications" className="portal-notification-all" onClick={() => setOpen(false)}>View all notifications</Link>
+        : <ul>{messages.slice(0, 6).map((message) => {
+          return <li key={message.id}><Link href={`${historyHref}#message-${message.id}`} className={message.readAt ? undefined : "is-unread"} onClick={() => setOpen(false)}>
+            <span className="portal-notification-copy"><span className="portal-notification-meta"><span className="portal-notification-unit" title={message.senderName}>{senderLabel(message)}</span><time dateTime={message.createdAt}>{timeFormat.format(new Date(message.createdAt))} PHT</time>{!message.readAt && <span className="portal-notification-item-dot" aria-label="Unread" />}</span><strong>{message.title}</strong><span className="portal-notification-preview">{documentBodyText(parseDocumentBody(message.body))}</span></span>
+          </Link></li>;
+        })}</ul>}
+      <Link href={historyHref} className="portal-notification-all" onClick={() => setOpen(false)}>View all notifications<ArrowRight size={15} aria-hidden="true" /></Link>
     </section>}
   </div>;
 }

@@ -15,10 +15,18 @@ type Unit = { affiliation: AccountAffiliation | ""; position: AccountPosition | 
  * Chairperson". Changing the affiliation keeps the position where the new one has it; the Office
  * for Student Affairs has only Admin, so that's picked for it.
  */
-export function useRoleChoice(initial: Unit & { role: string }) {
+export function useRoleChoice(initial: Unit & { role: string }, college?: string | null) {
   const [affiliation, setOwnAffiliation] = useState(initial.affiliation);
   const [position, setPosition] = useState(initial.position);
-  const [seat, setSeat] = useState(() => (initial.affiliation && initial.position ? rolesFor(initial.affiliation, initial.position).indexOf(initial.role) : -1));
+  const [seat, setSeat] = useState(() => (initial.affiliation && initial.position ? rolesFor(initial.affiliation, initial.position, college).indexOf(initial.role) : -1));
+
+  const [previousUnit, setPreviousUnit] = useState({ affiliation, college });
+  if (previousUnit.affiliation !== affiliation || previousUnit.college !== college) {
+    const previousRoles = previousUnit.affiliation && position ? rolesFor(previousUnit.affiliation, position, previousUnit.college) : [];
+    const nextRoles = affiliation && position ? rolesFor(affiliation, position, college) : [];
+    setSeat(nextRoles.indexOf(previousRoles[seat]));
+    setPreviousUnit({ affiliation, college });
+  }
 
   const setAffiliation = (next: AccountAffiliation) => {
     setOwnAffiliation(next);
@@ -27,13 +35,13 @@ export function useRoleChoice(initial: Unit & { role: string }) {
     else if (!position && positions.length === 1) setPosition(positions[0]);
   };
 
-  const options = affiliation && position ? rolesFor(affiliation, position) : [];
+  const options = affiliation && position ? rolesFor(affiliation, position, college) : [];
   // A position with one role has it; one with none has none.
   const role = options.length === 1 ? options[0] : (options[seat] ?? "");
   const setRole = (next: string) => setSeat(options.indexOf(next));
   const setPositionAndRole = (next: AccountPosition, nextRole: string) => {
     setPosition(next);
-    setSeat(affiliation ? rolesFor(affiliation, next).indexOf(nextRole) : -1);
+    setSeat(affiliation ? rolesFor(affiliation, next, college).indexOf(nextRole) : -1);
   };
 
   return { affiliation, setAffiliation, position, setPosition, role, setRole, setPositionAndRole, options };

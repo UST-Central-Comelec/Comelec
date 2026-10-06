@@ -9,7 +9,7 @@ const ts = require("typescript");
 function load(file, dependencies = {}, unusedImports = false) {
   const source = ts.transpileModule(readFileSync(resolve(file), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const compiled = { exports: {} };
-  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : unusedImports ? {} : require(name), compiled, compiled.exports);
+  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : unusedImports ? {} : require(name), compiled, compiled.exports);
   return compiled.exports;
 }
 

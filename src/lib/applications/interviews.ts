@@ -91,10 +91,10 @@ export async function getSlot(id: string): Promise<InterviewSlot | null> {
   return data ? toSlot(data, 0) : null;
 }
 
-export type NewSlot = { division: DivisionId; startsAt: string; durationMinutes: number; mode: InterviewMode; location: string | null; capacity: number };
+export type NewSlot = { startsAt: string; durationMinutes: number; mode: InterviewMode; location: string | null; capacity: number };
 
 export async function createSlots(slots: NewSlot[], author: string, college = "") {
-  const rows = slots.map((slot) => ({ college, division: slot.division, starts_at: slot.startsAt, duration_minutes: slot.durationMinutes, mode: slot.mode, location: slot.location, capacity: slot.capacity, created_by: author }));
+  const rows = slots.map((slot) => ({ college, division: null, starts_at: slot.startsAt, duration_minutes: slot.durationMinutes, mode: slot.mode, location: slot.location, capacity: slot.capacity, created_by: author }));
   const { error } = await createAdminClient().from("interview_slots").insert(rows);
   if (error) throw new Error(`Couldn’t add the interview slots: ${error.message}`);
 }

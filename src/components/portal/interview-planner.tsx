@@ -5,7 +5,6 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type 
 import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { interviewModes, slotDate, slotDay, slotTimeRange } from "@/lib/applications/interview-format";
 import type { AdminInterviewSlot } from "@/lib/applications/interviews";
-import { divisions, divisionIdsForBody, type DivisionId } from "@/lib/applications/options";
 import type { FormState } from "@/lib/portal/form";
 import { InterviewSlotModal } from "./interview-slot-modal";
 import { InterviewSlotForm } from "./interview-slot-form";
@@ -52,11 +51,10 @@ const sortDays = (days: Iterable<string>) => [...new Set(days)].sort();
  * or remove single days. On touchscreens, tapping toggles days. The form then adds the same slots
  * to every selected day that hasn't passed.
  */
-export function InterviewPlanner({ slots, today, division, initialDay, addAction, readOnly, unit = "", unitOptions }: {
+export function InterviewPlanner({ slots, today, initialDay, addAction, readOnly, unit = "", unitOptions }: {
   slots: AdminInterviewSlot[];
   /** "YYYY-MM-DD" in Manila, from the server, so server and browser agree. */
   today: string;
-  division?: DivisionId;
   initialDay?: string;
   addAction: (state: FormState, formData: FormData) => Promise<FormState>;
   /** For an Adviser or Admin: the calendar and its slots, with nothing to add or delete them with. */
@@ -171,7 +169,7 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
   const capacity = shownSlots.reduce((total, slot) => total + slot.capacity, 0);
   const heading = selected.length === 1 ? slotDate(`${selected[0]}T12:00:00+08:00`) : `${selected.length} days selected`;
   const schedule = useRef<HTMLDivElement>(null);
-  const scheduleKey = JSON.stringify([division, selected, shownSlots.map((slot) => slot.id)]);
+  const scheduleKey = JSON.stringify([selected, shownSlots.map((slot) => slot.id)]);
   const previousScheduleKey = useRef(scheduleKey);
 
   // Animate the committed content once. Repeated renders and data refreshes with the
@@ -203,12 +201,12 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
           <div className="interview-month-weekdays" aria-hidden="true">
             {weekdays.map((name) => <span key={name}>{name.slice(0, 1)}</span>)}
           </div>
-          {/* Animate month navigation, without a second entrance during division changes. */}
+          {/* Animate month navigation, without a second entrance during schedule changes. */}
           <div key={month} className={`interview-month-grid${animateMonth ? " is-changing-month" : ""}`} role="group" aria-label={monthLabel(month)}>
             {monthCells(month).map((cell, index) => {
               if (!cell) return <span key={`blank-${index}`} className="planner-day is-blank" />;
               const cellSlots = byDay.get(cell) ?? [];
-              const cellDivisions = [...new Set(cellSlots.map((slot) => slot.division ?? "none"))];
+              const markers = cellSlots.length ? ["none"] : [];
               const isSelected = selected.includes(cell);
               const previousDay = fromTime(toTime(cell) - DAY_MS);
               const nextDay = fromTime(toTime(cell) + DAY_MS);
@@ -231,10 +229,10 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
                   onKeyDown={onKeyDown}
                 >
                   <span className="planner-day-number">{Number(cell.slice(8))}</span>
-                  {/* One dot per division with slots that day; the count is in the aria-label and the schedule below. */}
+                  {/* A dot marks days with interview slots; the count is in the aria-label and the schedule below. */}
                   <span className="planner-day-dots" aria-hidden="true">
                     <AnimatePresence initial={false} mode="popLayout">
-                      {cellDivisions.map((id) => (
+                      {markers.map((id) => (
                         <motion.i
                           key={id}
                           className={`is-${id}`}
@@ -252,11 +250,7 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
             })}
           </div>
 
-          <footer className="interview-legend" aria-label="Divisions">
-            {divisionIdsForBody(unit ? "local" : "central").filter((id) => !division || id === division).map((id) => (
-              <span key={id}><i className={`is-${id}`} />{divisions[id].label}</span>
-            ))}
-          </footer>
+
         </section>
 
         <section className="portal-card is-flush" aria-live="polite">
@@ -266,7 +260,7 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
           </div>
           <div ref={schedule} className="interview-schedule-content">
               {shownSlots.length === 0 ? (
-                <p className="portal-empty"><CalendarPlus size={18} aria-hidden="true" /> No interview slots {selected.length === 1 ? "on this day" : "on these days"}{division ? ` for the ${divisions[division].label}` : ""}. {formDates.length ? "Add some with the form." : ""}</p>
+                <p className="portal-empty"><CalendarPlus size={18} aria-hidden="true" /> No interview slots {selected.length === 1 ? "on this day" : "on these days"}. {formDates.length ? "Add some with the form." : ""}</p>
               ) : (
                 shownDays.map((day) => (
                   <div key={day} className="interview-schedule-day">
@@ -274,9 +268,8 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
                     <ul className="portal-interview-slots">
                         {byDay.get(day)!.map((slot) => (
                           <li key={slot.id}>
-                            <button type="button" className="portal-interview-row" aria-haspopup="dialog" aria-label={`View interview details for ${slotDate(slot.startsAt)}, ${slotTimeRange(slot.startsAt, slot.durationMinutes)}, ${slot.division ? divisions[slot.division].label : "No division"}`} onClick={() => setReviewId(slot.id)}>
+                            <button type="button" className="portal-interview-row" aria-haspopup="dialog" aria-label={`View interview details for ${slotDate(slot.startsAt)}, ${slotTimeRange(slot.startsAt, slot.durationMinutes)}`} onClick={() => setReviewId(slot.id)}>
                               <strong className="portal-interview-time">{slotTimeRange(slot.startsAt, slot.durationMinutes)}</strong>
-                              <span className={`portal-tag interview-division-tag is-${slot.division ?? "none"}`}>{slot.division ? divisions[slot.division].label : "No division"}</span>
                               <span className="portal-muted">{interviewModes[slot.mode]}</span>
                               <span className={`portal-tag ${slot.booked > 0 ? "is-ok" : ""}`}>{slot.booked > 0 ? "Booked" : "Available"}</span>
                               <span className="portal-list-review" aria-hidden="true"><ChevronRight size={18} strokeWidth={1.8} /></span>
@@ -301,7 +294,7 @@ export function InterviewPlanner({ slots, today, division, initialDay, addAction
             ) : (
               <>
                 <TitleWithInfo as="h2" className="portal-card-title" info="Pick days on the calendar first. With several days selected, the same slot is added to every one of them.">Add interview slots</TitleWithInfo>
-                <InterviewSlotForm unit={unit} unitOptions={unitOptions} action={addAction} division={division} dates={formDates.length ? formDates : [today]} rangeMode={rangeMode} minDate={today} onDateRangeChange={updateDateRange} layout="side" />
+                <InterviewSlotForm unit={unit} unitOptions={unitOptions} action={addAction} dates={formDates.length ? formDates : [today]} rangeMode={rangeMode} minDate={today} onDateRangeChange={updateDateRange} layout="side" />
               </>
             )}
           </section>

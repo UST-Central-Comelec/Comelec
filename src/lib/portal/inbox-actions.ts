@@ -6,14 +6,15 @@ import { z } from "zod";
 import { BUILT_IN_ID, requireEditor, requirePortalUser } from "@/lib/auth/session";
 import { toSummary } from "@/lib/data/accounts";
 import { describeAffiliation } from "@/lib/data/types";
+import { documentBodyText, parseDocumentBody } from "@/lib/data/document-body";
 import { store } from "@/lib/data/store";
 import { announcementRecipients, canAnnounce, canBroadcast } from "@/lib/notifications/inbox-rules";
-import { markMessageRead, publishMessage } from "@/lib/notifications/inbox-store";
+import { deleteInboxAnnouncement, markMessageRead, publishMessage } from "@/lib/notifications/inbox-store";
 import { text, toFormState, type FormState } from "./form";
 
 const schema = z.object({
   title: z.string().trim().min(3, "Add a title of at least 3 characters.").max(160),
-  body: z.string().trim().min(1, "Write your announcement.").max(20000),
+  body: z.string().trim().max(50000, "The announcement is too long.").refine(value => documentBodyText(parseDocumentBody(value)).trim().length > 0, "Write your announcement."),
   audience: z.enum(["unit", "all"]),
 });
 
@@ -30,6 +31,9 @@ export async function sendAnnouncement(_state: FormState, formData: FormData): P
     if (builtIn && (parsed.data.audience === "all" || user.affiliation === "central") && !accounts.some((account) => account.active && account.affiliation === "central" && account.email.trim().toLowerCase() === builtIn)) ids.push(BUILT_IN_ID);
     await publishMessage({ kind: "announcement", title: parsed.data.title, body: parsed.data.body,
       senderName: describeAffiliation(user.affiliation, user.college),
+      senderAffiliation: user.affiliation,
+      senderCollege: user.college,
+      recipientMention: parsed.data.audience === "all" ? "@everyone" : `@${describeAffiliation(user.affiliation, user.college)}`,
       audienceLabel: parsed.data.audience === "all" ? "All units and commissioners" : `${describeAffiliation(user.affiliation, user.college)} commissioners`,
     }, ids);
   } catch (error) {
@@ -47,6 +51,19 @@ export async function readNotification(id: string): Promise<{ error?: string }> 
     await markMessageRead(user, id);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Couldn’t mark the notification as read." };
+  }
+  revalidatePath("/portal", "layout");
+  return {};
+}
+
+/** Removing one's own inbox copy is allowed for viewer accounts too. */
+export async function deleteAnnouncement(id: string): Promise<{ error?: string }> {
+  const user = await requirePortalUser();
+  if (!z.uuid().safeParse(id).success) return { error: "This announcement is unavailable." };
+  try {
+    await deleteInboxAnnouncement(user, id);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Couldn’t delete the announcement." };
   }
   revalidatePath("/portal", "layout");
   return {};

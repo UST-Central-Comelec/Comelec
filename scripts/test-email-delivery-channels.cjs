@@ -12,6 +12,21 @@ function load(file, dependencies) {
   }, compiled, compiled.exports);
   return compiled.exports;
 }
+const documentBody = load('src/lib/data/document-body.ts', { zod: { z } });
+const emailBody = load('src/lib/email/body.ts', {
+  zod: { z },
+  '@/lib/data/document-body': documentBody,
+  './template': load('src/lib/email/template.ts', {}),
+});
+const richMessage = documentBody.serializeDocumentBody([
+  { type: 'text', runs: [{ text: 'Formatted message', bold: true, underline: true }] },
+  { type: 'grid', header: [[{ text: 'Unit' }]], rows: [[[{ text: 'CICS <script>unsafe</script>' }]]] },
+]);
+assert.equal(emailBody.bodySchema.safeParse(richMessage).success, true);
+assert.equal(emailBody.bodySchema.safeParse('::document-body:v1::\n[{"type":"script"}]').success, false);
+assert.equal(emailBody.isEmptyBody(documentBody.serializeDocumentBody([{ type: 'divider' }])), true);
+assert.equal(emailBody.bodySchema.safeParse([{ type: 'paragraph', runs: [{ text: 'Legacy', bold: true }] }]).success, true);
+assert.match(emailBody.bodyDocument([{ type: 'paragraph', runs: [{ text: 'Legacy', bold: true }] }]), /"bold":true/);
 const audience = load('src/lib/email/audience.ts', {
   zod: { z },
   '@/lib/data/accounts': { boardRolesFor: () => [], isCentralRepresentative: () => false, isLocalChairperson: () => false, officeOf: (role) => role },
@@ -65,7 +80,7 @@ const outbox = load('src/lib/email/outbox.ts', {
   '@/lib/supabase/config': { isSupabaseConfigured: () => true },
   '@/lib/supabase/server': { createAdminClient: () => ({ from: () => query() }) },
   './audience': audience,
-  './body': { messageHtml: () => '<p>Message</p>', messageText: () => 'Full message' },
+  './body': emailBody,
   './send': { isEmailConfigured: () => configured, sendEmail: async (email) => { emails.push(email); return emailSuccess; } },
   '@/lib/notifications/inbox-store': { publishMessage: async (message, ids) => {
     inboxes.push({ message, ids });
@@ -73,7 +88,7 @@ const outbox = load('src/lib/email/outbox.ts', {
   } },
 });
 async function send(channels) {
-  row = { id: 'message', status: 'scheduled', subject: 'Announcement', body: [], audience: filter, audience_label: 'All commissioners', sender_name: 'Official', sender_email: 'official@ust.edu.ph', sender_unit: 'CICS', sender_affiliation: 'local', sender_college: 'CICS', ...channels };
+  row = { id: 'message', status: 'scheduled', subject: 'Announcement', title: '', body: [{ type: 'paragraph', runs: [{ text: 'Full message' }] }], audience: filter, audience_label: 'All commissioners', sender_name: 'Official', sender_email: 'official@ust.edu.ph', sender_unit: 'CICS', sender_affiliation: 'local', sender_college: 'CICS', ...channels };
   emails = []; inboxes = [];
   await outbox.deliver('message');
 }
@@ -82,8 +97,9 @@ const actions = load('src/lib/portal/email-actions.ts', {
   '@/lib/applications/period': {},
   '@/lib/auth/session': { requireEditor: async () => ({ id: 'own' }) },
   '@/lib/data/accounts': {}, '@/lib/data/store': {}, '@/lib/data/types': {},
+  '@/lib/data/document-body': load('src/lib/data/document-body.ts', { zod: { z } }),
   '@/lib/email/audience': audience,
-  '@/lib/email/body': {}, '@/lib/email/outbox': outbox, '@/lib/email/send': {},
+  '@/lib/email/body': emailBody, '@/lib/email/outbox': outbox, '@/lib/email/send': {},
   '@/lib/events/options': {}, '@/lib/notifications/inbox-store': {}, './form': {},
 });
 (async () => {
@@ -98,10 +114,18 @@ const actions = load('src/lib/portal/email-actions.ts', {
   assert.equal(emails.length, 1);
   assert.equal(inboxes.length, 1);
   assert.deepEqual(inboxes[0].ids, ['own', 'same-unit-membership']);
-  assert.equal(inboxes[0].message.body, 'Full message');
+  assert.equal(documentBody.documentBodyText(documentBody.parseDocumentBody(inboxes[0].message.body)), 'Full message');
   assert.equal(row.status, 'sent');
   assert.equal(row.deliveries[0].emailSent, true);
   assert.equal(row.deliveries[0].inboxSent, true);
+
+  await send({ send_to_email: true, send_to_inbox: true, body: richMessage });
+  assert.equal(inboxes[0].message.body, richMessage);
+  assert.match(emails[0].html, /<table border="1"/);
+  assert.match(emails[0].html, /<strong>Formatted message<\/strong>/);
+  assert.match(emails[0].html, /&lt;script&gt;unsafe&lt;\/script&gt;/);
+  assert.doesNotMatch(emails[0].html, /<script>/);
+  assert.doesNotMatch(emails[0].text, /::document-body/);
 
   configured = false;
   await send({ send_to_email: false, send_to_inbox: true });

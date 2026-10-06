@@ -35,7 +35,7 @@ export async function approveAccessRequest(id: string, formData: FormData) {
   const affiliation = text(formData, "affiliation");
   const position = text(formData, "position");
   const role = text(formData, "role");
-  if (!isAffiliation(affiliation) || !isCommissionerPosition(position) || !isRoleFor(affiliation, position, role)) done("access-needs-role");
+  if (!isAffiliation(affiliation) || !isCommissionerPosition(position) || !isRoleFor(affiliation, position, role, request.college)) done("access-needs-role");
   const { email, referenceCode, college } = request;
   if (!canManageAccount(manager, { kind: "personal", affiliation, position, college })) done("access-out-of-reach");
 

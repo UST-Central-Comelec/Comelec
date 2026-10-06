@@ -26,7 +26,7 @@ export default async function EditNewsPage({ params }: PageProps<"/portal/news/[
       </header>
       <section className="portal-card">
         <ViewOnly when={readOnly}>
-          <NewsForm action={updateNews.bind(null, post.id)} submitLabel="Save changes" initial={post} danger={<DeleteButton action={deleteNews.bind(null, post.id)} label="Delete post" />} />
+          <NewsForm action={updateNews.bind(null, post.id)} submitLabel="Save changes" initial={post} danger={<DeleteButton action={deleteNews.bind(null, post.id)} label="Delete post" tone="black" />} />
         </ViewOnly>
       </section>
     </main>

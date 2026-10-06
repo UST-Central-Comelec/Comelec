@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowUpRight, EyeOff, Hourglass, LogIn } from "lucide-react";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { NightSky } from "@/components/night-sky";
@@ -208,7 +209,7 @@ export default function CookiePolicyPage() {
             <h2 id="ck-choices-title">Your <em>choices</em></h2>
             <p><strong>Why there’s no “Accept” or “Decline”.</strong> A consent prompt is for cookies a site could do without, such as analytics or advertising. We set none of those, so there’s nothing to decline: each cookie here is needed for something you’ve asked the site to do. If that ever changes, we’ll ask first, and “no” will be as easy to choose as “yes”.</p>
             <p><strong>Clearing or blocking them.</strong> You can delete this site’s cookies and storage, or block them, from your browser’s privacy settings. The public pages work the same without them. Signing in doesn’t: with cookies blocked, you won’t be able to verify your UST account to apply, register for an event, request portal access, or use the portal.</p>
-            <p><strong>Your personal information.</strong> The cookies above hold, at most, your name and UST email. What the commission collects through its forms, and how to ask to access, correct or delete it, is set out in the privacy statement shown before you apply or register, in line with the Data Privacy Act of 2012.</p>
+            <p><strong>Your personal information.</strong> What the commission collects through its forms and portal, and how to ask to access, correct or delete it, is set out in our <Link href="/privacy">privacy statement</Link> and the collection notices shown before you apply or register.</p>
           </section>
 
           <section id="contact" className="ck-section" aria-labelledby="ck-contact-title">

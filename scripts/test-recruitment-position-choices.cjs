@@ -35,7 +35,7 @@ const mocks = {
   "@/lib/applications/actions": { submitApplication: () => {} },
   "@/lib/applications/verification-actions": {},
   "@/lib/applications/receipt-image": {},
-  "@/components/portal/portal-form": { useHydrated: () => true },
+  "@/components/portal/portal-form": { useHydrated: () => true, usePortalForm: () => ({ onSubmit: () => {}, errors: {}, pending: false }), FormFooter: emptyComponent },
   "@/components/combobox": { Combobox: emptyComponent },
   "@/components/facebook-profile-input": { FacebookProfileInput: emptyComponent },
   "@/components/interview-picker": { InterviewPicker: emptyComponent },
@@ -51,6 +51,7 @@ function load(file) {
   new Function("require", "module", "exports", source)((name) => {
     if (Object.hasOwn(mocks, name)) return mocks[name];
     if (name.startsWith("@/")) return load(`src/${name.slice(2)}.ts`);
+    if (name === "./portal-form") return mocks["@/components/portal/portal-form"];
     if (name.startsWith(".")) return load(path.resolve(path.dirname(file), `${name}.ts`));
     return require(name);
   }, compiled, compiled.exports);
@@ -58,9 +59,8 @@ function load(file) {
   return compiled.exports;
 }
 const { ApplicationForm } = load("src/components/application-form.tsx");
-const { divisions, colleges } = load("src/lib/applications/options.ts");
-const division = Object.keys(divisions)[0];
-const [openPosition, closedPosition] = Object.keys(divisions[division].positions);
+const { positionsForUnit, colleges } = load("src/lib/applications/options.ts");
+const [openPosition, closedPosition] = positionsForUnit().map(({ id }) => id);
 const college = colleges[0];
 const base = { slots: { [openPosition]: 2 }, interviews: [], verified: null, bodies: { central: true, colleges: [college] } };
 const render = (props) => {
@@ -76,7 +76,7 @@ function find(tree, predicate) {
   }
 }
 const field = (tree, name, value) => find(tree, (item) => item.props.name === name && (value === undefined || item.props.value === value));
-const divisionChoice = (tree) => find(tree, (item) => item.props.id === division && typeof item.props.onSelect === "function");
+const divisionChoice = (tree) => field(tree, "division");
 const text = (tree) => renderToStaticMarkup(tree);
 
 let tree = render(base);
@@ -84,28 +84,25 @@ assert.equal(divisionChoice(tree), undefined, "Do not offer divisions before a u
 assert.match(text(tree), /Select where you’d like to serve/);
 field(tree, "preferredBody", "central").props.onChange();
 tree = render(base);
-assert.ok(divisionChoice(tree), "Selecting an open Central unit offers divisions");
-divisionChoice(tree).props.onSelect();
+assert.equal(divisionChoice(tree), undefined, "Positions have no division selection");
 tree = render(base);
 assert.ok(field(tree, "position", openPosition));
 assert.equal(field(tree, "position", closedPosition), undefined, "Full positions are hidden");
-assert.equal((text(tree).match(/name="division"/g) ?? []).length, 1, "Only divisions with openings are offered");
-assert.match(text(tree), /1 position · 2 slots open/);
+assert.equal((text(tree).match(/name="division"/g) ?? []).length, 0, "No division grouping is offered");
+assert.match(text(tree), /2 slots open/);
 field(tree, "position", openPosition).props.onChange();
 
-// Changing unit clears position and division selections.
+// Changing unit clears the position selection.
 const centralWithCollege = { ...base, preset: { body: "central", college } };
 states = [];
 tree = render(centralWithCollege);
-divisionChoice(tree).props.onSelect();
 tree = render(centralWithCollege);
 field(tree, "position", openPosition).props.onChange();
 tree = render(centralWithCollege);
 field(tree, "preferredBody", "local").props.onChange();
 tree = render(centralWithCollege);
-assert.equal(divisionChoice(tree).props.checked, false);
-assert.equal(field(tree, "position", openPosition), undefined);
-divisionChoice(tree).props.onSelect();
+assert.equal(divisionChoice(tree), undefined);
+assert.equal(field(tree, "position", openPosition).props.checked, false);
 tree = render(centralWithCollege);
 assert.ok(field(tree, "position", openPosition), "An open Local unit offers positions");
 find(tree, (item) => item.props.name === "college").props.onChange(colleges[1]);
@@ -137,19 +134,17 @@ states = [];
 tree = render({ ...centralWithCollege, verified: { commissionAccounts: { central: true, colleges: [] } } });
 assert.equal(divisionChoice(tree), undefined, "An ineligible preset must not expose positions");
 field(tree, "preferredBody", "local").props.onChange();
-assert.ok(divisionChoice(render({ ...centralWithCollege, verified: { commissionAccounts: { central: true, colleges: [] } } })), "Existing Central accounts may still select their open Local unit");
+assert.ok(field(render({ ...centralWithCollege, verified: { commissionAccounts: { central: true, colleges: [] } } }), "position", openPosition), "Existing Central accounts may still select their open Local unit");
 // Each unit offers its own counts, and a Local unit never inherits Central's vacancies.
 const localPosition = closedPosition;
 const scoped = { ...centralWithCollege, unitSlots: { "": { [openPosition]: 2 }, [college]: { [localPosition]: 1 } } };
 states = [];
 tree = render(scoped);
-divisionChoice(tree).props.onSelect();
 tree = render(scoped);
 assert.ok(field(tree, "position", openPosition));
 assert.equal(field(tree, "position", localPosition), undefined);
 field(tree, "preferredBody", "local").props.onChange();
 tree = render(scoped);
-divisionChoice(tree).props.onSelect();
 tree = render(scoped);
 assert.ok(field(tree, "position", localPosition), "Local displays its own open position");
 assert.equal(field(tree, "position", openPosition), undefined, "Central's position is not offered in Local");
@@ -162,7 +157,7 @@ states = [3];
 tree = render({ ...scoped, preset: { body: "local", college }, unitSlots: {} });
 assert.match(text(tree), /We can’t offer you any positions right now/);
 
-// Central Division belongs only to the selected Local unit.
+// The assistant to the Central Representative belongs only to the selected Local unit.
 const centralAssistant = "ea-central-representative";
 const withCentralDivision = { ...centralWithCollege, unitSlots: { "": { [openPosition]: 2, [centralAssistant]: 5 }, [college]: { [centralAssistant]: 1 } } };
 states = [3];
@@ -171,29 +166,26 @@ const centralDivisionChoice = (element) => find(element, (item) => item.props.id
 assert.equal(centralDivisionChoice(tree), undefined, "Central Comelec does not offer the Local Central Division");
 field(tree, "preferredBody", "local").props.onChange();
 tree = render(withCentralDivision);
-assert.ok(centralDivisionChoice(tree), "Local offers Central Division when its own position is open");
-centralDivisionChoice(tree).props.onSelect();
+assert.equal(centralDivisionChoice(tree), undefined, "Local positions are offered without division grouping");
 tree = render(withCentralDivision);
 assert.ok(field(tree, "position", centralAssistant), "Local applicants can choose the assistant to their Central Representative");
 field(tree, "preferredBody", "central").props.onChange();
 assert.equal(field(render(withCentralDivision), "position", centralAssistant), undefined, "Changing body clears the Local-only position");
 
-// Applicants see interview times for their chosen unit as well as their division.
+// Applicants see all interview times for their chosen unit.
 const interviewProps = { ...centralWithCollege, interviews: [
-  { id: "central-interview", division, college: "" },
-  { id: "local-interview", division, college },
-  { id: "other-interview", division, college: colleges[1] },
+  { id: "central-interview", division: "operations", college: "" },
+  { id: "local-interview", division: "legal", college },
+  { id: "other-interview", division: "operations", college: colleges[1] },
 ] };
 states = [3];
 tree = render(interviewProps);
-divisionChoice(tree).props.onSelect();
 tree = render(interviewProps);
 const picker = (element) => find(element, (item) => Array.isArray(item.props.slots) && Object.hasOwn(item.props, "invalid"));
 assert.deepEqual(picker(tree).props.slots.map((slot) => slot.id), ["central-interview"]);
 field(tree, "preferredBody", "local").props.onChange();
 tree = render(interviewProps);
-divisionChoice(tree).props.onSelect();
-assert.deepEqual(picker(render(interviewProps)).props.slots.map((slot) => slot.id), ["local-interview"], "Local sees only its own division's interviews");
+assert.deepEqual(picker(render(interviewProps)).props.slots.map((slot) => slot.id), ["local-interview"], "Local sees all of its own unit's interviews");
 
 // Rapid clicks must schedule one departure and one arrival, with navigation locked until both finish.
 const originalWindow = global.window;
@@ -249,3 +241,23 @@ try {
   global.clearTimeout = originalClearTimeout;
 }
 console.log("Unit selection, open positions, notices, selection resets, and single step transition checks passed.");
+
+// Slot management uses the same flat, unit-specific choices as the application form.
+const { RecruitmentForm } = load("src/components/portal/recruitment-form.tsx");
+states = []; cursor = 0;
+const pharmacyUnit = "Faculty of Pharmacy";
+const recruitment = RecruitmentForm({ action: () => {}, slots: { "ea-finance-officer": 3 }, unit: pharmacyUnit });
+const markup = text(recruitment);
+assert.match(markup, /Executive Assistant to the Finance Head/);
+assert.match(markup, /Executive Assistant to the Internal Public Information Officer/);
+assert.match(markup, /Executive Assistant to the External Public Information Officer/);
+assert.doesNotMatch(markup, /Division|recruitment-division/);
+assert.equal(field(recruitment, "slots-ea-finance-officer").props.value, "3");
+assert.equal((markup.match(/type="number"/g) ?? []).length, positionsForUnit(pharmacyUnit).length);
+const pharmacyPosition = positionsForUnit(pharmacyUnit).find((choice) => choice.role === "Internal Public Information Officer");
+const pharmacyProps = { ...base, preset: { body: "local", college: pharmacyUnit }, bodies: { central: true, colleges: [pharmacyUnit] }, unitSlots: { [pharmacyUnit]: { [pharmacyPosition.id]: 1, "ea-public-information-officer": 4 } } };
+states = [3]; tree = render(pharmacyProps);
+assert.ok(field(tree, "position", pharmacyPosition.id));
+assert.equal(field(tree, "position", "ea-public-information-officer"), undefined, "Obsolete offices do not expose vacancies");
+assert.equal(field(tree, "division"), undefined);
+console.log("Flat recruitment slot controls and Pharmacy-specific application choices passed.");

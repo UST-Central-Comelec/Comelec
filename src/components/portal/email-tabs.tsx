@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SlidingSubtabs } from "./sliding-subtabs";
 import { Inbox, PenLine, Zap } from "lucide-react";
 
 /**
@@ -8,12 +8,10 @@ import { Inbox, PenLine, Zap } from "lucide-react";
  */
 export function EmailTabs({ current, waiting = 0, compose = true }: { current: "compose" | "outbox" | "automatic"; waiting?: number; compose?: boolean }) {
   return (
-    <nav className="portal-subtabs" aria-label="Email Sender">
-      {compose && <Link href="/portal/apps/email" aria-current={current === "compose" ? "page" : undefined}><PenLine size={15} strokeWidth={1.8} aria-hidden="true" /> Compose</Link>}
-      <Link href="/portal/apps/email/outbox" aria-current={current === "outbox" ? "page" : undefined}>
-        <Inbox size={15} strokeWidth={1.8} aria-hidden="true" /> Outbox{waiting > 0 && <span className="portal-tag is-gold">{waiting} scheduled</span>}
-      </Link>
-      <Link href="/portal/apps/email/automatic" aria-current={current === "automatic" ? "page" : undefined}><Zap size={15} strokeWidth={1.8} aria-hidden="true" /> Automatic</Link>
-    </nav>
+    <SlidingSubtabs active={current} label="Email Sender" scope="email-sender" items={[
+      ...(compose ? [{ key: "compose", href: "/portal/apps/email", label: <><PenLine size={15} strokeWidth={1.8} aria-hidden="true" /> Compose</> }] : []),
+      { key: "outbox", href: "/portal/apps/email/outbox", label: <><Inbox size={15} strokeWidth={1.8} aria-hidden="true" /> Outbox{waiting > 0 && <span className="portal-tag is-gold">{waiting} scheduled</span>}</> },
+      { key: "automatic", href: "/portal/apps/email/automatic", label: <><Zap size={15} strokeWidth={1.8} aria-hidden="true" /> Automatic</> },
+    ]} />
   );
 }

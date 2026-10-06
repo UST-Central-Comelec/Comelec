@@ -4,8 +4,8 @@ import { toSummary } from "@/lib/data/accounts";
 import { store } from "@/lib/data/store";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { inboxRecipientsOf, recipientsOf, toAudience, type Audience, type Reach } from "./audience";
-import { messageHtml, messageText, type Body } from "./body";
+import { audienceMention, inboxRecipientsOf, recipientsOf, toAudience, type Audience, type Reach } from "./audience";
+import { messageHtml, messageText, messageInboxBody, type MessageBody } from "./body";
 import { isEmailConfigured, sendEmail } from "./send";
 import { publishMessage } from "@/lib/notifications/inbox-store";
 
@@ -23,7 +23,7 @@ export type OutboxEmail = {
   id: string;
   subject: string;
   title: string;
-  body: Body;
+  body: MessageBody;
   audience: Audience;
   audienceLabel: string;
   status: OutboxStatus;
@@ -54,7 +54,7 @@ const toEmail = (row: Row): OutboxEmail => ({
   id: row.id as string,
   subject: row.subject as string,
   title: row.title as string,
-  body: row.body as Body,
+  body: row.body as MessageBody,
   audience: toAudience(row.audience),
   audienceLabel: row.audience_label as string,
   status: row.status as OutboxStatus,
@@ -183,8 +183,9 @@ export async function deliver(id: string) {
     let inboxSent = false;
     if (email.sendToInbox) {
       try {
-        await publishMessage({ kind: "announcement", title: email.subject, body: text,
+        await publishMessage({ kind: "announcement", title: email.subject, body: messageInboxBody(email),
           senderName: `${email.senderName} · ${email.senderUnit}`, audienceLabel: email.audienceLabel,
+          senderAffiliation: email.senderAffiliation, senderCollege: email.senderCollege, recipientMention: audienceMention(email.audience),
         }, inboxRecipients.map((person) => person.id));
         inboxSent = true;
       } catch (error) {

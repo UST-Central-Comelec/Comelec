@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 import { Eye } from "lucide-react";
 import { archiveKinds, documentKinds, type OfficialDocument } from "@/lib/data/types";
 import type { FormState } from "@/lib/portal/form";
+import { DatePicker } from "./date-picker";
 import { Dropdown } from "./dropdown";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 import { DocumentBodyField, DocumentBodyPreview } from "./document-body-field";
@@ -26,7 +27,7 @@ export function DocumentForm({ action, initial, submitLabel, danger, canUpload, 
           <Dropdown name="kind" defaultValue={initial.kind} options={archiveKinds.map(value => ({ value, label: documentKinds[value] }))} />
         </Field>
         <Field label="Date issued" error={errors.date}>
-          <input name="date" type="date" defaultValue={initial.date} required />
+          <DatePicker name="date" defaultValue={initial.date} invalid={Boolean(errors.date)} required />
         </Field>
         <Field label="Title" error={errors.title} wide>
           <input name="title" defaultValue={initial.title} maxLength={200} required />

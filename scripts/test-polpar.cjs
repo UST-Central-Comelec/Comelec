@@ -15,7 +15,11 @@ function load(file, dependencies = {}) {
   return compiled.exports;
 }
 
-const options = load("src/lib/applications/options.ts");
+const types = load("src/lib/data/types.ts");
+const options = load("src/lib/applications/options.ts", {
+  "@/lib/data/types": types,
+  "@/lib/data/local-roles": load("src/lib/data/local-roles.ts", { "./types": types }),
+});
 const content = load("src/lib/polpar/content.ts");
 const schema = load("src/lib/polpar/schema.ts", { "@/lib/applications/options": options });
 const period = load("src/lib/applications/period.ts");

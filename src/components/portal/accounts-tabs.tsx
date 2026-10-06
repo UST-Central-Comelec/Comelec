@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SlidingSubtabs } from "./sliding-subtabs";
 import { CalendarClock, SlidersHorizontal, UserCog } from "lucide-react";
 
 /**
@@ -10,10 +10,10 @@ import { CalendarClock, SlidersHorizontal, UserCog } from "lucide-react";
 export function AccountsTabs({ current, showBoardTabs }: { current: "accounts" | "access-control" | "expiration"; showBoardTabs: boolean }) {
   if (!showBoardTabs) return null;
   return (
-    <nav className="portal-subtabs" aria-label="Accounts">
-      <Link href="/portal/accounts" aria-current={current === "accounts" ? "page" : undefined}><UserCog size={15} strokeWidth={1.8} aria-hidden="true" /> Accounts</Link>
-      <Link href="/portal/accounts/access-control" aria-current={current === "access-control" ? "page" : undefined}><SlidersHorizontal size={15} strokeWidth={1.8} aria-hidden="true" /> Access Control</Link>
-      <Link href="/portal/accounts/expiration" aria-current={current === "expiration" ? "page" : undefined}><CalendarClock size={15} strokeWidth={1.8} aria-hidden="true" /> Expiration</Link>
-    </nav>
+    <SlidingSubtabs active={current} label="Accounts" scope="accounts" items={[
+      { key: "accounts", href: "/portal/accounts", label: <><UserCog size={15} strokeWidth={1.8} aria-hidden="true" /> Accounts</> },
+      { key: "access-control", href: "/portal/accounts/access-control", label: <><SlidersHorizontal size={15} strokeWidth={1.8} aria-hidden="true" /> Access Control</> },
+      { key: "expiration", href: "/portal/accounts/expiration", label: <><CalendarClock size={15} strokeWidth={1.8} aria-hidden="true" /> Expiration</> },
+    ]} />
   );
 }

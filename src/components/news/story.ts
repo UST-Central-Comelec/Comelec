@@ -1,4 +1,5 @@
 import type { NewsPost } from "@/lib/data/types";
+import { newsContentText } from "@/lib/data/news-content";
 
 /** A post as the lists show it: what a row and the search need, and no more. */
 export type Story = Pick<NewsPost, "id" | "title" | "category" | "date" | "excerpt" | "featured"> & {
@@ -12,14 +13,14 @@ export function toStories(posts: NewsPost[]): Story[] {
     title: post.title,
     category: post.category,
     date: post.date,
-    excerpt: post.excerpt,
+    excerpt: newsContentText(post.excerpt),
     featured: post.featured,
     minutes: readingMinutes(post.body || post.excerpt),
   }));
 }
 
 export function readingMinutes(text: string) {
-  return Math.max(1, Math.round(text.split(/\s+/).filter(Boolean).length / 220));
+  return Math.max(1, Math.round(newsContentText(text).split(/\s+/).filter(Boolean).length / 220));
 }
 
 /** Where a post lives on the website: explainers on the Election Explainer, everything else in News. */

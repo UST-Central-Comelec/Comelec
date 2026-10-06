@@ -6,19 +6,20 @@ import { formatClosing, fromManilaInput } from "@/lib/applications/period";
 import { unitAbbreviations } from "@/lib/applications/options";
 import { accountPositions } from "@/lib/data/types";
 import { audienceBodies, audiencePositions, audienceRoles, describeAudience, describeUnit, localUnit, matchedPeople, type Audience, type AudienceGroup, type Person, type Reach } from "@/lib/email/audience";
-import { bodyEditorHtml, isEmptyBody, messageHtml, type Body, type Sender } from "@/lib/email/body";
+import { bodyDocument, isEmptyBody, messageHtml, type MessageBody, type Sender } from "@/lib/email/body";
 import { LOGO_PATH } from "@/lib/email/template";
 import type { EmailFormState } from "@/lib/portal/email-actions";
 import type { DropdownOption } from "./dropdown";
+import { DateTimePicker } from "./date-time-picker";
 import { MultiDropdown } from "./multi-dropdown";
-import { EmailEditor } from "./email-editor";
+import { DocumentBodyField } from "./document-body-field";
 import { EmailPreview } from "./email-preview";
 import { InfoTip } from "./info-tip";
 import { useHydrated } from "./portal-form";
 
 type Action = (state: EmailFormState, formData: FormData) => Promise<EmailFormState>;
 
-export type ComposerDraft = { subject: string; title: string; body: Body; audience: Audience; sendToEmail?: boolean; sendToInbox?: boolean };
+export type ComposerDraft = { subject: string; title: string; body: MessageBody; audience: Audience; sendToEmail?: boolean; sendToInbox?: boolean };
 
 /** "Who": the positions, then the commission's two bodies. */
 const groupOptions: DropdownOption[] = [...Object.entries(audiencePositions).map(([value, label]) => ({ value, label, group: "Positions" })), ...Object.entries(audienceBodies).map(([value, label]) => ({ value, label, group: "Bodies" }))];
@@ -57,7 +58,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
   const [audience, setAudience] = useState<Audience>(draft.audience);
   const [subject, setSubject] = useState(draft.subject);
   const [title, setTitle] = useState(draft.title);
-  const [body, setBody] = useState<Body>(draft.body);
+  const [body, setBody] = useState(() => bodyDocument(draft.body));
   const [when, setWhen] = useState<"now" | "later">("now");
   const [sendAt, setSendAt] = useState(sendAtDefault);
   const [sendToEmail, setSendToEmail] = useState(draft.sendToEmail ?? true);
@@ -179,8 +180,8 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
               {errors.title && <span className="portal-field-error">{errors.title}</span>}
             </label>
             <div className={`portal-field is-wide${errors.body ? " has-error" : ""}`}>
-              <span className="portal-field-label" id={`${id}-body`}>Body<InfoTip>Select words and use the toolbar to make them bold, italic or a link, or to start a bulleted or numbered list. Pasted text comes in plain.</InfoTip></span>
-              <EmailEditor initialHtml={bodyEditorHtml(draft.body)} onChange={setBody} labelledBy={`${id}-body`} invalid={Boolean(errors.body)} />
+              <span className="portal-field-label" id={`${id}-body`}>Message<InfoTip>Use the Documents editor to format your message, add links and lists, or insert tables. Open Window for more space.</InfoTip></span>
+              <DocumentBodyField value={body} onChange={(value) => { setBody(value); setArmed(false); }} label="Message editor" windowTitle="Edit message" invalid={Boolean(errors.body)} />
               {errors.body && <span className="portal-field-error">{errors.body}</span>}
             </div>
           </div>
@@ -213,7 +214,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
             </div>
             {when === "later" && (
               <div className="portal-setting-inline">
-                <input className="portal-input" type="datetime-local" aria-label="Date and time it goes out, Manila time" value={sendAt} min={sendAtMin} onChange={(event) => setSendAt(event.target.value)} aria-invalid={Boolean(errors.sendAt)} />
+                <DateTimePicker label="Date and time it goes out, Manila time" value={sendAt} min={sendAtMin} onChange={setSendAt} invalid={Boolean(errors.sendAt)} required />
                 <span className="portal-muted">Manila time<InfoTip>It goes to whoever matches the recipients at that time, so people added to the portal before then get it too. You can cancel it from the Outbox until it starts sending.</InfoTip></span>
               </div>
             )}

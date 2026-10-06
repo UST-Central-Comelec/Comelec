@@ -13,6 +13,7 @@ function load(file) {
   const source = ts.transpileModule(fs.readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const compiled = { exports: {} };
   new Function("require", "module", "exports", source)((name) => {
+    if (name.endsWith(".css")) return {};
     if (name.startsWith("@/") || name.startsWith(".")) {
       const base = name.startsWith("@/") ? path.resolve("src", name.slice(2)) : path.resolve(path.dirname(file), name);
       return load(fs.existsSync(`${base}.tsx`) ? `${base}.tsx` : `${base}.ts`);

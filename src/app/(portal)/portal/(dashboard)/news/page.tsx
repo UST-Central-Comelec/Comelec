@@ -36,7 +36,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
                   <tr key={post.id}>
                     <td>
                       <Link className="portal-row-title" href={`/portal/news/${post.id}`}>{post.title}</Link>
-                      {post.featured && <span className="portal-tag is-gold"><Star size={11} /> Featured</span>}
+                      {post.featured && <span className="portal-featured-star" role="img" aria-label="Featured" title="Featured"><Star size={16} fill="currentColor" aria-hidden="true" /></span>}
                     </td>
                     <td><span className="portal-tag">{newsCategories[post.category]}</span></td>
                     <td className="portal-muted">{post.category === "explainer" ? "Election Explainer" : "News"}</td>

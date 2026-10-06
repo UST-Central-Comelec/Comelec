@@ -23,7 +23,7 @@ import { sendApplicationEmail } from "./email-log";
 import { describeSlot, type InterviewMode } from "./interview-format";
 import { applicantName, isMiddleNameColumnMissing } from "./name";
 import { getOpenSlots } from "./interviews";
-import { divisions, preferredBodies, retentionCutoff, yearLevels, type DivisionId } from "./options";
+import { positionsForUnit, preferredBodies, retentionCutoff, yearLevels } from "./options";
 import { newReferenceCode, parseReferenceCode } from "./reference";
 import { applicationFields, checkFields, closedBodyError, declaredConflicts, readApplication, type ApplicationField } from "./schema";
 import { getSlots } from "./slots";
@@ -86,16 +86,16 @@ export async function submitApplication(_state: ApplicationState, formData: Form
     return { error: "We couldn’t check your commission accounts. Please try again." };
   }
   const [positionSlots, openInterviews] = await Promise.all([getSlots(values.preferredBody === "local" ? values.college : ""), getOpenSlots().catch(() => [])]);
-  // Only the chosen division's interview times count.
-  const divisionInterviews = openInterviews.filter((slot) => slot.division === values.division && (slot.college ?? "") === (values.preferredBody === "local" ? values.college : ""));
+  // Only the selected unit's interview times count.
+  const unitInterviews = openInterviews.filter((slot) => (slot.college ?? "") === (values.preferredBody === "local" ? values.college : ""));
   // Every unit recruits on its own: the one this application is for has to be taking them.
-  const fieldErrors = checkFields(values, allFields, positionSlots, divisionInterviews.map((slot) => slot.id), bodies ?? undefined);
+  const fieldErrors = checkFields(values, allFields, positionSlots, unitInterviews.map((slot) => slot.id), bodies ?? undefined);
   if (Object.keys(fieldErrors).length) return { error: "Check the highlighted fields.", fieldErrors };
-  const interview = divisionInterviews.find((slot) => slot.id === values.interviewSlot);
+  const interview = unitInterviews.find((slot) => slot.id === values.interviewSlot);
   const interviewText = interview ? describeSlot(interview) : null;
 
   const data = applicationFields.parse(values);
-  const division = divisions[data.division as DivisionId];
+  const position = positionsForUnit(data.preferredBody === "local" ? data.college : "").find((position) => position.id === data.position)!;
   const facebookUrl = /^https?:\/\//i.test(data.facebookUrl) ? data.facebookUrl : `https://${data.facebookUrl}`;
 
   const row = {
@@ -111,8 +111,8 @@ export async function submitApplication(_state: ApplicationState, formData: Form
     program: data.program,
     year_level: data.yearLevel,
     preferred_body: data.preferredBody,
-    division: division.label,
-    position: (division.positions as Record<string, string>)[data.position],
+    division: "",
+    position: position.label,
     position_id: data.position,
     cv_url: data.cvUrl,
     registration_form_url: data.registrationFormUrl,

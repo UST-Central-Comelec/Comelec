@@ -7,6 +7,9 @@ import { formatDate, type NewsPost } from "@/lib/data/types";
 import { CopyLink } from "./copy-link";
 import { CategoryTag, PostRow } from "./post-row";
 import { readingMinutes, type Story } from "./story";
+import { DocumentBody } from "@/components/document-body";
+import { isSerializedDocumentBody, parseDocumentBody } from "@/lib/data/document-body";
+import { newsContentText } from "@/lib/data/news-content";
 
 /** The page a post belongs to: News, or the Election Explainer. */
 export type ArticleSection = {
@@ -29,7 +32,11 @@ const enter = (order: number) => ({ "--enter": order }) as CSSProperties;
  */
 export function Article({ post, section, more }: { post: NewsPost; section: ArticleSection; more: Story[] }) {
   // A post saved with only its summary repeats it as the body; that isn't shown twice.
-  const paragraphs = post.body.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph && paragraph !== post.excerpt);
+  const formatted = Boolean(post.body) && isSerializedDocumentBody(post.body);
+  const blocks = parseDocumentBody(post.body);
+  const summary = newsContentText(post.excerpt);
+  const paragraphs = post.body.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph && paragraph !== summary);
+  const hasBody = formatted ? blocks.length > 0 && newsContentText(post.body) !== summary : paragraphs.length > 0;
 
   return (
     <main className="bp nr">
@@ -49,14 +56,14 @@ export function Article({ post, section, more }: { post: NewsPost; section: Arti
               )}
             </nav>
             <h1 id="nr-story-title" className="bp-title is-headline" data-enter style={enter(1)}>{post.title}</h1>
-            <p className="bp-lede" data-enter style={enter(2)}>{post.excerpt}</p>
+            {post.excerpt && isSerializedDocumentBody(post.excerpt) ? <div className="bp-lede nr-rich-summary" data-enter style={enter(2)}><DocumentBody blocks={parseDocumentBody(post.excerpt)} /></div> : <p className="bp-lede" data-enter style={enter(2)}>{post.excerpt}</p>}
           </div>
         </header>
 
-        <div className={`bp-wrap nr-story${paragraphs.length ? "" : " is-brief"}`}>
-          {paragraphs.length > 0 && (
+        <div className={`bp-wrap nr-story${hasBody ? "" : " is-brief"}`}>
+          {hasBody && (
             <div className="nr-story-body">
-              {paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+              {formatted ? <DocumentBody blocks={blocks} /> : paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
             </div>
           )}
           <aside className="nr-story-side" aria-label="About this post">

@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
+import { Building2 } from "lucide-react";
 import { comelecUnit, isOver, registrationStatuses, type CommissionEvent, type Listing, type RegistrationStatus } from "@/lib/events/options";
 import { unitAbbreviations } from "@/lib/applications/options";
 
 // The tags an event wears across the portal's Events tab: its registration status, and the unit
-// that organizes it; and the pill that says which unit an account is acting for.
+// that organizes it; and the contextual line naming the unit an account is acting for.
 
 /** "Oct 29, 11:59 PM", Manila time: when a unit's period closes, short enough for a table cell. */
 const closing = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-/** portal-tag colour per status. Closed is the plain grey tag. */
+/** Status variants retain their meaning in text. */
 const statusTone: Record<RegistrationStatus, string> = { closed: "", open: "is-ok", waitlist: "is-gold", cancelled: "is-warn", rescheduled: "is-gold" };
 
 /**
@@ -55,7 +56,7 @@ export function OrganizerTag({ event, short }: { event: Pick<CommissionEvent, "o
 export function ActingAs({ unit, children, after }: { unit: Pick<CommissionEvent, "organizer" | "college">; /** What comes before the unit's name. */ children: ReactNode; after?: ReactNode }) {
   return (
     <p className={`portal-acting is-${unit.organizer}`}>
-      <i aria-hidden="true" />
+      <Building2 size={14} strokeWidth={1.6} aria-hidden="true" />
       <span>{children} <strong>{comelecUnit(unit.organizer, unit.college)}</strong>{after}</span>
     </p>
   );

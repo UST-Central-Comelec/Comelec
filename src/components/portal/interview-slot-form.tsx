@@ -1,6 +1,5 @@
 "use client";
 
-import { divisions, divisionIdsForBody, type DivisionId } from "@/lib/applications/options";
 import type { FormState } from "@/lib/portal/form";
 import { DatePicker, formatPortalDate } from "./date-picker";
 import { Dropdown } from "./dropdown";
@@ -16,10 +15,10 @@ function describeDays(days: string[]) {
 }
 
 /**
- * Adds an interview slot for one division on each of one or more days (`dates`, from the calendar
+ * Adds an interview slot for one Comelec unit on each of one or more days (`dates`, from the calendar
  * selection). Each slot is one applicant; the server fills in that default.
  */
-export function InterviewSlotForm({ action, division, dates = [], layout, unit = "", unitOptions, rangeMode, minDate, onDateRangeChange }: { action: (state: FormState, formData: FormData) => Promise<FormState>; division?: DivisionId; dates?: string[]; layout?: "side"; unit?: string; unitOptions?: readonly string[]; rangeMode?: boolean; minDate?: string; onDateRangeChange: (start: string, end: string) => void }) {
+export function InterviewSlotForm({ action, dates = [], layout, unit = "", unitOptions, rangeMode, minDate, onDateRangeChange }: { action: (state: FormState, formData: FormData) => Promise<FormState>; dates?: string[]; layout?: "side"; unit?: string; unitOptions?: readonly string[]; rangeMode?: boolean; minDate?: string; onDateRangeChange: (start: string, end: string) => void }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
   const isRange = rangeMode || (dates.length > 1 && dates.every((day, index) => index === 0 || Date.parse(`${day}T00:00:00Z`) - Date.parse(`${dates[index - 1]}T00:00:00Z`) === 86_400_000));
   const startDate = dates[0];
@@ -34,9 +33,6 @@ export function InterviewSlotForm({ action, division, dates = [], layout, unit =
             <UnitSwitcher units={unitOptions} value={unit} size="field" />
           </Field>
         )}
-        <Field label="Division" error={errors.division} wide>
-          <Dropdown key={division ?? "all"} name="division" defaultValue={division ?? ""} placeholder="Select division" options={divisionIdsForBody(unit ? "local" : "central").map((id) => ({ value: id, label: divisions[id].label }))} />
-        </Field>
         {isRange ? (
           <div className="portal-date-range">
             <Field label="Start Date" hint="Each day gets the same slots.">

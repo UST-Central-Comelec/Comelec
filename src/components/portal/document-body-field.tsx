@@ -34,7 +34,7 @@ function BodyWindow({ title, children, onClose, editing = false }: { title: stri
 }
 
 /** The inline and expanded editors share the form's draft; only one editor is mounted at a time. */
-export function DocumentBodyField({ value, onChange, readOnly = false, invalid }: { value: string; onChange: (body: string) => void; readOnly?: boolean; invalid?: boolean }) {
+export function DocumentBodyField({ value, onChange, name = "body", readOnly = false, invalid, label = "Main text editor", windowTitle = "Edit main text" }: { value: string; onChange: (body: string) => void; name?: string; readOnly?: boolean; invalid?: boolean; label?: string; windowTitle?: string }) {
   const [expanded, setExpanded] = useState(false);
   const labelId = useId();
   const blocks = parseDocumentBody(value);
@@ -42,15 +42,15 @@ export function DocumentBodyField({ value, onChange, readOnly = false, invalid }
 
   return (
     <>
-      <input type="hidden" name="body" value={value} />
-      <span id={labelId} className="document-editor-label">Main text editor</span>
+      <input type="hidden" name={name} value={value} />
+      <span id={labelId} className="document-editor-label">{label}</span>
       {!expanded && <DocumentEditor initialBody={value} onChange={onChange} labelledBy={labelId} invalid={invalid} readOnly={readOnly} />}
       <div className="portal-body-tools">
         <span>{tables > 0 && <strong className="portal-file-status">{tables === 1 ? "1 table." : `${tables} tables.`}</strong>}</span>
         <button type="button" className="portal-button is-ghost is-small" onClick={() => setExpanded(true)} disabled={readOnly} aria-haspopup="dialog"><Maximize2 size={14} aria-hidden="true" /> Window</button>
       </div>
-      {expanded && <BodyWindow title="Edit main text" editing onClose={() => setExpanded(false)}>
-        <span id={`${labelId}-window`} className="document-editor-label">Main text editor</span>
+      {expanded && <BodyWindow title={windowTitle} editing onClose={() => setExpanded(false)}>
+        <span id={`${labelId}-window`} className="document-editor-label">{label}</span>
         <DocumentEditor initialBody={value} onChange={onChange} labelledBy={`${labelId}-window`} invalid={invalid} />
       </BodyWindow>}
     </>

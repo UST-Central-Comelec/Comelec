@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SlidingSubtabs } from "./sliding-subtabs";
 import { EventEvaluationEditor } from "@/components/portal/event-evaluation-editor";
 import { EventAttendance } from "@/components/portal/event-attendance";
 import { getEvaluationSettings, listEvaluationResponses } from "@/lib/events/evaluation-store";
@@ -107,15 +108,21 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
       </header>
       <Notice notice={notice} />
 
-      <nav className="portal-subtabs event-detail-tabs" aria-label="Event sections">
-        <Link href={`/portal/events/${id}`} aria-current={tab === "background" ? "page" : undefined}>Background</Link>
-        {seesInside && <>
-          <Link href={`/portal/events/${id}/registrants`} aria-current={tab === "registrants" ? "page" : undefined}>Registrants</Link>
-          <Link href={`/portal/events/${id}/attendance`} aria-current={tab === "attendance" ? "page" : undefined}>Attendance</Link>
-          <Link href={`/portal/events/${id}/evaluation`} aria-current={tab === "evaluation" ? "page" : undefined}>Evaluation Form</Link>
-          <Link href={`/portal/events/${id}/analytics`} aria-current={tab === "analytics" ? "page" : undefined}>Analytics</Link>
-        </>}
-      </nav>
+      <SlidingSubtabs
+        active={tab}
+        label="Event sections"
+        scope={`event:${id}`}
+        className="event-detail-tabs"
+        items={[
+          { key: "background", href: `/portal/events/${id}`, label: "Background" },
+          ...(seesInside ? [
+            { key: "registrants", href: `/portal/events/${id}/registrants`, label: "Registrants" },
+            { key: "attendance", href: `/portal/events/${id}/attendance`, label: "Attendance" },
+            { key: "evaluation", href: `/portal/events/${id}/evaluation`, label: "Evaluation Form" },
+            { key: "analytics", href: `/portal/events/${id}/analytics`, label: "Analytics" },
+          ] : []),
+        ]}
+      />
 
       {evaluation.error && <p className="portal-form-error" role="alert">{evaluation.error}</p>}
       {evaluationSettings?.error && <p className="portal-form-error" role="alert">{evaluationSettings.error}</p>}

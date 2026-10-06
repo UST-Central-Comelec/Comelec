@@ -100,6 +100,7 @@ export type Crumb = { label: string; href?: string };
  * Adviser or Admin, who only reads). The last crumb is the page itself, so it has no link.
  */
 export function trail(pathname: string, viewOnly = false): Crumb[] {
+  if (pathname === "/portal/privacy") return [{ label: "Privacy statement" }];
   if (pathname === "/portal/notifications") return [{ label: "Notifications" }];
   if (pathname === "/portal/account") return [{ label: "My account" }];
   for (const entry of sections.flatMap((section) => section.entries)) {

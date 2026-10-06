@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { UsersRound } from "lucide-react";
 import { audiences, venueModes, type Audience, type EventDetails, type VenueMode } from "@/lib/events/options";
 import { Field } from "./portal-form";
 import { TimePicker } from "./time-picker";
@@ -121,18 +122,23 @@ export function EventDetailsFields({ initial, errors, what = "event", requireGoo
       <fieldset className={`portal-form-section portal-field${errors.participants ? " has-error" : ""}`}>
         <legend>Participants</legend>
         {studentsOnly && <input type="hidden" name="openToStudents" value="on" />}
-        <div className="portal-options">
-          {(Object.keys(audiences) as Audience[]).filter((audience) => !studentsOnly || audience === "students").map((audience) => (
-            <label className="portal-check" key={audience}>
-              {studentsOnly
-                ? <input type="checkbox" checked disabled readOnly />
-                : audience === "students"
-                ? <input name="openToStudents" type="checkbox" checked={openToStudents} onChange={(event) => setOpenToStudents(event.target.checked)} />
-                : <input name={audienceFields[audience].field} type="checkbox" defaultChecked={initial[audienceFields[audience].field]} />}
-              <span><strong>{studentsOnly ? "Students only" : audiences[audience]}</strong><small>{audienceFields[audience].hint}</small></span>
-            </label>
-          ))}
-        </div>
+        {studentsOnly ? (
+          <div className="portal-participants-fixed">
+            <UsersRound size={17} strokeWidth={1.6} aria-hidden="true" />
+            <span><strong>Students only</strong><small>{audienceFields.students.hint}</small></span>
+          </div>
+        ) : (
+          <div className="portal-options">
+            {(Object.keys(audiences) as Audience[]).map((audience) => (
+              <label className="portal-check" key={audience}>
+                {audience === "students"
+                  ? <input name="openToStudents" type="checkbox" checked={openToStudents} onChange={(event) => setOpenToStudents(event.target.checked)} />
+                  : <input name={audienceFields[audience].field} type="checkbox" defaultChecked={initial[audienceFields[audience].field]} />}
+                <span><strong>{audiences[audience]}</strong><small>{audienceFields[audience].hint}</small></span>
+              </label>
+            ))}
+          </div>
+        )}
         {errors.participants
           ? <span className="portal-field-error">{errors.participants}</span>
           : !listing && <span className="portal-field-hint">Tick everyone the event is open to. With only Students ticked, the website says “Students only”.</span>}

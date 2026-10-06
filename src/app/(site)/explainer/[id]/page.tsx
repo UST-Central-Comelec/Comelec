@@ -1,3 +1,4 @@
+import { newsContentText } from "@/lib/data/news-content";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Article } from "@/components/news/article";
@@ -8,7 +9,7 @@ import "../../news/news.css";
 
 export async function generateMetadata({ params }: PageProps<"/explainer/[id]">): Promise<Metadata> {
   const post = await getNewsPost((await params).id);
-  return post ? { title: post.title, description: post.excerpt } : {};
+  return post ? { title: post.title, description: newsContentText(post.excerpt) } : {};
 }
 
 export default async function ExplainerGuidePage({ params }: PageProps<"/explainer/[id]">) {

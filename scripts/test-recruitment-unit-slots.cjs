@@ -8,7 +8,7 @@ function load(file, dependencies = {}) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const compiled = { exports: {} };
-  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports);
+  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports);
   return compiled.exports;
 }
 const options = load("src/lib/applications/options.ts");
@@ -24,6 +24,21 @@ const slots = load("src/lib/applications/slots.ts", {
     upsert: async (data, config) => { writes.push({ data, config }); return { error: null }; },
   }) }) },
 });
+// Every unit recruits for its own offices; renamed offices keep their saved vacancy ids.
+const { localRolesByCollege } = load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") });
+for (const [unit, roles] of Object.entries(localRolesByCollege)) {
+  const choices = options.positionsForUnit(unit);
+  assert.deepEqual(choices.map((choice) => choice.role), roles);
+  assert.equal(new Set(choices.map((choice) => choice.id)).size, choices.length, `${unit} has unique slot ids`);
+}
+const pharmacy = options.positionsForUnit("Faculty of Pharmacy");
+assert.equal(pharmacy.find((choice) => choice.id === "ea-finance-officer").role, "Finance Head");
+assert.ok(pharmacy.some((choice) => choice.role === "Internal Public Information Officer"));
+assert.ok(pharmacy.some((choice) => choice.role === "External Public Information Officer"));
+assert.ok(!pharmacy.some((choice) => choice.role === "Deputy Head"));
+assert.ok(!options.positionsForUnit("College of Rehabilitation Sciences").some((choice) => choice.role === "Deputy Head"));
+assert.equal(options.positionsForUnit("College of Science").find((choice) => choice.id === "ea-deputy-head").role, "Deputy Head/Chief-of-Staff Officer");
+
 let user = { affiliation: "local", college, readOnly: false, position: "executive-board", email: "manager@ust.edu.ph" };
 const actions = load("src/lib/portal/recruitment-actions.ts", {
   "next/cache": { revalidatePath: () => {} },

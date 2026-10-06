@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { divisions, divisionIdsForBody, type SlotCounts } from "@/lib/applications/options";
+import { positionsForUnit, type SlotCounts } from "@/lib/applications/options";
 import type { FormState } from "@/lib/portal/form";
 import { FormFooter, usePortalForm } from "./portal-form";
 
 export function RecruitmentForm({ action, slots, unit = "" }: { action: (state: FormState, formData: FormData) => Promise<FormState>; slots: SlotCounts; unit?: string }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
-  const ids = divisionIdsForBody(unit ? "local" : "central");
-  const positions = ids.flatMap((id) => Object.keys(divisions[id].positions));
+  const choices = positionsForUnit(unit);
+  const positions = choices.map(({ id }) => id);
   const [counts, setCounts] = useState<Record<string, string>>(() => Object.fromEntries(positions.map((id) => [id, String(slots[id] ?? 0)])));
   const count = (id: string) => {
     const value = Number(counts[id]);
@@ -26,33 +26,24 @@ export function RecruitmentForm({ action, slots, unit = "" }: { action: (state: 
         <div><strong>{changed}</strong><span>Unsaved changes</span></div>
       </div>
       <div className="portal-recruitment">
-        {ids.map((division) => {
-          const item = divisions[division];
-          const total = Object.keys(item.positions).reduce((sum, id) => sum + count(id), 0);
-          return (
-            <section className={`portal-card recruitment-division is-${division}`} key={division}>
-              <header className="recruitment-division-head">
-                <h2 className="portal-card-title">{item.label}</h2>
-                <span className="portal-tag">{total} open {total === 1 ? "slot" : "slots"}</span>
-              </header>
-              <div className="recruitment-position-list">
-                {Object.entries(item.positions).map(([id, label]) => (
-                  <div className={`recruitment-position${errors[`slots-${id}`] ? " has-error" : ""}`} key={id}>
-                    <div className="recruitment-position-label">
-                      <label htmlFor={`slots-${id}`}>{label}</label>
-                      <span className={count(id) > 0 ? "is-open" : ""}>{count(id) > 0 ? "Open for applications" : "Closed"}{counts[id] !== String(slots[id] ?? 0) ? " · Edited" : ""}</span>
-                    </div>
-                    <div className="portal-field recruitment-position-count">
-                      <input id={`slots-${id}`} aria-label={`${label}: open slots`} aria-invalid={Boolean(errors[`slots-${id}`])} aria-describedby={errors[`slots-${id}`] ? `error-${id}` : undefined} name={`slots-${id}`} type="number" inputMode="numeric" min={0} max={999} step={1} value={counts[id]} onChange={(event) => setCounts((current) => ({ ...current, [id]: event.target.value }))} disabled={pending} />
-                      <input name={`loaded-${id}`} type="hidden" value={slots[id] ?? 0} />
-                    </div>
-                    {errors[`slots-${id}`] && <span id={`error-${id}`} className="portal-field-error recruitment-position-error">{errors[`slots-${id}`]}</span>}
-                  </div>
-                ))}
+        <section className="portal-card">
+          <h2 className="portal-card-title">Positions</h2>
+          <div className="recruitment-position-list">
+            {choices.map(({ id, label }) => (
+              <div className={`recruitment-position${errors[`slots-${id}`] ? " has-error" : ""}`} key={id}>
+                <div className="recruitment-position-label">
+                  <label htmlFor={`slots-${id}`}>{label}</label>
+                  <span className={count(id) > 0 ? "is-open" : ""}>{count(id) > 0 ? "Open for applications" : "Closed"}{counts[id] !== String(slots[id] ?? 0) ? " · Edited" : ""}</span>
+                </div>
+                <div className="portal-field recruitment-position-count">
+                  <input id={`slots-${id}`} aria-label={`${label}: open slots`} aria-invalid={Boolean(errors[`slots-${id}`])} aria-describedby={errors[`slots-${id}`] ? `error-${id}` : undefined} name={`slots-${id}`} type="number" inputMode="numeric" min={0} max={999} step={1} value={counts[id]} onChange={(event) => setCounts((current) => ({ ...current, [id]: event.target.value }))} disabled={pending} />
+                  <input name={`loaded-${id}`} type="hidden" value={slots[id] ?? 0} />
+                </div>
+                {errors[`slots-${id}`] && <span id={`error-${id}`} className="portal-field-error recruitment-position-error">{errors[`slots-${id}`]}</span>}
               </div>
-            </section>
-          );
-        })}
+            ))}
+          </div>
+        </section>
       </div>
       <FormFooter state={state} pending={pending} submitLabel={changed ? `Save ${changed} ${changed === 1 ? "change" : "changes"}` : "Save slots"} cancelHref="/portal" />
     </form>

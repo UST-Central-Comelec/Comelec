@@ -5,6 +5,7 @@ import { unitAbbreviations } from "@/lib/applications/options";
 import { accountPositions, affiliations, type Affiliation, type CommissionerPosition } from "@/lib/data/types";
 import { approveAccessRequest, declineAccessRequest } from "@/lib/portal/access-request-actions";
 import { grantableCommissionerPositions, type Manager } from "@/lib/portal/account-scope";
+import { AccountKindLabel, AccountStatusLabel } from "./account-badges";
 import { Dropdown, optionsOf } from "./dropdown";
 import { useHydrated } from "./portal-form";
 import { RoleSelect, useRoleChoice } from "./role-field";
@@ -27,7 +28,7 @@ export function AccessRequestRow({ request, manager }: { request: AccessRequest;
     affiliation: start,
     position: request.position && (!manager || grantableCommissionerPositions(manager, start).includes(request.position)) ? request.position : "",
     role: request.role,
-  });
+  }, request.college);
   const positions: CommissionerPosition[] = manager && affiliation ? grantableCommissionerPositions(manager, affiliation) : [];
   // A request sent before positions were asked for says what they do in their own words.
   const ownWords = request.position === null;
@@ -48,6 +49,7 @@ export function AccessRequestRow({ request, manager }: { request: AccessRequest;
         <small className="portal-muted" title={request.college}>{unitAbbreviations[request.college] ?? request.college}</small>
       </td>
       <td>
+        <div className="portal-account-standing"><AccountKindLabel kind="personal" /></div>
         {manager ? (
           <div className="portal-request-picks">
             <Dropdown size="pill" label={`Position for ${request.name}`} value={position} onChange={(next) => setPosition(next as CommissionerPosition)} options={positions.map((value) => ({ value, label: accountPositions[value] }))} placeholder="Select position" disabled={!hydrated} />
@@ -61,7 +63,7 @@ export function AccessRequestRow({ request, manager }: { request: AccessRequest;
         )}
         {ownWords && <small className="portal-muted">They wrote: “{request.role}”</small>}
       </td>
-      <td><span className="portal-tag is-gold">Pending</span></td>
+      <td><AccountStatusLabel status="pending" /></td>
       <td className="portal-row-actions">
         {manager && (
           <div className="portal-request-actions">

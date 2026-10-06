@@ -1,0 +1,62 @@
+.portal-calendar > button { align-items: center; background: rgba(var(--p-ink),.04); border: 1px solid var(--p-line-strong); border-radius: 6px; box-shadow: none; color: var(--p-text); cursor: pointer; display: flex; font: inherit; gap: 10px; justify-content: space-between; min-width: 0; padding: 11px 13px; text-align: left; transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease; width: 100%; }
+.portal-calendar > button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portal-calendar > button > span.is-placeholder { color: var(--p-placeholder); }
+.portal-calendar > button > svg { color: var(--p-muted); flex: none; transition: transform .2s ease; }
+.portal-calendar > button:hover { border-color: rgba(var(--p-ink),.26); }
+.portal-calendar > button:focus-visible, .portal-calendar.is-open > button { background-color: rgba(var(--p-ink),.065); border-color: var(--p-gold-edge); box-shadow: var(--p-ring); outline: 0; }
+.portal-calendar > button:disabled { cursor: not-allowed; opacity: .6; }
+.portal-calendar > button:disabled:hover { border-color: var(--p-line-strong); }
+.portal-calendar.is-invalid > button, .portal-field.has-error .portal-calendar > button { border-color: var(--p-danger); }
+.portal-calendar > button > span.is-all { color: var(--p-text); }
+/* Custom calendar dropdown: matches the portal's field and popover controls. */
+.portal-dropdown.portal-calendar.is-open > button > svg { transform: none; }
+.portal-calendar-panel { background: var(--p-glass), var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 14px; box-shadow: var(--p-shadow-pop); box-sizing: border-box; color: var(--p-text); inset: auto; margin: 0; padding: 12px; position: fixed; overflow-y: auto; overscroll-behavior: contain; z-index: 60; }
+.portal-calendar-panel:popover-open { display: block; animation: portal-tip-in .14s var(--p-ease); }
+.portal-calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.portal-calendar-head > span { font-size: 14px; font-weight: 600; }
+.portal-calendar-panel button { background: none; border: 0; border-radius: 6px; color: var(--p-text); cursor: pointer; font: inherit; }
+.portal-calendar-head button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+.portal-calendar-panel button:hover { background: rgba(var(--p-ink),.08); }
+.portal-calendar-panel button:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 1px; }
+.portal-calendar-panel button:disabled { color: var(--p-dim); cursor: default; background: none; }
+.portal-calendar-grid { display: grid; gap: 3px; }
+.portal-calendar-grid > [role="row"] { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.portal-calendar-grid [role="columnheader"] { text-align: center; font-size: 11px; color: var(--p-muted); padding: 6px 0; }
+.portal-calendar-grid [role="gridcell"] { display: flex; min-width: 0; }
+.portal-calendar-grid button { width: 100%; height: 34px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.portal-calendar-grid button.is-outside { color: var(--p-faint); }
+.portal-calendar-grid button[aria-current="date"] { box-shadow: inset 0 0 0 1px var(--p-gold-edge); color: var(--p-gold-ink); }
+.portal-calendar-grid button.is-selected { background: var(--p-text); color: var(--p-on-bright); font-weight: 600; }
+.portal-calendar-grid button:disabled { color: var(--p-dim); }
+.portal-calendar-foot { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--p-line); margin-top: 10px; padding-top: 10px; }
+.portal-calendar-foot button { padding: 6px 10px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .portal-calendar-panel:popover-open { animation: none; } }
+.portal-calendar { display: inline-flex; max-width: 100%; min-width: 0; position: relative; vertical-align: middle; }
+.portal-date-time { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0; }
+.portal-date-time > .portal-calendar { flex: 1 1 190px; }
+.portal-date-time > input[type="time"] { flex: 0 1 130px; min-width: 0; }
+
+/* Public registration inherits its page palette; the calendar UI stays shared. */
+.pp-field .portal-calendar {
+  --p-ink: var(--bp-ink, 255,255,255);
+  --p-text: var(--bp-text);
+  --p-surface: var(--bp-surface);
+  --p-glass: linear-gradient(transparent, transparent);
+  --p-line: var(--bp-line);
+  --p-line-strong: var(--bp-line-strong);
+  --p-muted: var(--bp-muted);
+  --p-placeholder: var(--bp-faint);
+  --p-faint: var(--bp-faint);
+  --p-dim: var(--bp-faint);
+  --p-gold-edge: var(--bp-gold-mark);
+  --p-gold-ink: var(--bp-gold-mark);
+  --p-on-bright: var(--bp-surface);
+  --p-danger: #d87878;
+  --p-ring: 0 0 0 3px rgba(var(--ui-accent-rgb, 254,195,12),.14);
+  --p-shadow-pop: 0 16px 48px rgba(0,0,0,.25);
+  display: flex;
+  width: 100%;
+}
+.pp-field .portal-calendar > button { background: var(--bp-raised); border-radius: 9px; min-height: 46px; padding: 12px; }
+:root[data-theme="light"] .pp-field .portal-calendar { --p-ink: 0,0,0; --p-danger: #b0243b; }
+:root[data-theme="light"] .pp-field .portal-calendar > button { background: var(--ui-panel-tint); border-radius: var(--ui-control-radius); }

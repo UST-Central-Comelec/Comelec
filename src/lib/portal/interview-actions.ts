@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireEditor } from "@/lib/auth/session";
 import { clearApplyPageCache } from "@/lib/applications/apply-cache";
 import { createSlots, deleteEmptySlot, getSlot, type NewSlot } from "@/lib/applications/interviews";
-import { comelecUnits, divisionIdsForBody, type DivisionId } from "@/lib/applications/options";
+import { comelecUnits } from "@/lib/applications/options";
 import { canManageEvent, isOwn } from "@/lib/events/access";
 import { unitFromKey } from "@/lib/periods/kinds";
 import { text, type FormState } from "./form";
@@ -24,7 +24,6 @@ export async function addInterviewSlots(_state: FormState, formData: FormData): 
   const unit = unitFromKey(college);
   if ((college && !comelecUnits.includes(college) && !isOwn(user, unit)) || !canManageEvent(user, unit)) return { error: "You can’t manage interviews for this unit." };
 
-  const division = text(formData, "division");
   const dates = [...new Set(formData.getAll("date").filter((value): value is string => typeof value === "string"))].sort();
   const time = text(formData, "time");
   const duration = Number(text(formData, "duration"));
@@ -34,7 +33,6 @@ export async function addInterviewSlots(_state: FormState, formData: FormData): 
   const location = text(formData, "location").trim().slice(0, 200) || null;
 
   const fieldErrors: Record<string, string> = {};
-  if (!divisionIdsForBody(college ? "local" : "central").includes(division as DivisionId)) fieldErrors.division = "Pick the division holding these interviews.";
   if (!dates.length || !dates.every((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))) fieldErrors.date = "Pick a date.";
   else if (dates.length > MAX_DAYS) fieldErrors.date = `Pick up to ${MAX_DAYS} days at a time.`;
   if (!/^\d{2}:\d{2}$/.test(time)) fieldErrors.time = "Pick a start time.";
@@ -51,7 +49,6 @@ export async function addInterviewSlots(_state: FormState, formData: FormData): 
 
   const slots: NewSlot[] = starts.flatMap((first) =>
     Array.from({ length: count }, (_, index) => ({
-      division: division as DivisionId,
       startsAt: new Date(first.getTime() + index * duration * 60_000).toISOString(),
       durationMinutes: duration,
       mode: mode as NewSlot["mode"],
@@ -69,7 +66,7 @@ export async function addInterviewSlots(_state: FormState, formData: FormData): 
 
   revalidatePath("/apply");
   revalidatePath("/portal/recruitment/interviews");
-  redirect(`/portal/recruitment/interviews?division=${division}${college ? `&unit=${encodeURIComponent(college)}` : ""}&day=${dates[0]}&notice=${slots.length === 1 ? "slot-added" : "slots-added"}`);
+  redirect(`/portal/recruitment/interviews?day=${dates[0]}${college ? `&unit=${encodeURIComponent(college)}` : ""}&notice=${slots.length === 1 ? "slot-added" : "slots-added"}`);
 }
 
 /** `day` ("YYYY-MM-DD") keeps the calendar on the same day afterwards. */

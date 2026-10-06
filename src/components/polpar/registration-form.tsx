@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Download, FileText, Plus, Trash2 } from "lucide-react";
 import { communicationDeclaration, conformeDeclarations, MAX_FILE_BYTES, MAX_TOTAL_BYTES, petitionDeclaration, requirements, rosterSections, templateHref, uploadTypes, type RosterId } from "@/lib/polpar/content";
 import { fieldErrors, partyRegistrationSchema, type Conforme, type PartyRegistration, type PartyResponse } from "@/lib/polpar/schema";
+import { DatePicker } from "@/components/portal/date-picker";
 import { PdfDownloads } from "./pdf-downloads";
 
 const steps = ["Party information", "Petition", "Officers", "Members", "Active alumni", "Local affiliates", "Membership conformes", "Download filled forms", "Signed documents", "Review & submit"];
@@ -13,7 +14,7 @@ type Rows = Record<RosterId, string[]>;
 function Field({ name, label, type = "text", required = true, error, children, defaultValue }: { name: string; label: string; type?: string; required?: boolean; error?: string; children?: ReactNode; defaultValue?: string }) {
   return <label className="pp-field" htmlFor={`pp-${name}`}>
     <span>{label}{required && <span aria-hidden="true"> *</span>}</span>
-    {children ?? <input id={`pp-${name}`} name={name} type={type} defaultValue={defaultValue} required={required} maxLength={type === "text" || type === "tel" ? 250 : undefined} aria-invalid={!!error} aria-describedby={error ? `pp-error-${name}` : undefined} />}
+    {children ?? (type === "date" ? <DatePicker id={`pp-${name}`} name={name} defaultValue={defaultValue} required={required} invalid={!!error} describedBy={error ? `pp-error-${name}` : undefined} /> : <input id={`pp-${name}`} name={name} type={type} defaultValue={defaultValue} required={required} maxLength={type === "text" || type === "tel" ? 250 : undefined} aria-invalid={!!error} aria-describedby={error ? `pp-error-${name}` : undefined} />)}
     {error && <small id={`pp-error-${name}`} className="pp-error">{error}</small>}
   </label>;
 }

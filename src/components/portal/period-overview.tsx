@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Clock3, Minus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -51,6 +52,7 @@ function Countdown({ closesAt, short }: { closesAt: number; short?: boolean }) {
   );
 }
 
+const stateIcons = { open: Check, closing: Clock3, closed: Minus };
 const stateLabels = { open: "Live", closing: "Closing", closed: "Closed" };
 
 /**
@@ -75,10 +77,11 @@ export function PeriodOverview({
   cancelAction?: () => Promise<void>;
   label?: string;
 }) {
+  const StatusIcon = stateIcons[state];
   return (
     <section className={`period-overview is-${state}`} aria-label={label}>
       <div className="period-overview-main">
-        <span className="period-overview-state"><i aria-hidden="true" />{stateLabels[state]}</span>
+        <span className="period-overview-state"><StatusIcon size={14} strokeWidth={1.8} aria-hidden="true" />{stateLabels[state]}</span>
         <h2>{headline}</h2>
         {detail && <p>{detail}</p>}
       </div>

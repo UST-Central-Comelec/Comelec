@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ClipboardList, Clock, Copy, Download, Eye, Mail, ShieldCheck, Target, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Copy, Download, Eye, Mail, ShieldCheck, Target, Users } from "lucide-react";
 import { submitApplication, type ApplicationState, type SubmittedApplication } from "@/lib/applications/actions";
 import { forgetApplicantVerification } from "@/lib/applications/verification-actions";
 import { digitsOnly, formatMobileNumber, formatNumericInput } from "@/lib/applications/numeric-input";
 import { existingCommissionAccount } from "@/lib/applications/account-eligibility";
 import { VERIFICATION_CHANNEL, type VerifiedProfile, type VerificationMessage } from "@/lib/applications/verification-channel";
-import { colleges, conflicts, divisionDescriptions, divisions, divisionIdsForBody, positionDescriptions, preferredBodies, preferredBodyDescriptions, programsByCollege, programLocked, yearLevelsFor, qualifications, type College, type ConflictId, type DivisionId, type QualificationField, type SlotCounts, type UnitSlotCounts } from "@/lib/applications/options";
+import { colleges, conflicts, positionsForUnit, preferredBodies, preferredBodyDescriptions, programsByCollege, programLocked, yearLevelsFor, qualifications, type College, type ConflictId, type QualificationField, type SlotCounts, type UnitSlotCounts } from "@/lib/applications/options";
 import { checkFields, closedBodyError, conflictFields, needsPortfolio, readApplication, type ApplicationField, type ApplicationValues } from "@/lib/applications/schema";
 import { isBodyOpen, type OpenBodies } from "@/lib/periods/summary";
 import { useHydrated } from "@/components/portal/portal-form";
@@ -23,7 +23,7 @@ const steps: Array<{ title: string; description: string; fields: ApplicationFiel
   { title: "Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
   { title: "Qualifications", description: "Confirm you meet the requirements to serve on the commission, and tell us about anything you’d have to give up to join.", fields: ["meetsUnits", "meetsGwa", "notRecentCandidate", "conflictOffice", "conflictOfficeDetail", "conflictParty", "conflictPartyDetail", "conflictPolitics", "conflictPoliticsDetail", "conflictPledge"] },
   { title: "About you", description: "Your name, how to reach you, and where you study.", fields: ["lastName", "firstName", "middleName", "studentNumber", "contactNumber", "email", "facebookUrl", "college", "program", "yearLevel"] },
-  { title: "Position", description: "Where you’d like to serve and the position you’re applying for.", fields: ["preferredBody", "division", "position"] },
+  { title: "Position", description: "Where you’d like to serve and the position you’re applying for.", fields: ["preferredBody", "position"] },
   { title: "Documents", description: "Share your files as Google Drive links.", fields: ["cvUrl", "registrationFormUrl", "letterOfIntentUrl", "endorsementUrl", "portfolioUrl", "gradesUrl"] },
   { title: "Interview", description: "Pick a time for your interview with the commission. Times are in Philippine time.", fields: ["interviewSlot"] },
   { title: "Submit", description: "Check your answers, then submit your application.", fields: [] },
@@ -108,39 +108,6 @@ function ConflictQuestion({ id, answer, onAnswer, errors }: { id: ConflictId; an
               <input name={detailField} maxLength={200} placeholder={item.detailPlaceholder} disabled={answer !== "yes"} />
             </Field>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** A division row: the row picks the division, and "Details" expands what the division and its positions do. */
-function DivisionOption({ id, checked, onSelect, slots }: { id: DivisionId; checked: boolean; onSelect: () => void; slots: SlotCounts }) {
-  const [open, setOpen] = useState(false);
-  const detailsId = useId();
-  const item = divisions[id];
-  const list = Object.entries(item.positions as Record<string, string>).filter(([position]) => (slots[position] ?? 0) > 0);
-  const openSlots = list.reduce((total, [position]) => total + (slots[position] ?? 0), 0);
-  return (
-    <div className={`apply-division${checked ? " is-selected" : ""}${open ? " is-open" : ""}`}>
-      <div className="apply-division-head">
-        <label className="apply-division-pick">
-          <input type="radio" name="division" value={id} checked={checked} onChange={onSelect} />
-          <span className="apply-division-mark" aria-hidden="true" />
-          <span className="apply-choice-text"><strong>{item.label}</strong><small>{list.length} {list.length === 1 ? "position" : "positions"} · {slotLabel(openSlots).toLowerCase()}</small></span>
-        </label>
-        <button type="button" className="apply-division-toggle" aria-expanded={open} aria-controls={detailsId} aria-label={`${item.label} details`} onClick={() => setOpen(!open)}>
-          <span>{open ? "Hide" : "Details"}</span><ChevronDown size={16} aria-hidden="true" />
-        </button>
-      </div>
-      <div className="apply-division-details" id={detailsId} inert={!open}>
-        <div>
-          <p>{divisionDescriptions[id]}</p>
-          <ul>
-            {list.map(([position, label]) => (
-              <li key={position}><strong>{label}</strong>{positionDescriptions[position] && <span>{positionDescriptions[position]}</span>}</li>
-            ))}
-          </ul>
         </div>
       </div>
     </div>
@@ -292,9 +259,9 @@ function VerifiedBadge({ tooltip }: { tooltip?: string }) {
 
 /** The privacy statement's four parts, shown as tiles on the Consent step. */
 const privacySections: Array<{ icon: typeof ShieldCheck; title: string; text: string }> = [
-  { icon: ClipboardList, title: "What we collect", text: "Your full name, student number, mobile number, UST email, Facebook profile link, college, program and year level; your preferred body, division, position and interview time; and the links to your CV, latest registration form, letter of intent, recommendation letter, portfolio and latest copy of grades. To confirm you’re from UST, you’ll also sign in once with your UST Google account, which shares your name and UST email with us; we don’t keep that sign-in record." },
+  { icon: ClipboardList, title: "What we collect", text: "Your full name, student number, mobile number, UST email, Facebook profile link, college, program and year level; your preferred body, position and interview time; and the links to your CV, latest registration form, letter of intent, recommendation letter, portfolio and latest copy of grades. To confirm you’re from UST, you’ll also sign in once with your UST Google account, which shares your name and UST email with us; we don’t keep that sign-in record." },
   { icon: Target, title: "Why we collect it", text: "To evaluate your application, contact you about interviews and results, and keep a record of the commission’s recruitment." },
-  { icon: Users, title: "Who can see it", text: "Only the Central COMELEC commissioners and officers handling recruitment. We don’t sell your information or share it outside the commission unless the law requires it." },
+  { icon: Users, title: "Who can see it", text: "Authorized commissioners and officers handling recruitment for the relevant unit, within their portal permissions. Service providers process information needed to operate the form, database and email delivery. See the full privacy statement for access and disclosure details." },
   { icon: Clock, title: "How long we keep it", text: "We store it securely and delete your application automatically 60 days after you submit it." },
 ];
 
@@ -344,16 +311,15 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   const [college, setCollege] = useState(preset?.college ?? "");
   const [preferredBody, setPreferredBody] = useState(preset?.body ?? "");
   const [program, setProgram] = useState("");
-  const [division, setDivision] = useState("");
   const [position, setPosition] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [interviewSlot, setInterviewSlot] = useState("");
   const [conflictAnswers, setConflictAnswers] = useState<ConflictAnswers>(noConflictAnswers);
   const hasConflict = conflictIds.some((id) => conflictAnswers[id] === "yes");
-  // Each division interviews on its own schedule; only the chosen division's times are offered.
-  const divisionInterviews = interviews.filter((slot) => slot.division === division && (slot.college ?? "") === (preferredBody === "local" ? college : ""));
-  const openInterviews = divisionInterviews.map((slot) => slot.id);
-  const chosenInterview = divisionInterviews.find((slot) => slot.id === interviewSlot);
+  // Interview times belong to the selected Comelec unit.
+  const unitInterviews = interviews.filter((slot) => (slot.college ?? "") === (preferredBody === "local" ? college : ""));
+  const openInterviews = unitInterviews.map((slot) => slot.id);
+  const chosenInterview = unitInterviews.find((slot) => slot.id === interviewSlot);
   const [handledState, setHandledState] = useState<ApplicationState>(undefined);
   const [moved, setMoved] = useState(false);
   // Switching steps: the current one slides out the way the applicant is heading, then the next slides in.
@@ -369,8 +335,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   const levels = yearLevelsFor(college);
   const yearLevelLabels = Object.values(levels);
   const yearLevelValue = (label: string) => Object.entries(levels).find(([, text]) => text === label)?.[0] ?? "";
-  const divisionPositions: Record<string, string> = divisions[division as DivisionId]?.positions ?? {};
-  const portfolio = needsPortfolio(division);
+  const portfolio = needsPortfolio(position);
   const availableBodies = Object.keys(preferredBodies).filter((body) =>
     (body !== "local" || Boolean(college)) &&
     (preview || !existingCommissionAccount(profile?.commissionAccounts, body, college)) &&
@@ -378,12 +343,10 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   );
   const selectedBody = availableBodies.includes(preferredBody) ? preferredBody : "";
   const slots = unitSlots ? (unitSlots[selectedBody === "local" ? college : ""] ?? {}) : centralSlots;
-  const openDivisions = divisionIdsForBody(selectedBody).filter((id) =>
-    Object.keys(divisions[id].positions).some((position) => (slots[position] ?? 0) > 0),
-  );
+  const openPositions = selectedBody ? positionsForUnit(selectedBody === "local" ? college : "").filter((position) => (slots[position.id] ?? 0) > 0) : [];
   const canOfferPositions = availableBodies.some((body) => {
     const counts = unitSlots ? unitSlots[body === "local" ? college : ""] ?? {} : centralSlots;
-    return divisionIdsForBody(body).some((id) => Object.keys(divisions[id].positions).some((position) => (counts[position] ?? 0) > 0));
+    return positionsForUnit(body === "local" ? college : "").some((position) => (counts[position.id] ?? 0) > 0);
   });
 
   // When the server rejects a field, show its message and go back to the step that holds it.
@@ -501,12 +464,12 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   /** View mode's Submit: shows the Receipt step with the answers given, without sending anything. */
   const finishPreview = () => {
     const answers = read();
-    const chosenDivision = divisions[answers.division as DivisionId];
+    const chosenPosition = positionsForUnit(answers.preferredBody === "local" ? answers.college : "").find((position) => position.id === answers.position);
     setPreviewResult({
       referenceCode: "CC-SAMP-LE00",
       name: [answers.firstName, answers.middleName, answers.lastName].filter(Boolean).join(" ") || "Not provided",
-      division: chosenDivision?.label ?? "Not provided",
-      position: (chosenDivision?.positions as Record<string, string> | undefined)?.[answers.position] ?? "Not provided",
+      division: "",
+      position: chosenPosition?.label ?? "Not provided",
       interview: chosenInterview ? describeSlot(chosenInterview) : null,
       submittedAt: new Date().toISOString(),
       answers: describeAnswers(answers, chosenInterview ?? interviewLater),
@@ -519,7 +482,6 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
     setCollege("");
     setPreferredBody("");
     setProgram("");
-    setDivision("");
     setPosition("");
     setYearLevel("");
     setInterviewSlot("");
@@ -627,6 +589,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
               </div>
             </header>
             <p className="apply-privacy-intro">The UST Central Commission on Elections (Central COMELEC) respects your privacy. This statement explains what we collect through this form and how we use it.</p>
+            <p className="apply-privacy-intro"><Link href="/privacy" target="_blank" rel="noreferrer">Read the full website and portal privacy statement</Link>.</p>
             <div className="apply-privacy-grid">
               {privacySections.map(({ icon: Icon, title, text }) => (
                 <div className="apply-privacy-item" key={title}>
@@ -773,7 +736,6 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                     setProgram("");
                     if (preferredBody === "local") {
                       setPreferredBody("");
-                      setDivision("");
                       setPosition("");
                       setInterviewSlot("");
                     }
@@ -838,7 +800,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                 const open = availableBodies.includes(value);
                 return (
                   <label className={`apply-choice${open ? "" : " is-full"}`} key={value}>
-                    <input type="radio" name="preferredBody" value={value} disabled={!open} checked={selectedBody === value} onChange={() => { setPreferredBody(value); setDivision(""); setPosition(""); setInterviewSlot(""); clearError("preferredBody"); clearError("division"); clearError("position"); }} />
+                    <input type="radio" name="preferredBody" value={value} disabled={!open} checked={selectedBody === value} onChange={() => { setPreferredBody(value); setPosition(""); setInterviewSlot(""); clearError("preferredBody"); clearError("position"); }} />
                     <span className="apply-choice-text"><strong>{label}</strong><small>{open ? preferredBodyDescriptions[value as keyof typeof preferredBodies] : accountError || closedBodyError(value, college)}</small></span>
                   </label>
                 );
@@ -851,31 +813,15 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
             <p className="apply-note" role="status">We can’t offer you any positions right now. There are no open positions in a Comelec unit you’re eligible to join.</p>
           ) : !selectedBody ? (
             <p className="apply-note" role="status">Select where you’d like to serve to see open positions.</p>
-          ) : !openDivisions.length ? (
+          ) : !openPositions.length ? (
             <p className="apply-note" role="status">We can’t offer you any positions in this Comelec unit right now. Please choose another available unit or check back later.</p>
-          ) : (
-            <div className={`apply-field${errors.division ? " has-error" : ""}`} role="radiogroup" aria-label="Where would you like to apply?">
-              <span className="apply-field-label">Where would you like to apply?<Required /></span>
-              <div className="apply-divisions">
-                {openDivisions.map((value) => (
-                  <DivisionOption
-                    key={value}
-                    id={value}
-                    slots={slots}
-                    checked={division === value}
-                    onSelect={() => { if (value !== division) setInterviewSlot(""); setDivision(value); setPosition(""); clearError("division"); clearError("position"); }}
-                  />
-                ))}
-              </div>
-              {errors.division && <span className="apply-field-error">{errors.division}</span>}
-            </div>
-          )}
+          ) : null}
 
-          {selectedBody && canOfferPositions && openDivisions.includes(division as DivisionId) && (
+          {selectedBody && openPositions.length > 0 && (
             <div className={`apply-field${errors.position ? " has-error" : ""}`} role="radiogroup" aria-label="Position to apply for">
               <span className="apply-field-label">Position to apply for<Required /></span>
               <div className="apply-choices is-positions">
-                {Object.entries(divisionPositions).filter(([value]) => (slots[value] ?? 0) > 0).map(([value, label]) => {
+                {openPositions.map(({ id: value, label }) => {
                   const count = slots[value] ?? 0;
                   return (
                     <label className="apply-choice" key={value}>
@@ -905,7 +851,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
             <Field label="Recommendation Letter" error={errors.endorsementUrl} span={12} optional>
               <input name="endorsementUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
-            <Field label="Portfolio" hint="Optional, but required for those applying under the Public Information Division." error={errors.portfolioUrl} span={12} optional={!portfolio}>
+            <Field label="Portfolio" hint="Optional, but required for public information and creatives positions." error={errors.portfolioUrl} span={12} optional={!portfolio}>
               <input name="portfolioUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Latest Copy of Grades" error={errors.gradesUrl} span={12} optional>
@@ -916,13 +862,13 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
 
         <div className="apply-step" hidden={step !== 5}>
           <div className={`apply-field${errors.interviewSlot ? " has-error" : ""}`}>
-            <InterviewPicker key={division} slots={divisionInterviews} value={interviewSlot} invalid={Boolean(errors.interviewSlot)} onChange={(id) => { setInterviewSlot(id); clearError("interviewSlot"); }} />
+            <InterviewPicker key={`${selectedBody}:${college}`} slots={unitInterviews} value={interviewSlot} invalid={Boolean(errors.interviewSlot)} onChange={(id) => { setInterviewSlot(id); clearError("interviewSlot"); }} />
             {errors.interviewSlot && <span className="apply-field-error" role="alert">{errors.interviewSlot}</span>}
           </div>
         </div>
 
         <div className="apply-step" hidden={step !== 6}>
-          {values && <AnswerSections sections={describeAnswers(values, chosenInterview ?? (divisionInterviews.length ? "" : interviewLater))} onEdit={(id) => goTo(sectionSteps[id])} />}
+          {values && <AnswerSections sections={describeAnswers(values, chosenInterview ?? (unitInterviews.length ? "" : interviewLater))} onEdit={(id) => goTo(sectionSteps[id])} />}
           {state?.error && !state.fieldErrors && <p className="apply-form-error" role="alert">{state.error}</p>}
         </div>
 
@@ -935,7 +881,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
           {step > 0 ? (
             <button className="apply-back" type="button" onClick={() => goTo(step - 1)} disabled={pending || transitioning}><ArrowLeft size={15} /> Back</button>
           ) : <span />}
-          {(step !== 3 || (canOfferPositions && (!selectedBody || openDivisions.length > 0))) && (
+          {(step !== 3 || (canOfferPositions && (!selectedBody || openPositions.length > 0))) && (
             <button className="button-primary" type="submit" disabled={pending || transitioning || redirecting || waitingForGoogle || !hydrated}>
               {step === 0 && !verified && !preview ? (waitingForGoogle ? "Waiting for Google…" : <>Continue with UST Google <ArrowRight size={15} /></>) : step === 1 ? <>I confirm <ArrowRight size={15} /></> : step < lastStep ? <>Continue <ArrowRight size={15} /></> : pending ? "Submitting…" : <>Submit application <ArrowRight size={15} /></>}
             </button>

@@ -1,3 +1,4 @@
+import { newsContentText } from "@/lib/data/news-content";
 import type { Metadata } from "next";
 import "../globals.css";
 import "./header.css";
@@ -73,7 +74,7 @@ async function newsCards(): Promise<Featured[]> {
       tag: newsCategories[post.category],
       tone: "news",
       title: post.title,
-      description: post.excerpt,
+      description: newsContentText(post.excerpt),
       footnote: formatDate(post.date),
     }));
   } catch (error) {

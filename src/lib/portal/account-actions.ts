@@ -7,7 +7,7 @@ import { personNamePattern } from "@/lib/forms/input";
 import { canSeeCollege, isBuiltInEmail, requireEditor, type PortalUser } from "@/lib/auth/session";
 import { sameAccountUnit, detailsFor, facebookHref, fullName, isCentralRepresentative, isLocalChairperson, isRoleFor, officialName, positionsFor, programsOf, toSummary, upperName } from "@/lib/data/accounts";
 import { isMissingColumn, store } from "@/lib/data/store";
-import { comelecUnits, positions, isYearLevelFor, yearLevelsFor } from "@/lib/applications/options";
+import { comelecUnits, positionsForUnit, isYearLevelFor, yearLevelsFor } from "@/lib/applications/options";
 import { getApplication } from "@/lib/applications/admin";
 import { officeOf } from "@/lib/data/accounts";
 import { accountAffiliations, accountPositions, affiliations, type AccountAffiliation, type AccountKind, type AccountPosition, type PortalAccount } from "@/lib/data/types";
@@ -59,7 +59,7 @@ const personalSchema = z
     if (!positionsFor(value.affiliation).includes(value.position)) return issue("position", value.affiliation === "osa" ? "The Office for Student Affairs’ accounts are Admins." : "Pick their position.");
     // Only the details the position has are checked; the rest are saved empty whatever was sent.
     const needs = detailsFor(value.affiliation, value.position);
-    if (needs.role && !isRoleFor(value.affiliation, value.position, value.role)) issue("role", "Pick their role.");
+    if (needs.role && !isRoleFor(value.affiliation, value.position, value.role, value.college)) issue("role", "Pick their role.");
     if (needs.program && !isYearLevelFor(value.college, value.yearLevel)) issue("yearLevel", "Pick their year level.");
     if (needs.studentNumber && !/^\d{10}$/.test(value.studentNumber)) issue("studentNumber", "Use their 10-digit student number.");
     if (needs.college === "required" ? !isUnit(value.college) : needs.college === "optional" && value.college !== "" && !isUnit(value.college)) return issue("college", "Pick their college or faculty from the list.");
@@ -235,9 +235,9 @@ export async function onboardApplication(id: string): Promise<FormState> {
   if (application.status !== "accepted") return { error: "Accept this application before onboarding." };
   if (application.preferredBodyId !== "central" && application.preferredBodyId !== "local") return { error: "This application has no valid Comelec unit." };
 
-  const position = positions.find((item) => item.id === application.positionId);
+  const position = positionsForUnit(application.preferredBodyId === "local" ? application.college : "").find((item) => item.id === application.positionId);
   if (!position) return { error: "This application’s position is no longer available. Add their account under Accounts instead." };
-  const role = officeOf(position.label.replace(/^Executive Assistant to the /, ""));
+  const role = officeOf(position.role);
   const formData = new FormData();
   for (const [key, value] of Object.entries({
     kind: "personal",

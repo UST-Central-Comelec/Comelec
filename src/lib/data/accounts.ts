@@ -2,13 +2,14 @@
 // account with the fields older rows lack filled in. Free of server-only imports, so the account
 // forms can use it.
 
+import { localRolesByCollege } from "./local-roles";
 import { programsByCollege, type College } from "@/lib/applications/options";
 import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, DEPUTY, accountKinds, accountPositions, centralRoles, isAccountAffiliation, isAccountPosition, isViewerPosition, localRoles, type AccountAffiliation, type AccountKind, type AccountPosition, type AccountSummary, type Affiliation, type PortalAccount } from "./types";
 
-type Standing = { affiliation: AccountAffiliation; position: AccountPosition; role: string };
+type Standing = { affiliation: AccountAffiliation; position: AccountPosition; role: string; college?: string | null };
 
 /** The Executive Board's roles in a unit, in order of rank. */
-export const boardRolesFor = (affiliation: Affiliation): readonly string[] => (affiliation === "central" ? centralRoles : localRoles);
+export const boardRolesFor = (affiliation: Affiliation, college?: string | null): readonly string[] => (affiliation === "central" ? centralRoles : college ? (localRolesByCollege[college] ?? localRoles) : [...new Set([...localRoles, ...Object.values(localRolesByCollege).flat()])]);
 
 /** An Executive Associate serves in a board member's office: "Office of the Chairperson". */
 export const officeOf = (boardRole: string) => `Office of the ${boardRole}`;
@@ -20,16 +21,16 @@ export const officeOf = (boardRole: string) => `Office of the ${boardRole}`;
 export const positionsFor = (affiliation: AccountAffiliation): readonly AccountPosition[] => (affiliation === "osa" ? ["admin"] : affiliation === "local" ? ["executive-board", "executive-associate", "deputy", "adviser"] : ["executive-board", "executive-associate", "adviser"]);
 
 /** The roles to pick from: the board's own, their offices for associates, and the one role a deputy has. Advisers and Admins have none. */
-export function rolesFor(affiliation: AccountAffiliation, position: AccountPosition): readonly string[] {
+export function rolesFor(affiliation: AccountAffiliation, position: AccountPosition, college?: string | null): readonly string[] {
   if (affiliation === "osa" || isViewerPosition(position)) return [];
   if (position === "deputy") return [DEPUTY];
-  const board = boardRolesFor(affiliation);
+  const board = boardRolesFor(affiliation, college);
   return position === "executive-board" ? board : board.map(officeOf);
 }
 
 /** Whether `role` fits the position: one from its list, or none where the position has no roles. */
-export function isRoleFor(affiliation: AccountAffiliation, position: AccountPosition, role: string) {
-  const roles = rolesFor(affiliation, position);
+export function isRoleFor(affiliation: AccountAffiliation, position: AccountPosition, role: string, college?: string | null) {
+  const roles = rolesFor(affiliation, position, college);
   return roles.length ? roles.includes(role) : role === "";
 }
 
@@ -53,7 +54,7 @@ export function detailsFor(affiliation: AccountAffiliation, position: AccountPos
 
 /** Where a role comes in its unit's order: the board by rank, then their offices in the same order, then deputies. */
 export function roleRank(account: Standing) {
-  const index = rolesFor(account.affiliation, account.position).indexOf(account.role);
+  const index = rolesFor(account.affiliation, account.position, account.college).indexOf(account.role);
   return Object.keys(accountPositions).indexOf(account.position) * 100 + (index === -1 ? 99 : index);
 }
 

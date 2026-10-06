@@ -25,7 +25,10 @@ const { ProfileMenu } = load("src/components/portal/profile-menu.tsx", {
   "next/link": ({ children, ...props }) => React.createElement("a", props, children),
   "@/lib/portal/auth-actions": { logout: () => {}, switchPortalAccount: () => {} },
   "@/lib/data/types": types,
-  "@/lib/applications/options": load("src/lib/applications/options.ts", {}),
+  "@/lib/applications/options": load("src/lib/applications/options.ts", {
+    "@/lib/data/types": types,
+    "@/lib/data/local-roles": load("src/lib/data/local-roles.ts", { "./types": types }),
+  }),
   "./portal-theme": { ThemeToggle: () => React.createElement("button", { type: "button", "aria-label": "Change theme" }, "Theme") },
 });
 const user = { id: "local", name: "Juan Dela Cruz", role: "Deputy (Local)", email: "juan@ust.edu.ph", avatarUrl: null };

@@ -1,3 +1,4 @@
+import { newsContentText } from "@/lib/data/news-content";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -239,7 +240,7 @@ export default async function Home() {
                 <>
                   <p className="lp-card-meta"><span>{newsCategories[latest.category]}</span><time dateTime={latest.date}>{formatDate(latest.date)}</time></p>
                   <h3 className="lp-card-title is-small"><Link href={`/news/${latest.id}`} className="lp-stretch">{latest.title}</Link></h3>
-                  <p className="lp-card-copy is-clamped">{latest.excerpt}</p>
+                  <p className="lp-card-copy is-clamped">{newsContentText(latest.excerpt)}</p>
                   <span className="lp-card-foot">Read the story <ArrowUpRight size={14} aria-hidden="true" /></span>
                 </>
               ) : (

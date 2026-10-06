@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { StatTable } from "@/components/statistics/stat-table";
 import type { FormState } from "@/lib/portal/form";
 import { barColumns, columnKinds, parseTable, sizeLabel, toPasteText, type StatisticTable } from "@/lib/statistics/table";
+import { DatePicker } from "./date-picker";
 import { Dropdown } from "./dropdown";
 import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
@@ -49,7 +50,7 @@ export function StatisticForm({ action, initial, periods, submitLabel, danger }:
             <datalist id="statistic-periods">{periods.map((period) => <option key={period} value={period} />)}</datalist>
           </Field>
           <Field label="Figures as of" hint="The day the figures were counted or last checked. The page shows the most recent tables first." error={errors.asOf}>
-            <input name="asOf" type="date" defaultValue={initial.asOf} required />
+            <DatePicker name="asOf" defaultValue={initial.asOf} invalid={Boolean(errors.asOf)} required />
           </Field>
           <Field label="Short description" hint="Optional. One or two sentences on what the table shows, above the figures." error={errors.summary} wide>
             <textarea name="summary" rows={2} defaultValue={initial.summary} maxLength={300} />

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { calendarDays, calendarTime, formatPortalDate, shiftCalendarDay, shiftCalendarMonth } from "@/lib/forms/calendar";
+import "./date-picker.css";
 export { formatPortalDate } from "@/lib/forms/calendar";
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -10,8 +11,11 @@ const monthName = (month: string) => new Intl.DateTimeFormat("en-US", { month: "
 type Place = { left: number; width: number; top?: number; bottom?: number; maxHeight: number };
 
 /** A custom calendar dropdown with full-date labels and ISO form values. */
-export function DatePicker({ name, value, defaultValue = "", onChange, min, max, required, invalid }: {
-  name: string;
+export function DatePicker({ name, value, defaultValue = "", onChange, min, max, required, invalid, id: inputId, label, describedBy }: {
+  name?: string;
+  id?: string;
+  label?: string;
+  describedBy?: string;
   value?: string;
   defaultValue?: string;
   onChange?: (value: string) => void;
@@ -39,7 +43,7 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
   };
   const show = () => {
     const box = button.current?.getBoundingClientRect();
-    if (!box || button.current?.disabled) return;
+    if (!box || button.current?.matches(":disabled")) return;
     const day = clamp(formatPortalDate(chosen) ? chosen : today);
     setMonth(day.slice(0, 7));
     setActive(day);
@@ -110,7 +114,7 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
       if (target instanceof Node && (panel.current?.contains(target) || button.current?.contains(target))) return;
       close();
     }}>
-      <button ref={button} type="button" role="combobox" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-calendar` : undefined} aria-invalid={invalid || undefined} aria-required={required || undefined} onClick={() => open ? close() : show()} onKeyDown={(event) => {
+      <button ref={button} id={inputId} aria-label={label} aria-describedby={describedBy} type="button" role="combobox" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-calendar` : undefined} aria-invalid={invalid || undefined} aria-required={required || undefined} onClick={() => open ? close() : show()} onKeyDown={(event) => {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); show(); }
         else if (event.key === "Escape") close();
       }}>

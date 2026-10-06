@@ -170,3 +170,13 @@ export function describeAudience(audience: Audience) {
   const filters = `${who} · ${where}${audience.officials ? ", with official accounts" : ""}`;
   return audience.only.length ? `${audience.only.length} picked from ${filters}` : filters;
 }
+
+/** A recipient line that does not imply a filtered audience reaches the whole unit. */
+export function audienceMention(audience: Audience) {
+  if (audience.only.length) return "@Selected recipients";
+  if (!audience.units.length && !audience.groups.length && !audience.roles.length) return "@everyone";
+  const mentions = audience.units.map(unit => `@${describeUnit(unit)}`);
+  if (audience.roles.length) mentions.push(...audience.roles.map(role => `@${role}`));
+  else mentions.push(...audience.groups.map(group => `@${audienceGroups[group]}`));
+  return mentions.join(" · ");
+}

@@ -65,7 +65,7 @@ function TrackedResult({ application }: { application: TrackedApplication }) {
         <div><dt>Name</dt><dd>{application.name}</dd></div>
         <div><dt>Submitted</dt><dd>{formatSubmitted(application.submittedAt)}</dd></div>
         <div><dt>Serve in</dt><dd>{application.preferredBody}</dd></div>
-        <div><dt>Division</dt><dd>{application.division}</dd></div>
+        {application.division && <div><dt>Division</dt><dd>{application.division}</dd></div>}
         <div><dt>Position</dt><dd>{application.position}</dd></div>
         <div><dt>College or faculty</dt><dd>{application.college}</dd></div>
         <div><dt>Program</dt><dd>{application.program}</dd></div>

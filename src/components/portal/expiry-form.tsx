@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FormState } from "@/lib/portal/form";
+import { DatePicker } from "./date-picker";
 import { InfoTip } from "./info-tip";
 import { useHydrated, usePortalForm } from "./portal-form";
 
@@ -20,7 +21,7 @@ export function ExpiryForm({ action, expiresOn: saved, today }: { action: (state
           <InfoTip>Access ends at the end of this day, Philippine time. Change it any time before then; after the clean-up, a new date applies to accounts restored or added since.</InfoTip>
         </div>
         <div className="portal-setting-control">
-          <input id="expires-on" className="portal-input portal-expiry-date" type="date" name="expiresOn" value={date} min={today} onChange={(event) => setDate(event.target.value)} required aria-invalid={Boolean(errors.expiresOn)} />
+          <DatePicker id="expires-on" name="expiresOn" value={date} min={today} onChange={setDate} required invalid={Boolean(errors.expiresOn)} />
           {errors.expiresOn && <span className="portal-field-error">{errors.expiresOn}</span>}
         </div>
       </div>

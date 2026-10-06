@@ -92,6 +92,7 @@ export function ProfileMenu({ user, memberships }: { user: ProfileUser; membersh
           </section>
         )}
         <div className="portal-profile-actions">
+          <Link href="/portal/privacy" onClick={() => panel.current?.hidePopover()}><span>Privacy statement</span></Link>
           <Link href="/portal/account" onClick={() => panel.current?.hidePopover()}><span>My account</span><UserRound size={17} aria-hidden="true" /></Link>
           <div className="portal-profile-theme"><span>Theme</span><ThemeToggle /></div>
           <a href="/" target="_blank" rel="noreferrer" onClick={() => panel.current?.hidePopover()}><span>Website</span><House size={17} aria-hidden="true" /></a>

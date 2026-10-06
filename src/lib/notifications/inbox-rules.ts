@@ -1,4 +1,4 @@
-import type { AccountSummary } from "@/lib/data/types";
+import type { AccountAffiliation, AccountSummary } from "@/lib/data/types";
 
 type Sender = Pick<AccountSummary, "kind" | "affiliation" | "college" | "position"> & { readOnly: boolean; builtIn: boolean };
 export type AnnouncementAudience = "unit" | "all";
@@ -27,6 +27,9 @@ export type InboxMessage = {
   title: string;
   body: string;
   senderName: string;
+  senderAffiliation?: AccountAffiliation;
+  senderCollege?: string | null;
+  recipientMention?: string;
   audienceLabel: string;
   createdAt: string;
   readAt: string | null;

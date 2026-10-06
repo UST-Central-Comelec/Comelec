@@ -148,7 +148,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
   const applicationFacts = (
     <DetailGroup title="Application" number="02">
       <Detail label="Serve in">{application.preferredBody}</Detail>
-      <Detail label="Division">{application.division}</Detail>
+      {application.division && <Detail label="Division">{application.division}</Detail>}
       <Detail label="Position">{application.position}</Detail>
       <Detail label="Interview date">{interview ? slotDate(interview.startsAt) : "Not scheduled"}</Detail>
       <Detail label="Interview time">{interview ? slotTimeRange(interview.startsAt, interview.durationMinutes) : "Not scheduled"}</Detail>

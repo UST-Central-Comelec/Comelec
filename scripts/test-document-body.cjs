@@ -21,6 +21,10 @@ function load(file) {
   return compiled.exports;
 }
 const { parseDocumentBody, serializeDocumentBody, documentBodyHtml, normalizeDocumentHref, normalizeDocumentColor, normalizeDocumentFontSize } = load('src/lib/data/document-body.ts');
+const { documentBodyText } = load('src/lib/data/document-body.ts');
+assert.equal(documentBodyText(parseDocumentBody(serializeDocumentBody([{ type: 'text', runs: [{ text: 'Announcement', bold: true }] }, { type: 'bullets', items: [[{ text: 'First' }], [{ text: 'Second' }]] }]))), 'Announcement\n\nFirst\nSecond');
+assert.equal(documentBodyText(parseDocumentBody(serializeDocumentBody([{ type: 'divider' }]))).trim(), '');
+assert.equal(documentBodyText(parseDocumentBody('Legacy announcement')), 'Legacy announcement');
 const { DocumentBody } = load('src/components/document-body.tsx');
 const legacy = parseDocumentBody('First paragraph.\r\nSecond line.\r\n\r\nName\tRole\t\r\nJuan\tChairperson\t');
 assert.deepEqual(legacy, [
@@ -36,6 +40,11 @@ const rich = [
   { type: 'grid', header: null, rows: [[[{ text: 'No header' }]]] },
 ];
 assert.deepEqual(parseDocumentBody(serializeDocumentBody(rich)), rich, 'Formatting, bullets and tables survive storage');
+const transportedRich = serializeDocumentBody(rich).replace(/\n/g, '\r\n');
+assert.deepEqual(parseDocumentBody(transportedRich), rich, 'Already-saved CRLF drafts render as formatted documents');
+assert.equal(load('src/lib/data/document-body.ts').isSerializedDocumentBody(transportedRich), true, 'Validation accepts form-transport line endings');
+assert.doesNotMatch(documentBodyText(parseDocumentBody(transportedRich)), /::document-body|"runs"/, 'Inbox and header previews show readable text');
+assert.match(renderToStaticMarkup(React.createElement(DocumentBody, { blocks: parseDocumentBody(transportedRich) })), /<strong>/, 'Transported formatting reaches the message renderer');
 assert.equal(serializeDocumentBody([]), '');
 const divided = [
   { type: 'text', runs: [{ text: 'Before the line' }] },
@@ -164,3 +173,32 @@ assert.equal(parseDocumentBody('::document-body:v1::\ninvalid JSON')[0].type, 'p
 console.log('Passed: legacy document/table compatibility, formatting and table storage, public rendering, header settings, escaped text, and malformed content fallback.');
 
 assert.match(renderToStaticMarkup(React.createElement(DocumentBody, { blocks: [{ type: "text", runs: [{ text: "Default size" }] }] })), /font-size:12px/);
+
+(async () => {
+  const form = new FormData();
+  form.set('body', serializeDocumentBody(rich));
+  const request = new Request('http://localhost/announcement', { method: 'POST', body: form });
+  const received = await request.formData();
+  const { text: formText } = load('src/lib/portal/form.ts');
+  const storedBody = formText(received, 'body').trim();
+  assert.match(storedBody, /\r\n/, 'Multipart transport reproduces the browser newline conversion');
+  assert.deepEqual(parseDocumentBody(storedBody), rich, 'Announcement form submission preserves formatting and tables');
+  assert.equal(documentBodyText(parseDocumentBody(storedBody)), documentBodyText(rich), 'Submitted message previews remain readable');
+  console.log('Passed: real multipart announcement submission and existing CRLF message recovery.');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
+const { newsSummarySchema, newsArticleSchema, newsContentText } = load('src/lib/data/news-content.ts');
+const richNews = serializeDocumentBody(rich);
+assert.ok(richNews.length > 300);
+assert.equal(newsSummarySchema.safeParse(richNews).success, true, 'News summary limit counts text, not formatting JSON');
+assert.equal(newsSummarySchema.safeParse(richNews.replace(/\n/g, '\r\n')).success, true, 'News accepts browser form line endings');
+assert.equal(newsSummarySchema.safeParse(serializeDocumentBody([{ type: 'text', runs: [{ text: 'x'.repeat(301) }] }])).success, false);
+assert.equal(newsSummarySchema.safeParse('Legacy summary text').success, true);
+assert.equal(newsArticleSchema.safeParse(serializeDocumentBody([{ type: 'text', runs: [{ text: 'x'.repeat(20001) }] }])).success, false);
+assert.equal(newsArticleSchema.safeParse('').success, true, 'Summary-only posts remain supported');
+assert.equal(newsSummarySchema.safeParse('::document-body:v1::\ninvalid').success, false);
+const { toStories, readingMinutes } = load('src/components/news/story.ts');
+assert.equal(toStories([{ id: 'news', title: 'News', category: 'announcement', date: '2026-10-06', excerpt: richNews, body: richNews, featured: false }])[0].excerpt, newsContentText(richNews), 'News lists expose readable summaries');
+const longArticle = 'word '.repeat(440);
+assert.equal(readingMinutes(serializeDocumentBody([{ type: 'text', runs: [{ text: longArticle, bold: true }] }])), readingMinutes(longArticle), 'Reading time excludes formatting data');
+console.log('Passed: formatted news validation, legacy summaries, plain previews and reading times.');

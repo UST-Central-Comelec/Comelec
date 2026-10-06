@@ -126,9 +126,16 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
   function restore() {
     const root = box.current;
     if (!root) return;
-    root.focus();
     const selection = window.getSelection();
     let range = saved.current;
+    // Replacing an unchanged caret range resets the browser's pending typing marks.
+    // Keep it in place so repeated Bold/Italic/Underline clicks toggle those marks off.
+    if (document.activeElement === root && selection?.rangeCount && range) {
+      const current = selection.getRangeAt(0);
+      if (current.startContainer === range.startContainer && current.startOffset === range.startOffset
+        && current.endContainer === range.endContainer && current.endOffset === range.endOffset) return;
+    }
+    root.focus();
     if (!range || !root.contains(range.commonAncestorContainer)) {
       range = document.createRange();
       range.selectNodeContents(root);
@@ -511,7 +518,7 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
       }}>
         <div className="document-ribbon-group document-font-size" role="group" aria-label="Font size">
           <RibbonButton label="Decrease font size" disabled={fontSize <= 8} onClick={() => changeFontSize(Math.max(8, fontSize - 1))}><Minus size={ribbonIconSize} aria-hidden="true" /></RibbonButton>
-          <select aria-label="Font size" title="Font size" value={fontSize} onChange={event => changeFontSize(Number(event.target.value))}>{[...new Set([...fontSizes, fontSize])].sort((a, b) => a - b).map(size => <option key={size} value={size}>{size}</option>)}</select>
+          <span className="document-font-size-picker"><select aria-label="Font size" title="Font size" value={fontSize} onChange={event => changeFontSize(Number(event.target.value))}>{[...new Set([...fontSizes, fontSize])].sort((a, b) => a - b).map(size => <option key={size} value={size}>{size}</option>)}</select><ChevronDown size={12} aria-hidden="true" /></span>
           <RibbonButton label="Increase font size" disabled={fontSize >= 96} onClick={() => changeFontSize(Math.min(96, fontSize + 1))}><Plus size={ribbonIconSize} aria-hidden="true" /></RibbonButton>
         </div>
         <div className="document-ribbon-group" role="group" aria-label="Text appearance">

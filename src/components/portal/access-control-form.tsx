@@ -36,10 +36,9 @@ function Switch({ name, value, checked, mixed, disabled, onChange, label }: { na
 /**
  * Accounts → Access Control, for one level: a switch per tab, under its main tab, which has a switch of
  * its own for all of them at once. `action` is null for the Central Executive Board, whose access
- * is shown but can't be changed. `scopes` marks each tab Local or Central only, for the levels with
- * Local accounts in them.
+ * is shown but can't be changed. Fixed tabs remain disabled and show a lock icon.
  */
-export function AccessControlForm({ action, groups, updated, scopes }: { action: FormAction | null; groups: AccessGroup[]; updated: string | null; scopes: boolean }) {
+export function AccessControlForm({ action, groups, updated }: { action: FormAction | null; groups: AccessGroup[]; updated: string | null }) {
   const { state, pending, onSubmit } = usePortalForm(action ?? noAction);
   const hydrated = useHydrated();
   const tabs = groups.flatMap((group) => group.tabs);
@@ -81,7 +80,7 @@ export function AccessControlForm({ action, groups, updated, scopes }: { action:
                   free.length > 0 ? (
                     <Switch checked={all} mixed={!all && on.length > 0} disabled={locked} onChange={(next) => set(free.map((tab) => tab.key), next)} label={`All of ${name}`} />
                   ) : (
-                    <span className="portal-access-fixed"><Lock size={12} aria-hidden="true" /> {locked ? "Always on" : "Central only"}</span>
+                    <span className="portal-access-fixed" role="img" aria-label="Locked" title="Access is fixed for this level"><Lock size={14} aria-hidden="true" /></span>
                   )
                 ) : (
                   <Switch name="tab" value={group.tabs[0].key} checked={open.has(group.tabs[0].key)} disabled={group.tabs[0].fixed} onChange={(next) => set([group.tabs[0].key], next)} label={name} />
@@ -94,7 +93,7 @@ export function AccessControlForm({ action, groups, updated, scopes }: { action:
                       <label>
                         <Switch name="tab" value={tab.key} checked={open.has(tab.key)} disabled={tab.fixed} onChange={(next) => set([tab.key], next)} label={`${name}: ${tab.label}`} />
                         <span>{tab.label}</span>
-                        {tab.boardOnly ? <small title="Where revisions of the Constitution and the Elections Code are signed. Only the Central Executive Board has it.">Board only</small> : !scopes ? null : tab.centralOnly ? <small title="Commission-wide, so only Central accounts can be given it.">Central only</small> : <small className="is-local" title="Has each college’s own records, so Local accounts can be given it. They see only their own college’s.">Local</small>}
+                        {tab.fixed && <span className="portal-access-fixed" role="img" aria-label="Locked" title="Access is fixed for this level"><Lock size={12} aria-hidden="true" /></span>}
                       </label>
                     </li>
                   ))}

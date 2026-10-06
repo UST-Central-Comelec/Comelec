@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BadgeCheck, CircleDashed, Plus } from "lucide-react";
+import { AccountKindLabel, AccountStatusLabel } from "@/components/portal/account-badges";
 import { AccessRequestRow } from "@/components/portal/access-requests";
 import { AccountsTabs } from "@/components/portal/accounts-tabs";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -12,7 +13,7 @@ import { listPendingAccessRequests } from "@/lib/access-requests/admin";
 import { allowed, builtInUser, isLocal, withPortalUser } from "@/lib/auth/session";
 import { accountStatusOf, detailsFor, listName } from "@/lib/data/accounts";
 import { getAccounts } from "@/lib/data/queries";
-import { accountAffiliations, accountKinds, accountPositions, type AccountSummary } from "@/lib/data/types";
+import { accountAffiliations, accountPositions, type AccountSummary } from "@/lib/data/types";
 import { FULL_ACCESS } from "@/lib/portal/access";
 import { canDecideRequest, canManageAccount, canSeeUnit } from "@/lib/portal/account-scope";
 import { settle } from "@/lib/portal/settle";
@@ -62,8 +63,10 @@ const affiliationShort = (account: Pick<AccountSummary, "affiliation" | "college
 
 /** What the account is: its position, or that it's a unit's official account. The role is on the account's own page. */
 function Standing({ account }: { account: AccountSummary }) {
-  if (account.kind === "official") return <><span className="portal-tag is-local">{accountKinds.official}</span></>;
-  return <span className={`portal-tag${account.position === "executive-board" ? " is-gold" : ""}`}>{accountPositions[account.position]}</span>;
+  return <div className="portal-account-standing">
+    <AccountKindLabel kind={account.kind} />
+    {account.kind === "personal" && <small className="portal-muted">{accountPositions[account.position]}</small>}
+  </div>;
 }
 
 export default async function PortalAccountsPage({ searchParams }: PageProps<"/portal/accounts">) {
@@ -153,10 +156,11 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                     <td className="portal-muted">Not set</td>
                     <td>CENTRAL</td>
                     <td>
-                      <span className="portal-tag is-gold">{accountPositions["executive-board"]}</span>
+                      <AccountKindLabel kind="personal" />
+                      <small className="portal-muted">{accountPositions["executive-board"]}</small>
                       <small className="portal-muted">Not in the Directory yet</small>
                     </td>
-                    <td><span className="portal-tag">Built-in</span></td>
+                    <td><AccountStatusLabel status="active" /><span className="portal-tag">Built-in</span></td>
                     <td className="portal-row-actions">{!viewer && <Link href="/portal/accounts/new?for=built-in">Add details</Link>}</td>
                   </tr>
                 )}
@@ -187,7 +191,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                       </td>
                       <td><Standing account={account} /></td>
                       <td>
-                        <span className={`portal-tag${accountStatus === "active" ? " is-ok" : " is-warn"}`} title={accountStatus === "pending" ? "Awaiting their first Google sign-in to verify the email." : undefined}>{filters[accountStatus]}</span>
+                        <AccountStatusLabel status={accountStatus} title={accountStatus === "pending" ? "Awaiting their first Google sign-in to verify the email." : undefined} />
                         {account.builtIn && <span className="portal-tag">Built-in</span>}
                       </td>
                       <td className="portal-row-actions">{manageable ? <Link href={`/portal/accounts/${account.id}`}>{own ? "Edit" : "Manage"}</Link> : viewer && <Link href={`/portal/accounts/${account.id}`}>View</Link>}</td>

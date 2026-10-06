@@ -10,7 +10,7 @@ function load(file, dependencies = {}) {
   }).outputText;
   const compiled = { exports: {} };
   new Function("require", "module", "exports", source)(
-    (name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports,
+    (name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports,
   );
   return compiled.exports;
 }
@@ -28,7 +28,7 @@ const answers = load("src/lib/applications/answers.ts", {
 });
 const fields = ["cvUrl", "registrationFormUrl", "letterOfIntentUrl", "endorsementUrl", "portfolioUrl", "gradesUrl"];
 const form = new FormData();
-form.set("division", "operations");
+form.set("position", "ea-operations-officer");
 form.set("cvUrl", "https://drive.google.com/file/d/cv/view");
 form.set("registrationFormUrl", "https://drive.google.com/file/d/registration/view");
 const read = () => schema.readApplication(form);
@@ -39,11 +39,11 @@ form.set("letterOfIntentUrl", "https://example.com/intent");
 assert.ok(check().letterOfIntentUrl, "Letter of Intent must use Google Drive");
 form.set("letterOfIntentUrl", "https://drive.google.com/file/d/intent/view");
 assert.deepEqual(check(), {}, "Recommendation, portfolio and grades are optional outside Public Information");
-form.set("division", "public-information");
+form.set("position", "ea-public-information-officer");
 assert.ok(check().portfolioUrl, "Public Information requires a portfolio");
 form.set("portfolioUrl", "https://drive.google.com/file/d/portfolio/view");
 assert.deepEqual(check(), {});
-form.set("division", "operations");
+form.set("position", "ea-operations-officer");
 form.set("gradesUrl", "https://example.com/grades");
 assert.ok(check().gradesUrl, "Optional grades must be a valid Drive link when provided");
 form.set("gradesUrl", "https://drive.google.com/file/d/grades/view");

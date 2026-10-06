@@ -6,14 +6,15 @@ import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
 import { newsCategories, type NewsCategory } from "@/lib/data/types";
+import { newsArticleSchema, newsSummarySchema } from "@/lib/data/news-content";
 import { text, toFormState, type FormState } from "./form";
 
 const newsSchema = z.object({
   title: z.string().trim().min(3, "Add a title.").max(160, "Keep the title under 160 characters."),
   category: z.enum(Object.keys(newsCategories) as [NewsCategory, ...NewsCategory[]], "Pick a category."),
   date: z.iso.date("Pick a publish date."),
-  excerpt: z.string().trim().min(10, "Add a short summary (at least 10 characters).").max(300, "Keep the summary under 300 characters."),
-  body: z.string().trim().max(20000, "The article is too long."),
+  excerpt: newsSummarySchema,
+  body: newsArticleSchema,
   featured: z.boolean(),
 });
 

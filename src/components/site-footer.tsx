@@ -75,6 +75,7 @@ export function SiteFooter({ status }: { status: NavStatus }) {
           <p>© 2026 UST Central Commission on Elections</p>
           <p>University of Santo Tomas · Manila</p>
           <Link href="/cookies">Cookie policy</Link>
+          <Link href="/privacy">Privacy statement</Link>
           <a className="sf-top" href="#top">Back to top<span><ArrowUp size={15} aria-hidden="true" /></span></a>
         </div>
       </div>

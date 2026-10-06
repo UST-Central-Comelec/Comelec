@@ -1,4 +1,4 @@
-import { conflicts, divisions, preferredBodies, qualifications, yearLevels, type ConflictId, type DivisionId, type QualificationField } from "./options";
+import { conflicts, positionsForUnit, preferredBodies, qualifications, yearLevels, type ConflictId, type QualificationField } from "./options";
 import { conflictFields, declaredConflicts, type ApplicationValues } from "./schema";
 import { interviewModes, slotDate, slotTimeRange, type InterviewSlot } from "./interview-format";
 
@@ -10,12 +10,12 @@ export type AnswerSectionId = "about" | "qualifications" | "application" | "docu
 /** Rows are [label, value]; an empty value means the question wasn't answered. */
 export type AnswerSection = { id: AnswerSectionId; title: string; rows: Array<[string, string]> };
 
-/** Stands in for an interview time when the division has none open. */
+/** Stands in for an interview time when the unit has none open. */
 export const interviewLater = "The commission will email you to schedule it";
 
 /** `interview` is the booked slot, or `interviewLater`, or "" when one still has to be picked. */
 export function describeAnswers(values: ApplicationValues, interview: Pick<InterviewSlot, "startsAt" | "durationMinutes" | "mode" | "location"> | typeof interviewLater | ""): AnswerSection[] {
-  const division = divisions[values.division as DivisionId];
+  const position = positionsForUnit(values.preferredBody === "local" ? values.college : "").find((position) => position.id === values.position);
   const declared = declaredConflicts(values);
   const allQualifications = (Object.keys(qualifications) as QualificationField[]).every((field) => values[field]);
   return [
@@ -40,8 +40,7 @@ export function describeAnswers(values: ApplicationValues, interview: Pick<Inter
     ] },
     { id: "application", title: "Position", rows: [
       ["Serve in", preferredBodies[values.preferredBody as keyof typeof preferredBodies] ?? ""],
-      ["Division", division?.label ?? ""],
-      ["Position", (division?.positions as Record<string, string> | undefined)?.[values.position] ?? ""],
+      ["Position", position?.label ?? ""],
     ] },
     { id: "documents", title: "Documents", rows: [
       ["CV or résumé", values.cvUrl],

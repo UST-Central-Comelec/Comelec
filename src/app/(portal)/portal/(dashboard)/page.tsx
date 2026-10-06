@@ -1,3 +1,4 @@
+import { newsContentText } from "@/lib/data/news-content";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -211,7 +212,7 @@ export default async function PortalDashboardPage() {
               <>
                 <p className="portal-lead-meta"><span>{newsCategories[lead.category]}</span><time dateTime={lead.date}>{formatDate(lead.date)}</time></p>
                 <h2 className="portal-lead-title" id="lead-title"><Link className="portal-stretch" href={`/portal/news/${lead.id}`}>{lead.title}</Link></h2>
-                <p className="portal-lead-copy">{lead.excerpt}</p>
+                <p className="portal-lead-copy">{newsContentText(lead.excerpt)}</p>
                 <span className="portal-lead-foot">Edit the featured post <ArrowUpRight size={14} aria-hidden="true" /></span>
               </>
             ) : (

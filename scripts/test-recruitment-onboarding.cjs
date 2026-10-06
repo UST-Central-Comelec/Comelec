@@ -10,14 +10,14 @@ function load(file, dependencies = {}) {
   }).outputText;
   const compiled = { exports: {} };
   new Function("require", "module", "exports", source)(
-    (name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports,
+    (name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports,
   );
   return compiled.exports;
 }
 
 const options = load("src/lib/applications/options.ts");
 const types = load("src/lib/data/types.ts");
-const accounts = load("src/lib/data/accounts.ts", { "@/lib/applications/options": options, "./types": types });
+const accounts = load("src/lib/data/accounts.ts", { "@/lib/applications/options": options, "./types": types, "./local-roles": load("src/lib/data/local-roles.ts", { "./types": types }) });
 const scope = load("src/lib/portal/account-scope.ts", { "@/lib/data/accounts": accounts, "@/lib/data/types": types });
 const rows = [];
 let manager = { email: "manager@ust.edu.ph", kind: "personal", affiliation: "central", position: "executive-board", college: null };

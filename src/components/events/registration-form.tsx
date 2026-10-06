@@ -301,8 +301,9 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
               </div>
             </div>
             <p>The organizing unit and the UST Central Comelec collect the details on this form to manage sign-ups for <strong>{event.name}</strong>, contact you about it, arrange what you ask for under Logistics and report on who took part.</p>
-            <p>At an event that requires it, a UST student or staff member also signs in once with their UST Google account, which shares their name and UST email; the sign-in itself isn’t kept. Only the commission’s officers handling the event see your details. Nothing is shared outside the commission unless the law requires it, and you can ask to correct or delete your details by emailing <a href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</a>.</p>
+            <p>At an event that requires it, a UST student or staff member also verifies their UST Google account, which shares their name and UST email. Authorized officers handling the event can access your details within their portal permissions. Service providers process information needed for verification, storage and email delivery, as explained in the full privacy statement. You can ask to correct or delete your details by emailing <a href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</a>.</p>
           </div>
+          <p><Link href="/privacy" target="_blank" rel="noreferrer">Read the full website and portal privacy statement</Link>.</p>
           <div data-field="consent" className="ev-consent">
             <CheckRow name="consent" checked={values.consent} onChange={(checked) => set("consent", checked)} invalid={Boolean(errors.consent)}>
               I have read the Data Privacy Consent and Collection Notice, and I agree to the collection and use of my personal information for this event.

@@ -1,17 +1,17 @@
-// The body of an email written in the Email Sender: paragraphs and lists of text, where a stretch
-// of text can be bold, italic or a link. The editor (components/portal/email-editor.tsx) reads what
-// was typed into this shape, the server checks it, and the same code draws it for the preview, for
-// the email and for the editor when an email is used again. No HTML from the browser is ever sent
-// on: what goes out is built here, from text.
+// Email Sender uses the shared Documents draft format. Legacy paragraph/list drafts remain
+// readable and can be reused. The server validates supported formatting and generates safe HTML
+// for preview and delivery; portal inbox copies retain the formatted document body.
 //
 // Free of server-only imports.
 
 import { z } from "zod";
-import { COMMISSION, escape, link, list, paragraph, plainTitle, shell, strong, LOGO_CID } from "./template";
+import { documentBodyHtml, documentBodyText, isSerializedDocumentBody, parseDocumentBody, serializeDocumentBody, type RichBodyBlock } from "@/lib/data/document-body";
+import { COMMISSION, escape, link, list, paragraph, plainTitle, shell, strong, LOGO_CID, palette } from "./template";
 
 export type Run = { text: string; bold?: boolean; italic?: boolean; href?: string };
 export type Block = { type: "paragraph"; runs: Run[] } | { type: "bullets" | "numbers"; items: Run[][] };
 export type Body = Block[];
+export type MessageBody = Body | string;
 
 /** A link as it was typed, made whole: "ust.edu.ph" becomes "https://ust.edu.ph", an email address a mailto. Null when it can't be a link. */
 export function normalizeHref(input: string) {
@@ -33,16 +33,22 @@ const run = z.object({
 });
 const runs = z.array(run).max(200);
 
-export const bodySchema = z
+const legacyBodySchema = z
   .array(z.discriminatedUnion("type", [z.object({ type: z.literal("paragraph"), runs }), z.object({ type: z.enum(["bullets", "numbers"]), items: z.array(runs).min(1).max(100) })]))
   .max(200);
+export const bodySchema = z.union([legacyBodySchema, z.string().max(100000).refine(isSerializedDocumentBody, "Invalid document draft.")]);
 
 const textOfRuns = (line: Run[]) => line.map((part) => part.text).join("");
 
 /** Everything typed, as one string: for counting, and for telling an empty body from a written one. */
-export const bodyLength = (body: Body) => body.reduce((total, block) => total + (block.type === "paragraph" ? textOfRuns(block.runs).length : block.items.reduce((sum, item) => sum + textOfRuns(item).length, 0)), 0);
+export const bodyLength = (body: MessageBody) => typeof body === "string" ? documentBodyText(parseDocumentBody(body)).length : body.reduce((total, block) => total + (block.type === "paragraph" ? textOfRuns(block.runs).length : block.items.reduce((sum, item) => sum + textOfRuns(item).length, 0)), 0);
 
-export const isEmptyBody = (body: Body) => body.every((block) => (block.type === "paragraph" ? !textOfRuns(block.runs).trim() : block.items.every((item) => !textOfRuns(item).trim())));
+export const isEmptyBody = (body: MessageBody) => typeof body === "string" ? !documentBodyText(parseDocumentBody(body)).trim() : body.every((block) => (block.type === "paragraph" ? !textOfRuns(block.runs).trim() : block.items.every((item) => !textOfRuns(item).trim())));
+
+/** Reopen historical Email Sender drafts in the Documents editor without losing their marks. */
+export function bodyDocument(body: MessageBody): string {
+  return typeof body === "string" ? body : serializeDocumentBody(body.map((block): RichBodyBlock => block.type === "paragraph" ? { type: "text", runs: block.runs } : block));
+}
 
 type Marks = { strong: (html: string) => string; em: (html: string) => string; a: (href: string, html: string) => string };
 
@@ -64,20 +70,20 @@ const emailMarks: Marks = {
 };
 
 /** The body as the email's blocks. */
-export const bodyBlocks = (body: Body) =>
-  body.map((block) => (block.type === "paragraph" ? paragraph(inline(block.runs, emailMarks)) : list(block.items.map((item) => inline(item, emailMarks)), block.type === "numbers")));
+export const bodyBlocks = (body: MessageBody) =>
+  typeof body === "string" ? [`<div style="color:${palette.soft};font-size:15px;line-height:1.65">${documentBodyHtml(parseDocumentBody(body)).replace(/<table/g, '<table border="1" cellpadding="8" cellspacing="0" width="100%"')}</div>`] : body.map((block) => (block.type === "paragraph" ? paragraph(inline(block.runs, emailMarks)) : list(block.items.map((item) => inline(item, emailMarks)), block.type === "numbers")));
 
 const plainRuns = (line: Run[]) => line.map((part) => (part.href && part.href.replace(/^mailto:/, "") !== part.text.trim() ? `${part.text} (${part.href.replace(/^mailto:/, "")})` : part.text)).join("");
 
 /** The body as plain text, for mail apps that don't show HTML. */
-export const bodyText = (body: Body) =>
-  body.map((block) => (block.type === "paragraph" ? plainRuns(block.runs) : block.items.map((item, index) => `${block.type === "numbers" ? `${index + 1}.` : "•"} ${plainRuns(item)}`).join("\n"))).join("\n\n");
+export const bodyText = (body: MessageBody) =>
+  typeof body === "string" ? documentBodyText(parseDocumentBody(body)) : body.map((block) => (block.type === "paragraph" ? plainRuns(block.runs) : block.items.map((item, index) => `${block.type === "numbers" ? `${index + 1}.` : "•"} ${plainRuns(item)}`).join("\n"))).join("\n\n");
 
 const editorMarks: Marks = { strong: (html) => `<b>${html}</b>`, em: (html) => `<i>${html}</i>`, a: (href, html) => `<a href="${escape(href)}">${html}</a>` };
 
 /** The body as the plain markup the editor works on, to start it from an email written before. */
-export const bodyEditorHtml = (body: Body) =>
-  body
+export const bodyEditorHtml = (body: MessageBody) =>
+  typeof body === "string" ? documentBodyHtml(parseDocumentBody(body)) : body
     .map((block) => {
       if (block.type === "paragraph") return `<p>${inline(block.runs, editorMarks)}</p>`;
       const tag = block.type === "numbers" ? "ol" : "ul";
@@ -88,7 +94,15 @@ export const bodyEditorHtml = (body: Body) =>
 /** Who an email from the Email Sender is from: their unit heads the email, and replies go to them. */
 export type Sender = { name: string; email: string; unit: string };
 
-export type Message = { subject: string; title: string; body: Body };
+export type Message = { subject: string; title: string; body: MessageBody };
+
+/** Keep the formatted message in the portal, rather than the email's plain-text fallback. */
+export function messageInboxBody(message: Message): string {
+  const body = bodyDocument(message.body);
+  if (!message.title.trim()) return body;
+  const blocks = parseDocumentBody(body) as RichBodyBlock[];
+  return serializeDocumentBody([{ type: "text", runs: [{ text: plainTitle(message.title.trim()), bold: true, fontSize: 18 }] }, ...blocks]);
+}
 
 /** An email from the Email Sender, as HTML. `logoSrc` is set by the preview, which shows the seal from the website. */
 export function messageHtml(message: Message, sender: Sender, logoSrc = `cid:${LOGO_CID}`) {

@@ -31,14 +31,14 @@ function closing(concern: Concern) {
 
 /** "the Executive Division of the Central Comelec", in the email's HTML and in its text. */
 const placeOf = (applicant: Applicant) => ({
-  html: `the ${strong(escape(applicant.division))} of the ${isLocalConcern(applicant.concern) ? strong(escape(unitOf(applicant.concern))) : escape(unitOf(applicant.concern))}`,
-  text: `the ${applicant.division} of the ${unitOf(applicant.concern)}`,
+  html: `the ${applicant.division ? `${strong(escape(applicant.division))} of the ` : ""}${isLocalConcern(applicant.concern) ? strong(escape(unitOf(applicant.concern))) : escape(unitOf(applicant.concern))}`,
+  text: `the ${applicant.division ? `${applicant.division} of the ` : ""}${unitOf(applicant.concern)}`,
 });
 
 export type InterviewTime = Pick<InterviewSlot, "startsAt" | "durationMinutes" | "mode" | "location">;
 
 export type Receipt = {
-  /** The booked interview, or null when the division had no times open. */
+  /** The booked interview, or null when the unit had no times open. */
   interview: InterviewTime | null;
   /** What the applicant answered, as the form's own receipt groups it (describeAnswers), without the interview: it has its own place in the email. */
   answers: ReceiptSection[];
@@ -124,7 +124,7 @@ export function applicationNoticeEmail(recipients: string[], application: NewApp
     ["College or faculty", application.college],
     ["Program", application.program],
     ["Position", application.position],
-    ["Division", application.division],
+    ...(application.division ? [["Division", application.division] as [string, string]] : []),
     ["Interview", interview ? `${slotDate(interview.startsAt)}, ${slotTimeRange(interview.startsAt, interview.durationMinutes)} · ${[interviewModes[interview.mode], interview.location].filter(Boolean).join(", ")}` : "Not scheduled yet"],
     ["Reference code", application.referenceCode],
   ];
@@ -152,11 +152,11 @@ export function resultEmail(applicant: Applicant, accepted: boolean): Email {
   const place = placeOf(applicant);
   const end = closing(concern);
   const greeting = `Hi ${greetingName(applicant.firstName)},`;
-  const rows: Details = [["Position", applicant.position], ["Division", applicant.division], ["Applied to", unitOf(concern)], ["Reference code", applicant.referenceCode]];
+  const rows: Details = [["Position", applicant.position], ...(applicant.division ? [["Division", applicant.division] as [string, string]] : []), ["Applied to", unitOf(concern)], ["Reference code", applicant.referenceCode]];
   const relayed = local ? ` This result comes to you through the ${COMET}.` : "";
 
   if (accepted) {
-    const intro = local ? `Congratulations! The ${unitOf(concern)} has accepted you as ${applicant.position} in its ${applicant.division}.${relayed}` : `Congratulations! You’ve been accepted as ${applicant.position} in ${place.text}.`;
+    const intro = local ? `Congratulations! The ${unitOf(concern)} has accepted you as ${applicant.position}${applicant.division ? ` in its ${applicant.division}` : ""}.${relayed}` : `Congratulations! You’ve been accepted as ${applicant.position} in ${place.text}.`;
     const next = local ? `The unit will reach out soon with your next steps. Welcome to the commission.` : `The commission will reach out soon with your next steps. Welcome to the UST Central Comelec.`;
     return {
       to: applicant.email,
@@ -171,7 +171,7 @@ export function resultEmail(applicant: Applicant, accepted: boolean): Email {
           paragraph(escape(greeting)),
           paragraph(
             local
-              ? `Congratulations! The ${strong(escape(unitOf(concern)))} has accepted you as ${strong(escape(applicant.position))} in its ${strong(escape(applicant.division))}.${escape(relayed)}`
+              ? `Congratulations! The ${strong(escape(unitOf(concern)))} has accepted you as ${strong(escape(applicant.position))}${applicant.division ? ` in its ${strong(escape(applicant.division))}` : ""}.${escape(relayed)}`
               : `Congratulations! You’ve been accepted as ${strong(escape(applicant.position))} in ${place.html}.`,
           ),
           highlight("Your position", applicant.position, "name"),

@@ -1,3 +1,6 @@
+import { centralRoles } from "@/lib/data/types";
+import { localRolesByCollege } from "@/lib/data/local-roles";
+
 // Choices shown on the commissioner application form.
 // Colleges and programs come from ust.edu.ph (Faculties, Colleges, Institutes, and Schools, and
 // each college's own page), undergraduate and first professional degrees only, as of September 2026.
@@ -221,8 +224,8 @@ export const isConflictId = (value: unknown): value is ConflictId => typeof valu
 /** A conflict an applicant declared, as saved with the application. */
 export type DeclaredConflict = { type: ConflictId; detail: string };
 
-// Divisions and the positions open in each. Position ids key the slot counts that commissioners set
-// in the portal (Recruitment), so keep an id stable once applications have started.
+// Historical division metadata keeps existing position ids and interview records readable.
+// Current recruitment choices come from positionsForUnit below.
 export const divisions = {
   executive: {
     label: "Executive Division",
@@ -292,17 +295,43 @@ export const positionDescriptions: Record<string, string> = {
   "ea-logistics-officer": "Helps secure and manage logistical needs, from venues to materials, for the seamless execution of projects and events.",
 };
 
-/** Every position, flattened, in display order. */
-export const positions = (Object.entries(divisions) as Array<[DivisionId, (typeof divisions)[DivisionId]]>).flatMap(([division, { positions: list }]) =>
-  Object.entries(list).map(([id, label]) => ({ id, label, division })),
-);
+/** Existing ids stay stable so saved slot counts and applications still refer to the same office. */
+const existingPositions = Object.values(divisions).flatMap(({ positions }) => Object.entries(positions).map(([id, label]) => ({ id, label })));
 
+const recruitmentPosition = (role: string) => {
+  const label = `Executive Assistant to the ${role}`;
+  const existing = existingPositions.find((position) => position.label === label);
+  return { id: existing?.id ?? `ea-${role.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, "")}`, label, role };
+};
+
+// Reuse saved ids where an office has a unit-specific title, preserving its vacancy count.
+const previousOfficeNames: Record<string, Record<string, string>> = {
+  "Alfredo M. Velayo College of Accountancy": {
+    "Chief Finance Officer": "Finance Officer",
+    "Logistics Director": "Logistics Officer",
+    "Chief Operations Officer": "Operations Officer",
+    "Chief Public Information Officer": "Public Information Officer",
+  },
+  "Faculty of Pharmacy": {
+    "Finance Head": "Finance Officer",
+    "Logistics Head": "Logistics Officer",
+    "Operations Head": "Operations Officer",
+  },
+  "College of Science": { "Deputy Head/Chief-of-Staff Officer": "Deputy Head" },
+};
+
+/** Recruitment follows each unit's offices, in directory order, without division grouping. */
 export function positionsForUnit(college = "") {
-  const available = divisionIdsForBody(college ? "local" : "central");
-  return positions.filter((position) => available.includes(position.division));
+  return (college ? (localRolesByCollege[college] ?? []) : centralRoles).map((role) => {
+    const position = recruitmentPosition(role);
+    const previousRole = previousOfficeNames[college]?.[role];
+    return previousRole ? { ...position, id: recruitmentPosition(previousRole).id } : position;
+  });
 }
 
-export type PositionId = (typeof positions)[number]["id"];
+/** All current offices; used to identify a saved application when onboarding. */
+export const positions = [...new Set([...centralRoles, ...Object.values(localRolesByCollege).flat()])].map(recruitmentPosition);
+export type PositionId = string;
 
 /** Divisions whose applicants must also share a portfolio. */
 export const portfolioDivisions: readonly DivisionId[] = ["public-information"];

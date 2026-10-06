@@ -128,6 +128,7 @@ export default async function PortalLoginPage({ searchParams }: PageProps<"/port
           <span>© {new Date().getFullYear()} UST Central Comelec</span>
           {/* Signing in is what sets cookies. The policy is on the website, which has its own root layout. */}
           <Link href="/cookies" prefetch={false}>Cookie policy</Link>
+          <Link href="/privacy" prefetch={false}>Privacy statement</Link>
         </footer>
       </section>
     </main>

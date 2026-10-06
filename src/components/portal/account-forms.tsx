@@ -70,13 +70,16 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
   const [kind, setKind] = useState<AccountKind>(initial.kind);
   const official = kind === "official";
 
+  const lockedCollege = fixedUnit ? (initial.affiliation === "local" ? initial.college : null) : localManager ? manager.college : null;
+  const [college, setCollege] = useState(lockedCollege ?? (initial.college && comelecUnits.includes(initial.college) ? initial.college : ""));
+
   const startAffiliation: AccountAffiliation = localManager && !fixedUnit ? "local" : initial.affiliation;
   const startPositions = grantablePositions(manager, startAffiliation);
   const { affiliation: pickedAffiliation, setAffiliation, position, role, setRole, setPositionAndRole, options } = useRoleChoice({
     affiliation: startAffiliation,
     position: fixedUnit || startPositions.includes(initial.position) ? initial.position : (startPositions.at(-1) ?? ""),
     role: initial.role,
-  });
+  }, college);
   // Always picked here: the form starts on one.
   const affiliation = pickedAffiliation || startAffiliation;
   // What this manager may pick. An affiliation is on offer if they can add someone to it at all.
@@ -90,8 +93,6 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
   }));
   const needs = position ? detailsFor(affiliation, position) : { role: true, studentNumber: true, program: true, college: "required" as const };
 
-  const lockedCollege = fixedUnit ? (initial.affiliation === "local" ? initial.college : null) : localManager ? manager.college : null;
-  const [college, setCollege] = useState(lockedCollege ?? (initial.college && comelecUnits.includes(initial.college) ? initial.college : ""));
   const programs = programsOf(college);
   const [program, setProgram] = useState(initial.program && programs.includes(initial.program) ? initial.program : "");
   const levels = yearLevelsFor(college);

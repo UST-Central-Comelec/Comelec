@@ -2,7 +2,7 @@ import { z } from "zod";
 import { containsEmoji, personNamePattern } from "@/lib/forms/input";
 import { comelecUnit } from "@/lib/events/options";
 import { isBodyOpen, type OpenBodies } from "@/lib/periods/summary";
-import { colleges, conflicts, divisions, divisionIdsForBody, portfolioDivisions, preferredBodies, programsByCollege, yearLevels, programLocked, isYearLevelFor, type College, type ConflictId, type DeclaredConflict, type DivisionId, type SlotCounts } from "./options";
+import { colleges, conflicts, positionsForUnit, preferredBodies, programsByCollege, yearLevels, programLocked, isYearLevelFor, type College, type ConflictId, type DeclaredConflict, type SlotCounts } from "./options";
 
 // Shared by the form (checks each step before moving on) and the server action (checks
 // everything again before saving).
@@ -28,7 +28,7 @@ export const applicationFields = z.object({
   yearLevel: z.enum(keys(yearLevels), "Pick your year level."),
   facebookUrl: z.string().trim().max(300).regex(/^(https?:\/\/)?(www\.|m\.|web\.)?(facebook|fb)\.com\/\S+$/i, "Use your Facebook profile link, like facebook.com/yourname."),
   preferredBody: z.enum(keys(preferredBodies), "Pick where you’d like to serve."),
-  division: z.enum(keys(divisions), "Pick the division you’re applying to."),
+  division: z.string().transform(() => ""),
   position: z.string().min(1, "Pick the position you’re applying for."),
   cvUrl: driveLink("Paste the Google Drive link to your CV or résumé."),
   registrationFormUrl: driveLink("Paste the Google Drive link to your latest registration form."),
@@ -85,8 +85,8 @@ export function closedBodyError(preferredBody: string, college: string) {
   return college ? `The ${comelecUnit("local", college)} isn’t taking applications right now.` : "Your college’s Local Comelec isn’t taking applications right now.";
 }
 
-export function needsPortfolio(division: string) {
-  return portfolioDivisions.includes(division as DivisionId);
+export function needsPortfolio(position: string) {
+  return /public-information|creatives/.test(position);
 }
 
 /**
@@ -111,12 +111,9 @@ export function checkFields(values: ApplicationValues, fields: ApplicationField[
   if (fields.includes("preferredBody") && !errors.preferredBody && bodies && !isBodyOpen(bodies, values.preferredBody, values.college)) {
     errors.preferredBody = closedBodyError(values.preferredBody, values.college);
   }
-  if (fields.includes("division") && !errors.division && !divisionIdsForBody(values.preferredBody).includes(values.division as DivisionId)) {
-    errors.division = "Pick a division available in this Comelec unit.";
-  }
-  if (fields.includes("position") && !errors.position && !errors.division) {
-    const open: Record<string, string> = divisions[values.division as DivisionId]?.positions ?? {};
-    if (!(values.position in open)) errors.position = "Pick a position from this division.";
+  if (fields.includes("position") && !errors.position) {
+    const positions = positionsForUnit(values.preferredBody === "local" ? values.college : "");
+    if (!positions.some((position) => position.id === values.position)) errors.position = "Pick a position available in this Comelec unit.";
     else if (slots && (slots[values.position] ?? 0) < 1) errors.position = "This position has no open slots. Pick another.";
   }
   if (fields.includes("interviewSlot") && openInterviews?.length) {
@@ -129,7 +126,7 @@ export function checkFields(values: ApplicationValues, fields: ApplicationField[
   if (fields.includes("conflictPledge") && declaredConflicts(values).length && !values.conflictPledge) {
     errors.conflictPledge = "Please confirm this commitment to continue.";
   }
-  if (fields.includes("portfolioUrl") && !errors.portfolioUrl && needsPortfolio(values.division) && !values.portfolioUrl.trim()) {
+  if (fields.includes("portfolioUrl") && !errors.portfolioUrl && needsPortfolio(values.position) && !values.portfolioUrl.trim()) {
     errors.portfolioUrl = "Paste the Google Drive link to your portfolio.";
   }
   return errors;

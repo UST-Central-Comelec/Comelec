@@ -10,7 +10,7 @@ import { properName, toSummary } from "@/lib/data/accounts";
 import { store } from "@/lib/data/store";
 import { accountAffiliations } from "@/lib/data/types";
 import { audienceRoles, audienceSchema, describeAudience, fixedUnit, isAudienceUnit, recipientsOf, type Audience } from "@/lib/email/audience";
-import { bodyLength, bodySchema, isEmptyBody, messageHtml, messageText, type Body, type Sender } from "@/lib/email/body";
+import { bodyLength, bodySchema, isEmptyBody, messageHtml, messageText, messageInboxBody, type MessageBody, type Sender } from "@/lib/email/body";
 import { bringForward, canSeeEmail, cancelEmail, deliver, getOutboxEmail, isOutboxMissing, queueEmail } from "@/lib/email/outbox";
 import { isEmailConfigured, sendEmail } from "@/lib/email/send";
 import { comelecUnit } from "@/lib/events/options";
@@ -48,7 +48,7 @@ function json(formData: FormData, name: string): unknown {
   }
 }
 
-type Content = { subject: string; title: string; body: Body };
+type Content = { subject: string; title: string; body: MessageBody };
 
 /** The subject, title and message the form holds, checked, with the errors to show for what's wrong. */
 function readContent(formData: FormData): { content: Content | null; fieldErrors: Record<string, string> } {
@@ -148,7 +148,7 @@ export async function sendTestMessage(_state: EmailFormState, formData: FormData
   const problems: string[] = [];
   if (sendToInbox) {
     try {
-      await publishMessage({ kind: "announcement", title: `[Test] ${message.subject}`, body: messageText(message), senderName: sender.name, audienceLabel: "Test · Only you" }, [user.id]);
+      await publishMessage({ kind: "announcement", title: `[Test] ${message.subject}`, body: messageInboxBody(message), senderName: sender.name, audienceLabel: "Test · Only you", senderAffiliation: user.affiliation, senderCollege: user.college, recipientMention: "@you" }, [user.id]);
       delivered.push("your portal inbox");
       revalidatePath("/portal", "layout");
     } catch (error) { problems.push(error instanceof Error ? error.message : "Portal inbox test failed."); }

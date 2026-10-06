@@ -61,6 +61,15 @@ export type RichBodyBlock = z.infer<typeof richBlockSchema>;
 export type BodyBlock = { type: "paragraph"; text: string } | { type: "table"; header: string[]; rows: string[][] } | RichBodyBlock;
 const richPrefix = "::document-body:v1::\n";
 
+export function isSerializedDocumentBody(value: string): boolean {
+  if (!value) return true;
+  // Multipart form submission converts LF to CRLF, including in hidden input values.
+  value = value.replace(/\r\n?/g, "\n");
+  if (!value.startsWith(richPrefix)) return false;
+  try { return richBlockSchema.array().safeParse(JSON.parse(value.slice(richPrefix.length))).success; }
+  catch { return false; }
+}
+
 /** Store only text and supported formatting, never arbitrary editor HTML. */
 export function serializeDocumentBody(blocks: RichBodyBlock[]): string {
   return blocks.length ? richPrefix + JSON.stringify(blocks) : "";
@@ -69,6 +78,8 @@ export function serializeDocumentBody(blocks: RichBodyBlock[]): string {
 const isTableLine = (line: string) => line.includes("\t") && line.replace(/\t/g, "").trim() !== "";
 
 export function parseDocumentBody(text: string): BodyBlock[] {
+  // Accept both editor drafts and bodies normalized by the browser's form transport.
+  text = text.replace(/\r\n?/g, "\n");
   if (text.startsWith(richPrefix)) {
     try {
       const parsed = richBlockSchema.array().safeParse(JSON.parse(text.slice(richPrefix.length)));
@@ -76,7 +87,7 @@ export function parseDocumentBody(text: string): BodyBlock[] {
     } catch { /* Fall back to displaying malformed or older text literally. */ }
   }
   const blocks: BodyBlock[] = [];
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  const lines = text.split("\n");
   let paragraph: string[] = [];
   let table: string[][] = [];
 
@@ -118,6 +129,19 @@ export function parseDocumentBody(text: string): BodyBlock[] {
 }
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+
+/** Readable text for previews, search and empty-message validation. */
+export function documentBodyText(blocks: BodyBlock[]): string {
+  const runsText = (runs: DocumentRun[]) => runs.map(run => run.text).join("");
+  return blocks.map(block => {
+    if (block.type === "divider") return "";
+    if (block.type === "paragraph") return block.text;
+    if (block.type === "text") return runsText(block.runs);
+    if (block.type === "bullets" || block.type === "numbers") return block.items.map(runsText).join("\n");
+    if (block.type === "table") return [block.header, ...block.rows].map(row => row.join("\t")).join("\n");
+    return [...(block.header ? [block.header] : []), ...block.rows].map(row => row.map(runsText).join("\t")).join("\n");
+  }).filter(Boolean).join("\n\n");
+}
 
 function runsHtml(runs: DocumentRun[]) {
   return runs.map(run => {

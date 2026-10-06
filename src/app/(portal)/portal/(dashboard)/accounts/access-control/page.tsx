@@ -94,7 +94,7 @@ export default async function AccessControlPage({ searchParams }: PageProps<"/po
           <AccessLevelPicker levels={levels} value={level} />
         </header>
         {/* Keyed on what's saved, so the switches follow it after a save. */}
-        <AccessControlForm key={`${level}-${open.join()}`} action={level === FULL_ACCESS ? null : updateAccess.bind(null, level)} groups={groups} updated={updated} scopes={localOnly || level === "deputy"} />
+        <AccessControlForm key={`${level}-${open.join()}`} action={level === FULL_ACCESS ? null : updateAccess.bind(null, level)} groups={groups} updated={updated} />
       </section>
     </main>
   );
