@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Eye } from "lucide-react";
 import { useNow } from "./period-overview";
 import { trail } from "./portal-nav";
+import { NotificationBell } from "./notification-bell";
 
 const zone = "Asia/Manila";
 const dayFormat = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "short", day: "numeric" });
@@ -48,6 +49,7 @@ export function PortalTopbar({ home, viewOnly }: { home: string; viewOnly?: bool
         </ol>
       </nav>
       <div className="portal-topbar-tools">
+        <NotificationBell />
         {viewOnly && <span className="portal-topbar-mode" title="Your account reads the portal and changes nothing."><Eye size={13} aria-hidden="true" /> View only</span>}
         <ManilaClock />
       </div>

@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useState, type ComponentType } from "react";
+import { Fragment, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { BookOpenText, Briefcase, Calendar, CalendarCheck, CalendarDays, ChartColumn, ChevronDown, ClipboardList, FileText, Flag, Gavel, Globe, Hash, Inbox, LayoutDashboard, LayoutGrid, ListChecks, Newspaper, Scale, ScrollText, Send, Settings2, ShieldCheck, Stamp, Ticket, UserCog, Users, Vote, Wrench } from "lucide-react";
+import { Grip, BookOpenText, Briefcase, Calendar, CalendarCheck, CalendarDays, ChartColumn, ChevronDown, CirclePlus, FolderPlus, MailCheck, Flag, Gavel, Hash, Inbox, LayoutDashboard, ListChecks, Radio, ScanText, ScrollText, Send, Settings2, ShieldCheck, Stamp, Ticket, UserCog, UserRoundPlus, Users, Vote, Wrench, NavSymbol, type PortalIcon as Icon } from "./portal-nav-icons";
 import { tabGroups, tabHref, type GroupLabel, type TabKey } from "@/lib/portal/access";
-
-type Icon = ComponentType<{ size?: number; strokeWidth?: number; "aria-hidden"?: boolean | "true" }>;
 /** `item` is the top bar's word for one of the tab's own pages, such as an application under Applications ("Edit" if not given). */
 type Tab = { key: TabKey; href: string; label: string; icon: Icon; item?: string };
 /** A main tab with subtabs. Clicking it folds the subtabs open or shut (in the icon strip, it opens the first subtab). */
@@ -21,16 +19,17 @@ type Section = { label?: string; entries: Entry[] };
 // word for a page inside them.
 const tabIcons: Record<TabKey, Icon> = {
   dashboard: LayoutDashboard,
+  "apps/inbox": MailCheck,
   "apps/secretariat": Briefcase,
   "apps/email": Send,
   "apps/calendar": Calendar,
   "apps/tickets": Ticket,
   "apps/approvals": Stamp,
-  news: Newspaper,
+  news: Radio,
   statistics: ChartColumn,
   events: CalendarCheck,
   members: Users,
-  documents: FileText,
+  documents: FolderPlus,
   "codes/constitution": BookOpenText,
   "codes/elections-code": Gavel,
   "petitions/submissions": Inbox,
@@ -51,10 +50,10 @@ const tabIcons: Record<TabKey, Icon> = {
 };
 
 const groupIcons: Record<GroupLabel, Icon> = {
-  Apps: LayoutGrid,
-  Publications: Globe,
-  "Petitions & Cases": Scale,
-  Recruitment: ClipboardList,
+  Apps: Grip,
+  Publications: CirclePlus,
+  "Petitions & Cases": ScanText,
+  Recruitment: UserRoundPlus,
   "Political Party": Flag,
   "Filing of Candidacy": Vote,
   Administrative: ShieldCheck,
@@ -101,6 +100,7 @@ export type Crumb = { label: string; href?: string };
  * Adviser or Admin, who only reads). The last crumb is the page itself, so it has no link.
  */
 export function trail(pathname: string, viewOnly = false): Crumb[] {
+  if (pathname === "/portal/notifications") return [{ label: "Notifications" }];
   if (pathname === "/portal/account") return [{ label: "My account" }];
   for (const entry of sections.flatMap((section) => section.entries)) {
     for (const tab of isGroup(entry) ? entry.items : [entry]) {
@@ -135,6 +135,8 @@ export function PortalNav({ tabs, collapsed }: { tabs: readonly TabKey[]; collap
 
   // One expanded group at a time. Navigation opens the destination's group, including Back/Forward.
   const [expanded, setExpanded] = useState<{ pathname: string; group: string | null }>({ pathname, group: activeGroup });
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  const [focusedGroup, setFocusedGroup] = useState<string | null>(null);
   if (expanded.pathname !== pathname) {
     setExpanded({ pathname, group: activeGroup });
   }
@@ -148,7 +150,7 @@ export function PortalNav({ tabs, collapsed }: { tabs: readonly TabKey[]; collap
             {section.entries.map((entry) => {
               if (!isGroup(entry)) return <NavLink key={entry.href} tab={entry} active={isActive(entry.href, pathname)} />;
   
-              const { label, icon: GroupIcon, items } = entry;
+              const { label, icon, items } = entry;
               const within = activeGroup === label;
               const open = expanded.group === label;
               const subId = `portal-nav-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
@@ -157,6 +159,10 @@ export function PortalNav({ tabs, collapsed }: { tabs: readonly TabKey[]; collap
                   <Link
                     href={items[0].href}
                     className={`portal-nav-parent${within ? " is-current-group" : ""}`}
+                    onMouseEnter={() => setHoveredGroup(label)}
+                    onMouseLeave={() => setHoveredGroup(null)}
+                    onFocus={() => setFocusedGroup(label)}
+                    onBlur={() => setFocusedGroup(null)}
                     aria-expanded={collapsed ? undefined : open}
                     aria-controls={subId}
                     onClick={(event) => {
@@ -167,7 +173,7 @@ export function PortalNav({ tabs, collapsed }: { tabs: readonly TabKey[]; collap
                     }}
                   >
                     {within && <NavHighlight />}
-                    <GroupIcon size={17} strokeWidth={1.7} aria-hidden="true" />
+                    <NavSymbol icon={icon} active={within} engaged={hoveredGroup === label || focusedGroup === label} />
                     <span className="portal-nav-label">{label}</span>
                     <ChevronDown className="portal-nav-chevron" size={15} strokeWidth={1.8} aria-hidden="true" />
                   </Link>
@@ -193,11 +199,13 @@ function NavHighlight({ subtab = false }: { subtab?: boolean }) {
   return <motion.span layoutId={subtab ? "active-subtab" : "active-tab"} className={`portal-nav-highlight${subtab ? " is-subtab" : ""}`} initial={false} transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 34 }} aria-hidden="true" />;
 }
 
-function NavLink({ tab: { href, label, icon: TabIcon }, active, subtab = false }: { tab: Tab; active: boolean; subtab?: boolean }) {
+function NavLink({ tab: { href, label, icon }, active, subtab = false }: { tab: Tab; active: boolean; subtab?: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   return (
-    <Link href={href} className={active ? "is-active" : undefined} aria-current={active ? "page" : undefined}>
+    <Link href={href} className={active ? "is-active" : undefined} aria-current={active ? "page" : undefined} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
       {active && <NavHighlight subtab={subtab} />}
-      <TabIcon size={17} strokeWidth={1.7} aria-hidden="true" />
+      <NavSymbol icon={icon} active={active} engaged={hovered || focused} />
       <span className="portal-nav-label">{label}</span>
     </Link>
   );

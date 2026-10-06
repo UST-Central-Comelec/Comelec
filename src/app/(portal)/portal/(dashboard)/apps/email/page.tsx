@@ -44,7 +44,7 @@ export default async function PortalEmailSenderPage({ searchParams }: PageProps<
   // "Use again" on an email in the Outbox starts from what it said and who it was for.
   const reused = source && canSeeEmail(user, source) ? source : null;
   const draft: ComposerDraft = reused
-    ? { subject: reused.subject, title: reused.title, body: reused.body, audience: { ...reused.audience, units: lockedUnit ? [lockedUnit] : reused.audience.units } }
+    ? { subject: reused.subject, title: reused.title, body: reused.body, audience: { ...reused.audience, units: lockedUnit ? [lockedUnit] : reused.audience.units }, sendToEmail: reused.sendToEmail, sendToInbox: reused.sendToInbox }
     : { subject: "", title: "", body: [], audience: { ...defaultAudience, units: lockedUnit ? [lockedUnit] : [] } };
 
   const sender = { name: properName(user.name), email: user.email, unit: user.affiliation === "osa" ? accountAffiliations.osa : comelecUnit(user.affiliation, user.college) };
@@ -61,7 +61,7 @@ export default async function PortalEmailSenderPage({ searchParams }: PageProps<
       </header>
       <EmailTabs current="compose" waiting={waiting} />
 
-      {!isEmailConfigured() && <p className="portal-form-error" role="alert">Email isn’t set up on the server yet, so nothing can be sent. Set <code>SMTP_USER</code> and <code>SMTP_PASSWORD</code> in <code>.env.local</code>, then restart the server.</p>}
+      {!isEmailConfigured() && <p className="portal-form-error" role="alert">Email delivery isn’t set up on the server yet. You can send to the portal inbox. To enable email delivery, set <code>SMTP_USER</code> and <code>SMTP_PASSWORD</code> in <code>.env.local</code>, then restart the server.</p>}
       {accounts.error && <p className="portal-form-error" role="alert">Couldn’t load the accounts, so there’s nobody to send to. Reload the page to try again. ({accounts.error})</p>}
 
       <EmailComposer

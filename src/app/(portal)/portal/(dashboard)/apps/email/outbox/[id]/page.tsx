@@ -35,7 +35,7 @@ export default async function OutboxEmailPage({ params, searchParams }: PageProp
     ? recipientsOf(email.audience, (await store.list("accounts").catch(() => [])).map(toSummary).filter((account) => account.active), { affiliation: email.senderAffiliation, college: email.senderCollege }).map(({ name, email: address }) => ({ name, email: address, sent: false }))
     : [];
   const people = waiting ? expected : email.deliveries;
-  const missed = email.deliveries.filter((delivery) => !delivery.sent).length;
+  const missed = email.deliveries.filter((delivery) => email.sendToEmail && !(delivery.emailSent ?? delivery.sent)).length;
   const from = `${process.env.EMAIL_FROM_NAME?.trim() || "UST Central Comelec"}${process.env.SMTP_USER?.trim() ? ` <${process.env.SMTP_USER.trim()}>` : ""}`;
   const count = waiting ? expected.length : email.recipientCount;
 
@@ -72,8 +72,11 @@ export default async function OutboxEmailPage({ params, searchParams }: PageProp
             <dl className="portal-details">
               <Detail label="Status">{state.label}<small className="portal-muted email-detail-note">{state.when}</small></Detail>
               <Detail label="Recipients">{email.audienceLabel}</Detail>
+              <Detail label="Send to">{[email.sendToEmail && "Email address", email.sendToInbox && "Portal inbox"].filter(Boolean).join(" and ")}</Detail>
               <Detail label={email.scheduled ? "Scheduled for" : "Sent on"}>{formatClosing(email.sendAt)}</Detail>
               {!waiting && email.recipientCount > 0 && <Detail label="Delivered">{email.sentCount} of {email.recipientCount}</Detail>}
+              {!waiting && email.deliveries.length > 0 && email.sendToEmail && <Detail label="Email delivered">{email.deliveries.filter((delivery) => delivery.emailSent ?? delivery.sent).length} of {email.recipientCount}</Detail>}
+              {!waiting && email.deliveries.length > 0 && email.sendToInbox && <Detail label="Inbox delivered">{email.deliveries.filter((delivery) => delivery.inboxSent).length} of {email.recipientCount}</Detail>}
               <Detail label="Written by">{email.senderName}<small className="portal-muted email-detail-note">{email.senderUnit} · {email.senderEmail}</small></Detail>
               <Detail label="Written on">{formatClosing(email.createdAt)}</Detail>
             </dl>
@@ -91,7 +94,10 @@ export default async function OutboxEmailPage({ params, searchParams }: PageProp
                 {people.map((person) => (
                   <li key={person.email}>
                     <span>{person.name}<small>{person.email}</small></span>
-                    {!waiting && <span className={`portal-tag ${person.sent ? "is-ok" : "is-warn"}`}>{person.sent ? "Sent" : "Not sent"}</span>}
+                    {!waiting && <span>
+                      {email.sendToEmail && <span className={`portal-tag ${(person.emailSent ?? person.sent) ? "is-ok" : "is-warn"}`}>{(person.emailSent ?? person.sent) ? "Email sent" : "Email failed"}</span>}
+                      {email.sendToInbox && <span className={`portal-tag ${person.inboxSent ? "is-ok" : "is-warn"}`}>{person.inboxSent ? "Inbox sent" : "Inbox failed"}</span>}
+                    </span>}
                   </li>
                 ))}
               </ul>

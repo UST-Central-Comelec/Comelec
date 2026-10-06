@@ -4,9 +4,10 @@ import { toSummary } from "@/lib/data/accounts";
 import { store } from "@/lib/data/store";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { recipientsOf, toAudience, type Audience, type Reach } from "./audience";
+import { inboxRecipientsOf, recipientsOf, toAudience, type Audience, type Reach } from "./audience";
 import { messageHtml, messageText, type Body } from "./body";
 import { isEmailConfigured, sendEmail } from "./send";
+import { publishMessage } from "@/lib/notifications/inbox-store";
 
 // The Email Sender's outbox: public.portal_emails (supabase/migrations/0024). An email is saved
 // here first, whether it goes now or later, and sent from here: `deliver` takes one that's due,
@@ -16,7 +17,7 @@ import { isEmailConfigured, sendEmail } from "./send";
 export type OutboxStatus = "scheduled" | "sending" | "sent" | "failed" | "cancelled";
 
 /** One recipient, and whether their copy went. */
-export type Delivery = { email: string; name: string; sent: boolean };
+export type Delivery = { email: string; name: string; sent: boolean; emailSent?: boolean; inboxSent?: boolean };
 
 export type OutboxEmail = {
   id: string;
@@ -28,6 +29,8 @@ export type OutboxEmail = {
   status: OutboxStatus;
   /** A later time was picked, rather than "Send now". */
   scheduled: boolean;
+  sendToEmail: boolean;
+  sendToInbox: boolean;
   sendAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -56,6 +59,8 @@ const toEmail = (row: Row): OutboxEmail => ({
   audienceLabel: row.audience_label as string,
   status: row.status as OutboxStatus,
   scheduled: row.scheduled as boolean,
+  sendToEmail: (row.send_to_email as boolean | undefined) ?? true,
+  sendToInbox: (row.send_to_inbox as boolean | undefined) ?? false,
   sendAt: row.send_at as string,
   startedAt: (row.started_at as string | null) ?? null,
   finishedAt: (row.finished_at as string | null) ?? null,
@@ -83,7 +88,7 @@ export const isStalled = (email: Pick<OutboxEmail, "status" | "startedAt">, now 
 export const canSeeEmail = (viewer: Reach, email: Pick<OutboxEmail, "senderAffiliation" | "senderCollege">) =>
   viewer.affiliation !== "local" || (email.senderAffiliation === "local" && viewer.college !== null && email.senderCollege === viewer.college);
 
-export type NewOutboxEmail = Pick<OutboxEmail, "subject" | "title" | "body" | "audience" | "audienceLabel" | "scheduled" | "sendAt" | "senderEmail" | "senderName" | "senderUnit" | "senderAffiliation" | "senderCollege">;
+export type NewOutboxEmail = Pick<OutboxEmail, "subject" | "title" | "body" | "audience" | "audienceLabel" | "scheduled" | "sendToEmail" | "sendToInbox" | "sendAt" | "senderEmail" | "senderName" | "senderUnit" | "senderAffiliation" | "senderCollege">;
 
 /** Saves an email to go out at `sendAt`. Returns its id. */
 export async function queueEmail(email: NewOutboxEmail) {
@@ -96,6 +101,8 @@ export async function queueEmail(email: NewOutboxEmail) {
       audience: email.audience,
       audience_label: email.audienceLabel,
       scheduled: email.scheduled,
+      send_to_email: email.sendToEmail,
+      send_to_inbox: email.sendToInbox,
       send_at: email.sendAt,
       sender_email: email.senderEmail,
       sender_name: email.senderName,
@@ -161,36 +168,53 @@ export async function deliver(id: string) {
   const fail = (reason: string) => save({ status: "failed", error: reason, finished_at: new Date().toISOString() });
 
   try {
-    if (!isEmailConfigured()) return await fail("Email isn’t set up on the server: SMTP_USER and SMTP_PASSWORD are missing.");
+    if (!email.sendToEmail && !email.sendToInbox) return await fail("No delivery channel was selected.");
 
     const people = (await store.list("accounts")).map(toSummary).filter((account) => account.active);
     const recipients = recipientsOf(email.audience, people, { affiliation: email.senderAffiliation, college: email.senderCollege });
+    const inboxRecipients = inboxRecipientsOf(email.audience, people, { affiliation: email.senderAffiliation, college: email.senderCollege });
     if (!recipients.length) return await fail("Nobody matched the recipients when this was due to go out.");
     await save({ recipient_count: recipients.length });
 
     const sender = { name: email.senderName, email: email.senderEmail, unit: email.senderUnit };
     const html = messageHtml(email, sender);
     const text = messageText(email);
+    const problems: string[] = [];
+    let inboxSent = false;
+    if (email.sendToInbox) {
+      try {
+        await publishMessage({ kind: "announcement", title: email.subject, body: text,
+          senderName: `${email.senderName} · ${email.senderUnit}`, audienceLabel: email.audienceLabel,
+        }, inboxRecipients.map((person) => person.id));
+        inboxSent = true;
+      } catch (error) {
+        problems.push(error instanceof Error ? error.message : "Portal inbox delivery failed.");
+      }
+    }
+    const emailReady = email.sendToEmail && isEmailConfigured();
+    if (email.sendToEmail && !emailReady) problems.push("Email delivery failed: SMTP_USER and SMTP_PASSWORD are missing.");
 
     const deliveries: Delivery[] = [];
     let next = 0;
     const lane = async () => {
       while (next < recipients.length) {
         const { name, email: address } = recipients[next++];
-        const sent = await sendEmail({ to: address, subject: email.subject, text, html, replyTo: { name: email.senderName, address: email.senderEmail } });
-        deliveries.push({ email: address, name, sent });
+        const emailSent = emailReady ? await sendEmail({ to: address, subject: email.subject, text, html, replyTo: { name: email.senderName, address: email.senderEmail } }) : false;
+        const sent = emailSent || inboxSent;
+        deliveries.push({ email: address, name, sent, ...(email.sendToEmail ? { emailSent } : {}), ...(email.sendToInbox ? { inboxSent } : {}) });
         if (deliveries.length % PROGRESS_EVERY === 0) await save({ sent_count: deliveries.filter((delivery) => delivery.sent).length });
       }
     };
     await Promise.all(Array.from({ length: Math.min(LANES, recipients.length) }, lane));
 
     const sent = deliveries.filter((delivery) => delivery.sent).length;
-    const missed = deliveries.length - sent;
+    const missed = email.sendToEmail ? deliveries.filter((delivery) => !delivery.emailSent).length : 0;
+    if (missed && emailReady) problems.push(`${missed} of ${deliveries.length} email copies couldn’t be sent.`);
     await save({
       status: sent ? "sent" : "failed",
       sent_count: sent,
       deliveries: deliveries.sort((a, b) => a.name.localeCompare(b.name)),
-      error: missed ? (sent ? `${missed} of ${deliveries.length} couldn’t be sent.` : "None of the copies could be sent. Check SMTP_USER and SMTP_PASSWORD on the server.") : null,
+      error: problems.length ? problems.join(" ") : null,
       finished_at: new Date().toISOString(),
     });
   } catch (error) {

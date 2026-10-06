@@ -8,6 +8,7 @@ import { homeOf, type TabKey } from "@/lib/portal/access";
 import { SIDEBAR_COOKIE } from "@/lib/portal/sidebar";
 import { PortalNav } from "./portal-nav";
 import { ProfileMenu, type PortalMembership } from "./profile-menu";
+import { NotificationBell } from "./notification-bell";
 
 /** `role` is the line under their name; `tabs` are the tabs open to them. */
 type SidebarUser = { id: string; name: string; role: string; email: string; avatarUrl: string | null; tabs: readonly TabKey[] };
@@ -40,6 +41,7 @@ export function PortalSidebar({ user, memberships, initialCollapsed }: { user: S
       </div>
       <PortalNav tabs={user.tabs} collapsed={collapsed} />
       <div className="portal-sidebar-foot">
+        <div className="portal-mobile-notifications"><NotificationBell mobile /></div>
         <ProfileMenu user={user} memberships={memberships} />
       </div>
     </aside>

@@ -18,7 +18,7 @@ import { useHydrated } from "./portal-form";
 
 type Action = (state: EmailFormState, formData: FormData) => Promise<EmailFormState>;
 
-export type ComposerDraft = { subject: string; title: string; body: Body; audience: Audience };
+export type ComposerDraft = { subject: string; title: string; body: Body; audience: Audience; sendToEmail?: boolean; sendToInbox?: boolean };
 
 /** "Who": the positions, then the commission's two bodies. */
 const groupOptions: DropdownOption[] = [...Object.entries(audiencePositions).map(([value, label]) => ({ value, label, group: "Positions" })), ...Object.entries(audienceBodies).map(([value, label]) => ({ value, label, group: "Bodies" }))];
@@ -60,6 +60,8 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
   const [body, setBody] = useState<Body>(draft.body);
   const [when, setWhen] = useState<"now" | "later">("now");
   const [sendAt, setSendAt] = useState(sendAtDefault);
+  const [sendToEmail, setSendToEmail] = useState(draft.sendToEmail ?? true);
+  const [sendToInbox, setSendToInbox] = useState(draft.sendToInbox ?? true);
   const [armed, setArmed] = useState(false);
   // Which of the two buttons spoke last, so only its message shows.
   const [last, setLast] = useState<"send" | "test">("send");
@@ -104,6 +106,8 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
     data.set("audience", JSON.stringify(current));
     data.set("when", when);
     data.set("sendAt", sendAt);
+    if (sendToEmail) data.set("sendToEmail", "on");
+    if (sendToInbox) data.set("sendToInbox", "on");
     return data;
   };
 
@@ -119,7 +123,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
   };
 
   const scheduledFor = when === "later" ? fromManilaInput(sendAt) : null;
-  const ready = subject.trim().length >= 3 && !isEmptyBody(body);
+  const ready = subject.trim().length >= 3 && !isEmptyBody(body) && (sendToEmail || sendToInbox);
   const to = recipients.length ? `${countOf(recipients.length)} · ${describeAudience(current)}` : "Nobody matches yet";
 
   return (
@@ -182,8 +186,20 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
           </div>
         </fieldset>
 
-        <fieldset className={`portal-form-section${errors.sendAt ? " has-error" : ""}`}>
+        <fieldset className={`portal-form-section${errors.sendAt || errors.delivery ? " has-error" : ""}`}>
           <legend>Delivery</legend>
+          <div className="portal-form-grid email-delivery-channels">
+            <label className="portal-check">
+              <input type="checkbox" checked={sendToEmail} onChange={(event) => { setSendToEmail(event.target.checked); setArmed(false); }} />
+              <span><strong>Send to email address</strong></span>
+            </label>
+            <label className="portal-check">
+              <input type="checkbox" checked={sendToInbox} onChange={(event) => { setSendToInbox(event.target.checked); setArmed(false); }} />
+              <span><strong>Send to portal inbox</strong></span>
+            </label>
+          </div>
+          {!(sendToEmail || sendToInbox) && <span className="portal-field-error">Choose at least one delivery option.</span>}
+          {errors.delivery && <span className="portal-field-error">{errors.delivery}</span>}
           <div className="email-delivery">
             <div className="portal-segmented" role="radiogroup" aria-label="When it goes out">
               <label className={`portal-segment${when === "now" ? " is-selected" : ""}`}>
@@ -215,7 +231,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
             </span>
           ) : (
             <div className="portal-form-actions">
-              <button className="portal-button is-ghost" type="button" disabled={pending || !hydrated || !ready} onClick={test} title={`Sends it only to ${sender.email}`}>
+              <button className="portal-button is-ghost" type="button" disabled={pending || !hydrated || !ready} onClick={test} title="Sends it only to you using the selected delivery options">
                 <FlaskConical size={15} aria-hidden="true" /> {testing ? "Sending test…" : "Send me a test"}
               </button>
               <button className="portal-button" type="submit" disabled={pending || !hydrated || !ready || !recipients.length}>

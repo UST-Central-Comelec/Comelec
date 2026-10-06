@@ -28,6 +28,7 @@ export const tabGroups = [
     label: "Apps",
     section: null,
     tabs: [
+      { key: "apps/inbox", label: "Inbox", local: true },
       { key: "apps/secretariat", label: "Secretariat", local: true },
       { key: "apps/email", label: "Email Sender", local: true },
       { key: "apps/calendar", label: "Calendar", local: true },
@@ -198,7 +199,7 @@ export const defaultTabs: Record<AccessLevel, readonly TabKey[]> = {
   "local-board": everythingBut("apps/email"),
   "central-associate": everythingBut(administrative),
   "local-associate": everythingBut(administrative, "apps/email"),
-  deputy: tabs.filter((tab) => deputyGroups.includes(tab.group)).map((tab) => tab.key),
+  deputy: ["apps/inbox", ...tabs.filter((tab) => deputyGroups.includes(tab.group)).map((tab) => tab.key)],
   "central-adviser": grantable,
   "local-adviser": everythingBut("apps/email"),
   admin: grantable,

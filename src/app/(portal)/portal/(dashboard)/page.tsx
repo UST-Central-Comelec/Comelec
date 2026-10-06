@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Clock3, FileText, Newspaper, Plus, Star, Users } from "lucide-react";
 import { GlowingGrid } from "@/components/portal/glowing-grid";
+import { HeroReadings, type Reading } from "@/components/portal/hero-readings";
 import { listPendingAccessRequests } from "@/lib/access-requests/admin";
 import { listApplications } from "@/lib/applications/admin";
 import { closingTime, isAccepting, isClosingSoon, type ApplicationPeriod } from "@/lib/applications/period";
@@ -28,9 +29,6 @@ const updated = new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "short
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 const sectionIcons: Record<string, typeof Newspaper> = { News: Newspaper, Documents: FileText, Directory: Users, Events: CalendarDays };
-
-/** One of the hero's live readings. `tone` colours its text: gold while open, amber while closing, quiet when closed or nothing's waiting. */
-type Reading = { label: string; href: string; tone: "open" | "closing" | "waiting" | "off"; text: string };
 
 /** A period as the hero reads it: "Open until Oct 29", "Open", "Closing soon" or `closed`. Null is one that couldn't be loaded. */
 function periodReading(label: string, href: string, period: ApplicationPeriod | null, closed: string): Reading {
@@ -162,16 +160,7 @@ export default async function PortalDashboardPage() {
               <Image src="/images/Logo-1.png" alt="" width={84} height={84} />
             </div>
           </div>
-          {readings.length > 0 && <dl className="portal-hud">
-            {readings.map(({ label, href, tone, text }) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>
-                  <Link href={href} className={`is-${tone}`}>{text}</Link>
-                </dd>
-              </div>
-            ))}
-          </dl>}
+          <HeroReadings readings={readings} />
         </section>
       </GlowingGrid>
 

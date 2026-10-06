@@ -8,6 +8,7 @@ import { sendEmail, type Email } from "@/lib/email/send";
 import { CENTRAL, isLocalConcern, unitRecipients, type Concern, type Recipient } from "./concern";
 import { isEmailOn } from "./switch-store";
 import type { EmailKey } from "./switches";
+import { recordActivity } from "./inbox-store";
 
 // Sending the emails the site sends by itself: whether each is switched on (Apps → Email Sender
 // → Automatic, ./switches.ts), who a notice goes to (./concern.ts has the rule), and getting it out
@@ -23,8 +24,10 @@ export type Sent = "sent" | "failed" | "off";
  */
 export async function sendAutomatic(key: EmailKey, build: () => Email | Promise<Email>): Promise<Sent> {
   try {
+    const email = await build();
+    await recordActivity(email);
     if (!(await isEmailOn(key))) return "off";
-    return (await sendEmail(await build())) ? "sent" : "failed";
+    return (await sendEmail(email)) ? "sent" : "failed";
   } catch (error) {
     console.error(`Couldn’t send an email (${key}):`, error instanceof Error ? error.message : error);
     return "failed";
@@ -58,13 +61,15 @@ type Others = { also?: readonly string[]; except?: readonly string[]; always?: b
  */
 export async function emailUnit(key: EmailKey, concern: Concern, build: (to: string[]) => Email, { also = [], except = [], always = false }: Others = {}): Promise<Sent> {
   try {
-    if (!always && !(await isEmailOn(key))) return "off";
     const unit = (await recipientsFor(concern)).map((recipient) => recipient.email);
     if (!unit.length) console.warn(`A ${concern.unit} matter${isLocalConcern(concern) ? ` (${concern.college})` : ""} has no unit to email: no official account or Executive Board under Accounts.`);
     const left = new Set(clean(except));
     const to = [...new Set(clean([...unit, ...also]))].filter((email) => !left.has(email));
     if (!to.length) return "off";
-    return (await sendEmail(build(to))) ? "sent" : "failed";
+    const email = build(to);
+    await recordActivity(email, concern);
+    if (!always && !(await isEmailOn(key))) return "off";
+    return (await sendEmail(email)) ? "sent" : "failed";
   } catch (error) {
     console.error(`Couldn’t send a notice (${key}):`, error instanceof Error ? error.message : error);
     return "failed";
@@ -96,10 +101,14 @@ const LANES = 2;
 
 /** Sends a batch of one automatic email, a couple at a time: one each to many people, as when access ends for every commissioner at once. Nothing goes if its switch is off. */
 export async function sendEach(key: EmailKey, emails: readonly Email[]) {
-  if (!(await isEmailOn(key))) return;
+  const on = await isEmailOn(key);
   let next = 0;
   const lane = async () => {
-    while (next < emails.length) await sendEmail(emails[next++]);
+    while (next < emails.length) {
+      const email = emails[next++];
+      await recordActivity(email);
+      if (on) await sendEmail(email);
+    }
   };
   await Promise.all(Array.from({ length: Math.min(LANES, emails.length) }, lane));
 }

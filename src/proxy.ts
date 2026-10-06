@@ -117,7 +117,7 @@ export async function proxy(request: NextRequest) {
     return noStore(redirect);
   }
 
-  if (!isPrefetch(request)) {
+  if (!isPrefetch(request) && pathname !== "/portal/notifications/latest") {
     response.cookies.set(ACTIVITY_COOKIE, await encodeActivity({ ...record!, lastActiveAt: Date.now() }), activityCookieOptions);
   }
   return noStore(response);

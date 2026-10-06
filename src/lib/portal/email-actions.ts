@@ -14,6 +14,7 @@ import { bodyLength, bodySchema, isEmptyBody, messageHtml, messageText, type Bod
 import { bringForward, canSeeEmail, cancelEmail, deliver, getOutboxEmail, isOutboxMissing, queueEmail } from "@/lib/email/outbox";
 import { isEmailConfigured, sendEmail } from "@/lib/email/send";
 import { comelecUnit } from "@/lib/events/options";
+import { publishMessage } from "@/lib/notifications/inbox-store";
 import { text, type FormState } from "./form";
 
 // Apps → Email Sender: writing an email to a group of the portal's accounts, and sending it now or
@@ -82,6 +83,9 @@ async function countRecipients(audience: Audience, user: PortalUser) {
 /** Sends the email to its recipients now, or saves it to go out at the time picked. */
 export async function sendMessage(_state: EmailFormState, formData: FormData): Promise<EmailFormState> {
   const user = await requireEditor(TAB);
+  const sendToEmail = formData.get("sendToEmail") === "on";
+  const sendToInbox = formData.get("sendToInbox") === "on";
+  if (!sendToEmail && !sendToInbox) return { error: "Choose at least one delivery option.", fieldErrors: { delivery: "Select email address, portal inbox, or both." } };
   const { content: message, fieldErrors } = readContent(formData);
   const audience = readAudience(formData, user);
   if (!audience) fieldErrors.audience = "Pick who it’s for.";
@@ -96,7 +100,7 @@ export async function sendMessage(_state: EmailFormState, formData: FormData): P
     if (ahead < 60_000) return { error: "Check the highlighted fields.", fieldErrors: { sendAt: "Pick a time at least a minute from now, or choose Send now." } };
     if (ahead > MAX_AHEAD_MS) return { error: "Check the highlighted fields.", fieldErrors: { sendAt: "Pick a time within a year from now." } };
     sendAt = picked;
-  } else if (!isEmailConfigured()) {
+  } else if (sendToEmail && !sendToInbox && !isEmailConfigured()) {
     return { error: "Email isn’t set up on the server, so nothing was sent. Set SMTP_USER and SMTP_PASSWORD in .env.local, then send again." };
   }
 
@@ -108,6 +112,8 @@ export async function sendMessage(_state: EmailFormState, formData: FormData): P
       audience,
       audienceLabel: describeAudience(audience),
       scheduled: later,
+      sendToEmail,
+      sendToInbox,
       sendAt,
       senderEmail: user.email,
       senderName: properName(user.name),
@@ -118,7 +124,8 @@ export async function sendMessage(_state: EmailFormState, formData: FormData): P
   } catch (error) {
     const problem = error instanceof Error ? error.message : String(error);
     console.error("Couldn’t save the email:", problem);
-    if (isOutboxMissing(problem)) return { error: "The database needs an update first. Run supabase/migrations/0024_email_sender.sql in the Supabase SQL Editor, then send again." };
+    if (problem.includes("send_to_email") || problem.includes("send_to_inbox")) return { error: "Run supabase/migrations/0044_email_delivery_channels.sql in the Supabase SQL Editor, then send again." };
+    if (isOutboxMissing(problem)) return { error: "The database needs an update first. Run supabase/migrations/0024_email_sender.sql and 0044_email_delivery_channels.sql in the Supabase SQL Editor, then send again." };
     return { error: "Something went wrong, and nothing was sent. Please try again." };
   }
 
@@ -131,13 +138,28 @@ export async function sendMessage(_state: EmailFormState, formData: FormData): P
 /** Sends the email as it stands to the person writing it, and nobody else. */
 export async function sendTestMessage(_state: EmailFormState, formData: FormData): Promise<EmailFormState> {
   const user = await requireEditor(TAB);
+  const sendToEmail = formData.get("sendToEmail") === "on";
+  const sendToInbox = formData.get("sendToInbox") === "on";
+  if (!sendToEmail && !sendToInbox) return { error: "Choose at least one delivery option." };
   const { content: message, fieldErrors } = readContent(formData);
   if (!message) return { error: "Check the highlighted fields.", fieldErrors };
-  if (!isEmailConfigured()) return { error: "Email isn’t set up on the server. Set SMTP_USER and SMTP_PASSWORD in .env.local, then try again." };
-
   const sender = senderOf(user);
-  const sent = await sendEmail({ to: user.email, subject: `[Test] ${message.subject}`, text: messageText(message), html: messageHtml(message, sender), replyTo: { name: sender.name, address: sender.email } });
-  return sent ? { sent: `Test sent to ${user.email}.` } : { error: "The test didn’t send. Check SMTP_USER and SMTP_PASSWORD in .env.local." };
+  const delivered: string[] = [];
+  const problems: string[] = [];
+  if (sendToInbox) {
+    try {
+      await publishMessage({ kind: "announcement", title: `[Test] ${message.subject}`, body: messageText(message), senderName: sender.name, audienceLabel: "Test · Only you" }, [user.id]);
+      delivered.push("your portal inbox");
+      revalidatePath("/portal", "layout");
+    } catch (error) { problems.push(error instanceof Error ? error.message : "Portal inbox test failed."); }
+  }
+  if (sendToEmail) {
+    const sent = await sendEmail({ to: user.email, subject: `[Test] ${message.subject}`, text: messageText(message), html: messageHtml(message, sender), replyTo: { name: sender.name, address: sender.email } });
+    if (sent) delivered.push(user.email);
+    else problems.push("The email test didn’t send. Check SMTP_USER and SMTP_PASSWORD in .env.local.");
+  }
+  const notice = delivered.length ? `Test sent to ${delivered.join(" and ")}.` : "";
+  return problems.length ? { error: [notice, ...problems].filter(Boolean).join(" ") } : { sent: notice };
 }
 
 /** The signed-in account and the email, if it's theirs to act on. */
@@ -158,8 +180,8 @@ export async function cancelScheduledEmail(id: string) {
 
 /** Sends a scheduled email straight away instead of at its time. */
 export async function sendScheduledEmailNow(id: string) {
-  await requireEmail(id);
-  if (!isEmailConfigured()) redirect(`${OUTBOX}/${id}?notice=email-not-configured`);
+  const email = await requireEmail(id);
+  if (email.sendToEmail && !email.sendToInbox && !isEmailConfigured()) redirect(`${OUTBOX}/${id}?notice=email-not-configured`);
   const waiting = await bringForward(id);
   if (waiting) after(() => deliver(id));
   revalidatePath(OUTBOX);

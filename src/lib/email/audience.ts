@@ -149,6 +149,12 @@ export function recipientsOf<T extends Person>(audience: Audience, people: reado
   return audience.only.length ? matched.filter((person) => audience.only.includes(person.email)) : matched;
 }
 
+/** Inbox delivery keeps every matching membership, including accounts sharing an email address. */
+export function inboxRecipientsOf<T extends Person>(audience: Audience, people: readonly T[], sender: Reach): T[] {
+  return people.filter((person) => canReach(sender, person) && matchesAudience(audience, person)
+    && (!audience.only.length || audience.only.includes(person.email)));
+}
+
 export function describeUnit(unit: AudienceUnit) {
   if (unit === "local") return "All Local Comelecs";
   return collegeOf(unit) ?? accountAffiliations[unit as AccountAffiliation] ?? unit;
