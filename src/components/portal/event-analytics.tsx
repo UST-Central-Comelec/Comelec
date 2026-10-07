@@ -2,7 +2,7 @@ import type { EventAnalytics, Tally } from "@/lib/events/analytics";
 import { TitleWithInfo } from "./info-tip";
 
 // How an event's sign-ups answered the form, on its page in the portal. Styled in portal.css
-// (.portal-analytics): the bars' gold and the interest scale's five steps are set there.
+// (.portal-analytics): the bar chart colors are set there.
 
 /** How many answers a list shows before the rest fold away behind a line that opens. */
 const TOP = 8;

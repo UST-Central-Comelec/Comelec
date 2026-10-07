@@ -9,7 +9,7 @@
 /* Night: the portal's own colours. They sit on :root, and again on what stays dark when the rest goes
    light (Daylight, at the end): the sidebar, the dashboard's hero, a settings page's status card and
    the tooltips. */
-:root, .portal-sidebar, .portal-hero, .period-overview, .portal-info-tip, .portal-chart-tip {
+:root, .portal-sidebar, .portal-hero, .period-overview, .portal-info-tip {
 	--p-bg: #030305;
 	/* Opaque, for what floats over other content: menus, tooltips, dialogs. */
 	--p-surface: #0c0c12;
@@ -340,8 +340,6 @@ body.portal::after { background-image: var(--p-grain); content: ""; inset: 0; op
 .portal-nav-flyout-title { display: none; }
 
 .portal-sidebar-foot { display: flex; flex-direction: column; gap: 12px; }
-.portal-site-link { align-items: center; color: var(--p-muted) !important; display: inline-flex; font-size: 13px; gap: 6px; padding: 0 10px; text-decoration: none; transition: color .15s ease; white-space: nowrap; }
-.portal-site-link:hover { color: var(--p-gold-mark) !important; }
 .portal-account { align-items: center; background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 16px; display: flex; gap: 8px; justify-content: space-between; padding: 8px; }
 .portal-account-link { align-items: center; border-radius: 10px; display: flex; flex: 1; gap: 10px; min-width: 0; text-decoration: none; }
 .portal-account-link:hover strong { color: var(--p-gold-light); }
@@ -359,7 +357,7 @@ img.portal-account-initial { object-fit: cover; width: 34px; }
 @media (min-width: 861px) {
 	.portal-sidebar.is-collapsed { padding: 22px 12px 16px; width: 68px; }
 	.is-collapsed .portal-sidebar-head { justify-content: center; margin: 0 -12px; padding: 0 12px 26px; }
-	.is-collapsed .portal-brand > span, .is-collapsed .portal-nav-chevron, .is-collapsed .portal-site-link-text, .is-collapsed .portal-account-text { display: none; }
+	.is-collapsed .portal-brand > span, .is-collapsed .portal-nav-chevron, .is-collapsed .portal-account-text { display: none; }
 	/* Nothing may be clipped here: the tooltips and flyouts hang out over the page. */
 	.is-collapsed .portal-nav { align-items: stretch; margin: 0; overflow: visible; padding: 0; }
 	/* A section's name gives way to a hairline. */
@@ -379,8 +377,6 @@ img.portal-account-initial { object-fit: cover; width: 34px; }
 	.is-collapsed .portal-nav-flyout-title { color: var(--p-faint); display: block; font-size: 11.5px; font-weight: 500; padding: 7px 10px 5px; }
 	.is-collapsed .portal-nav-sub a { justify-content: flex-start; padding: 8px 10px; }
 	.is-collapsed .portal-nav-highlight.is-subtab::before { left: 0; }
-
-	.is-collapsed .portal-site-link { justify-content: center; padding: 0; }
 	.is-collapsed .portal-account { background: none; border: 0; flex-direction: column; padding: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -586,7 +582,6 @@ a.portal-row-title:hover { text-decoration: underline !important; text-decoratio
 .portal-modal-view-switch .portal-filters { align-self: auto; }
 .portal-modal-review-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .portal-modal-review-actions > .portal-button, .portal-modal-review-actions .portal-confirm .portal-button { background: #000; border: 1px solid #303036; border-radius: 4px; box-shadow: none; color: #fff; font-size: 12px; padding: 10px 13px; }
-.portal-modal-notify { flex-basis: 100%; font-size: 12px; }
 .portal-application-logs .portal-muted { font-size: 13px; line-height: 1.7; margin: 10px 0; }
 .portal-application-logs > a { margin-top: 12px; }
 .portal-application-log-table { min-width: 0; }
@@ -728,7 +723,7 @@ a.portal-row-title:hover { text-decoration: underline !important; text-decoratio
 .portal-field textarea { line-height: 1.6; resize: vertical; }
 /* Selects get the portal's own chevron, and a dark menu wherever the browser draws its own. */
 .portal-field select, select.portal-input { -webkit-appearance: none; appearance: none; background-image: var(--p-chevron); background-position: right 13px center; background-repeat: no-repeat; cursor: pointer; padding-right: 36px; text-overflow: ellipsis; }
-.portal-field select option, select.portal-input option, .directory-filter select option { background: #12121a; color: var(--p-text); }
+.portal-field select option, select.portal-input option { background: #12121a; color: var(--p-text); }
 .portal-field select:disabled { cursor: not-allowed; opacity: .6; }
 /* A required select still on its empty "Select …" option reads as a placeholder. */
 .portal-field select:invalid { color: var(--p-placeholder); }
@@ -826,13 +821,6 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 .portal-check { align-items: flex-start; cursor: pointer; display: flex; gap: 10px; }
 .portal-check input { accent-color: var(--p-text); flex: none; height: 16px; margin: 2px 0 0; width: 16px; }
 .portal-check strong { display: block; font-size: 13px; font-weight: 500; }
-/* Role and affiliation choices use simple rows and native selection controls. */
-.portal-roles { border: 0; gap: 8px; margin: 0; padding: 0; }
-.portal-roles legend { margin-bottom: 10px; padding: 0; }
-.portal-roles .portal-check { background: none; border: 0; border-bottom: 1px solid var(--p-line); border-radius: 0; padding: 14px 0; transition: border-color .15s ease; }
-.portal-roles .portal-check:hover { border-color: var(--p-line-strong); }
-.portal-roles .portal-check:has(input:checked) { background: none; border-color: var(--p-line-strong); }
-.portal-roles .portal-check:has(input:disabled) { cursor: not-allowed; opacity: .45; }
 .portal-card > .portal-form-error { margin-bottom: 0; }
 .portal-photo-current { align-items: center; display: flex; gap: 14px; }
 .portal-photo-current img { border-radius: 50%; box-shadow: 0 0 0 1px rgba(var(--p-ink),.14); object-fit: cover; }
@@ -867,8 +855,6 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 .portal-expiry em { border-left: 1px solid var(--p-line); color: var(--p-gold-ink); font-size: 12px; font-style: normal; font-weight: 500; margin-left: 2px; padding-left: 11px; }
 .portal-expiry.is-none { color: var(--p-faint); }
 .portal-expiry.is-none strong { color: var(--p-muted); }
-.portal-expiry-date { color-scheme: dark; max-width: 220px; }
-:where([data-theme="light"]) .portal-expiry-date { color-scheme: light; }
 .portal-account-danger { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
 .portal-confirm { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .portal-confirm > span { color: var(--p-danger-ink); font-size: 13px; }
@@ -918,7 +904,6 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 	.portal-signatory-sgd { display: none; }
 	.portal-signatory input:nth-of-type(2) { grid-column: 1; grid-row: 2; }
 	.portal-page-head { align-items: flex-start; }
-	.portal-site-link { display: none; }
 	.portal-card { padding: 20px 18px; }
 	.portal-hero-actions .portal-button { flex: 1 1 auto; }
 }
@@ -934,12 +919,7 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 .portal-tag.portal-application-status-tag.is-warn { background: none; }
 .portal-tag.portal-application-status-tag.is-gold { background: none; }
 .portal-head-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
-.portal-application-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
-.portal-application-actions strong { display: block; font-size: 15px; font-weight: 600; }
-.portal-application-actions .portal-muted { margin: 4px 0 0; max-width: 480px; }
 .portal-application-status { display: flex; flex-wrap: wrap; gap: 8px; }
-.portal-application-notify { border-top: 1px solid var(--p-line); flex-basis: 100%; padding-top: 16px; }
-.portal-application-grid { align-items: start; display: grid; gap: 20px; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 .portal-application-stack { display: flex; flex-direction: column; gap: 20px; }
 .portal-qualification-answers { display: grid; gap: 8px; }
 .portal-qualification-answer { border: 1px solid var(--p-line); border-radius: 8px; overflow: hidden; }
@@ -967,10 +947,6 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 .portal-details dd { margin: 0; overflow-wrap: anywhere; }
 .portal-details a { align-items: center; color: var(--p-text); display: inline-flex; gap: 4px; text-decoration: underline; text-decoration-color: rgba(var(--p-gold-rgb),.55); text-underline-offset: 3px; }
 .portal-details a:hover { text-decoration-color: var(--p-gold-edge); }
-@media (max-width: 860px) {
-	.portal-application-grid { grid-template-columns: 1fr; }
-	.portal-application-actions .portal-form-actions { flex-wrap: wrap; margin-left: 0; }
-}
 @media (max-width: 560px) {
 	.portal-details div { gap: 4px; grid-template-columns: 1fr; }
 }
@@ -1001,9 +977,7 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 	.portal-form-grid.is-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	.portal-interview-row { gap: 8px 12px; grid-template-columns: minmax(0, 1fr) auto 32px; padding: 16px 20px; }
 	.portal-interview-row > .portal-interview-time { grid-column: 1; grid-row: 1; }
-	.portal-interview-row > .interview-division-tag { grid-column: 1; grid-row: 2; }
 	.portal-interview-row > .portal-muted { grid-column: 1; grid-row: 3; }
-	.portal-interview-row > .portal-tag:not(.interview-division-tag) { grid-column: 2; grid-row: 1 / span 3; }
 	.portal-interview-row > .portal-list-review { grid-column: 3; grid-row: 1 / span 3; }
 }
 @media (max-width: 560px) {
@@ -1055,15 +1029,7 @@ html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { o
 .planner-day.is-selected.is-today { box-shadow: inset 0 0 0 2px var(--p-text); }
 
 /* Each division's colour, bright enough to read as a dot or as text on the dark. */
-.is-executive { --division: var(--ui-accent, #fec30c); --division-soft: rgba(var(--p-gold-rgb),.14); }
-.is-legal { --division: #ff7d9c; --division-soft: rgba(255,125,156,.14); }
-.is-operations { --division: #45c8d2; --division-soft: rgba(69,200,210,.14); }
-.is-public-information { --division: #8aa6ff; --division-soft: rgba(138,166,255,.15); }
 .is-none { --division: var(--p-danger); --division-soft: rgba(255,107,125,.12); }
-.interview-division-tag { background: var(--division-soft) !important; border-color: transparent !important; color: var(--division) !important; }
-.interview-legend { border-top: 1px solid var(--p-line); color: var(--p-muted); display: flex; flex-wrap: wrap; font-size: 11px; gap: 6px 18px; margin-top: 18px; padding-top: 18px; }
-.interview-legend span { align-items: center; display: inline-flex; gap: 7px; }
-.interview-legend i { background: var(--division); border-radius: 50%; height: 7px; width: 7px; }
 
 .interview-schedule-content, .interview-schedule-day, .interview-schedule-day .portal-interview-slots, .interview-schedule-day .portal-interview-slots > li { position: relative; }
 .interview-schedule-day h3 { background: rgba(var(--p-ink),.025); border-bottom: 1px solid var(--p-line); color: var(--p-muted); font-size: 12px; font-weight: 500; margin: 0; padding: 11px 24px; }
@@ -1340,8 +1306,6 @@ textarea.portal-setting-textarea { height: auto; line-height: 1.6; max-width: 56
 .portal-tag.is-local::before { display: none; }
 .portal-table td .portal-tag + .portal-tag { margin-left: 6px; }
 .portal-event-count { font-size: 13.5px; font-variant-numeric: tabular-nums; font-weight: 500; }
-/* Jumps to the page's three parts; each stops clear of the top bar. */
-.portal-anchors small { color: var(--p-faint); font-size: 10.5px; margin-left: 6px; }
 .portal-event-section { scroll-margin-top: 72px; }
 /* The event's facts beside what it's about. */
 .portal-event-background { align-items: start; display: grid; gap: 24px clamp(24px, 3vw, 44px); grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
@@ -1388,7 +1352,6 @@ textarea.portal-setting-textarea { height: auto; line-height: 1.6; max-width: 56
 .portal-options .portal-check:has(input:focus-visible) { outline: 2px solid var(--p-soft); outline-offset: 4px; }
 .portal-options .portal-check small { color: var(--p-muted); display: block; font-size: 12px; line-height: 1.5; margin-top: 3px; }
 .portal-field.has-error .portal-options .portal-check { border-color: rgba(255,107,125,.45); }
-.portal-organizer-line { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
 /* Whose an event in the list is, with what it comes from and what's waiting on it, under its name. */
 .portal-row-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
 .portal-table td .portal-row-tags .portal-tag + .portal-tag { margin-left: 0; }
@@ -1423,8 +1386,6 @@ a.portal-tag:hover { border-color: currentColor; }
 .portal-registrant-name { color: var(--p-text); font-size: 13.5px; font-weight: 550; min-width: 0; overflow-wrap: anywhere; }
 .portal-registrant-email { color: var(--p-muted); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .portal-registrant-affiliation { color: var(--p-soft); font-size: 13px; min-width: 0; }
-.portal-registrant-chevron { color: var(--p-faint); justify-self: end; transition: color .2s ease, transform .3s var(--p-ease); }
-.portal-registrant-toggle:hover .portal-registrant-chevron { color: var(--p-text); }
 /* Registration summaries share the evaluation response's numbered sections and answer cards. */
 .portal-registrant-groups { display: grid; }
 .portal-registrant-group { min-width: 0; padding: 22px 0; }
@@ -1442,10 +1403,6 @@ a.portal-tag:hover { border-color: currentColor; }
 .portal-registrant-copy-email:hover { text-decoration-color: var(--p-gold-edge); }
 .portal-registrant-copy-status { display: block; font-size: 12px; }
 .portal-registrant-group .portal-verified { display: flex; margin: 4px 0 0; width: fit-content; }
-.portal-registrant-status { align-items: center; color: var(--p-text); display: inline-flex; font-weight: 550; gap: 7px; }
-.portal-registrant-status i { background: var(--p-ok); border-radius: 50%; flex: none; height: 7px; width: 7px; }
-.portal-registrant-status.is-waitlisted i { background: var(--p-gold); }
-.portal-registrant-none { color: var(--p-faint); font-size: 13px; margin: 0; }
 .portal-registrant-actions { display: flex; justify-content: flex-end; }
 .portal-registrant-receipt .portal-need.is-not-requested .portal-need-main strong, .portal-need.is-not-requested .portal-need-answer { color: var(--p-faint); font-weight: 400; }
 @media (max-width: 640px) {
@@ -1453,7 +1410,6 @@ a.portal-tag:hover { border-color: currentColor; }
 	.portal-registrants-head { display: none; }
 	.portal-registrant-toggle { gap: 3px 12px; grid-template-columns: minmax(0, 1fr) 20px; }
 	.portal-registrant-toggle > span { grid-column: 1; }
-	.portal-registrant-chevron { grid-column: 2; grid-row: 1 / span 3; }
 	.portal-registrant-groups { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -1470,7 +1426,6 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 .portal-modal-name-status h2 { margin: 0; min-width: 0; }
 .portal-modal-name-status .portal-tag { flex-shrink: 0; }
 .portal-registrant-meta { align-items: center; display: flex; flex-wrap: wrap; gap: 8px 12px; }
-.portal-registrant-receipt-head .portal-registrant-status { background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 3px; font-size: 12px; padding: 5px 11px; }
 .portal-registrant-date { color: var(--p-faint); font-size: 11.5px; }
 .portal-application-retention { border-left: 1px solid var(--p-line); padding-left: 10px; font-variant-numeric: tabular-nums; }
 .portal-registrant-reference { text-align: right; }
@@ -1508,7 +1463,6 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 .portal-registrant-action-button.portal-application-onboard:hover:not(:disabled) { background: #1a925e; border-color: #1a925e; }
 .portal-registrant-action-button:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 3px; }
 .portal-registrant-action-button:disabled { cursor: default; opacity: .45; }
-.portal-registrant-update { margin-left: auto; min-width: 90px; }
 .portal-registrant-feedback { color: var(--p-muted); flex-basis: 100%; font-size: 12px; line-height: 1.5; margin: 0; overflow-wrap: anywhere; }
 .portal-registrant-feedback.is-error { color: var(--p-danger-ink); }
 .portal-registrant-confirmation { background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 14px; color: var(--p-text); max-height: calc(100dvh - 32px); max-width: calc(100vw - 32px); padding: 28px; width: 460px; }
@@ -1552,9 +1506,6 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 .portal-need { align-items: center; display: grid; gap: 10px 14px; grid-template-columns: auto minmax(0, 1fr) auto; padding: 12px 16px; transition: opacity .2s ease; }
 .portal-need + .portal-need { border-top: 1px solid var(--p-line); }
 .portal-need[aria-busy] { opacity: .6; }
-.portal-need-icon { align-items: center; background: var(--p-raised); border: 1px solid var(--p-line); border-radius: 9px; color: var(--p-muted); display: inline-flex; height: 32px; justify-content: center; width: 32px; }
-.portal-need.is-approved .portal-need-icon { background: var(--p-ok); border-color: transparent; color: #04140c; }
-.portal-need.is-unavailable .portal-need-icon { background: var(--p-danger); border-color: transparent; color: #fff; }
 .portal-need-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .portal-need-main strong { color: var(--p-text); font-size: 13.5px; font-weight: 550; }
 .portal-need-facts { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 0; }
@@ -1581,15 +1532,6 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 .portal-search svg { color: var(--p-faint); left: 13px; pointer-events: none; position: absolute; }
 .portal-search .portal-input { padding-left: 38px; width: 100%; }
 .portal-search .portal-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
-.portal-orgs { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin: 0; max-width: 300px; padding: 0; }
-.portal-orgs li { background: rgba(var(--p-ink),.05); border: 1px solid var(--p-line); border-radius: 3px; font-size: 12px; line-height: 1.4; max-width: 100%; overflow: hidden; padding: 2px 9px; text-overflow: ellipsis; white-space: nowrap; }
-/* How interested they said they were: as many of five bars lit as the answer, in the scale's own gold. */
-/* Positioned, so its screen-reader text stays inside the table's sideways scroll instead of widening the page. */
-.portal-interest { align-items: center; display: inline-flex; gap: 9px; position: relative; white-space: nowrap; }
-.portal-interest-bars { align-items: flex-end; display: inline-flex; gap: 2px; height: 14px; }
-.portal-interest-bars i { background: rgba(var(--p-ink),.13); border-radius: 1px; width: 3px; }
-.portal-interest-bars i.is-lit { background: var(--level, var(--p-gold)); }
-.portal-interest b { font-size: 13px; font-weight: 500; }
 .portal-table-foot { align-items: center; border-top: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; padding: 12px 20px; }
 .portal-table-foot p { color: var(--p-faint); font-size: 11px; margin: 0; }
 .portal-pager { display: flex; gap: 6px; }
@@ -1599,11 +1541,6 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 /* Analytics (event-analytics.tsx). The scale's five steps and the bars' gold are stepped for this
    surface and checked for lightness, chroma and contrast; text keeps to the portal's own ink. */
 .portal-analytics { --chart: var(--ui-accent-mid, #b38805); --chart-lit: var(--ui-accent, #d8a50a); --chart-track: rgba(var(--p-ink),.06); --level-1: var(--ui-accent-deep, #6c5100); --level-2: var(--ui-accent-deep, #8e6c02); --level-3: var(--ui-accent-mid, #b38805); --level-4: var(--ui-accent, #d8a50a); --level-5: var(--ui-accent, #ffc41a); }
-.portal-level-1 { --level: var(--level-1, var(--ui-accent-deep, #6c5100)); }
-.portal-level-2 { --level: var(--level-2, var(--ui-accent-deep, #8e6c02)); }
-.portal-level-3 { --level: var(--level-3, var(--ui-accent-mid, #b38805)); }
-.portal-level-4 { --level: var(--level-4, var(--ui-accent, #d8a50a)); }
-.portal-level-5 { --level: var(--level-5, var(--ui-accent, #ffc41a)); }
 /* The headline numbers: one leads, the rest sit beside it. */
 .portal-kpis { border: 1px solid var(--p-line); border-radius: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0 0 22px; overflow: hidden; }
 .portal-kpis > div { box-shadow: -1px 0 0 var(--p-line), 0 -1px 0 var(--p-line); min-width: 0; padding: 16px 18px 17px; }
@@ -1637,32 +1574,11 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 .portal-chart details[open] summary > span:first-child::after { content: " −"; }
 .portal-chart summary:hover { background: rgba(var(--p-ink),.04); color: var(--p-text); }
 .portal-chart details .portal-bars { margin-top: 8px; }
-/* The interest scale: one bar split by answer, lowest to highest, a gap of the surface between segments. */
-.portal-likert { display: flex; gap: 2px; height: 16px; }
-.portal-likert > span { background: var(--level); flex: 0 1 auto; min-width: 3px; position: relative; transition: background-color .15s ease; }
-.portal-likert > span:first-child { border-radius: 4px 0 0 4px; }
-.portal-likert > span:last-child { border-radius: 0 4px 4px 0; }
-.portal-likert > span:only-child { border-radius: 4px; }
-/* The segment under the pointer lifts: a step lighter, by mixing in a little white. */
-.portal-likert > span:hover { background: color-mix(in srgb, var(--level) 82%, #fff); }
-/* What a segment stands for, on hover. The legend underneath carries the same numbers for everyone. */
-.portal-chart-tip { background: var(--p-raised); border: 1px solid var(--p-line-strong); border-radius: 10px; bottom: calc(100% + 8px); box-shadow: 0 20px 44px -10px rgba(0,0,0,calc(.85 * var(--p-shade))); color: var(--p-muted); display: none; font-size: 12px; left: 50%; line-height: 1.4; padding: 7px 10px; pointer-events: none; position: absolute; transform: translateX(-50%); white-space: nowrap; z-index: 5; }
-.portal-chart-tip b { color: var(--p-text); font-weight: 500; margin-right: 6px; }
-.portal-likert > span:hover .portal-chart-tip { display: block; }
-.portal-likert > span:first-child .portal-chart-tip { left: 0; transform: none; }
-.portal-likert > span:last-child .portal-chart-tip { left: auto; right: 0; transform: none; }
-.portal-likert-legend { display: grid; gap: 10px 18px; grid-template-columns: repeat(5, minmax(0, 1fr)); list-style: none; margin: 16px 0 0; padding: 0; }
-.portal-likert-legend li { display: grid; gap: 3px 8px; grid-template-columns: auto minmax(0, 1fr); min-width: 0; }
-.portal-likert-legend i { background: var(--level); border-radius: 3px; height: 10px; margin-top: 4px; width: 10px; }
-.portal-likert-legend span { color: var(--p-muted); font-size: 12.5px; line-height: 1.35; }
-.portal-likert-legend b { font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 500; grid-column: 2; }
-.portal-likert-legend b small { color: var(--p-faint); font-size: 12px; margin-left: 7px; }
 @media (max-width: 1100px) {
 	.portal-charts { grid-template-columns: minmax(0, 1fr); }
 	.portal-chart.is-wide .portal-bars { columns: 1; }
 }
 @media (max-width: 760px) {
-	.portal-likert-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	.portal-table-tools { padding: 12px 16px; }
 	.portal-search { max-width: none; }
 }
@@ -2135,11 +2051,10 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 /* What stays dark is glass on the dark page, which shows through it. Here it stands on a floor of its
    own, and throws a softer shadow. */
 :where([data-theme="light"]) :is(.portal-hero, .period-overview) { --p-panel: var(--p-glass), #050509; --p-shade: .45; --p-shadow-card: inset 0 1px 0 rgba(255,255,255,.06), 0 34px 60px -38px rgba(10,10,30,.6); }
-:where([data-theme="light"]) :is(.portal-info-tip, .portal-chart-tip) { --p-shade: .4; }
 /* What was a dark surface of its own becomes a white one. */
 :where([data-theme="light"]) .directory-card.is-dragging > a { background-color: var(--ui-panel); }
 :where([data-theme="light"]) .portal-stat-table thead th { background: var(--ui-surface-highlight); }
-:where([data-theme="light"]) .portal-field select option, :where([data-theme="light"]) select.portal-input option, :where([data-theme="light"]) .directory-filter select option { background: var(--ui-panel); }
+:where([data-theme="light"]) .portal-field select option, :where([data-theme="light"]) select.portal-input option { background: var(--ui-panel); }
 /* Fields are a fainter grey on white, and one in use clears to white rather than darkening. */
 :where([data-theme="light"]) .portal-field input:not([type="checkbox"], [type="radio"]), :where([data-theme="light"]) .portal-field select, :where([data-theme="light"]) .portal-field textarea, :where([data-theme="light"]) .portal-input { background-color: rgba(var(--p-ink),.028); }
 :where([data-theme="light"]) .portal-field :is(input, select, textarea):focus, :where([data-theme="light"]) .portal-input:focus { background-color: var(--ui-panel); }
@@ -2149,16 +2064,11 @@ html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[op
 :where([data-theme="light"]) .code-signer-marks i.is-signed { color: #fff; }
 :where([data-theme="light"]) .code-change-tag.is-moved::before { background: #525252; }
 /* Each division's colour, deep enough to read as text on white. */
-:where([data-theme="light"]) .is-executive { --division: var(--ui-accent-mark, #946200); --division-soft: rgba(var(--ui-accent-rgb, 214,152,0),.15); }
-:where([data-theme="light"]) .is-legal { --division: #c02a57; --division-soft: rgba(224,66,110,.12); }
-:where([data-theme="light"]) .is-operations { --division: #0b7c87; --division-soft: rgba(20,160,172,.14); }
-:where([data-theme="light"]) .is-public-information { --division: #404040; --division-soft: rgba(64,64,64,.12); }
 :where([data-theme="light"]) .is-none { --division: var(--p-danger-ink); }
 /* Analytics on white: the interest scale runs the other way, pale for the lowest answer and deep for the
    highest, stepped evenly in lightness with the palest still 2:1 on the panel. */
 :where([data-theme="light"]), :where([data-theme="light"]) .portal-analytics { --level-1: var(--ui-accent-mid, #dca80a); --level-2: var(--ui-scale-2, #ba8e06); --level-3: var(--ui-scale-3, #997403); --level-4: var(--ui-scale-4, #7a5b01); --level-5: var(--ui-scale-5, #5b4403); }
 :where([data-theme="light"]) .portal-analytics { --chart-lit: var(--ui-accent-deep, #8e6c02); }
-:where([data-theme="light"]) .portal-likert > span:hover { background: color-mix(in srgb, var(--level) 84%, #000); }
 
 /* Event evaluation and attendance */
 .portal-registrants-head, .portal-registrant-toggle { grid-template-columns: 44px minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,.9fr) 66px; }
@@ -2194,7 +2104,6 @@ i.is-attended { background: #229b58; } i.is-evaluated { background: #3689eb; }
   .portal-registrant-toggle { grid-template-columns: 30px minmax(0,1fr) 66px; }
   .portal-registrant-toggle > span { grid-column: 2; }
   .portal-registrant-toggle > .portal-registrant-progress { grid-column: 1; grid-row: 1 / span 3; }
-  .portal-registrant-chevron { grid-column: 3; }
   .portal-registrant-toggle > .portal-list-review { grid-column: 3; grid-row: 1 / span 3; }
   .portal-applicants .portal-registrant-toggle { gap: 6px 12px; grid-template-columns: minmax(0,1fr) 32px; }
   .portal-applicants .portal-registrant-toggle > :is(span, time) { grid-column: 1; }
@@ -2204,14 +2113,6 @@ i.is-attended { background: #229b58; } i.is-evaluated { background: #3689eb; }
 /* Recruitment reviews share the event registrant receipt layout. */
 .portal-modal-facts dd { margin: 0; overflow-wrap: anywhere; }
 .portal-modal-facts a { align-items: center; color: var(--p-text); display: inline-flex; gap: 4px; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--p-line-strong); text-underline-offset: 3px; }
-.portal-application-review-foot > div:first-child { flex-basis: 100%; }
-.portal-application-review-foot { max-height: 40dvh; overflow-y: auto; overscroll-behavior: contain; }
-.portal-application-review-foot .portal-muted { font-size: 12px; margin: 4px 0 0; }
-.portal-application-review-foot .portal-registrant-actions { flex: 1; }
-.portal-application-review-foot .portal-registrant-actions > .portal-button,
-.portal-application-review-foot .portal-confirm .portal-button { background: #000; border: 1px solid #303036; border-radius: 4px; box-shadow: none; color: #fff; font-size: 12px; padding: 10px 13px; }
-.portal-application-review-foot .portal-application-notify { padding-top: 12px; }
-.portal-application-review-foot .portal-application-notify strong { font-size: 12px; }
 
 /* Recruitment vacancies: summaries and compact, labelled position rows. */
 .is-central { --division: #b6a0f5; --division-soft: rgba(182,160,245,.15); }
@@ -2222,12 +2123,6 @@ i.is-attended { background: #229b58; } i.is-evaluated { background: #3689eb; }
 .recruitment-slots-summary small { font-size: 16px; font-weight: 400; color: var(--p-muted); }
 .recruitment-slots-summary span { font-size: 12px; color: var(--p-muted); }
 .recruitment-slots-form .portal-recruitment { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; margin-top: 20px; }
-.recruitment-division { min-width: 0; }
-.recruitment-division:nth-child(odd):last-child { grid-column: 1 / -1; }
-.recruitment-division-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding-bottom: 18px; border-bottom: 1px solid var(--p-line); }
-.recruitment-division-head .portal-card-title { margin: 0; font-size: 15px; }
-.recruitment-division-head .portal-card-title::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 9px; border-radius: 50%; background: var(--division); }
-.recruitment-division-head .portal-tag { white-space: nowrap; }
 .recruitment-position { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: 12px; min-height: 82px; padding: 17px 0; border-bottom: 1px solid var(--p-line); }
 .recruitment-position:last-child { border-bottom: 0; }
 .recruitment-position-label { display: flex; flex-direction: column; gap: 6px; }
@@ -2242,7 +2137,6 @@ i.is-attended { background: #229b58; } i.is-evaluated { background: #3689eb; }
   .recruitment-slots-summary { padding: 18px 16px; gap: 10px; }
   .recruitment-slots-summary strong { font-size: 23px; }
   .recruitment-slots-summary span { font-size: 11px; }
-  .recruitment-division-head { flex-wrap: wrap; }
 }
 
 
@@ -2256,25 +2150,8 @@ i.is-attended { background: #229b58; } i.is-evaluated { background: #3689eb; }
 :root:has(.portal-shell[data-theme="light"]) .dashboard-glowing-grid > .portal-card[data-glow] { border-radius: var(--ui-card-radius); }
 :root:has(.portal-shell[data-theme="light"]) .dashboard-glowing-grid > .portal-card[data-glow]::before { display: none; }
 :root:has(.portal-shell[data-theme="light"]) .dashboard-glowing-grid > .portal-card[data-glow]::after { background: conic-gradient(from calc(var(--dashboard-glow-angle) - 45deg), transparent 0deg, #cbd5e1 20deg, #94a3b8 45deg, #fec30c 75deg, transparent 90deg); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-card:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { border-color: var(--ui-border); box-shadow: var(--ui-card-shadow); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-card[data-spotlight]:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *))::before { background: radial-gradient(520px circle at var(--spot-x, 50%) var(--spot-y, 0%), rgba(148,163,184,.07), transparent 62%); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-card[data-spotlight]:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *))::after { opacity: 0; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page-head h1:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { letter-spacing: -.035em; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page-head h1 em:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: none; color: var(--ui-text); font: inherit; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-filters:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-surface-muted); border-color: transparent; border-radius: 16px; padding: 5px; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-filters :is(a, button):not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { border-radius: 12px; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-filters-thumb:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel); border-radius: 12px; box-shadow: var(--ui-control-shadow); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-filters :is(a, button).is-active:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel); box-shadow: var(--ui-control-shadow); color: var(--ui-text); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-filters.is-sliding.is-placed :is(a, button).is-active:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: none; box-shadow: none; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-button:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { border-radius: var(--ui-control-radius); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-button.is-ghost:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel); border-color: var(--ui-border-strong); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-button.is-ghost:not(:where(.portal-hero *, .period-overview *)):hover:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel-tint); border-color: #bfc8d6; }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea):not(:where(.portal-hero *, .period-overview *)),
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-input:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel-tint); border-radius: var(--ui-control-radius); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input, select, textarea):focus:not(:where(.portal-hero *, .period-overview *)),
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-input:focus:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-table th:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-panel-tint); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-table tbody tr:hover:not(:where(.portal-hero, .period-overview, .portal-hero *, .period-overview *, .portal-info-tip *, .portal-chart-tip *)) { background: var(--ui-surface-highlight); }
+:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea):not(:where(.portal-hero *, .period-overview *)) { background: var(--ui-panel-tint); border-radius: var(--ui-control-radius); }
+:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input, select, textarea):focus:not(:where(.portal-hero *, .period-overview *)) { background: var(--ui-panel); }
 
 /* Profile card menu, shared by every portal account. The native popover stays above page content. */
 .portal-profile-trigger { color: inherit; cursor: pointer; font: inherit; text-align: left; width: 100%; }

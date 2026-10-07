@@ -13,7 +13,6 @@ export const requirements = [
   { id: "platform", label: "Platform, political creed, or code of political ethics", hint: "Submit any one of these three alternatives." },
   { id: "financial", label: "Beginning financial statement", hint: "The party’s beginning financial statement." },
 ] as const;
-export type RequirementId = typeof requirements[number]["id"];
 export const templateHref = (name: string) => `/documents/polpar/${encodeURIComponent(name)}`;
 
 export const petitionDeclaration = "The party declares not to pursue its goals through violence or other unlawful means; upholds and adheres to the Central Student Council Constitution and shall obey all laws, policies, and lawful orders promulgated by the University of Santo Tomas and other duly constituted authorities; and declares that it is not supported by, nor does it accept financial contributions or any aid from, persons not enrolled in the University and/or organizations not duly recognized by the University.";

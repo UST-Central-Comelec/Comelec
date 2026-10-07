@@ -37,5 +37,3 @@ export const filingKinds: Record<FilingKind, {
     tabs: { submissions: "candidacy/filings", settings: "candidacy/settings" },
   },
 };
-
-export const isFilingKind = (value: unknown): value is FilingKind => typeof value === "string" && value in filingKinds;

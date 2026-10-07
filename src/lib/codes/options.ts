@@ -26,8 +26,6 @@ export const codes = {
 
 export type CodeKey = keyof typeof codes;
 
-export const codeKeys = Object.keys(codes) as CodeKey[];
-
 export const isCodeKey = (value: unknown): value is CodeKey => typeof value === "string" && Object.hasOwn(codes, value);
 
 /** The Central Comelec's officers who write the texts. Their offices' Executive Associates write with them. */

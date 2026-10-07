@@ -163,12 +163,3 @@ export function reduce(state: EditState, action: Edit | { type: "undo" }): EditS
   const label = "undo" in action ? action.undo : undefined;
   return { articles: edit(state.articles, action), undo: label ? { label, articles: state.articles } : null };
 }
-
-/** A section's place: the article it's under, and where it comes in it. */
-export function findSection(articles: EditArticle[], id: string) {
-  for (const article of articles) {
-    const index = article.sections.findIndex((section) => section.id === id);
-    if (index !== -1) return { article, section: article.sections[index], index };
-  }
-  return null;
-}

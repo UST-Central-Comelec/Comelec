@@ -1,7 +1,7 @@
 import type { ContentDb } from "./types";
 
 // Starting content for a fresh store — the same items the site showed before the portal existed.
-// Only used when no content has been saved yet.
+// Used when Supabase is not configured.
 
 const seededAt = "2026-09-29T00:00:00.000Z";
 const meta = { createdAt: seededAt, updatedAt: seededAt, updatedBy: "seed" };

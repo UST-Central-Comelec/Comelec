@@ -63,13 +63,6 @@ export function formatEventDates(event: Span) {
   return `${monthDay.format(from)}, ${event.eventDate.slice(0, 4)} – ${monthDay.format(to)}, ${event.endDate.slice(0, 4)}`;
 }
 
-/** "Tue, Oct 20, 2026", or "Oct 20 – Oct 22, 2026" for a run of days, for tables. */
-export function formatEventDatesShort(event: Span) {
-  if (isOneDay(event)) return formatEventDateShort(event.eventDate);
-  const year = event.endDate.slice(0, 4);
-  return event.eventDate.slice(0, 4) === year ? `${dayShort.format(day(event.eventDate))} – ${dayShort.format(day(event.endDate))}, ${year}` : `${formatEventDateShort(event.eventDate)} – ${formatEventDateShort(event.endDate)}`;
-}
-
 /** "1:00 – 4:00 PM" on one day; "Oct 20, 1:00 PM – Oct 22, 5:00 PM" across several. */
 export function formatEventTimes(event: Span & Pick<CommissionEvent, "startsTime" | "endsTime">) {
   if (isOneDay(event)) return formatTimeRange(event.startsTime, event.endsTime);

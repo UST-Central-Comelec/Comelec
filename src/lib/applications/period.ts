@@ -73,21 +73,3 @@ export function fromManilaInput(value: string) {
 
 /** "October 29, 2026, 11:59 PM". Format on the server and pass the text down, so hydration matches. */
 export const formatClosing = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: zone, dateStyle: "long", timeStyle: "short" }).format(new Date(iso));
-
-/** "29 days, 4 hours" / "3 hours, 12 minutes" / "40 seconds": a rough, human time left. */
-export function describeTimeLeft(ms: number) {
-  const seconds = Math.max(0, Math.floor(ms / 1000));
-  const units: Array<[string, number]> = [
-    ["day", Math.floor(seconds / 86400)],
-    ["hour", Math.floor(seconds / 3600) % 24],
-    ["minute", Math.floor(seconds / 60) % 60],
-    ["second", seconds % 60],
-  ];
-  const first = units.findIndex(([, value]) => value > 0);
-  if (first === -1) return "0 seconds";
-  return units
-    .slice(first, first + 2)
-    .filter(([, value]) => value > 0)
-    .map(([unit, value]) => `${value} ${unit}${value === 1 ? "" : "s"}`)
-    .join(", ");
-}

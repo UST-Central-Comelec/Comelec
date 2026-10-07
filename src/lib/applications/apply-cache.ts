@@ -3,7 +3,7 @@ import "server-only";
 import { listUnitPeriodsForSite } from "@/lib/periods/store";
 import { combinePeriods, openBodies } from "@/lib/periods/summary";
 import { getOpenSlots } from "./interviews";
-import { getSlots, getUnitSlots } from "./slots";
+import { getUnitSlots } from "./slots";
 
 // The Apply page shows position and interview slot counts from Supabase, which costs a round trip
 // or two on every visit. Those counts rarely change, so the page reuses them for a few seconds.
@@ -27,7 +27,6 @@ function remember<T>(key: string, load: () => Promise<T>): Promise<T> {
 }
 
 export const getUnitSlotsForApplyPage = () => remember("unit-position-slots", getUnitSlots);
-export const getSlotsForApplyPage = () => remember("position-slots", getSlots);
 export const getInterviewsForApplyPage = () => remember("interview-slots", getOpenSlots);
 
 /** Every unit's recruitment period. One that can't be read counts as closed rather than breaking the page. */

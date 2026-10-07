@@ -27,9 +27,3 @@ export function parseReferenceCode(input: string): { prefix: ReferencePrefix; co
   if (chars.length !== 8) return null;
   return { prefix, code: `${prefix}-${chars.slice(0, 4)}-${chars.slice(4)}` };
 }
-
-/** Turns whatever the applicant typed ("cc 7k3m9qxa", "7K3M-9QXA") into CC-XXXX-XXXX, or null if it can't be one. */
-export function normalizeReferenceCode(input: string) {
-  const parsed = parseReferenceCode(input);
-  return parsed?.prefix === "CC" ? parsed.code : null;
-}

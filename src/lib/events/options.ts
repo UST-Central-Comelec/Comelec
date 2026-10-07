@@ -104,8 +104,6 @@ export type Listing = CommissionEvent & { period?: { kind: PeriodKind; /** When 
 /** Times on the event form are picked in steps of this many minutes. */
 export const TIME_STEP_MINUTES = 5;
 
-export const isRegistrationStatus = (value: unknown): value is RegistrationStatus => typeof value === "string" && value in registrationStatuses;
-
 export const isVenueMode = (value: unknown): value is VenueMode => typeof value === "string" && value in venueModes;
 
 /** What event ids look like: the slug made from the event's name when it was added. */

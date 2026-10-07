@@ -392,12 +392,6 @@ const everyEmail = automaticEmails.flatMap((group) => group.emails);
 
 export const findAutomaticEmail = (id: string | undefined) => everyEmail.find((email) => email.id === id);
 
-/**
- * Who an email goes to, whichever unit it concerns: a notice to the commission goes to the one unit
- * it's about, so it's said that way rather than naming one.
- */
-export const describeTo = (email: AutomaticEmail) => (email.to({ unit: "central" }) === email.to(sampleLocal) ? email.to({ unit: "central" }) : "The official account and Executive Board of the unit it concerns (the Central Comelec, or that college’s), and nobody else");
-
 /** An email as the settings and the notices name it: "Accounts: Access revoked". */
 export const emailName = (key: EmailKey) => {
   const group = automaticEmails.find((item) => item.emails.some((email) => email.id === key));

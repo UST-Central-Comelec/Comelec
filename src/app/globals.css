@@ -61,9 +61,6 @@ html, body { scrollbar-width: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 a { color: inherit; text-decoration: none; }
 
-.topline { border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; padding: 11px var(--site-gutter); text-transform: uppercase; }
-.wordmark-mark { align-items: center; background: var(--maroon); color: #fff; display: flex; font-family: Georgia, serif; font-size: 25px; height: 42px; justify-content: center; width: 42px; }
-
 .eyebrow { align-items: center; color: var(--maroon); display: flex; font-size: 10px; font-weight: 700; gap: 10px; text-transform: uppercase; }
 .eyebrow::before { background: var(--gold); content: ""; height: 7px; width: 7px; }
 .button-primary { background: var(--gold); color: var(--ink); display: inline-flex; font-size: 12px; font-weight: 600; padding: 15px 20px; }
@@ -115,8 +112,6 @@ a { color: inherit; text-decoration: none; }
 /* Portal-inspired visual layer */
 :root { --paper: #fff; --cream: #f7f7f7; --ink: #000; --muted: #555; --maroon: #000; --gold: var(--ui-accent, #fec30c); --line: #dedede; --radius-sm: 8px; --radius-md: 14px; --radius-lg: 22px; }
 body { background: var(--paper); color: var(--ink); padding-top: 78px; }
-.topline { align-items: center; background: #000; border-bottom: 1px solid #292929; color: #bdbdbd; display: flex; justify-content: space-between; padding-bottom: 9px; padding-top: 9px; }
-.wordmark-mark { background: var(--maroon); font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: 800; }
 .button-primary { background: var(--maroon); border-radius: var(--ui-button-radius, 6px); color: #fff; gap: 9px; }
 .section { padding-bottom: 86px; padding-top: 86px; }
 .section h2, .page-hero h1 { color: var(--maroon); font-family: Arial, Helvetica, sans-serif; font-weight: 800; letter-spacing: -.05em; }
@@ -132,8 +127,6 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .page-strip + .section { padding-top: 36px; }
 
 @media (max-width: 720px) {
-	.topline span:last-child { display: none; }
-	.topline { justify-content: center; }
 	body { padding-top: 74px; }
 }
 
@@ -148,7 +141,6 @@ a.archive-row:hover .arrow { color: var(--gold); }
 .page-hero .article-title { font-size: clamp(34px, 4.6vw, 56px); max-width: 900px; }
 .article-body { max-width: 760px; }
 .article-body p { color: #2a2a2a; font-size: 16px; line-height: 1.85; margin: 0 0 22px; white-space: pre-line; }
-.article-body .article-lede { color: var(--ink); font-size: 20px; font-weight: 500; line-height: 1.6; }
 .article-body .all-link { display: inline-block; margin-top: 18px; }
 .members-section { padding-top: 0; }
 .member-group { scroll-margin-top: 110px; }
@@ -193,7 +185,6 @@ a.archive-row:hover .arrow { color: var(--gold); }
 	.archive-filter + .archive-filter { margin-top: -30px; }
 	.member-grid { gap: 22px 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	.article-body p { font-size: 15px; }
-	.article-body .article-lede { font-size: 18px; }
 }
 
 /* Night sky (src/components/night-sky.tsx), behind the navbar's tabs and its menus and over the home page's finale: a faint nebula haze, small stars each flickering slowly on its own rhythm, and the odd shooting star. The navbar itself is styled in (site)/header.css. */
@@ -440,7 +431,6 @@ a.archive-row:hover .arrow { color: var(--gold); }
 .apply-countdown.is-open { color: #fff; gap: 8px; }
 .apply-countdown.is-open i { background: #3ecf8e; border-radius: 50%; box-shadow: 0 0 0 4px rgba(62,207,142,.18); height: 7px; width: 7px; }
 .apply-closed .apply-nav { border-top: 0; margin-top: 8px; }
-@media (prefers-reduced-motion: reduce) { .apply-top-status span { animation: none; } }
 .apply-tracker { background: var(--ap-surface, #fff); border-bottom: 1px solid var(--line); }
 .apply-tracker-inner { margin: auto; max-width: var(--site-max); padding: 22px clamp(16px, 5vw, 96px) 20px; }
 .apply-steps { display: flex; gap: clamp(12px, 1.8vw, 28px); list-style: none; margin: 0; padding: 0; }
@@ -573,36 +563,6 @@ a.archive-row:hover .arrow { color: var(--gold); }
 .apply-choice:has(input:checked) .apply-choice-text small { color: var(--ap-pick-muted, rgba(255,255,255,.62)); }
 .apply-choice:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 3px; }
 .apply-choice input { height: 1px; margin: 0; opacity: 0; pointer-events: none; position: absolute; width: 1px; }
-/* Division accordion: the head row selects, the toggle expands. Selected rows invert to ink like the cards. */
-.apply-divisions { display: flex; flex-direction: column; gap: 10px; }
-.apply-division { background: var(--ap-surface, #fff); border: 1px solid var(--line); border-radius: var(--radius-md); color: var(--ink); transition: background .2s ease, border-color .2s ease, color .2s ease; }
-.apply-division:hover { border-color: var(--ink); }
-.apply-division.is-selected { background: var(--ap-pick, var(--ink)); border-color: var(--ap-pick-edge, var(--ink)); color: var(--ap-pick-text, #fff); }
-.apply-division-head { align-items: center; display: flex; gap: 12px; padding-right: 12px; }
-.apply-division-pick { align-items: center; cursor: pointer; display: flex; flex: 1; gap: 14px; min-width: 0; padding: 16px 0 16px 18px; }
-.apply-division-pick input { height: 1px; margin: 0; opacity: 0; pointer-events: none; position: absolute; width: 1px; }
-.apply-division-mark { border: 1.5px solid rgba(var(--ap-ink-rgb, 29,28,27),.25); border-radius: 50%; flex: none; height: 18px; transition: background-color .2s ease, border-color .2s ease; width: 18px; }
-.apply-division.is-selected .apply-division-mark { background: var(--gold) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1c1b' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 11px no-repeat; border-color: var(--gold); }
-.apply-division-pick:has(input:focus-visible) { outline: 2px solid currentColor; outline-offset: -4px; border-radius: var(--radius-md); }
-.apply-division.is-selected .apply-choice-text small { color: var(--ap-pick-muted, rgba(255,255,255,.62)); }
-.apply-division-toggle { align-items: center; background: none; border: 1px solid transparent; border-radius: 6px; color: inherit; cursor: pointer; display: inline-flex; flex: none; font: inherit; font-size: 12px; font-weight: 500; gap: 4px; opacity: .7; padding: 6px 8px 6px 12px; transition: background .2s ease, opacity .2s ease; }
-.apply-division-toggle:hover { background: rgba(var(--ap-ink-rgb, 29,28,27),.06); opacity: 1; }
-.apply-division.is-selected .apply-division-toggle:hover { background: var(--ap-pick-line, rgba(255,255,255,.1)); }
-.apply-division-toggle:focus-visible { opacity: 1; outline: 2px solid currentColor; outline-offset: 1px; }
-.apply-division-toggle svg { transition: transform .3s cubic-bezier(.22,1,.36,1); }
-.apply-division.is-open .apply-division-toggle svg { transform: rotate(180deg); }
-.apply-division-details { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.22,1,.36,1); }
-.apply-division.is-open .apply-division-details { grid-template-rows: 1fr; }
-.apply-division-details > div { overflow: hidden; }
-.apply-division-details p { border-top: 1px solid var(--line); font-size: 14px; line-height: 1.7; margin: 0 18px; padding: 16px 0 0 32px; }
-.apply-division-details ul { display: grid; gap: 12px; list-style: none; margin: 0; padding: 16px 18px 20px 50px; }
-.apply-division-details li { border-left: 2px solid var(--gold); display: flex; flex-direction: column; gap: 2px; padding-left: 12px; }
-.apply-division-details li strong { font-size: 13px; font-weight: 600; }
-.apply-division-details li span { color: var(--muted); font-size: 13px; line-height: 1.6; }
-.apply-division.is-selected .apply-division-details p { border-top-color: var(--ap-pick-line, rgba(255,255,255,.14)); color: var(--ap-pick-muted, rgba(255,255,255,.85)); }
-.apply-division.is-selected .apply-division-details li span { color: var(--ap-pick-muted, rgba(255,255,255,.62)); }
-.apply-field.has-error .apply-division { border-color: var(--ap-danger, #b42318); }
-@media (prefers-reduced-motion: reduce) { .apply-division-details, .apply-division-toggle svg { transition: none; } }
 
 .apply-choice-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .apply-choice-text strong { font-size: 14px; font-weight: 500; }
@@ -763,10 +723,6 @@ body.view-mode { padding-top: 0; }
 	.apply-conflict-head { gap: 12px; grid-template-columns: 1fr; }
 	.apply-requirement { flex-wrap: wrap; }
 	.apply-requirement-verified { flex-basis: 100%; margin-top: -8px; padding-left: 34px; }
-	.apply-division-details p { margin: 0 16px; padding-left: 0; }
-	.apply-division-details ul { padding: 14px 16px 18px; }
-	.apply-division-toggle span { display: none; }
-	.apply-division-toggle { padding: 8px; }
 	.apply-review-section dl div { gap: 2px; grid-template-columns: 1fr; }
 	.apply-nav .button-primary { flex: 1; justify-content: center; }
 }

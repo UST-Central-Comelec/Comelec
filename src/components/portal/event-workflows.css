@@ -14,7 +14,6 @@
 .event-builder-head > div { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .event-builder-head h3 { font-size: 15px; font-weight: 550; letter-spacing: -.015em; margin: 0; }
 .event-builder-head p { color: var(--p-muted); font-size: 12px; line-height: 1.6; margin: 4px 0 0; }
-.event-workflow-icon { align-items: center; background: rgba(var(--p-gold-rgb),.07); border: 1px solid rgba(var(--p-gold-rgb),.18); border-radius: 12px; color: var(--p-gold-mark); display: inline-flex; flex-shrink: 0; height: 40px; justify-content: center; width: 40px; }
 .event-form-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; padding: 24px 26px; border-bottom: 1px solid var(--p-line); }
 .event-form-steps button { appearance: none; background: none; border: 0; color: var(--p-muted); cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; font: inherit; gap: 10px; padding: 0; text-align: left; min-width: 0; }
 .event-step-rail { background: var(--p-line-strong); border-radius: 999px; height: 3px; width: 100%; transition: background .2s; }
@@ -121,7 +120,6 @@
 .portal-evaluation-toggle button { background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--p-muted); cursor: pointer; font: inherit; font-size: 12px; padding: 9px 14px; }
 .portal-evaluation-toggle button[aria-pressed=true] { background: none; border-bottom-color: var(--p-text); border-radius: 0; color: var(--p-text); font-weight: 600; }
 .portal-evaluation-toggle button:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
-.portal-evaluation-modal { padding: 26px; }
 
 /* The attendance booth follows the public tracking form's centered composition. */
 .portal-attendance { background: var(--p-sky),var(--p-bg); border: 1px solid var(--p-line); border-radius: 24px; color: var(--p-text); isolation: isolate; overflow: clip; padding: 28px 32px 56px; position: relative; min-width: 0; }
@@ -195,7 +193,6 @@
 .portal-attendance-names .portal-field input { font-size: 12px; padding: 15px 12px; }
 .event-attendance-feedback { margin: 0 28px 24px; border: 1px solid rgba(62,207,142,.2); background: rgba(62,207,142,.05); padding: 12px 14px; border-radius: 12px; }
 .event-attendance-feedback.is-error { background: rgba(255,107,125,.05); border-color: rgba(255,107,125,.2); }
-.event-attendance-match-note { color: var(--p-muted); font-size: 12px; margin: 0 28px 16px; line-height: 1.7; }
 .event-attendance-person { margin: 0 28px 22px; border: 1px solid var(--p-line-strong); border-radius: 16px; padding: 20px; background: rgba(var(--p-ink),.018); }
 .event-attendance-person.is-confirmed { border-color: rgba(62,207,142,.25); background: rgba(62,207,142,.035); }
 .event-attendance-person > header { display: flex; align-items: center; gap: 12px; }
@@ -213,10 +210,6 @@
 .event-attendance-confirm { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid var(--p-line); padding-top: 18px; }
 .event-attendance-confirm > p { color: var(--p-muted); font-size: 12px; margin: 0; }
 .event-attendance-confirm .portal-button { padding: 12px 16px; font-size: 12px; }
-.portal-attendance-confirmed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--p-ok-ink); font-size: 12px; border-top: 1px solid var(--p-line); padding-top: 16px; margin: 0; }
-.portal-attendance-confirmed > span { color: var(--p-muted); font-size: 10px; margin-left: auto; }
-.event-next-participant { display: flex; justify-content: center; padding: 0 28px 24px; }
-.event-next-participant .portal-button { font-size: 12px; }
 .event-booth-help { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--p-faint); font-size: 10.5px; line-height: 1.7; padding: 16px 24px; border-top: 1px solid var(--p-line); text-align: center; }
 .event-booth-help svg { flex-shrink: 0; }
 .portal-attendance.is-fullscreen { height: 100dvh; width: 100vw; border: 0; border-radius: 0; overflow: clip; padding: 26px 48px 32px; }
@@ -257,7 +250,6 @@
   .portal-evaluation-submission > .portal-evaluation-response { padding: 20px 18px; }
   .portal-evaluation-toggle { padding: 14px 18px; }
   .portal-evaluation-toggle button { font-size: 11px; padding: 9px 11px; }
-  .portal-evaluation-modal { padding: 20px 18px; }
   .portal-attendance, .portal-attendance.is-fullscreen { padding: 20px 14px 30px; border-radius: 20px; }
   .portal-attendance.is-fullscreen { border-radius: 0; }
   .portal-attendance-header { gap: 10px; padding-bottom: 18px; }
@@ -283,7 +275,6 @@
   .event-attendance-person header > .portal-tag { margin-left: 56px; }
   .event-attendance-confirm { align-items: stretch; flex-direction: column; }
   .event-attendance-confirm .portal-button { justify-content: center; }
-  .portal-attendance-confirmed > span { margin-left: 23px; width: 100%; }
   .event-booth-help { font-size: 9.5px; padding: 14px 18px; }
 }
 @media(prefers-reduced-motion:reduce) { .event-icon-spin { animation: none; } }

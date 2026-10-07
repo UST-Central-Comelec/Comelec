@@ -74,7 +74,6 @@
 .bp-empty-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
 .bp-empty-scope { aspect-ratio: 1; background: repeating-radial-gradient(circle closest-side, transparent 0 calc(33.3% - 1px), var(--bp-line-strong) calc(33.3% - 1px) 33.3%), linear-gradient(var(--bp-line), var(--bp-line)) 50% 0 / 1px 100% no-repeat, linear-gradient(var(--bp-line), var(--bp-line)) 0 50% / 100% 1px no-repeat; border: 1px solid var(--bp-line-strong); border-radius: 3px; overflow: hidden; position: relative; width: 88px; }
 .bp-empty-scope i { animation: none; background: conic-gradient(transparent 0deg 290deg, rgba(var(--bp-gold-rgb),.1) 310deg, rgba(var(--bp-gold-rgb),.6) 359deg, transparent 360deg); border-radius: 50%; inset: 0; position: absolute; }
-@keyframes bp-spin { to { transform: rotate(1turn); } }
 
 @media (max-width: 980px) {
 	.bp-hud { flex: 1 1 100%; grid-auto-columns: minmax(0, 1fr); }

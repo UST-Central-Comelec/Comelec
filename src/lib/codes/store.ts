@@ -7,7 +7,7 @@ import { usec2011, type CodeArticle } from "@/lib/elections-code/usec-2011";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
 import { noChanges, type ChangeStats } from "./diff";
-import { approverRoleOf, canEditCodes, isCodeKey, type ApproverRole, type CodeKey, type CodeRevision, type PublishedCode, type RevisionPerson, type RevisionStatus, type RevisionSummary } from "./options";
+import { approverRoleOf, isCodeKey, type ApproverRole, type CodeKey, type CodeRevision, type PublishedCode, type RevisionPerson, type RevisionStatus, type RevisionSummary } from "./options";
 
 // The revisions of the Constitution and the Elections Code: public.code_revisions
 // (supabase/migrations/0025). The website shows the latest approved revision of each text, and the
@@ -177,9 +177,4 @@ export function holdersOf(approvers: Array<Listed & { role: ApproverRole }>) {
   const holders: Partial<Record<ApproverRole, string[]>> = {};
   for (const { role, name } of approvers) (holders[role] ??= []).push(name);
   return holders;
-}
-
-/** The active accounts that write revisions. */
-export async function listEditors(): Promise<Listed[]> {
-  return (await store.list("accounts")).map(toSummary).filter((account) => account.active && canEditCodes(account)).map(({ name, email }) => ({ name, email }));
 }

@@ -34,8 +34,3 @@ export function recipientMention(message: InboxMessage): string {
   if (label === "Test · Only you") return "@you";
   return `@${label.replace(/ commissioners$/i, "") || "Selected recipients"}`;
 }
-
-export function senderInitials(message: InboxMessage): string {
-  const name = message.senderCollege || message.senderName;
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join("").toUpperCase();
-}

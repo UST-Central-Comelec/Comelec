@@ -144,12 +144,6 @@ export const APPLICATION_RETENTION_DAYS = 60;
 /** The oldest submission time still kept, as an ISO string for queries. */
 export const retentionCutoff = (now = Date.now()) => new Date(now - APPLICATION_RETENTION_DAYS * 86_400_000).toISOString();
 
-/** When an application submitted at `submittedAt` gets deleted. */
-export const deletionDate = (submittedAt: string) => new Date(new Date(submittedAt).getTime() + APPLICATION_RETENTION_DAYS * 86_400_000).toISOString();
-
-/** Whole days until an application is deleted, counting a part day as one: 60 on the day it's submitted, 1 on its last day. */
-export const daysUntilDeletion = (submittedAt: string, now = Date.now()) => Math.max(0, Math.ceil((new Date(deletionDate(submittedAt)).getTime() - now) / 86_400_000));
-
 const collegeYearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", "5": "5th year", swis: "SWIS" } as const;
 const juniorGrades = { "7": "Grade 7", "8": "Grade 8", "9": "Grade 9", "10": "Grade 10" } as const;
 const seniorGrades = { "11": "Grade 11", "12": "Grade 12" } as const;
@@ -267,34 +261,6 @@ export const divisions = {
 
 export type DivisionId = keyof typeof divisions;
 
-/** Central Division serves the Central Representative of a Local Comelec only. */
-export function divisionIdsForBody(body: string): DivisionId[] {
-  return (Object.keys(divisions) as DivisionId[]).filter((id) => id !== "central" || body === "local");
-}
-
-/** What each division does, shown when an applicant expands it. */
-export const divisionDescriptions: Record<DivisionId, string> = {
-  central: "The Central Division connects the Local Comelec with Central Comelec. It supports the Central Representative with coordination, correspondence, and follow-through on university-wide election matters.",
-  executive: "The Executive Division serves as the backbone of Central COMELEC. This team oversees the organization’s internal and external affairs, ensures smooth coordination across all divisions, and spearheads initiatives that uphold transparency and efficiency. They lead with vision and strategy to guarantee that every operation aligns with the commission’s mission.",
-  legal: "The Legals Division is the guardian of rules, policies, and due process. This team handles the interpretation and enforcement of election laws, organizational policies, and student governance guidelines. They ensure that all activities are compliant, fair, and just, protecting both the commission and the Thomasian student body.",
-  operations: "The Operations Division is the action force of Central COMELEC. From planning to execution, this team makes sure that every event, election, and initiative runs seamlessly. They handle logistics, manage timelines and schedules, and coordinate with stakeholders to transform plans into concrete outcomes.",
-  "public-information": "The Public Information Division is the voice of Central COMELEC. They are in charge of creating compelling content, managing social media accounts and communications, and ensuring Thomasians are informed and engaged. Through campaigns, publicity, and creative outputs, they spread awareness of electoral processes and promote active participation in student democracy.",
-};
-
-/** What each position does, by position id. */
-export const positionDescriptions: Record<string, string> = {
-  "ea-central-representative": "Supports the Local Comelec’s Central Representative with communications, meeting preparation, records, and coordination with Central Comelec.",
-  "ea-chairperson": "Assists in overseeing the entire commission, ensuring that all divisions are aligned with Central COMELEC’s mission and goals.",
-  "ea-vice-chairperson": "Supports in managing operations and coordination between divisions, promoting efficiency in daily tasks.",
-  "ea-secretary-executive": "Helps with documentation, records, and correspondence to keep organizational communication seamless.",
-  "ea-legal-head": "Assists in interpreting and applying legal frameworks to ensure that all activities comply with the rules and regulations.",
-  "ea-secretary-adjudicatory": "Helps document, process, and monitor cases, ensuring transparency and proper handling of disputes.",
-  "ea-deputy-head": "Assists in handling schedules, forms, and documents that support the overall supervision of the operations team, and helps ensure tasks are properly executed.",
-  "ea-operations-officer": "Helps manage day-to-day activities, ensuring events and projects are delivered smoothly.",
-  "ea-finance-officer": "Assists in handling budget management, financial reports, and resource allocation.",
-  "ea-logistics-officer": "Helps secure and manage logistical needs, from venues to materials, for the seamless execution of projects and events.",
-};
-
 /** Existing ids stay stable so saved slot counts and applications still refer to the same office. */
 const existingPositions = Object.values(divisions).flatMap(({ positions }) => Object.entries(positions).map(([id, label]) => ({ id, label })));
 
@@ -329,12 +295,8 @@ export function positionsForUnit(college = "") {
   });
 }
 
-/** All current offices; used to identify a saved application when onboarding. */
+/** All current offices, used by recruitment slot coverage tests. */
 export const positions = [...new Set([...centralRoles, ...Object.values(localRolesByCollege).flat()])].map(recruitmentPosition);
-export type PositionId = string;
-
-/** Divisions whose applicants must also share a portfolio. */
-export const portfolioDivisions: readonly DivisionId[] = ["public-information"];
 
 /** Open slots per position id. */
 export type SlotCounts = Record<string, number>;
