@@ -83,9 +83,13 @@ export async function checkIn(user: PortalUser): Promise<{ people: PresencePerso
   const db = createAdminClient();
   const email = normal(user.email);
   const now = Date.now();
+  const [lobby, inbox, me] = await Promise.all([lobbyTopic(), inboxTopic(user.id), presenceId(user.id)]);
   const { error } = await db.from("portal_presence").upsert({
     email,
     account_id: user.id,
+    // What the Realtime policies check before letting this person into a channel.
+    lobby_topic: lobby,
+    inbox_topic: inbox,
     name: user.name,
     role: describeRole(user),
     college: isLocal(user) ? user.college : null,
@@ -120,7 +124,6 @@ export async function checkIn(user: PortalUser): Promise<{ people: PresencePerso
     college: row.faculty,
     collegeAbbreviation: unitAbbreviations[row.faculty ?? ""] ?? "",
   })));
-  const [lobby, inbox, me] = await Promise.all([lobbyTopic(), inboxTopic(user.id), presenceId(user.id)]);
   return { people, realtime: { lobby, inbox, me, email, accountId: user.id, unit: presenceUnit(user) } };
 }
 

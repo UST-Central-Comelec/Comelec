@@ -54,9 +54,10 @@ export function matchesPresenceSearch(person: Pick<PresencePerson, "name" | "col
 }
 
 /**
- * Where the browser listens. Both names are derived from the server's secret, so only the server
- * and the person themselves know their inbox: nobody else can listen in, and everything sent to it
- * comes through the server, which says who sent it.
+ * Where the browser listens. Both names are derived from the server's secret, and both are private
+ * Realtime channels: joining one takes the person's own sign-in token, and the database only lets
+ * them into the lobby while they keep checking in, and into no inbox but their own (migration 0077).
+ * Everything sent to an inbox comes through the server, which says who sent it.
  */
 export type RealtimeInfo = { lobby: string; inbox: string; me: string; email: string; accountId: string; unit: PresenceUnit };
 

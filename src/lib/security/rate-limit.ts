@@ -33,11 +33,17 @@ export function rateLimit(key: string, limit: number, windowMs: number) {
 }
 
 /**
- * The visitor's IP. Behind a host like Vercel, the first x-forwarded-for entry is the client
- * (set by the platform); locally it falls back to "local".
+ * The visitor's IP, from a header the visitor can't forge. A browser can send its own
+ * x-forwarded-for, and a proxy only adds to the end of it, so the first entry is only trustworthy
+ * where the host rewrites the whole header (Vercel). Elsewhere it's the last entry, the one the
+ * proxy in front of this server added. Set CLIENT_IP_HEADER to read another header the proxy
+ * overwrites instead (e.g. cf-connecting-ip behind Cloudflare). Locally it falls back to "local".
  */
 export function clientIp(headers: Headers) {
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim() || "local";
+  const trusted = process.env.CLIENT_IP_HEADER?.trim().toLowerCase();
+  if (trusted) return headers.get(trusted)?.split(",")[0]?.trim() || "local";
+  const chain = (headers.get("x-forwarded-for") ?? "").split(",").map((entry) => entry.trim()).filter(Boolean);
+  return (process.env.VERCEL ? chain[0] : chain.at(-1)) || "local";
 }
 
 /** Limits used across the app, in one place. */

@@ -7,9 +7,35 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 // Member photos are served from the public R2 bucket (older ones from the Supabase `uploads` bucket).
 const r2PublicUrl = process.env.R2_PUBLIC_URL?.replace(/\/+$/, "");
 
-// Security headers on every response (OWASP Secure Headers). The CSP here only covers what can't
-// break the site: no framing (clickjacking), no plugins, no <base> hijacking, and forms may only
-// post to this site or continue on to Google sign-in through Supabase.
+const isDev = process.env.NODE_ENV !== "production";
+const origin = (url: string | undefined) => (url && URL.canParse(url) ? new URL(url).origin : "");
+const supabaseOrigin = origin(supabaseUrl);
+
+// The Content Security Policy. Scripts only come from this site: Next's inline scripts are
+// allowed, because nonces would make every page render per request and lose its cache, but no
+// script from another address ever runs. The page may only connect to this site, Supabase (data
+// and Realtime) and Google Drive (PDF uploads go straight there), so an injected script would have
+// nowhere to send anything. Images: this site, Supabase and R2 storage, and Google profile photos.
+// Google Fonts is only for the email preview, which shows the email as it's sent. No framing
+// (clickjacking), no plugins, no <base> hijacking, and forms may only post to this site or continue
+// on to Google sign-in through Supabase. `next dev` also needs eval and its own WebSocket.
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `img-src 'self' data: blob: https://*.googleusercontent.com ${supabaseOrigin} ${origin(r2PublicUrl)}`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace(/^http/, "ws")} https://www.googleapis.com${isDev ? " ws: wss:" : ""}`,
+  "media-src 'self' blob:",
+  "worker-src 'self' blob:",
+  "frame-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  `form-action 'self' https://accounts.google.com ${supabaseOrigin}`,
+].map((directive) => directive.replace(/\s+/g, " ").trim()).join("; ");
+
+// Security headers on every response (OWASP Secure Headers).
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -17,10 +43,7 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   // Browsers only honour this over HTTPS, so it's harmless on localhost.
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
-  {
-    key: "Content-Security-Policy",
-    value: ["frame-ancestors 'none'", "base-uri 'self'", "object-src 'none'", `form-action 'self' https://accounts.google.com${supabaseUrl ? ` ${new URL(supabaseUrl).origin}` : ""}`].join("; "),
-  },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
 ];
 
 const nextConfig: NextConfig = {

@@ -143,6 +143,8 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
   /** The page the followed person was last on; landing anywhere else means this person wandered off. */
   const expected = useRef<string | null>(null);
   const lastChecked = useRef(0);
+  /** This person's sign-in token from the latest check-in: Realtime asks for it to let them into their channels. */
+  const token = useRef<string | null>(null);
   useEffect(() => { sessionRef.current = session; routeRef.current = route; viewRef.current = { drawerOpen, view }; });
 
   const notify = useCallback((text: string) => {
@@ -163,7 +165,8 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       try {
         const response = await fetch("/portal/online", { method: "POST", cache: "no-store" });
         if (!response.ok) return;
-        const data = await response.json() as { people: PresencePerson[]; realtime: RealtimeInfo };
+        const data = await response.json() as { people: PresencePerson[]; realtime: RealtimeInfo; token: string | null };
+        token.current = data.token;
         setPeople(data.people);
         setCheckedAt(Date.now());
         setRealtime((current) => current && current.inbox === data.realtime.inbox && current.lobby === data.realtime.lobby && current.unit?.key === data.realtime.unit.key ? current : data.realtime);
@@ -295,15 +298,17 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
   // The live connection: the lobby, to see who's here, and this person's own inbox.
   useEffect(() => {
     if (!realtime) return;
-    const client = createClient(supabaseUrl, supabasePublishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-    const lobby = client.channel(realtime.lobby, { config: { presence: { key: realtime.me } } });
+    // Private channels: Realtime reads the token on connecting and on every heartbeat, so each
+    // check-in's fresh one keeps the connection open, and losing access closes it.
+    const client = createClient(supabaseUrl, supabasePublishableKey, { accessToken: async () => token.current });
+    const lobby = client.channel(realtime.lobby, { config: { private: true, presence: { key: realtime.me } } });
     lobby.on("presence", { event: "sync" }, () => setPresent(new Set(Object.keys(lobby.presenceState()))))
       .subscribe((status) => {
         if (status === "SUBSCRIBED") void lobby.track({ since: Date.now() });
         setLive(status === "SUBSCRIBED");
         if (status === "SUBSCRIBED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") setDown(status !== "SUBSCRIBED");
       });
-    const inbox = client.channel(realtime.inbox)
+    const inbox = client.channel(realtime.inbox, { config: { private: true } })
       .on("broadcast", { event: "relay" }, ({ payload }) => handleRef.current(payload as RelayEvent))
       .subscribe();
     return () => {

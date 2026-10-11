@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPortalUser } from "@/lib/auth/session";
 import { checkIn } from "@/lib/portal/presence-store";
+import { createAuthClient } from "@/lib/supabase/server";
 import { isSameSiteRequest } from "@/lib/portal/online-security";
 import { rateLimit } from "@/lib/security/rate-limit";
 
@@ -9,7 +10,8 @@ const headers = { "Cache-Control": "private, no-store" };
 /**
  * The online pill's check-in, about once a minute while a portal tab is open: records that the
  * signed-in person is here and answers with who else has been, so one request does both, along
- * with the channels their browser listens on for chat and following. Not counted as activity by
+ * with the channels their browser listens on for chat and following, and their own sign-in token,
+ * which Realtime asks for before letting them into those channels. Not counted as activity by
  * the proxy, so an open tab alone doesn't hold off the idle timeout.
  */
 export async function POST(request: Request) {
@@ -18,7 +20,10 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401, headers });
   if (!rateLimit(`presence:${user.email}`, 30, 60_000).ok) return NextResponse.json({ error: "Wait a moment before checking again." }, { status: 429, headers });
   try {
-    return NextResponse.json(await checkIn(user), { headers });
+    // The proxy has just refreshed the session, and getPortalUser has verified it; this only hands
+    // the person's own token back to their own page (same-site requests only, never cached).
+    const [state, { data }] = await Promise.all([checkIn(user), (await createAuthClient()).auth.getSession()]);
+    return NextResponse.json({ ...state, token: data.session?.access_token ?? null }, { headers });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Who’s online is unavailable. Try again shortly." }, { status: 503, headers });

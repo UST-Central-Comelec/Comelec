@@ -11,7 +11,8 @@ export async function broadcast(topics: string[], event: RelayEvent) {
   const response = await fetch(`${supabaseUrl}/realtime/v1/api/broadcast`, {
     method: "POST",
     headers: { apikey: supabaseSecretKey(), "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: topics.map((topic) => ({ topic, event: "relay", payload: event })) }),
+    // The inboxes are private channels (migration 0077); a public send wouldn't reach them.
+    body: JSON.stringify({ messages: topics.map((topic) => ({ topic, event: "relay", payload: event, private: true })) }),
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`Realtime refused the message (${response.status}): ${await response.text()}`);
