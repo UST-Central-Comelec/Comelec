@@ -852,7 +852,7 @@ a.portal-row-title:hover { text-decoration: underline !important; text-decoratio
 .document-table-settings .portal-field-error { flex-basis: 100%; }
 .portal-body-preview .document-bullets { font-size: 14px; line-height: 1.7; list-style: disc; margin: 0 0 14px; padding-left: 24px; }
 .portal-body-preview :is(li, th, td) { white-space: pre-line; }
-html:has(.document-body-dialog[open]), body:has(.document-body-dialog[open]) { overflow: hidden; }
+html:has(.document-body-dialog[open]) { overflow: hidden; }
 .document-body-dialog { background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 20px; color: var(--p-text); margin: auto; max-height: calc(100dvh - 32px); max-width: calc(100vw - 32px); overflow: auto; padding: 0; width: 1040px; }
 .document-body-dialog::backdrop { background: var(--p-veil); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .document-body-dialog-head { align-items: center; border-bottom: 1px solid var(--p-line); display: flex; justify-content: space-between; padding: 18px 22px; }
@@ -1594,7 +1594,7 @@ a.portal-tag:hover { border-color: currentColor; }
 }
 
 /* Native dialogs contain focus, handle Escape, and restore focus to the originating button. */
-html:has(.portal-registrant-dialog[open]), body:has(.portal-registrant-dialog[open]) { overflow: hidden; }
+html:has(.portal-registrant-dialog[open]) { overflow: hidden; }
 .portal-registrant-dialog { background: transparent; border: 0; color: var(--p-text); margin: auto; max-height: calc(100dvh - 40px); max-width: calc(100vw - 32px); overflow: hidden; padding: 0 46px 0 0; width: 1046px; }
 .portal-registrant-dialog::backdrop, .portal-registrant-confirmation::backdrop { background: var(--p-veil); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .portal-registrant-dialog[open] { animation: portal-help-in .22s var(--p-ease); }
@@ -2518,7 +2518,7 @@ body:has(.site-loader:not(.is-leaving)) .portal-dashboard :is(.portal-hero-copy 
 }
 
 /* Who's online (online-pill.tsx): a count beside the bell, opening a drawer from the right. */
-html:has(.portal-online-drawer[open]), body:has(.portal-online-drawer[open]) { overflow: hidden; }
+html:has(.portal-online-drawer[open]) { overflow: hidden; }
 .portal-online-drawer { background: transparent; border: 0; color: var(--p-text); height: 100dvh; inset: 0 0 0 auto; margin: 0; max-height: none; max-width: calc(100vw - 13px); overflow: visible; padding: 0; width: 360px; }
 .portal-online-drawer::backdrop { background: var(--p-veil); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .portal-online-drawer[open] { animation: portal-online-in .32s var(--p-ease); }
