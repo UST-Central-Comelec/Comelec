@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/supabase/config";
-import { ACTIVITY_COOKIE, activityCookieOptions, decodeActivity, encodeActivity, timeoutReason } from "@/lib/security/portal-session";
+import { ACTIVITY_COOKIE, activityCookieFor, activityCookieOptions, decodeActivity, encodeActivity, timeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { isSiteUnderMaintenance } from "@/lib/site-settings/maintenance-flag";
 
@@ -140,7 +140,7 @@ export async function proxy(request: NextRequest) {
 
   // The bell's and the online pill's background checks aren't the person doing anything either.
   if (!isPrefetch(request) && pathname !== "/portal/notifications/latest" && pathname !== "/portal/online") {
-    response.cookies.set(ACTIVITY_COOKIE, await encodeActivity({ ...record!, lastActiveAt: Date.now() }), activityCookieOptions);
+    response.cookies.set(ACTIVITY_COOKIE, await encodeActivity({ ...record!, lastActiveAt: Date.now() }), activityCookieFor(record!));
   }
   return noStore(response);
 }

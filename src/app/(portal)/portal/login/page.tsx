@@ -28,6 +28,7 @@ const errors: Record<string, string> = {
 const reasons: Record<string, { figure: string; unit: string; title: string; detail: string }> = {
   idle: { figure: "30", unit: "min", title: "Signed out while you were away", detail: "Sessions close after 30 minutes of inactivity. Sign in again to continue." },
   expired: { figure: "8", unit: "hrs", title: "Your session reached its limit", detail: "For security, sessions end after 8 hours. Sign in again to continue." },
+  away: { figure: "30", unit: "days", title: "Signed out after a long break", detail: "Kept sign-ins end after 30 days without a visit. Sign in again to continue." },
 };
 
 // Where the voting system and Facebook quick links lead.

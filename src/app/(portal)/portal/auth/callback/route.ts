@@ -4,7 +4,7 @@ import { finishAccessVerification } from "@/lib/access-requests/callback";
 import { takeAccessFlow } from "@/lib/access-requests/verification";
 import { builtInUser, checkAccess, isGoogleSession, markEmailVerified } from "@/lib/auth/session";
 import { sweepExpiredAccounts } from "@/lib/portal/expiry-store";
-import { ACTIVITY_COOKIE, activityCookieOptions, encodeActivity } from "@/lib/security/portal-session";
+import { ACTIVITY_COOKIE, activityCookieFor, encodeActivity, REMEMBER_COOKIE, rememberCookieOptions } from "@/lib/security/portal-session";
 import { createAuthClient } from "@/lib/supabase/server";
 
 // Google sends people back here after they pick an account. Exchange the code for a Supabase
@@ -46,7 +46,10 @@ export async function GET(request: NextRequest) {
   await markEmailVerified(data.user.email);
 
   const now = Date.now();
+  // Ticked "Keep me signed in" on the login page before going to Google.
+  const remember = request.cookies.get(REMEMBER_COOKIE)?.value === "1";
   const response = NextResponse.redirect(new URL("/portal", request.nextUrl));
-  response.cookies.set(ACTIVITY_COOKIE, await encodeActivity({ sessionId, startedAt: now, lastActiveAt: now }), activityCookieOptions);
+  response.cookies.set(ACTIVITY_COOKIE, await encodeActivity({ sessionId, startedAt: now, lastActiveAt: now, remember }), activityCookieFor({ remember }));
+  response.cookies.delete({ name: REMEMBER_COOKIE, path: rememberCookieOptions.path });
   return response;
 }

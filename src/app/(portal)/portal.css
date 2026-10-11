@@ -200,6 +200,8 @@ body.portal::after { background-image: var(--p-grain); content: ""; inset: 0; op
 .portal-login-card h1 { font-size: 30px; }
 .portal-login-lede { line-height: 1.65; margin: 12px 0 26px; }
 .portal-login-form { display: flex; flex-direction: column; gap: 16px; }
+.portal-login-remember { color: var(--p-text); }
+.portal-login-remember > span > span { color: var(--p-muted); display: block; font-size: 12px; line-height: 1.5; margin-top: 2px; }
 .portal-login-card .portal-login-alert { margin-bottom: 16px; }
 /* Why a session timed out: the limit it hit as a serif figure, a gold hairline, then what happened. Not a boxed alert. */
 .portal-login-ended { align-items: center; display: grid; gap: 0 18px; grid-template-columns: auto minmax(0, 1fr); margin: 20px 0 26px; }

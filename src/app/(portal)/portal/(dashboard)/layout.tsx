@@ -32,7 +32,10 @@ export default async function PortalShellLayout({ children }: LayoutProps<"/port
   const memberships = await getPortalMemberships();
   const cookieStore = await cookies();
   // Only for the countdown shown in the browser; the proxy verifies the signed cookie itself.
-  const startedAt = Number(cookieStore.get(ACTIVITY_COOKIE)?.value.split(".")[1]) || null;
+  const activity = cookieStore.get(ACTIVITY_COOKIE)?.value.split(".") ?? [];
+  const startedAt = Number(activity[1]) || null;
+  // "Keep me signed in": no idle or 8-hour limits to count down (session id.started.last.remember.signature).
+  const remembered = activity.length === 5 && activity[3] === "1";
   const collapsed = cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed";
   const theme = readTheme(cookieStore.get(THEME_COOKIE)?.value);
   // The line under their name: "Chairperson", or "Chairperson (Local)" for a Local account.
@@ -63,7 +66,7 @@ export default async function PortalShellLayout({ children }: LayoutProps<"/port
             {children}
           </div>
         </OnlineProvider>
-        <SessionTimeout startedAt={startedAt} />
+        {!remembered && <SessionTimeout startedAt={startedAt} />}
       </PortalShell>
     </AccountSwitchTransition>
   );

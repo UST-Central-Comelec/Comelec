@@ -7,7 +7,7 @@ import { endAccessFlow } from "@/lib/access-requests/verification";
 import { revalidatePath } from "next/cache";
 import { ACCOUNT_COOKIE, accountCookieOptions } from "./account-selection";
 import { getPortalMemberships, homeFor, isLoginConfigured } from "@/lib/auth/session";
-import { ACTIVITY_COOKIE, activityCookieOptions, type TimeoutReason } from "@/lib/security/portal-session";
+import { ACTIVITY_COOKIE, activityCookieOptions, REMEMBER_COOKIE, rememberCookieOptions, type TimeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
 import { createAuthClient } from "@/lib/supabase/server";
@@ -19,11 +19,15 @@ async function siteOrigin() {
   return `${protocol}://${host}`;
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData: FormData) {
   if (!isLoginConfigured()) redirect("/portal/login?error=not-configured");
   if (!rateLimit(`login-start:${clientIp(await headers())}`, limits.login.limit, limits.login.windowMs).ok) redirect("/portal/login?error=rate-limited");
   // So the callback treats this as a portal sign-in, even after an abandoned Request access.
   await endAccessFlow();
+  // The callback reads this after Google: whether the session should outlast the usual timeouts.
+  const cookieStore = await cookies();
+  if (formData.get("remember") === "on") cookieStore.set(REMEMBER_COOKIE, "1", rememberCookieOptions);
+  else cookieStore.delete({ name: REMEMBER_COOKIE, path: rememberCookieOptions.path });
 
   const { data, error } = await (await createAuthClient()).auth.signInWithOAuth({
     provider: "google",

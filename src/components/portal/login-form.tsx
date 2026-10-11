@@ -30,6 +30,12 @@ export function LoginForm() {
   return (
     <form className="portal-login-form" action={signInWithGoogle}>
       <GoogleButton />
+      <label className="portal-check portal-login-remember">
+        <input name="remember" type="checkbox" />
+        <span>
+          <strong>Keep me signed in</strong>
+        </span>
+      </label>
     </form>
   );
 }
