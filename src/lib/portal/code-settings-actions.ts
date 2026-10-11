@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshSiteMenu } from "@/lib/site-menu";
 import { redirect } from "next/navigation";
 import { requireEditor } from "@/lib/auth/session";
 import { codes, isCodeKey, type CodeKey } from "@/lib/codes/options";
@@ -19,6 +20,7 @@ export async function updateCodeVisibility(code: CodeKey, _state: FormState, for
     console.error("Couldn’t save document settings:", error);
     return { error: "Couldn’t save the settings. Check that supabase/migrations/0049_code_settings.sql has been applied, then try again." };
   }
+  refreshSiteMenu();
   revalidatePath("/", "layout");
   redirect(`${tabHref(codes[code].tab)}?show=settings&notice=code-settings-saved`);
 }

@@ -14,7 +14,7 @@ import { NightSky } from "@/components/night-sky";
 import { getPeriodForApplyPage } from "@/lib/applications/apply-cache";
 import { closingTime, formatClosing, isAccepting, type ApplicationPeriod } from "@/lib/applications/period";
 import { cometPillars, principles } from "@/lib/content";
-import { countDirectory, getDocuments, getNews } from "@/lib/data/queries";
+import { countDirectory, getDocumentsForSite, getNews } from "@/lib/data/queries";
 import { documentKinds, formatDate, newsCategories } from "@/lib/data/types";
 import { listUnitPeriodsForSite } from "@/lib/periods/store";
 import { combinePeriods } from "@/lib/periods/summary";
@@ -94,7 +94,7 @@ export default async function Home() {
     // Every unit opens and closes its own; each reads as open while any unit has it open.
     listUnitPeriodsForSite(),
     orNothing(getNews()),
-    orNothing(getDocuments()),
+    orNothing(getDocumentsForSite()),
     // Everyone the Directory lists: the portal accounts with a role.
     countDirectory().catch(() => 0),
   ]);

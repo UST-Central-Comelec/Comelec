@@ -13,6 +13,12 @@ import { isEventId } from "@/lib/events/options";
 import { getListingForSite } from "@/lib/events/queries";
 import "../events.css";
 
+// None built ahead: each event is rendered on its first visit, then kept like the site's other pages
+// (rebuilt at most once a minute, and straight away when it's saved in the portal).
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: PageProps<"/events/[id]">): Promise<Metadata> {
   const { id } = await params;
   const event = isEventId(id) ? await getListingForSite(id) : null;

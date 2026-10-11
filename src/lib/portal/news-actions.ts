@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshSiteContent } from "@/lib/data/queries";
+import { refreshSiteMenu } from "@/lib/site-menu";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
@@ -48,6 +50,8 @@ async function refresh(featuredId: string | null, author: string) {
     }
   }
   // Every page: besides News and the Election Explainer, the menu's Featured carousel shows the latest posts.
+  refreshSiteContent("news");
+  refreshSiteMenu();
   revalidatePath("/", "layout");
 }
 

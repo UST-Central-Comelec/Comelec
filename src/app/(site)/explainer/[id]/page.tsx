@@ -7,6 +7,12 @@ import { getExplainers, getNewsPost } from "@/lib/data/queries";
 import "../../banner-page.css";
 import "../../news/news.css";
 
+// None built ahead: each guide is rendered on its first visit, then kept like the site's other pages
+// (rebuilt at most once a minute, and straight away when it's saved in the portal).
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: PageProps<"/explainer/[id]">): Promise<Metadata> {
   const post = await getNewsPost((await params).id);
   return post ? { title: post.title, description: newsContentText(post.excerpt) } : {};

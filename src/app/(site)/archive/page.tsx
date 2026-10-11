@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { ArchiveFilters } from "@/components/archive/archive-filters";
 import { PageBanner } from "@/components/page-banner";
 import { dateParts } from "@/components/news/story";
-import { getDocuments, getDocumentYears } from "@/lib/data/queries";
+import { getDocumentsForSite, getDocumentYears } from "@/lib/data/queries";
 import { archiveKinds, documentKinds, isDocumentKind } from "@/lib/data/types";
 import "../banner-page.css";
 import "../news/news.css";
@@ -25,7 +25,7 @@ export default async function ArchivePage({ searchParams }: PageProps<"/archive"
   const kinds = kind ? [kind] : archiveKinds;
   const years = await getDocumentYears(kinds);
   const year = typeof yearParam === "string" && years.includes(yearParam) ? yearParam : undefined;
-  const documents = await getDocuments({ kinds, year });
+  const documents = await getDocumentsForSite({ kinds, year });
 
   const href = (next: { type?: string; year?: string }) => {
     const query = new URLSearchParams(Object.entries(next).filter((entry): entry is [string, string] => Boolean(entry[1])));

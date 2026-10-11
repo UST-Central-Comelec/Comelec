@@ -15,6 +15,12 @@ import "../archive.css";
 
 const enter = (order: number) => ({ "--enter": order }) as CSSProperties;
 
+// None built ahead: each document is rendered on its first visit, then kept like the site's other pages
+// (rebuilt at most once a minute, and straight away when it's saved in the portal).
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: PageProps<"/archive/[id]">): Promise<Metadata> {
   const doc = await getDocument((await params).id);
   return doc ? { title: doc.reference ? `${doc.reference}: ${doc.title}` : doc.title, description: doc.summary || undefined } : {};

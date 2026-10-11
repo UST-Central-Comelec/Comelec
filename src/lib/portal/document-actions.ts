@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshSiteContent } from "@/lib/data/queries";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
@@ -49,6 +50,7 @@ function parse(formData: FormData) {
 }
 
 function refresh() {
+  refreshSiteContent("documents");
   revalidatePath("/archive");
   revalidatePath("/archive/[id]", "page");
   // The home page lists the latest documents.

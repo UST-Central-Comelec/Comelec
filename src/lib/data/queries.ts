@@ -1,10 +1,23 @@
 import "server-only";
 
+import { revalidateTag, unstable_cache } from "next/cache";
 import { isCentralRepresentative, isLocalChairperson, listName, roleRank, toSummary } from "./accounts";
 import { store } from "./store";
 import { accountPositions, isNewsCategory, isNewsroomCategory, type AccountSummary, type DirectoryEntry, type DirectoryGroup, type DocumentKind, type NewsCategory, type NewsPost, type OfficialDocument } from "./types";
 
 const byDateDesc = (a: { date: string }, b: { date: string }) => b.date.localeCompare(a.date);
+
+// The public site's copy of the posts and documents. Its pages read them on every visit (News and
+// Archive filter by the address), so they're kept for up to a minute. The portal always reads them
+// fresh, and saving one there clears these straight away (refreshSiteContent).
+const contentTag = (collection: "news" | "documents") => `site-content:${collection}`;
+const newsForSite = unstable_cache(() => store.list("news"), [contentTag("news")], { tags: [contentTag("news")], revalidate: 60 });
+const documentsForSite = unstable_cache(() => store.list("documents"), [contentTag("documents")], { tags: [contentTag("documents")], revalidate: 60 });
+
+/** After a portal save to posts or documents: the site's next visit reads them fresh. */
+export function refreshSiteContent(collection: "news" | "documents") {
+  revalidateTag(contentTag(collection), { expire: 0 });
+}
 
 // The two categories retired by supabase/migrations/0020, and where their posts went. Rows still
 // filed under them (before 0020 is run) are read as their new category.
@@ -20,14 +33,17 @@ export async function getPosts() {
   return (await store.list("news")).map(withCategory).sort(byDateDesc);
 }
 
+/** Every post as the site shows them, newest first. */
+const getPostsForSite = async () => (await newsForSite()).map(withCategory).sort(byDateDesc);
+
 /** The News page's posts: press releases, announcements and publications. */
 export async function getNews() {
-  return (await getPosts()).filter((post) => isNewsroomCategory(post.category));
+  return (await getPostsForSite()).filter((post) => isNewsroomCategory(post.category));
 }
 
 /** The Election Explainer's guides. */
 export async function getExplainers() {
-  return (await getPosts()).filter((post) => post.category === "explainer");
+  return (await getPostsForSite()).filter((post) => post.category === "explainer");
 }
 
 /** One post, whichever page it's on. */
@@ -39,15 +55,26 @@ export async function getNewsPost(id: string) {
 // Rows saved before migration 0003 have no body/signatories yet.
 const withDocumentDefaults = (doc: OfficialDocument): OfficialDocument => ({ ...doc, body: doc.body ?? "", signatories: Array.isArray(doc.signatories) ? doc.signatories : [] });
 
-export async function getDocuments(filter: { kinds?: readonly DocumentKind[]; year?: string } = {}) {
-  return (await store.list("documents"))
+type DocumentFilter = { kinds?: readonly DocumentKind[]; year?: string };
+
+const filterDocuments = (documents: OfficialDocument[], filter: DocumentFilter) =>
+  documents
     .map(withDocumentDefaults)
     .filter((doc) => (!filter.kinds || filter.kinds.includes(doc.kind)) && (!filter.year || doc.date.startsWith(filter.year)))
     .sort(byDateDesc);
+
+/** For the portal: always fresh. */
+export async function getDocuments(filter: DocumentFilter = {}) {
+  return filterDocuments(await store.list("documents"), filter);
+}
+
+/** For the public site: the copy kept for up to a minute. */
+export async function getDocumentsForSite(filter: DocumentFilter = {}) {
+  return filterDocuments(await documentsForSite(), filter);
 }
 
 export async function getDocumentYears(kinds?: readonly DocumentKind[]) {
-  const years = new Set((await store.list("documents")).filter((doc) => !kinds || kinds.includes(doc.kind)).map((doc) => doc.date.slice(0, 4)));
+  const years = new Set((await documentsForSite()).filter((doc) => !kinds || kinds.includes(doc.kind)).map((doc) => doc.date.slice(0, 4)));
   return [...years].sort().reverse();
 }
 

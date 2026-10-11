@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshSiteMenu } from "@/lib/site-menu";
 import { redirect } from "next/navigation";
 import { clearApplyPageCache } from "@/lib/applications/apply-cache";
 import { comelecUnits } from "@/lib/applications/options";
@@ -60,6 +61,7 @@ const emailOf = (kind: PeriodKind, unit: Unit) => ({ key: emailKeys[kind], what:
 function refresh(kind: PeriodKind, unit: Unit) {
   if (kind === "recruitment") clearApplyPageCache();
   // Every site page: the menu and the home page say what's open, and the Events page lists it.
+  refreshSiteMenu();
   revalidatePath("/", "layout");
   revalidatePath(`/events/${listingId(kind, unit)}`);
   revalidatePath(periodKinds[kind].settingsHref);

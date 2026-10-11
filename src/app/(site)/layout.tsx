@@ -1,11 +1,9 @@
-import { isCodePublic } from "@/lib/codes/settings";
 import { newsContentText } from "@/lib/data/news-content";
 import type { Metadata } from "next";
 import "../globals.css";
 import "./header.css";
 import "./footer.css";
 import "./cookie-notice.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
 import { CookieNotice } from "@/components/cookie-notice";
 import { FormInputGuard } from "@/components/form-input-guard";
 import { SiteFooter } from "@/components/site-footer";
@@ -16,13 +14,11 @@ import { SiteLoader } from "@/components/site-loader";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { getPeriodForApplyPage } from "@/lib/applications/apply-cache";
 import { closingTime, formatClosing, isAccepting, type ApplicationPeriod } from "@/lib/applications/period";
-import { getNews } from "@/lib/data/queries";
 import { formatDate, newsCategories } from "@/lib/data/types";
 import { cookieNoticeVersion } from "@/lib/cookie-notice";
-import { listUnitPeriodsForSite } from "@/lib/periods/store";
 import { combinePeriods } from "@/lib/periods/summary";
+import { getSiteMenuData, type SiteMenuNews } from "@/lib/site-menu";
 import { getSiteSettingsForSite } from "@/lib/site-settings/store";
 import { serif } from "./fonts";
 
@@ -64,26 +60,17 @@ function applicationsCard(period: ApplicationPeriod): Featured[] {
   }];
 }
 
-/** The newsroom's featured story, then the latest posts. */
-async function newsCards(): Promise<Featured[]> {
-  try {
-    const news = await getNews();
-    const posts = [...news.filter((post) => post.featured), ...news.filter((post) => !post.featured)].slice(0, MAX_FEATURED);
-    return posts.map((post) => ({
-      id: `news-${post.id}`,
-      href: `/news/${post.id}`,
-      tag: newsCategories[post.category],
-      tone: "news",
-      title: post.title,
-      description: newsContentText(post.excerpt),
-      footnote: formatDate(post.date),
-    }));
-  } catch (error) {
-    // A newsroom hiccup shouldn't take the whole site down; the menu just shows fewer cards.
-    console.error(error);
-    return [];
-  }
-}
+/** The menu's news cards: the featured story, then the latest posts. */
+const newsCards = (news: SiteMenuNews): Featured[] =>
+  news.map((post) => ({
+    id: `news-${post.id}`,
+    href: `/news/${post.id}`,
+    tag: newsCategories[post.category],
+    tone: "news",
+    title: post.title,
+    description: newsContentText(post.excerpt),
+    footnote: formatDate(post.date),
+  }));
 
 const dayMonth = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", month: "short", day: "numeric" });
 
@@ -95,12 +82,13 @@ function reading(period: ApplicationPeriod): PeriodReading {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Every unit opens and closes its own; the menu says each is open while any unit has it open.
-  const [applicationPeriod, filings, news, settings, constitutionPublic, electionsCodePublic, magnaCartaPublic] = await Promise.all([getPeriodForApplyPage(), listUnitPeriodsForSite(), newsCards(), getSiteSettingsForSite(), isCodePublic("constitution"), isCodePublic("elections-code"), isCodePublic("magna-carta")]);
-  const candidacyPeriod = combinePeriods(filings.filter((period) => period.kind === "candidacy"));
-  const partyPeriod = combinePeriods(filings.filter((period) => period.kind === "party-registration"));
+  const [{ periods, news, documents }, settings] = await Promise.all([getSiteMenuData(), getSiteSettingsForSite()]);
+  const applicationPeriod = combinePeriods(periods.filter((period) => period.kind === "recruitment"));
+  const candidacyPeriod = combinePeriods(periods.filter((period) => period.kind === "candidacy"));
+  const partyPeriod = combinePeriods(periods.filter((period) => period.kind === "party-registration"));
   // The cards in the menu's Featured carousel, most important first.
-  const featured = [...applicationsCard(applicationPeriod), ...news].slice(0, MAX_FEATURED);
-  const status: NavStatus = { applications: reading(applicationPeriod), candidacy: reading(candidacyPeriod), parties: reading(partyPeriod), documents: { constitution: constitutionPublic, "elections-code": electionsCodePublic, "magna-carta": magnaCartaPublic } };
+  const featured = [...applicationsCard(applicationPeriod), ...newsCards(news)].slice(0, MAX_FEATURED);
+  const status: NavStatus = { applications: reading(applicationPeriod), candidacy: reading(candidacyPeriod), parties: reading(partyPeriod), documents };
   return (
     // The serif italic is the navbar's too (accents), so it loads on every page.
     // The theme toggle restores the visitor's preference on <html> during hydration.
