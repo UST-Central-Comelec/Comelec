@@ -15,7 +15,7 @@ import { SignatoriesField } from "./signatories-field";
 type Values = Pick<OfficialDocument, "kind" | "title" | "reference" | "date" | "summary" | "body" | "signatories" | "fileUrl" | "fileName">;
 
 export function DocumentForm({ action, initial, submitLabel, danger, canUpload, readOnly = false }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode; canUpload: boolean; readOnly?: boolean }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const [body, setBody] = useState(initial.body);
   const [preview, setPreview] = useState(false);
   const bodyErrorId = useId();
@@ -46,7 +46,7 @@ export function DocumentForm({ action, initial, submitLabel, danger, canUpload, 
         <SignatoriesField initial={initial.signatories} error={errors.signatories} />
         <DriveFileField initialLink={initial.fileUrl} error={errors.driveLink} canUpload={canUpload} />
       </div>
-      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/documents" danger={danger} beforeActions={<button type="button" className="portal-button is-ghost" onClick={() => setPreview(true)} aria-haspopup="dialog"><Eye size={16} aria-hidden="true" /> Preview</button>} />
+      <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/documents/archive" danger={danger} beforeActions={<button type="button" className="portal-button is-ghost" onClick={() => setPreview(true)} aria-haspopup="dialog"><Eye size={16} aria-hidden="true" /> Preview</button>} />
       {preview && <DocumentBodyPreview value={body} onClose={() => setPreview(false)} />}
     </form>
   );

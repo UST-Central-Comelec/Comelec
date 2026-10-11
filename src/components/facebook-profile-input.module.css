@@ -13,8 +13,9 @@
 }
 
 .field:focus-within {
-  border-color: var(--p-gold-edge, var(--ink));
-  box-shadow: var(--p-ring, 0 0 0 3px rgba(var(--ui-accent-rgb, 254, 195, 12), .35));
+  background: var(--p-field-active-bg, var(--ap-surface, #fff));
+  border-color: var(--p-field-active-edge, var(--ink));
+  box-shadow: var(--p-field-active-lift, var(--field-lift));
 }
 
 .field[data-invalid] {

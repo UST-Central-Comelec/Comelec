@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight, Search } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import { FeaturedCarousel, type Featured } from "@/components/featured-carousel";
-import { isCurrent, sectionFor, sections, two, type NavStatus } from "@/components/nav/nav-data";
+import { isNavItemAvailable, isCurrent, sectionFor, sections, two, type NavStatus } from "@/components/nav/nav-data";
 import { LinkBody, Readings } from "@/components/nav/nav-parts";
 import { NightSky } from "@/components/night-sky";
 import { SiteThemeToggle } from "@/components/site-theme";
@@ -39,11 +39,15 @@ function SheetBody({ id, open, status, pathname, featured, featuredIndex, onFeat
               <div className="sh-acc-body" id={`${id}-${section.id}`} inert={!isOpen}>
                 <div>
                   <ul className="sh-acc-links">
-                    {section.items.map((item) => (
+                    {section.items.filter((item) => isNavItemAvailable(item, status)).map((item) => (
                       <li key={item.label}>
-                        <Link href={item.href} className="sh-mega-link" aria-current={isCurrent(item.href, pathname) ? "page" : undefined} onClick={onNavigate}>
+                        {item.disabled ? (
+                          <span className="sh-mega-link is-disabled" role="link" aria-disabled="true">
+                            <LinkBody item={item} status={status} />
+                          </span>
+                        ) : <Link href={item.href} className="sh-mega-link" aria-current={isCurrent(item.href, pathname) ? "page" : undefined} onClick={onNavigate}>
                           <LinkBody item={item} status={status} />
-                        </Link>
+                        </Link>}
                       </li>
                     ))}
                   </ul>

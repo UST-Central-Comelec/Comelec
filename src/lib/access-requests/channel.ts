@@ -23,3 +23,28 @@ export const accessStatusMessages: Partial<Record<AccessStatus, string>> = {
   "rate-limited": "Too many sign-in attempts from this network. Wait a few minutes, then try again.",
   unavailable: "Requesting access isn’t available right now. Please email comelec@ust.edu.ph.",
 };
+
+/**
+ * An accepted applicant's details, for the profile step when they came from the acceptance
+ * email's "Join the Commission" button. Their unit, position and role come from the application
+ * and can't be changed; the rest can be corrected.
+ */
+export type JoinProfile = {
+  referenceCode: string;
+  lastName: string;
+  firstName: string;
+  middleInitial: string;
+  middleName: string;
+  studentNumber: string;
+  contactNumber: string;
+  facebookUrl: string;
+  college: string;
+  program: string;
+  /** The year level's key ("1", "g11"), as the form submits it. */
+  yearLevel: string;
+  affiliation: "central" | "local";
+  position: "executive-associate";
+  role: string;
+  /** "Executive Assistant to the Chairperson", as they applied. */
+  appliedFor: string;
+};

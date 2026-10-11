@@ -18,6 +18,7 @@ import { DeleteButton } from "./delete-button";
 import { Dropdown } from "./dropdown";
 import { TitleWithInfo } from "./info-tip";
 import { useHydrated } from "./portal-form";
+import { toast } from "./toast";
 
 /** The draft as it was last saved: which revision it is, and how many times it has been saved. */
 type Draft = { id: string; edits: number; at: string };
@@ -250,6 +251,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
       try {
         const next = await save(undefined, data);
         setResult(next);
+        if (next?.error) toast(next.error, "error");
         if (next?.saved) {
           setDraft(next.saved);
           setSaved({ text: body, note });
@@ -257,7 +259,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
       } catch (error) {
         // Sent for approval, the server answers by opening the revision's page.
         unstable_rethrow(error);
-        setResult({ error: "Couldn’t reach the server, so nothing was saved. Your changes are still here: check your connection, then save again." });
+        toast("Couldn’t reach the server, so nothing was saved. Your changes are still here: check your connection, then save again.", "error");
       }
     });
   };
@@ -273,6 +275,18 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
     const id = newAnchor("article");
     dispatch({ type: "article-add", article: { id, number: articles.length + 1, numeral: nextNumeral(articles), title: "", sections: [] } });
     setActiveId(id);
+  };
+
+  const addPreamble = () => {
+    const id = newAnchor("article");
+    const sectionId = newAnchor("section");
+    const key = newKey();
+    const preamble: EditArticle = { id, number: 0, numeral: null, title: "Preamble", sections: [{ id: sectionId, number: null, title: null, label: "Preamble", blocks: [{ key, level: 0, runs: [] }] }] };
+    dispatch({ type: "article-add", article: preamble });
+    dispatch({ type: "article-move", from: articles.length, to: 0 });
+    setActiveId(id);
+    setOpen((current) => new Set(current).add(sectionId));
+    focusRef.current = { key, at: 0 };
   };
 
   const addSection = () => {
@@ -295,14 +309,15 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
   return (
     <div className="code-editor">
       <div className="code-edit-layout">
-        <aside className="code-edit-rail" aria-label="Articles">
-          <p className="portal-index">Articles</p>
+        <aside className="code-edit-rail" aria-label={code === "magna-carta" ? "Document parts" : "Articles"}>
+          <p className="portal-index">{code === "magna-carta" ? "Document parts" : "Articles"}</p>
           <Sortable ids={articles.map((article) => article.id)} names={(id) => articleName(articles.find((article) => article.id === id) ?? { numeral: null, title: "article" })} onMove={(from, to) => dispatch({ type: "article-move", from, to })}>
             <ol>
               {articles.map((article) => <ArticleTab key={article.id} article={article} active={article.id === active?.id} changes={changesIn(article.id)} onSelect={() => setActiveId(article.id)} />)}
             </ol>
           </Sortable>
           <div className="code-edit-rail-tools">
+            {code === "magna-carta" && <button type="button" className="portal-button is-ghost is-small" disabled={articles.some((article) => !article.numeral && article.title.trim().toLowerCase() === "preamble")} onClick={addPreamble}><Plus size={14} aria-hidden="true" /> Add preamble</button>}
             <button type="button" className="portal-button is-ghost is-small" onClick={addArticle}><Plus size={14} aria-hidden="true" /> Add article</button>
             <button type="button" className="portal-button is-ghost is-small" onClick={() => dispatch({ type: "articles-renumber", undo: "Articles renumbered" })} title="Number the articles I, II, III… in the order they’re in. One without a numeral, like the Preamble, is left as it is."><ListOrdered size={14} aria-hidden="true" /> Renumber</button>
           </div>
@@ -310,7 +325,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
 
         <div className="code-edit-main">
           {!active ? (
-            <section className="portal-card is-flush"><p className="portal-empty">There are no articles. <button type="button" className="code-edit-link" onClick={addArticle}>Add the first one.</button></p></section>
+            <section className="portal-card is-flush"><p className="portal-empty">{code === "magna-carta" ? "No document parts yet." : "There are no articles."} <button type="button" className="code-edit-link" onClick={addArticle}>Add the first one.</button></p></section>
           ) : (
             // Keyed on the article, so its fields and open sections are its own.
             <div className="code-edit-pane" key={active.id}>
@@ -358,7 +373,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
             rows={3}
             maxLength={2000}
             value={note}
-            placeholder="e.g. Article VII, Section 5: the sizes allowed for posters, as amended by Resolution No. 2026-004."
+            placeholder={code === "magna-carta" ? "Describe the articles and sections added or updated, and why." : "e.g. Article VII, Section 5: the sizes allowed for posters, as amended by Resolution No. 2026-004."}
             onChange={(event) => {
               setNote(event.target.value);
               // What was in the way of sending it may be this very note.
@@ -373,10 +388,9 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
       </section>
 
       <div className="code-edit-dock">
-        {result?.error && (
+        {result?.problems && (
           <div className="portal-form-error" role="alert">
-            {result.error}
-            {result.problems && <ul>{result.problems.slice(0, 8).map((problem) => <li key={problem}>{problem}</li>)}{result.problems.length > 8 && <li>And {result.problems.length - 8} more.</li>}</ul>}
+            <ul>{result.problems.slice(0, 8).map((problem) => <li key={problem}>{problem}</li>)}{result.problems.length > 8 && <li>And {result.problems.length - 8} more.</li>}</ul>
           </div>
         )}
         <div className={`code-edit-bar${dirty ? " is-dirty" : ""}`}>

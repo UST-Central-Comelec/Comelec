@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { ChevronDown } from "lucide-react";
 import { articleName, sectionName } from "@/lib/codes/text";
+import { sentenceBlocks } from "@/lib/elections-code/sentences";
 import { blockText, type CodeArticle, type CodeBlock, type CodeRun } from "@/lib/elections-code/usec-2011";
 
 /** A paragraph's words, with their bold and italic. */
@@ -62,7 +63,13 @@ export function CodeReader({ articles, rail = true }: { articles: CodeArticle[];
                     <ChevronDown className="code-chevron" size={17} aria-hidden="true" />
                   </summary>
                   <div className="code-text">
-                    {section.blocks.map((block, index) => <CodeLine key={index} block={block} />)}
+                    <ul className="code-sentences">
+                      {section.blocks.flatMap(sentenceBlocks).map((block, index) => (
+                        <li key={index} className={block.marker ? "has-marker" : undefined} style={{ "--level": block.level } as CSSProperties}>
+                          <CodeLine block={{ ...block, level: 0 }} />
+                        </li>
+                      ))}
+                    </ul>
                     <p className="code-cite">{article.numeral ? `${articleName(article)}, ${sectionName(section)}` : sectionName(section)}</p>
                   </div>
                 </details>

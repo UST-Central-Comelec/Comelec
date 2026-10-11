@@ -8,6 +8,8 @@ import { clearApplyPageCache } from "@/lib/applications/apply-cache";
 import { resultEmail } from "@/lib/applications/emails";
 import { sendApplicationEmail } from "@/lib/applications/email-log";
 import { concernOf } from "@/lib/notifications/concern";
+import { acceptanceEmail } from "@/lib/applications/onboarding";
+import { getOnboarding } from "@/lib/applications/onboarding-store";
 import { text } from "./form";
 
 /**
@@ -41,7 +43,12 @@ export async function updateApplicationStatus(id: string, formData: FormData) {
   if ((status === "accepted" || status === "declined") && formData.get("notify") === "on") {
     const application = await getApplication(id);
     // The Central Comelec's result, or the applicant's college's Local Comelec's: by where they asked to serve.
-    const sent = application ? await sendApplicationEmail(id, status === "accepted" ? "accepted" : "rejected", () => resultEmail({ ...application, concern: concernOf(application.preferredBodyId, application.college) }, status === "accepted")) : "failed";
+    const sent = application ? await sendApplicationEmail(id, status === "accepted" ? "accepted" : "rejected", async () => {
+      const applicant = { ...application, concern: concernOf(application.preferredBodyId, application.college) };
+      return status === "accepted"
+        ? acceptanceEmail(applicant, await getOnboarding(application.preferredBodyId === "local" ? application.college : "", true))
+        : resultEmail(applicant, false);
+    }) : "failed";
     // "off": that email is switched off under Email Sender → Automatic, so the box that was ticked couldn't send it.
     notice += sent === "sent" ? "-emailed" : sent === "off" ? "-email-off" : "-email-failed";
   }

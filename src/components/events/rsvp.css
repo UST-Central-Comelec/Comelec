@@ -1,0 +1,105 @@
+.ev-rsvp-preview { margin-top: 20px; padding: 24px; }
+.ev .ev-honeypot, .ev .ev-sr-only { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.ev .ev-field select { background: rgba(var(--ev-ink),.03); border: 1px solid rgba(var(--ev-ink),.2); border-radius: 9px; color: var(--ev-text); font: inherit; min-height: 48px; padding: 11px 14px; width: 100%; }
+.ev .ev-field select option { background: var(--ev-raised); color: var(--ev-text); }
+.ev .ev-group[hidden] { display: none; }
+.ev .ev-group > .ev-field, .ev .ev-group > .ev-evaluation-check { margin-bottom: 16px; }
+.ev .ev-success p { margin-bottom: 16px; }
+
+.ev-rsvp-preview { min-height: 0; }
+.ev-rsvp-form .ev-steps { grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; grid-template-columns: none; }
+@media (max-width: 680px) { .ev-rsvp-form .ev-steps { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 16px; } }
+
+/* The RSVP, laid out like the Apply form (rsvp-form.tsx). Steps: a two-digit chip, then the name. */
+.ev .ev-rsvp-form .ev-step-label { align-items: flex-start; gap: 8px; padding-right: 6px; }
+.ev .ev-rsvp-form .ev-step-label b { border-radius: 5px; font-size: 11px; font-weight: 500; height: 18px; min-width: 22px; padding: 0 5px; width: auto; }
+.ev .ev-rsvp-form .ev-step-label > span { line-height: 18px; overflow-wrap: normal; }
+
+/* The step's heading: no rule under it, the count small above the title. */
+.ev .ev-rsvp-form .ev-evaluation-section-head { border: 0; padding: 0; }
+.ev .ev-rsvp-form .ev-step-title { font-size: clamp(20px, 2vw, 23px); font-weight: 600; gap: 6px; letter-spacing: -.02em; line-height: 1.3; }
+.ev .ev-rsvp-form .ev-step-title small { font-weight: 600; }
+.ev .ev-rsvp-form .ev-evaluation-section-head > p { color: var(--ev-muted); font-size: 14px; line-height: 1.65; margin: 6px 0 0; max-width: 52em; }
+
+/* The questions: one bordered group on a six-column grid, so short answers share a line
+   (editor-fields.tsx sizes them). Labels sit close to their inputs, hints under them. */
+.ev .ev-rsvp-form .ev-rsvp-group { border: 1px solid var(--ev-line); border-radius: 22px; display: grid; gap: 24px; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 26px clamp(18px, 3vw, 32px) 28px; }
+.ev .ev-rsvp-form .ev-rsvp-group > * { grid-column: 1 / -1; margin: 0; min-width: 0; }
+.ev .ev-rsvp-form .ev-rsvp-group > .is-span-3 { grid-column: span 3; }
+.ev .ev-rsvp-form .ev-rsvp-group > .is-span-2 { grid-column: span 2; }
+.ev .ev-rsvp-form .ev-custom-field { display: flex; flex-direction: column; gap: 8px; }
+/* Floated, a legend becomes an ordinary flex item, so the gap applies to it too. */
+.ev .ev-rsvp-form .ev-custom-field > legend { float: left; margin: 0; padding: 0; width: 100%; }
+.ev .ev-rsvp-form .ev-custom-field > :is(.ev-field, .ev-evaluation-check, .ev-rsvp-committees) { margin: 0; }
+.ev .ev-rsvp-form .ev-custom-field > legend + .ev-field-hint { margin-top: -2px; }
+.ev .ev-rsvp-form .ev-custom-field > .ev-field-hint { margin: 0; }
+.ev .ev-rsvp-form .ev-field input:not([type="radio"], [type="checkbox"], [type="hidden"]) { min-height: 46px; }
+.ev .ev-rsvp-form .ev-field-label { font-size: 13px; }
+.ev .ev-rsvp-form .ev-evaluation-check > span { font-size: 14px; line-height: 1.5; }
+/* A text block reads as a note in the group, like the Apply form's group intros. */
+.ev .ev-rsvp-form .ev-evaluation-written h3 { color: var(--ev-text); font-size: 14px; font-weight: 600; line-height: 1.5; margin: 0; }
+.ev .ev-rsvp-form .ev-evaluation-written p { color: var(--ev-muted); font-size: 14px; line-height: 1.65; margin: 4px 0 0; white-space: pre-line; }
+
+/* Back and Continue under a rule, as on the Apply form: Back plain, Continue on the right. */
+.ev .ev-rsvp-form.ev-form .ev-form-foot.ev-actions { background: none; border-radius: 0; border-top: 1px solid var(--ev-line); justify-content: space-between; margin: auto 0 0; padding: 24px 0 0; }
+.ev .ev-rsvp-form .ev-form-foot > button:last-child { margin-left: auto; }
+.ev .ev-rsvp-form .ev-form-foot .ev-button { flex: 0 0 auto; min-height: 46px; }
+.ev .ev-rsvp-form .ev-form-foot .ev-button.is-ghost { background: none; box-shadow: none; font-size: 13px; font-weight: 700; padding: 10px 0; }
+.ev .ev-rsvp-form .ev-form-foot .ev-button.is-ghost:hover svg { transform: translateX(-3px); }
+
+/* Each chip sits above its step's name, except on the public page's full width, where it sits beside it. */
+.ev .ev-rsvp-form .ev-step-label { flex-direction: column; }
+.ev .ev-rsvp-form .ev-step-label > span { font-size: 12px; }
+@media (min-width: 1100px) {
+  .ev.ev-rsvp-page .ev-rsvp-form .ev-step-label { flex-direction: row; }
+  .ev.ev-rsvp-page .ev-rsvp-form .ev-step-label > span { font-size: 13px; }
+}
+
+/* On a phone, as on the Apply form, the tracker keeps one row of rails and chips; the step's heading names it. */
+@media (max-width: 680px) {
+  .ev .ev-rsvp-form .ev-rsvp-group > :is(.is-span-2, .is-span-3) { grid-column: 1 / -1; }
+  .ev-rsvp-form .ev-steps.ev-rsvp-steps { gap: 6px; grid-auto-flow: column; grid-template-columns: none; }
+  .ev .ev-rsvp-form .ev-steps button { gap: 8px; }
+  .ev .ev-rsvp-form .ev-step-label > span { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+  .ev .ev-rsvp-form .ev-step-label b { min-width: 0; padding: 0 4px; }
+}
+
+/* The public page (events/[id]/rsvp-form): no card. A slim title bar, the tracker across the page,
+   then the step at the site's width, like /apply. */
+.ev-rsvp-page { --rsvp-gutter: clamp(16px, 5vw, 96px); background: var(--ev-bg); display: flex; flex-direction: column; min-height: calc(100vh - 78px); }
+.ev-rsvp-page .apply-top-title { align-items: baseline; flex-wrap: wrap; gap: 6px 16px; }
+.ev-rsvp-event { color: rgba(255,255,255,.62); font-size: 13px; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.ev.ev-rsvp-page .ev-rsvp-form.ev-form { background: none; border: 0; border-radius: 0; box-shadow: none; flex: 1; }
+.ev.ev-rsvp-page .ev-rsvp-form.ev-form .ev-form-head { background: var(--ev-surface); border-bottom: 1px solid var(--ev-line); border-radius: 0; padding: 22px var(--rsvp-gutter) 20px; }
+.ev-rsvp-page .ev-rsvp-steps { margin: 0 auto; max-width: calc(var(--site-max) - 2 * var(--rsvp-gutter)); }
+.ev.ev-rsvp-page .ev-rsvp-form .ev-form-body { flex: 1; gap: 32px; margin: 0 auto; max-width: var(--site-max); padding: 44px var(--rsvp-gutter) 72px; width: 100%; }
+.ev-rsvp-page :is(.ev-rsvp-done, .ev-rsvp-closed) { margin: 0 auto; max-width: var(--site-max); padding: 44px var(--rsvp-gutter) 72px; width: 100%; }
+
+.ev-rsvp-committees { display: grid; gap: 12px; margin: 16px 0 28px; }
+.ev .ev-rsvp-committee { border: 1px solid rgba(var(--ev-ink), .16); border-radius: 12px; padding: 16px; align-items: flex-start; }
+.ev .ev-rsvp-committee.is-selected { background: rgba(var(--ev-ink), .04); }
+.ev-rsvp-committee > span { flex: 1; min-width: 0; }
+.ev-rsvp-committee strong em { font-size: .85em; font-style: normal; font-weight: 400; }
+.ev-rsvp-committee:has(input:disabled) { opacity: .6; }
+.ev .ev-rsvp-rank { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--ev-text); color: var(--ev-bg); font-size: 13px; }
+
+.ev-rsvp-need { margin-bottom: 16px; }
+.ev-rsvp-need > .ev-grid, .ev-rsvp-need > .ev-field { margin-top: 12px; }
+
+.ev .ev-custom-field { border: 0; padding: 0; margin: 20px 0; }
+.ev .ev-custom-field > legend { margin-bottom: 12px; }
+.ev .ev-custom-field > .ev-evaluation-check { margin-bottom: 10px; }
+
+.ev-student-verification { border-top: 1px solid var(--ev-line, #d8dce3); margin-top: 20px; padding-top: 16px; }
+.ev-student-verification p { margin: 0 0 12px; }
+
+/* Images and consent on RSVP and Evaluation forms (editor-fields.tsx) */
+.ev .ev-form-image { margin: 4px 0 8px; }
+.ev .ev-form-image a { display: block; }
+.ev .ev-form-image img { background: rgba(var(--ev-ink), .04); border: 1px solid var(--ev-line); border-radius: 14px; display: block; max-height: 480px; object-fit: contain; width: 100%; }
+.ev .ev-form-image.is-medium img { margin: 0 auto; max-width: min(100%, 440px); }
+.ev .ev-form-image figcaption { color: var(--ev-muted); font-size: 13px; line-height: 1.55; margin-top: 10px; text-align: center; }
+.ev .ev-privacy-link { color: var(--ev-soft); font-size: 14px; margin: 0 0 4px; }
+.ev .ev-privacy-link a { color: var(--ev-text); text-decoration: underline; text-underline-offset: 3px; }
+.ev .ev-confirm strong { font-weight: 500; }
+.ev .ev-acknowledgement p { white-space: pre-line; }

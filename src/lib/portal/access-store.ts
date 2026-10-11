@@ -2,7 +2,7 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { editableLevels, isTabKey, type AccessOverrides, type EditableLevel, type TabOverrides } from "./access";
+import { editableLevels, normalizeTabOverrides, type AccessOverrides, type EditableLevel, type TabOverrides } from "./access";
 
 // Reads and saves public.portal_access (supabase/migrations/0021): each level's changes from the
 // default access in ./access.ts, set under Accounts → Access Control.
@@ -10,12 +10,6 @@ import { editableLevels, isTabKey, type AccessOverrides, type EditableLevel, typ
 export type SavedAccess = { overrides: AccessOverrides; updated: Partial<Record<EditableLevel, { at: string; by: string }>> };
 
 const isEditableLevel = (value: unknown): value is EditableLevel => (editableLevels as readonly unknown[]).includes(value);
-
-/** Only tabs that still exist, switched on or off: a tab removed from the portal is dropped. */
-function readOverrides(value: unknown): TabOverrides {
-  if (!value || typeof value !== "object") return {};
-  return Object.fromEntries(Object.entries(value).filter(([key, on]) => isTabKey(key) && typeof on === "boolean"));
-}
 
 export async function getSavedAccess(): Promise<SavedAccess> {
   const saved: SavedAccess = { overrides: {}, updated: {} };
@@ -27,7 +21,7 @@ export async function getSavedAccess(): Promise<SavedAccess> {
   for (const row of data) {
     const level: unknown = row.level;
     if (!isEditableLevel(level)) continue;
-    saved.overrides[level] = readOverrides(row.overrides);
+    saved.overrides[level] = normalizeTabOverrides(row.overrides);
     saved.updated[level] = { at: row.updated_at as string, by: row.updated_by as string };
   }
   return saved;

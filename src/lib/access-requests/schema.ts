@@ -4,6 +4,7 @@ import { yearLevels, isYearLevelFor } from "@/lib/applications/options";
 import { isRoleFor } from "@/lib/data/accounts";
 import { accountPositions, affiliations, commissionerPositions, type AccountPosition, type Affiliation } from "@/lib/data/types";
 import { applicationFields, programError } from "@/lib/applications/schema";
+import { formatAccepted, type Declaration } from "@/lib/onboarding/documents";
 
 // The Request access form: About you from the commissioner application, plus where the requester
 // serves (the Central Comelec or their college's Local Comelec), their position there (Executive
@@ -12,9 +13,8 @@ import { applicationFields, programError } from "@/lib/applications/schema";
 // action (checks again before saving).
 
 export const accessRequestFields = applicationFields
-  .pick({ lastName: true, firstName: true, studentNumber: true, contactNumber: true, email: true, college: true, program: true, yearLevel: true })
+  .pick({ lastName: true, firstName: true, middleName: true, studentNumber: true, contactNumber: true, email: true, college: true, program: true, yearLevel: true })
   .extend({
-    middleInitial: z.string().trim().min(1, "Add your middle initial.").regex(/^\p{L}$/u, "Use one letter only."),
     affiliation: z.enum(Object.keys(affiliations) as [Affiliation, ...Affiliation[]], "Pick Central or Local Comelec."),
     // Commissioners ask for access; advisers and admins are added by the Executive Board.
     position: z.enum(commissionerPositions, "Pick your position."),
@@ -33,7 +33,7 @@ export function readAccessRequest(formData: FormData) {
   return {
     lastName: text("lastName"),
     firstName: text("firstName"),
-    middleInitial: text("middleInitial"),
+    middleName: text("middleName"),
     studentNumber: text("studentNumber"),
     contactNumber: text("contactNumber").trim(),
     email: text("email"),
@@ -68,11 +68,11 @@ export function checkAccessRequest(values: AccessRequestValues) {
 /** Rows are [label, value]. */
 export type AccessRequestSection = { title: string; rows: Array<[string, string]> };
 
-/** Every answer in words, for the receipt and the downloaded receipt. */
-export function describeAccessRequest(values: AccessRequestValues): AccessRequestSection[] {
+/** Every answer in words, for the receipt and the downloaded receipt, with what they agreed to and when. */
+export function describeAccessRequest(values: AccessRequestValues, declarations: Declaration[] = []): AccessRequestSection[] {
   return [
     { title: "About you", rows: [
-      ["Name", `${values.lastName.toUpperCase()}, ${values.firstName.toUpperCase()} ${values.middleInitial.toUpperCase()}.`],
+      ["Name", `${values.lastName.trim().toUpperCase()}, ${values.firstName.trim().toUpperCase()} ${values.middleName.trim().toUpperCase()}`],
       ["Student number", values.studentNumber],
       ["Mobile number", values.contactNumber],
       ["UST email", values.email],
@@ -87,5 +87,6 @@ export function describeAccessRequest(values: AccessRequestValues): AccessReques
       ["Role", values.role.trim()],
       ["Access", "Commission Portal"],
     ] },
+    ...(declarations.length ? [{ title: "Declarations", rows: declarations.map((item): [string, string] => [item.title, `Accepted ${formatAccepted(item.acceptedAt)}`]) }] : []),
   ];
 }

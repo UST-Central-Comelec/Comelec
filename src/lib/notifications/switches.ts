@@ -30,6 +30,8 @@ export const emailDefaults = {
   "revision-published": true,
   "revision-returned": true,
   "revision-withdrawn": true,
+  "event-rsvp": true,
+  "event-evaluation": true,
   "event-registered": true,
   "event-waitlisted": true,
   "event-changes": true,
@@ -49,8 +51,8 @@ export const emailDefaults = {
 
 export type EmailKey = keyof typeof emailDefaults;
 
-/** Registration receipts are mandatory, including when an older saved switch is off. */
-export const isRequiredEmail = (key: EmailKey) => key === "event-registered" || key === "event-waitlisted";
+/** Registration and collaborator RSVP receipts are mandatory, including when an older saved switch is off. */
+export const isRequiredEmail = (key: EmailKey) => key === "event-registered" || key === "event-waitlisted" || key === "event-rsvp";
 
 export const emailKeys = Object.keys(emailDefaults) as EmailKey[];
 
@@ -63,7 +65,7 @@ export type EmailSwitches = Record<EmailKey, boolean>;
 export type SwitchOverrides = Partial<Record<EmailKey, boolean>>;
 
 /** The defaults with the saved changes over them. */
-export const switchesWith = (overrides: SwitchOverrides = {}): EmailSwitches => ({ ...emailDefaults, ...overrides, "event-registered": true, "event-waitlisted": true });
+export const switchesWith = (overrides: SwitchOverrides = {}): EmailSwitches => ({ ...emailDefaults, ...overrides, "event-registered": true, "event-waitlisted": true, "event-rsvp": true });
 
 /** The changes that turn the defaults into `on` (the emails switched on), to save. */
 export function overridesFor(on: readonly EmailKey[]): SwitchOverrides {

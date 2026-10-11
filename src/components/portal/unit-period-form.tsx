@@ -1,5 +1,7 @@
 "use client";
 
+import { SlidingSegments } from "./sliding-filters";
+
 import { useState } from "react";
 import { CalendarClock, Lock } from "lucide-react";
 import { CLOSE_GRACE_MINUTES, type PeriodMode } from "@/lib/applications/period";
@@ -28,7 +30,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
   allowBothVenue?: boolean;
   studentsOnly?: boolean;
 }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const hydrated = useHydrated();
   // A period saved as always open (before it had dates) shows as scheduled: saving gives it its end.
   const [mode, setMode] = useState<"scheduled" | "closed">(savedMode === "closed" ? "closed" : "scheduled");
@@ -39,7 +41,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
       <fieldset className="portal-form-section">
         <legend>Status</legend>
         <div className="portal-setting-inline">
-          <div className="portal-segmented" role="radiogroup" aria-label="Status">
+          <SlidingSegments active={mode} role="radiogroup" aria-label="Status">
             {options.map(({ mode: option, label, icon: Icon }) => (
               <label key={option} className={`portal-segment is-${option}${mode === option ? " is-selected" : ""}`}>
                 <input type="radio" name="mode" value={option} checked={mode === option} onChange={() => setMode(option)} />
@@ -47,7 +49,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
                 {label}
               </label>
             ))}
-          </div>
+          </SlidingSegments>
           <span className="portal-field-hint">
             <InfoTip>
               <strong>Scheduled:</strong> opens at the start date and time, closes at the end date and time; the public page counts down to the close.{" "}
@@ -60,7 +62,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
       <EventDetailsFields studentsOnly={studentsOnly} allowBothVenue={allowBothVenue} initial={initial} errors={errors} what="listing" />
 
       <div className="portal-form-footer">
-        {state?.error ? <p className="portal-form-error" role="alert">{state.error}</p> : <span />}
+        <span />
         <div className="portal-form-actions">
           <button className={`portal-button${closing ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated}>
             {pending ? "Saving…" : closing ? `Close in ${CLOSE_GRACE_MINUTES} minutes` : mode === "scheduled" ? "Save and schedule" : "Save"}

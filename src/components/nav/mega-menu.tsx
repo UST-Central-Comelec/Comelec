@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { FeaturedCarousel, type Featured } from "@/components/featured-carousel";
-import { isCurrent, type NavSection, type NavStatus } from "@/components/nav/nav-data";
+import { isNavItemAvailable, isCurrent, type NavSection, type NavStatus } from "@/components/nav/nav-data";
 import { LinkBody } from "@/components/nav/nav-parts";
 import { useReticle } from "@/components/nav/use-reticle";
 import { NightSky } from "@/components/night-sky";
@@ -163,9 +163,13 @@ export function MegaMenu({ id, open, section, opening, entrance, status, pathnam
             >
               <span ref={reticle} className="sh-reticle" aria-hidden="true" />
               <ul className={`sh-mega-list${enter}`} key={`list:${stamp}`} aria-label={section.label}>
-                {section.items.map((item, index) => (
+                {section.items.filter((item) => isNavItemAvailable(item, status)).map((item, index) => (
                   <li key={item.label} style={{ "--i": index } as CSSProperties}>
-                    <Link
+                    {item.disabled ? (
+                      <span className="sh-mega-link is-disabled" role="link" aria-disabled="true">
+                        <LinkBody item={item} status={status} />
+                      </span>
+                    ) : <Link
                       href={item.href}
                       className="sh-mega-link"
                       aria-current={isCurrent(item.href, pathname) ? "page" : undefined}
@@ -175,7 +179,7 @@ export function MegaMenu({ id, open, section, opening, entrance, status, pathnam
                     >
                       <LinkBody item={item} status={status} />
                       <ArrowUpRight className="sh-mega-arrow" size={15} aria-hidden="true" />
-                    </Link>
+                    </Link>}
                   </li>
                 ))}
               </ul>

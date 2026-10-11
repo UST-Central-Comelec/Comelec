@@ -18,6 +18,7 @@ const { ComelecLoadingScreen } = load("src/components/comelec-loading-screen.tsx
 });
 let pending = false;
 let error;
+const toasts = [];
 const { ProfileMenu } = load("src/components/portal/profile-menu.tsx", {
   react: { ...React, useActionState: () => [error, () => {}, pending] },
   "react-dom": { createPortal: (children, container) => { assert.equal(container, global.document.body); return children; } },
@@ -29,6 +30,7 @@ const { ProfileMenu } = load("src/components/portal/profile-menu.tsx", {
     "@/lib/data/types": types,
     "@/lib/data/local-roles": load("src/lib/data/local-roles.ts", { "./types": types }),
   }),
+  "./toast": { useToast: (message, tone) => { if (message) toasts.push({ message, tone }); } },
   "./portal-theme": { ThemeToggle: () => React.createElement("button", { type: "button", "aria-label": "Change theme" }, "Theme") },
 });
 const user = { id: "local", name: "Juan Dela Cruz", role: "Deputy (Local)", email: "juan@ust.edu.ph", avatarUrl: null };
@@ -70,7 +72,8 @@ try {
   assert.doesNotMatch(render([central, local]), /class="site-loader"/);
   error = { error: "Account no longer available" };
   assert.doesNotMatch(render([central, local]), /class="site-loader"/);
-  assert.match(render([central, local]), /Account no longer available/);
+  render([central, local]);
+  assert.deepEqual(toasts.at(-1), { message: "Account no longer available", tone: "error" }, "A failed switch pops up on the header");
 } finally {
   if (previousDocument === undefined) delete global.document;
   else global.document = previousDocument;

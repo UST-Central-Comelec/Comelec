@@ -17,6 +17,13 @@ function load(file, dependencies = {}) {
 }
 
 const access = load("src/lib/portal/access.ts");
+for (const level of Object.keys(access.accessLevels)) {
+  const enabled = access.overridesFor(level, access.tabKeys);
+  assert.deepEqual(access.levelTabs(level, { [level]: enabled }), access.tabKeys, `${level} can enable every node`);
+  const disabled = access.overridesFor(level, []);
+  assert.deepEqual(access.levelTabs(level, { [level]: disabled }), [], `${level} can disable every node`);
+}
+assert.ok(access.tabsFor({ kind: "personal", affiliation: "local", position: "executive-board" }, { "local-board": { "documents/approval": true } }).includes("documents/approval"), "Explicit grants are honored for Local accounts");
 const options = load("src/lib/codes/options.ts", {
   "@/lib/data/accounts": { officeOf: (role) => `Office of the ${role}` },
   "@/lib/data/types": { CHAIRPERSON: "Chairperson" },
@@ -63,7 +70,7 @@ async function main() {
     assert.equal(user.level, "deputy");
     assert.deepEqual(user.tabs, access.tabsFor(account));
     assert.equal(session.canSeeCollege(user, "Other college"), false);
-    assert.equal(session.canOpen(user, "apps/approvals"), false);
+    assert.equal(session.canOpen(user, "documents/approval"), false);
     assert.equal(options.canEditCodes(user), false);
     assert.equal(options.approverRoleOf(user), null);
 
@@ -83,7 +90,7 @@ async function main() {
     assert.equal(switched.affiliation, "local");
     assert.equal(switched.level, "deputy");
     assert.equal(session.canSeeCollege(switched, "Other college"), false);
-    assert.equal(session.canOpen(switched, "apps/approvals"), false);
+    assert.equal(session.canOpen(switched, "documents/approval"), false);
     assert.equal((await session.checkAccess(account.email, undefined, other.id)).user.id, central.id, "A forged selection cannot use someone else’s account");
     assert.equal((await session.checkAccess(account.email, undefined, "missing")).user.id, central.id);
     accounts = [{ ...account, active: false }, central];
@@ -126,7 +133,7 @@ async function main() {
     const limitedExecutive = (await session.checkAccess(builtInLocal.email, undefined, builtInLocal.id)).user;
     assert.equal(limitedExecutive.builtIn, false);
     assert.equal(limitedExecutive.affiliation, "local");
-    assert.equal(session.canOpen(limitedExecutive, "apps/approvals"), false);
+    assert.equal(session.canOpen(limitedExecutive, "documents/approval"), false);
     assert.equal((await session.checkAccess(builtInLocal.email, undefined, session.BUILT_IN_ID)).user.builtIn, true);
 
     const officer = { ...account, affiliation: "central", position: "executive-board" };

@@ -1,0 +1,34 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { isDriveUploadConfigured } from "@/lib/data/drive-upload";
+import { DocumentForm } from "@/components/portal/document-form";
+import { requireEditor } from "@/lib/auth/session";
+import { archiveKinds, isDocumentKind } from "@/lib/data/types";
+import { createDocument } from "@/lib/portal/document-actions";
+
+export const metadata: Metadata = { title: "Add document" };
+
+export default async function NewDocumentPage({ searchParams }: PageProps<"/portal/documents/archive/new">) {
+  // Advisers and Admins, who only read, are sent back to the list.
+  await requireEditor("documents/archive");
+  const { kind } = await searchParams;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+  return (
+    <main className="portal-page">
+      <header className="portal-page-head">
+        <div>
+          <Link className="portal-back" href="/portal/documents/archive">← Archive</Link>
+          <h1>Add document</h1>
+        </div>
+      </header>
+      <section className="portal-card">
+        <DocumentForm canUpload={isDriveUploadConfigured()}
+          action={createDocument}
+          submitLabel="Publish"
+          initial={{ kind: typeof kind === "string" && isDocumentKind(kind) && archiveKinds.includes(kind) ? kind : "memorandum", title: "", reference: "", date: today, summary: "", body: "", signatories: [], fileUrl: null, fileName: null }}
+        />
+      </section>
+    </main>
+  );
+}

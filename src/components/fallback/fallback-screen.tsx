@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import "./fallback.css";
 
-type Action = { label: string; primary?: boolean } & ({ href: string } | { onClick: () => void });
+type Action = { label: string; primary?: boolean } & ({ href: string } | { onClick: () => void; disabled?: boolean });
 
 /**
- * The full-height screen shown in place of a page that can't be shown: something broke, or the site
- * is down for maintenance. Styled on its own (fallback.css), so it works under any layout or none.
+ * The full-height screen shown in place of a page that can't be shown: something broke, the site
+ * is down for maintenance, or the visitor is being rate-limited. Styled on its own (fallback.css), so it works under any layout or none.
  * Links are plain `<a>`s on purpose: after a crash a full page load is the surest way out.
  */
 export function FallbackScreen({ code, eyebrow, working, title, children, actions, reference, belowHeader }: {
@@ -31,11 +31,12 @@ export function FallbackScreen({ code, eyebrow, working, title, children, action
         <p className="fb-text">{children}</p>
         {actions && actions.length > 0 && (
           <div className="fb-actions">
-            {actions.map((action) => {
+            {actions.map((action, index) => {
               const className = `fb-button${action.primary ? " is-primary" : ""}`;
               return "href" in action
                 ? <a key={action.label} className={className} href={action.href}>{action.label}</a>
-                : <button key={action.label} className={className} type="button" onClick={action.onClick}>{action.label}</button>;
+                // Keyed by place, not label: a countdown changes the label every second.
+                : <button key={index} className={className} type="button" onClick={action.onClick} disabled={action.disabled}>{action.label}</button>;
             })}
           </div>
         )}

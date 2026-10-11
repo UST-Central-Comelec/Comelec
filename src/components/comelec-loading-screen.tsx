@@ -1,10 +1,13 @@
 import Image from "next/image";
 import "./comelec-loading-screen.css";
 
-/** The shared Comelec loading screen; the caller controls how long it stays visible. */
-export function ComelecLoadingScreen({ leaving = false, label = "Loading UST Central Comelec", message, progress = false, complete = false }: { leaving?: boolean; label?: string; message?: string; progress?: boolean; complete?: boolean }) {
+/**
+ * The shared Comelec loading screen; the caller controls how long it stays visible.
+ * `failsafe` fades it out in CSS alone after a while, so a page whose scripts never run isn't stuck behind it.
+ */
+export function ComelecLoadingScreen({ leaving = false, failsafe = false, label = "Loading UST Central Comelec", message, progress = false, complete = false }: { leaving?: boolean; failsafe?: boolean; label?: string; message?: string; progress?: boolean; complete?: boolean }) {
   return (
-    <div className={`site-loader${leaving ? " is-leaving" : ""}`} role="status" aria-busy="true" aria-label={label}>
+    <div className={`site-loader${failsafe ? " is-failsafe" : ""}${leaving ? " is-leaving" : ""}`} role="status" aria-busy="true" aria-label={label}>
       <noscript><style>{".site-loader { display: none; }"}</style></noscript>
       <div className="site-loader-mark">
         <Image src="/images/Logo-1.png" alt="" width={120} height={120} priority />

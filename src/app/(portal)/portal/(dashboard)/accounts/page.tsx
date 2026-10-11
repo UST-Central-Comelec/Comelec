@@ -3,12 +3,13 @@ import Link from "next/link";
 import { BadgeCheck, CircleDashed, Plus } from "lucide-react";
 import { AccountKindLabel, AccountStatusLabel } from "@/components/portal/account-badges";
 import { AccessRequestRow } from "@/components/portal/access-requests";
+import { AccountsUnitFilter } from "@/components/portal/accounts-unit-filter";
 import { AccountsTabs } from "@/components/portal/accounts-tabs";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
 import { SlidingFilters } from "@/components/portal/sliding-filters";
 import { ViewOnlyTag } from "@/components/portal/view-only";
-import { unitAbbreviations } from "@/lib/applications/options";
+import { comelecUnits, unitAbbreviations } from "@/lib/applications/options";
 import { listPendingAccessRequests } from "@/lib/access-requests/admin";
 import { allowed, builtInUser, isLocal, withPortalUser } from "@/lib/auth/session";
 import { accountStatusOf, detailsFor, listName } from "@/lib/data/accounts";
@@ -16,6 +17,7 @@ import { getAccounts } from "@/lib/data/queries";
 import { accountAffiliations, accountPositions, type AccountSummary } from "@/lib/data/types";
 import { FULL_ACCESS } from "@/lib/portal/access";
 import { canDecideRequest, canManageAccount, canSeeUnit } from "@/lib/portal/account-scope";
+import { matchesUnit } from "@/lib/portal/unit-filter";
 import { settle } from "@/lib/portal/settle";
 
 export const metadata: Metadata = { title: "Accounts" };
@@ -70,7 +72,7 @@ function Standing({ account }: { account: AccountSummary }) {
 }
 
 export default async function PortalAccountsPage({ searchParams }: PageProps<"/portal/accounts">) {
-  const { notice, status: statusParam, kind: kindParam } = await searchParams;
+  const { notice, status: statusParam, kind: kindParam, unit: unitParam } = await searchParams;
   const status = isFilter(statusParam) ? statusParam : undefined;
   const category = isCategory(kindParam) ? kindParam : undefined;
   const builtIn = builtInUser();
@@ -80,8 +82,12 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
   // Admin reads the list; nothing on it is theirs to change.
   const local = isLocal(me);
   const viewer = me.readOnly;
-  const inUnit = everyAccount.filter((account) => canSeeUnit(me, account));
-  const pending = (everyRequest ?? []).filter((request) => (viewer ? canSeeUnit(me, request) : canDecideRequest(me, request)));
+  const visibleAccounts = everyAccount.filter(account => canSeeUnit(me, account));
+  const visibleRequests = (everyRequest ?? []).filter(request => viewer ? canSeeUnit(me, request) : canDecideRequest(me, request));
+  const units = local ? (me.college ? [me.college] : []) : [...new Set([...comelecUnits, ...visibleAccounts, ...visibleRequests].flatMap(entry => typeof entry === "string" ? [entry] : entry.affiliation === "local" && entry.college ? [entry.college] : []))].sort((a, b) => a.localeCompare(b));
+  const unit = typeof unitParam === "string" && ((unitParam === "central" && !local) || units.includes(unitParam)) ? unitParam : undefined;
+  const inUnit = visibleAccounts.filter(account => matchesUnit(account, unit));
+  const pending = visibleRequests.filter(request => matchesUnit(request, unit));
   // The built-in executive has access without a row; until it has one, it's listed on its own.
   const bare = !local && builtIn && !everyAccount.some((account) => account.builtIn) ? builtIn : null;
 
@@ -91,10 +97,10 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
   const leads = (account: AccountSummary) => Number(account.kind === "official" && account.affiliation === "central");
   const accounts = [...inUnit].sort((a, b) => leads(b) - leads(a)).filter((account) => (!status || accountStatusOf(account) === status) && (!category || account.kind === category));
   const pendingCount = (category === "official" ? 0 : pending.length) + inUnit.filter((account) => accountStatusOf(account) === "pending" && (!category || account.kind === category)).length;
-  const showBare = bare && status !== "pending" && status !== "revoked" && category !== "official";
+  const showBare = bare && matchesUnit(bare, unit) && status !== "pending" && status !== "revoked" && category !== "official";
   const empty = requests.length === 0 && accounts.length === 0 && !showBare;
   const href = (next: { status?: Filter; kind?: Category }) => {
-    const query = new URLSearchParams(Object.entries(next).filter(([, value]) => value) as [string, string][]).toString();
+    const query = new URLSearchParams(Object.entries({ unit, ...next }).filter(([, value]) => value) as [string, string][]).toString();
     return query ? `/portal/accounts?${query}` : "/portal/accounts";
   };
 
@@ -114,6 +120,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
       <Notice notice={notice} />
 
       <div className="portal-filter-rows is-inline">
+        <AccountsUnitFilter units={units} value={unit ?? ""} showCentral={!local} />
         <SlidingFilters
           label="Filter by category"
           active={category ?? "all"}
@@ -145,7 +152,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
           <div className="portal-table-wrap">
             <table className="portal-table portal-accounts">
               <thead><tr><th>Name</th><th>Student ID</th><th>Affiliation</th><th>Position</th><th>Status</th><th aria-label="Actions" /></tr></thead>
-              <tbody key={`${status ?? "all"}-${category ?? "all"}`}>
+              <tbody key={`${status ?? "all"}-${category ?? "all"}-${unit ?? "all"}`}>
                 {requests.map((request) => <AccessRequestRow key={request.id} request={request} manager={viewer ? null : { kind: me.kind, affiliation: me.affiliation, position: me.position, college: me.college }} />)}
                 {showBare && (
                   <tr>

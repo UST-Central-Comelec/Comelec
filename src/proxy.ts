@@ -9,7 +9,8 @@ import { isSiteUnderMaintenance } from "@/lib/site-settings/maintenance-flag";
 // public site when that's switched on in the portal (Maintenance), which leaves the portal up to
 // switch it back; for everything, portal included, while MAINTENANCE_MODE is set. Otherwise it
 // leaves the public site alone and, on portal requests:
-//   • caps how many requests one address can make (a ceiling against floods and scripts),
+//   • caps how many requests one address, and one signed-in account, can make (a ceiling against
+//     floods and scripts),
 //   • refreshes the Supabase session cookie and sends visitors who aren't signed in to the login page,
 //   • ends sessions after 30 minutes idle or 8 hours total (src/lib/security/portal-session.ts),
 //   • stops browsers from caching portal pages, so Back can't show them after signing out.
@@ -55,24 +56,41 @@ function maintenanceResponse(request: NextRequest) {
   return NextResponse.rewrite(new URL("/maintenance", request.nextUrl), { status: 503, headers });
 }
 
+/** A browser loading a page (typed address, link, reload), not a fetch, poll or Server Action. */
+const isPageLoad = (request: NextRequest) => request.method === "GET" && !request.headers.has("rsc") && (request.headers.get("sec-fetch-dest") === "document" || (request.headers.get("accept") ?? "").includes("text/html"));
+
+/**
+ * The portal's rate limit was hit. A page load gets the "Too many requests" screen
+ * (src/app/(status)/too-many-requests), counting down `retryAfter` seconds. Anything else gets a
+ * line of text: a Server Action shows it as its error, the background polls just skip a beat, and a
+ * client-side navigation falls back to a full page load, which then gets the screen.
+ */
+function tooManyRequestsResponse(request: NextRequest, retryAfter: number) {
+  const headers = { "Retry-After": String(retryAfter), "Cache-Control": "no-store, max-age=0" };
+  if (isPageLoad(request)) return NextResponse.rewrite(new URL(`/too-many-requests?retry=${retryAfter}`, request.nextUrl), { status: 429, headers });
+  return new NextResponse("Too many requests. Please wait a moment and try again.", {
+    status: 429,
+    // Next.js only shows a Server Action's error text when the type is exactly "text/plain".
+    headers: { ...headers, "Content-Type": isServerAction(request) ? "text/plain" : "text/plain; charset=utf-8" },
+  });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (lockedDown()) return maintenanceResponse(request);
   // The cron address that sends scheduled emails belongs to the portal's work, which carries on while the public site is down.
   if (pathname === "/api/email/dispatch") return NextResponse.next();
+  // Uploaded photos (src/app/files): the portal shows them, and it stays up while the public site is down.
+  if (pathname.startsWith("/files/")) return NextResponse.next();
   if (pathname !== "/portal" && !pathname.startsWith("/portal/")) return (await isSiteUnderMaintenance()) ? maintenanceResponse(request) : NextResponse.next();
 
   const ip = clientIp(request.headers);
 
-  const flood = rateLimit(`portal:${ip}`, limits.portal.limit, limits.portal.windowMs);
+  // A ceiling per address, high enough for a whole campus network behind one address. Each signed-in
+  // account gets its own, lower limit below.
+  const flood = rateLimit(`portal:${ip}`, limits.portalAddress.limit, limits.portalAddress.windowMs);
   const login = pathname === "/portal/auth/callback" ? rateLimit(`login:${ip}`, limits.login.limit, limits.login.windowMs) : { ok: true, retryAfter: 0 };
-  if (!flood.ok || !login.ok) {
-    return new NextResponse("Too many requests. Please wait a moment and try again.", {
-      status: 429,
-      // Next.js only shows a Server Action's error text when the type is exactly "text/plain".
-      headers: { "Retry-After": String(Math.max(flood.retryAfter, login.retryAfter)), "Content-Type": isServerAction(request) ? "text/plain" : "text/plain; charset=utf-8" },
-    });
-  }
+  if (!flood.ok || !login.ok) return tooManyRequestsResponse(request, Math.max(flood.retryAfter, login.retryAfter));
 
   const isOpen = openPaths.has(pathname);
   if (!isSupabaseConfigured()) return noStore(isOpen ? NextResponse.next() : redirectResponse(request, "/portal/login"));
@@ -105,6 +123,9 @@ export async function proxy(request: NextRequest) {
     return noStore(redirectTo("/portal/login"));
   }
 
+  const own = rateLimit(`portal-user:${data.claims.sub}`, limits.portal.limit, limits.portal.windowMs);
+  if (!own.ok) return tooManyRequestsResponse(request, own.retryAfter);
+
   // Signed in: check the session hasn't timed out. A session with no valid activity record
   // (started before timeouts existed, or the cookie was tampered with) is treated as expired.
   const record = await decodeActivity(request.cookies.get(ACTIVITY_COOKIE)?.value, sessionId);
@@ -117,7 +138,8 @@ export async function proxy(request: NextRequest) {
     return noStore(redirect);
   }
 
-  if (!isPrefetch(request) && pathname !== "/portal/notifications/latest") {
+  // The bell's and the online pill's background checks aren't the person doing anything either.
+  if (!isPrefetch(request) && pathname !== "/portal/notifications/latest" && pathname !== "/portal/online") {
     response.cookies.set(ACTIVITY_COOKIE, await encodeActivity({ ...record!, lastActiveAt: Date.now() }), activityCookieOptions);
   }
   return noStore(response);

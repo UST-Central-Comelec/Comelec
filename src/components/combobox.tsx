@@ -7,8 +7,9 @@ import { useId, useRef, useState, type KeyboardEvent } from "react";
  * Text input with a filtered dropdown: type to narrow the list, or open it and pick. Only a value
  * from `options` counts as chosen; it's sent through a hidden input named `name` (as `submitValue`
  * when the sent value differs from the label). `pickOnly` makes it a plain picker for short lists.
+ * `freeText` makes the options suggestions: whatever is typed is the value, trimmed on leaving.
  */
-export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, disabled, pickOnly, describedBy, labelledBy, emptyText = "No match. Try another name." }: {
+export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, disabled, pickOnly, freeText, describedBy, labelledBy, filterOptions, emptyText = "No match. Try another name." }: {
   name: string;
   options: readonly string[];
   value: string;
@@ -18,10 +19,12 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
   invalid?: boolean;
   disabled?: boolean;
   pickOnly?: boolean;
+  freeText?: boolean;
   describedBy?: string;
   /** Id of the visible label, when the combobox isn't inside a <label>. */
   labelledBy?: string;
   emptyText?: string;
+  filterOptions?: (options: readonly string[], query: string) => readonly string[];
 }) {
   const listId = useId();
   const [query, setQuery] = useState(value);
@@ -33,7 +36,8 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
   const inputRef = useRef<HTMLInputElement>(null);
 
   const search = query.trim().toLowerCase();
-  const matches = pickOnly || !search || query === value ? options : options.filter((option) => option.toLowerCase().includes(search));
+  const filter = (query: string) => filterOptions ? filterOptions(options, query) : options.filter(option => option.toLowerCase().includes(query));
+  const matches = pickOnly || !search || query === value ? options : filter(search);
 
   const choose = (option: string) => {
     onChange(option);
@@ -101,15 +105,17 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
           const exact = options.find((option) => option.toLowerCase() === typed);
           // Typing a whole option chooses it, so Enter has to land on that option in the list about
           // to be shown (the full list once the text is the choice itself), not on the first one.
-          const shown = !typed || next === exact ? options : options.filter((option) => option.toLowerCase().includes(typed));
+          const shown = !typed || next === exact ? options : filter(typed);
           setActive(exact ? shown.indexOf(exact) : 0);
-          onChange(exact ?? "");
+          onChange(exact ?? (freeText ? next : ""));
         }}
         onFocus={() => { if (!pickOnly) openList(); }}
         onClick={() => (pickOnly && open ? setOpen(false) : openList())}
         onBlur={() => {
           setOpen(false);
-          setQuery(value);
+          const kept = freeText ? value.replace(/\s+/g, " ").trim() : value;
+          if (kept !== value) onChange(kept);
+          setQuery(kept);
         }}
         onKeyDown={onKeyDown}
       />

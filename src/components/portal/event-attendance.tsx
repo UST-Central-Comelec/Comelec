@@ -7,6 +7,7 @@ import { unstable_rethrow } from "next/navigation";
 import { confirmAttendance, lookupAttendance, type AttendancePerson } from "@/lib/events/evaluation-actions";
 import type { RegistrationDetailGroup } from "@/lib/events/registration-details";
 import { Field } from "./portal-form";
+import { toast } from "./toast";
 import "./event-workflows.css";
 
 const lookupModes = [
@@ -56,7 +57,7 @@ function AttendanceDetails({ person }: { person: AttendancePerson }) {
           <Details title="Participation" group={person.participation} />
           {person.confirmedAt && <p className="event-previous-checkin"><Check size={14} aria-hidden="true" />Attendance was recorded on {when(person.confirmedAt)}.</p>}
         </div>
-        <footer><button className="portal-button" type="button" onClick={() => dialog.current?.close()}>Close</button></footer>
+        <footer><button className="portal-button portal-dismiss-button" type="button" onClick={() => dialog.current?.close()}>Close</button></footer>
       </div>
     </dialog>
   </>;
@@ -74,7 +75,6 @@ export function EventAttendance({ eventId }: { eventId: string }) {
   const [people, setPeople] = useState<AttendancePerson[]>([]);
   const [selectedPerson, setSelectedPerson] = useState(0);
   const [confirmedPerson, setConfirmedPerson] = useState<AttendancePerson | null>(null);
-  const [feedback, setFeedback] = useState<{ text: string; error: boolean } | null>(null);
   const [notFound, setNotFound] = useState(false);
   const lookupStatusId = useId();
   const [working, setWorking] = useState<"lookup" | string | null>(null);
@@ -99,7 +99,6 @@ export function EventAttendance({ eventId }: { eventId: string }) {
     setPeople([]);
     setSelectedPerson(0);
     setConfirmedPerson(null);
-    setFeedback(null);
     setNotFound(false);
     focusLookup.current = true;
     setStep("lookup");
@@ -128,7 +127,7 @@ export function EventAttendance({ eventId }: { eventId: string }) {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await booth.current?.requestFullscreen();
     } catch {
-      setFeedback({ text: "Your browser could not enter full screen. Use the browser’s full-screen shortcut.", error: true });
+      toast("Your browser could not enter full screen. Use the browser’s full-screen shortcut.", "error");
     }
   }
   function lookup(data: FormData) {
@@ -139,37 +138,35 @@ export function EventAttendance({ eventId }: { eventId: string }) {
     setPeople([]);
     setSelectedPerson(0);
     setConfirmedPerson(null);
-    setFeedback(null);
     setWorking("lookup");
     startTransition(async () => {
       try {
         const result = await lookupAttendance(eventId, data);
         if (result.notFound) setNotFound(true);
-        else if (result.error) setFeedback({ text: result.error, error: true });
+        else if (result.error) toast(result.error, "error");
         else if (result.people?.length) {
           setPeople(result.people);
           setStep("review");
         } else setNotFound(true);
       } catch (error) {
         unstable_rethrow(error);
-        setFeedback({ text: "Couldn’t look up the participant. Please try again.", error: true });
+        toast("Couldn’t look up the participant. Please try again.", "error");
       } finally { setWorking(null); }
     });
   }
   function confirm(person: AttendancePerson) {
-    setFeedback(null);
     setWorking(person.id);
     startTransition(async () => {
       try {
         const result = await confirmAttendance(eventId, person.id);
-        if (result.error) setFeedback({ text: result.error, error: true });
+        if (result.error) toast(result.error, "error");
         else if (result.confirmedAt) {
           setConfirmedPerson({ ...person, confirmedAt: result.confirmedAt });
           setStep("confirmed");
-        } else setFeedback({ text: "Attendance was not confirmed. Please try again.", error: true });
+        } else toast("Attendance was not confirmed. Please try again.", "error");
       } catch (error) {
         unstable_rethrow(error);
-        setFeedback({ text: "Couldn’t confirm attendance. Please try again.", error: true });
+        toast("Couldn’t confirm attendance. Please try again.", "error");
       } finally { setWorking(null); }
     });
   }
@@ -188,11 +185,11 @@ export function EventAttendance({ eventId }: { eventId: string }) {
         <section className="portal-card is-flush event-attendance-card">
           <ol className="event-checkin-progress" aria-label="Attendance steps">{["Find registration", "Review details", "Confirm attendance"].map((label, i) => <li key={label} className={i < reached ? "is-done" : i === reached ? "is-current" : undefined} aria-current={i === reached ? "step" : undefined}><b>{i < reached ? <Check size={12} aria-hidden="true" /> : i + 1}</b><span>{label}</span>{i < 2 && <ChevronRight size={13} aria-hidden="true" />}</li>)}</ol>
 
-          {step === "lookup" && <form ref={form} action={lookup} className={notFound ? "is-not-found" : undefined} onChange={() => setFeedback(null)}>
+          {step === "lookup" && <form ref={form} action={lookup} className={notFound ? "is-not-found" : undefined}>
             <header className="event-lookup-head"><h3>Find your registration</h3></header>
             <fieldset disabled={pending} className="event-attendance-fields"><legend className="portal-visually-hidden">Look up a participant</legend>
               <input type="hidden" name="mode" value={mode} />
-              <div className="event-lookup-modes" role="group" aria-label="Find registration by">{lookupModes.map(({ value, label, icon: Icon }) => <button type="button" key={value} disabled={notFound} aria-pressed={mode === value} onClick={() => { setMode(value); setFeedback(null); }}><Icon size={15} aria-hidden="true" /><span>{label}</span></button>)}</div>
+              <div className="event-lookup-modes" role="group" aria-label="Find registration by">{lookupModes.map(({ value, label, icon: Icon }) => <button type="button" key={value} disabled={notFound} aria-pressed={mode === value} onClick={() => setMode(value)}><Icon size={15} aria-hidden="true" /><span>{label}</span></button>)}</div>
               <div className="event-lookup-inputs">
                 {lookupModes.map(({ value, label }) => (
                   <fieldset key={value} className={`event-lookup-panel${mode === value ? " is-active" : ""}`} disabled={pending || mode !== value} aria-hidden={mode !== value} inert={mode !== value}>
@@ -208,7 +205,7 @@ export function EventAttendance({ eventId }: { eventId: string }) {
 
           {step === "review" && <div className="event-attendance-review">
             <header className="event-lookup-head event-review-head"><div><h3 ref={stepHeading} tabIndex={-1}>Review your details</h3></div><button className="portal-button is-ghost" type="button" disabled={pending} onClick={() => returnToLookup()}><ArrowLeft size={14} aria-hidden="true" />Back</button></header>
-            {people.length > 1 && <div className="event-attendance-match-select"><Field label="Choose your registration"><select value={selectedPerson} disabled={pending} onChange={event => { setSelectedPerson(Number(event.target.value)); setFeedback(null); }}>{people.map((person, index) => <option key={person.id} value={index}>{person.referenceCode} · {person.name}</option>)}</select></Field></div>}
+            {people.length > 1 && <div className="event-attendance-match-select"><Field label="Choose your registration"><select value={selectedPerson} disabled={pending} onChange={event => setSelectedPerson(Number(event.target.value))}>{people.map((person, index) => <option key={person.id} value={index}>{person.referenceCode} · {person.name}</option>)}</select></Field></div>}
             {people.slice(selectedPerson, selectedPerson + 1).map(person => <article className="event-attendance-person" key={person.id}>
               <header><span className="event-person-icon"><UserRound size={23} aria-hidden="true" /></span><div><h3>{person.name}</h3><p className="event-attendance-reference">Reference code <strong>{person.referenceCode}</strong></p></div></header>
               <span className={`portal-tag${person.confirmedAt ? " is-ok" : " is-gold"}`}>{person.confirmedAt ? "Already checked in" : "Registered"}</span>
@@ -220,7 +217,6 @@ export function EventAttendance({ eventId }: { eventId: string }) {
             <span className="event-attendance-success-mark"><CheckCircle2 size={32} aria-hidden="true" /></span><h3 ref={stepHeading} tabIndex={-1}>Attendance confirmed.</h3><p>You’re all set, <strong>{confirmedPerson.name}</strong>.</p><dl><div><dt>Reference code</dt><dd className="event-person-reference">{confirmedPerson.referenceCode}</dd></div><div><dt>Checked in</dt><dd>{when(confirmedPerson.confirmedAt)}</dd></div></dl><button className="portal-button event-attendance-primary event-lookup-submit" type="button" onClick={() => returnToLookup(true)}><RotateCcw size={16} aria-hidden="true" />Next participant<ArrowRight size={15} aria-hidden="true" /></button>
           </div>}
 
-          {feedback && <p className={`event-workflow-feedback event-attendance-feedback${feedback.error ? " is-error" : ""}`} role={feedback.error ? "alert" : "status"}>{feedback.error ? <Info size={17} aria-hidden="true" /> : <CheckCircle2 size={17} aria-hidden="true" />}{feedback.text}</p>}
           <footer className="event-booth-help"><ShieldCheck size={15} aria-hidden="true" /><span>{step === "confirmed" ? "Your attendance is recorded for this event only." : step === "review" ? "Confirm attendance after reviewing your details." : "Need help finding your registration? Ask the Central Comelec team."}</span></footer>
         </section>
       </div>

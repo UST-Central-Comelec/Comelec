@@ -1,14 +1,16 @@
+import { mergeParticipantRows } from "@/lib/events/participant-rows";
 import Link from "next/link";
 import { SlidingSubtabs } from "./sliding-subtabs";
-import { EventEvaluationEditor } from "@/components/portal/event-evaluation-editor";
 import { EventAttendance } from "@/components/portal/event-attendance";
+import { getRsvpSettings, listRsvpResponses } from "@/lib/events/rsvp-store";
 import { getEvaluationSettings, listEvaluationResponses } from "@/lib/events/evaluation-store";
 import { notFound, redirect } from "next/navigation";
 import { ArrowUpRight, Check, Pencil } from "lucide-react";
 import { ChangeRequestForm } from "@/components/portal/change-request-form";
 import { EventAnalyticsView } from "@/components/portal/event-analytics";
 import { EventStatusTag } from "@/components/portal/event-tags";
-import { EventRegistrationLink } from "@/components/portal/event-registration-link";
+import { EventOverview } from "@/components/portal/event-overview";
+import { EventDeployment } from "@/components/portal/event-deployment";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
 import { RegistrantsTable, type RegistrantRow } from "@/components/portal/registrants-table";
@@ -18,14 +20,14 @@ import { siteUrl } from "@/lib/email/template";
 import { analyze } from "@/lib/events/analytics";
 import { canManageEvent, canRequestChanges, canSeeInside } from "@/lib/events/access";
 import { formatEventDates, formatTime, scheduleRows } from "@/lib/events/format";
-import { affiliationLabels, comelecUnit, describeAudience, requestKinds, sexes, venueModes, type RequestKind } from "@/lib/events/options";
+import { affiliationLabels, collaboratorLabel, comelecUnit, describeAudience, requestKinds, sexes, venueModes, type RequestKind } from "@/lib/events/options";
 import { getEvent } from "@/lib/events/queries";
 import { affiliationDetails, participationDetails } from "@/lib/events/registration-details";
 import { listRegistrations } from "@/lib/events/registrations";
 import { markEventChangesAddressed, removeRegistration, resendAcknowledgement, requestEventChanges, saveRequestDecisions, withdrawEventChanges } from "@/lib/portal/event-actions";
 import { settle } from "@/lib/portal/settle";
 
-export type EventTab = "background" | "registrants" | "analytics" | "evaluation" | "attendance";
+export type EventTab = "background" | "registrants" | "analytics" | "evaluation" | "attendance" | "rsvp" | "deployment";
 
 const formatWhen = (iso: string) => new Date(iso).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" });
 
@@ -50,16 +52,21 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
 
   // Sign-ups hold students' details, so they're only loaded for those who may read them.
   const seesInside = canSeeInside(user, event);
+  if (tab === "rsvp" || tab === "evaluation") redirect(canManageEvent(user, event) ? `/portal/events/${id}/edit` : `/portal/events/${id}`);
   if (tab !== "background" && !seesInside) redirect(`/portal/events/${id}`);
   const registrations = seesInside && (tab === "registrants" || tab === "analytics") ? await settle(listRegistrations(id)) : { value: [], error: null };
   const manages = canManageEvent(user, event);
   const asksForChanges = canRequestChanges(user, event);
   const unit = comelecUnit(event.organizer, event.college);
   const people = registrations.value ?? [];
-  const evaluation = seesInside && (tab === "evaluation" || tab === "registrants") ? await settle(listEvaluationResponses(id)) : { value: [], error: null };
-  const evaluationSettings = seesInside && (tab === "evaluation" || tab === "registrants") ? await settle(getEvaluationSettings(id)) : null;
+  const evaluation = seesInside && tab === "registrants" ? await settle(listEvaluationResponses(id)) : { value: [], error: null };
+  const evaluationSettings = seesInside && (tab === "registrants" || tab === "deployment") ? await settle(getEvaluationSettings(id)) : null;
+  const [rsvpSettings, rsvpResponses] = await Promise.all([
+    seesInside && (tab === "registrants" || tab === "deployment") ? settle(getRsvpSettings(id)) : null,
+    seesInside && tab === "registrants" ? settle(listRsvpResponses(id)) : null,
+  ]);
   const responses = evaluation.value ?? [];
-  const responseByRegistrant = new Map(responses.filter(r => r.registration_id).map(r => [r.registration_id, r]));
+  const responseByRegistrant = new Map(responses.filter(r => r.registration_id && !r.anonymous).map(r => [r.registration_id, r]));
   const rows: RegistrantRow[] = (tab === "registrants" ? people : []).map((person) => ({
     id: person.id,
     attendanceConfirmedAt: person.attendanceConfirmedAt,
@@ -98,8 +105,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
         <div>
           <Link className="portal-back" href="/portal/events">← Events</Link>
           <h1>{event.name}</h1>
-          <EventRegistrationLink href={`${siteUrl()}/events/${event.id}/register`} />
-          <EventRegistrationLink label="Evaluation form" href={`${siteUrl()}/events/${event.id}/evaluate`} />
+
         </div>
         <div className="portal-head-actions">
           <a className="portal-button is-ghost" href={`/events/${event.id}`} target="_blank" rel="noreferrer">View on website <ArrowUpRight size={15} aria-hidden="true" /></a>
@@ -107,6 +113,8 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
         </div>
       </header>
       <Notice notice={notice} />
+
+      <EventOverview event={event} />
 
       <SlidingSubtabs
         active={tab}
@@ -118,7 +126,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
           ...(seesInside ? [
             { key: "registrants", href: `/portal/events/${id}/registrants`, label: "Registrants" },
             { key: "attendance", href: `/portal/events/${id}/attendance`, label: "Attendance" },
-            { key: "evaluation", href: `/portal/events/${id}/evaluation`, label: "Evaluation Form" },
+            { key: "deployment", href: `/portal/events/${id}/deployment`, label: "Deployment" },
             { key: "analytics", href: `/portal/events/${id}/analytics`, label: "Analytics" },
           ] : []),
         ]}
@@ -126,7 +134,9 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
 
       {evaluation.error && <p className="portal-form-error" role="alert">{evaluation.error}</p>}
       {evaluationSettings?.error && <p className="portal-form-error" role="alert">{evaluationSettings.error}</p>}
-      {tab === "evaluation" && evaluationSettings?.value && <EventEvaluationEditor eventId={id} initial={evaluationSettings.value} editable={manages} responses={responses} />}
+      {tab === "deployment" && (rsvpSettings?.error || evaluationSettings?.error
+        ? <p className="portal-form-error" role="alert">{rsvpSettings?.error || evaluationSettings?.error}</p>
+        : evaluationSettings?.value && <EventDeployment eventId={id} baseUrl={siteUrl()} registrationStatus={event.registrationStatus} requireGoogle={event.requireGoogle} rsvp={rsvpSettings?.value ?? null} evaluation={evaluationSettings.value} editable={manages} />)}
       {tab === "attendance" && (manages ? <EventAttendance eventId={id} /> : <section className="portal-card"><p>Only officers who manage this event can record attendance.</p></section>)}
 
       {/* The unit's side of a request: what was asked, and the two ways to settle it. */}
@@ -170,6 +180,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
             <Detail label="Venue type">{venueModes[event.venueMode]}</Detail>
             <Detail label="Venue details">{event.venueDetails}</Detail>
             <Detail label="Participants">{describeAudience(event)}</Detail>
+            {event.openToInternal && <Detail label="Collaborators">{[...(event.collaborators ?? []).map(collaboratorLabel), ...(event.otherCollaborators ?? [])].join(", ") || "None added"}</Detail>}
             <Detail label="Organizer">{unit}</Detail>
             <Detail label="Registration"><EventStatusTag event={event} /></Detail>
             <Detail label="Last updated time">{formatWhen(event.updatedAt)}</Detail>
@@ -186,16 +197,12 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
 
       {tab === "registrants" && (
           <section className="portal-card is-flush portal-event-section" id="registrants" aria-labelledby="registrants-title">
-            <header className="portal-settings-head">
-              <TitleWithInfo as="h2" className="portal-card-title" id="registrants-title" info={manages
-                ? "Everyone who registered or joined the waitlist, newest first. Open a registrant for the answers they gave on the form, and answer what they asked for under Logistics: pick Approve or Decline for each, then Save, which emails them every answer that changed. Remove a registration if it’s a duplicate, a mistake, or someone asks for their details to be deleted."
-                : "Everyone who registered or joined the waitlist, newest first. Open a registrant for the answers they gave on the form. Only the organizing unit can remove a registration or answer what was asked for under Logistics."}>Registrants</TitleWithInfo>
-              <span className="portal-index">{people.length === 1 ? "1 sign-up" : `${people.length} sign-ups`}</span>
-            </header>
+            <h2 id="registrants-title" className="portal-visually-hidden">Event participants and responses</h2>
+            {rsvpResponses?.error && <p className="portal-form-error" role="alert">{rsvpResponses.error}</p>}
             {registrations.error ? (
               <p className="portal-form-error" role="alert">Couldn’t load the registrations. ({registrations.error})</p>
             ) : (
-              <RegistrantsTable rows={rows} evaluationQuestions={evaluationSettings?.value?.questions} resend={manages ? resendAcknowledgement.bind(null, event.id) : undefined} remove={manages ? removeRegistration.bind(null, event.id) : undefined} save={manages ? saveRequestDecisions.bind(null, event.id) : undefined} />
+              <RegistrantsTable rows={mergeParticipantRows(rows, rsvpResponses?.value ?? [], responses)} evaluationQuestions={evaluationSettings?.value?.questions} resend={manages ? resendAcknowledgement.bind(null, event.id) : undefined} remove={manages ? removeRegistration.bind(null, event.id) : undefined} save={manages ? saveRequestDecisions.bind(null, event.id) : undefined} />
             )}
           </section>
 

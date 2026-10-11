@@ -1,7 +1,10 @@
+import { Toast } from "./toast";
+
 const messages: Record<string, string> = {
   created: "Saved. It’s now live on the website.",
   updated: "Changes saved and published.",
   deleted: "Deleted. It’s been removed from the website.",
+  "code-settings-saved": "Document settings saved.",
   "account-updated": "Account details saved. The Directory shows them now, and the account’s owner is emailed what changed.",
   "account-created": "Account added, and they’ve been emailed. They can now sign in with Google using that UST email, which is marked verified the first time they do.",
   "account-deleted": "Account deleted, and they’ve been emailed. They can no longer sign in, and they’re out of the Directory.",
@@ -12,6 +15,9 @@ const messages: Record<string, string> = {
   "access-approved": "Request approved. Their account is added, with their email already verified, and they’ve been emailed its details and that they can sign in.",
   "access-declined": "Request declined, and they’ve been emailed. They see the decision when they track their request.",
   "slots-saved": "Slots saved. The Apply page now shows the new counts.",
+  "onboarding-saved": "Onboarding settings saved. Future acceptance emails will use these links.",
+  "onboarding-document-saved": "Document saved as a new version. Request access shows it from now on; anyone who already accepted keeps the version they were shown.",
+  "onboarding-document-unchanged": "Nothing to save: the document wasn’t changed.",
   "slots-unchanged": "Nothing to save: no counts were changed.",
   "application-accepted": "Marked as accepted, and one slot for this position is now taken. The applicant sees this when they track their application.",
   "application-declined": "Marked as rejected. The applicant sees this when they track their application.",
@@ -21,6 +27,7 @@ const messages: Record<string, string> = {
   "application-accepted-email-off": "Marked as accepted, and one slot for this position is now taken. The applicant wasn’t emailed: that email is switched off under Apps → Email Sender → Automatic. They see this when they track their application.",
   "application-declined-email-off": "Marked as rejected. The applicant wasn’t emailed: that email is switched off under Apps → Email Sender → Automatic. They see this when they track their application.",
   "application-pending": "Moved back to pending review.",
+  "application-deleted": "Application deleted. Its interview booking, if it had one, is free again.",
   "email-switches-saved": "Saved. It applies from the next email the site would send.",
   "slot-added": "Interview slot added. Applicants can pick it on the Apply page.",
   "slots-added": "Interview slots added. Applicants can pick them on the Apply page.",
@@ -54,7 +61,7 @@ const messages: Record<string, string> = {
   "email-sending": "On its way. Each recipient gets their own copy; this page shows how far it’s got.",
   "email-scheduled": "Scheduled. It goes out at the time you set, to whoever matches the recipients then. You can cancel it until it starts sending.",
   "email-cancelled": "Cancelled. It won’t be sent.",
-  "code-submitted": "Sent for approval. The Chairperson, the Vice Chairperson and the Secretary to the Executive have been emailed, and it’s waiting for them under Apps → Approvals; the rest of the Central Comelec’s Executive Board is told too. Its text is locked until they decide.",
+  "code-submitted": "Sent for approval. The Chairperson, the Vice Chairperson and the Secretary to the Executive have been emailed, and it’s waiting for them under Legals → Documents → Approval; the rest of the Central Comelec’s Executive Board is told too. Its text is locked until they decide.",
   "code-withdrawn": "Withdrawn from approval. It’s a draft again, any approvals it had are cleared, and the Central Comelec’s Executive Board is told.",
   "code-discarded": "Draft discarded. The published text is as it was, and a new revision can be started.",
   "code-approved": "Approved, and the Central Comelec’s Executive Board and its editors are emailed that you did. It’s published once the other approvals are in.",
@@ -70,13 +77,13 @@ const warnings: Record<string, string> = {
   "access-needs-role": "Not approved yet: pick their position and role on the request first, then approve again.",
   "access-out-of-reach": "Not approved: that position or unit isn’t yours to give. Pick one within your reach, or leave the request to the Central Executive Board.",
   "access-role-taken": "Not approved yet: that college already has a Central Representative. Change or revoke that account first, or pick another role.",
-  "filing-cancel-too-late": "Too late to cancel: the grace period had already ended, so it’s closed. Choose Scheduled or Always open to reopen it.",
-  "period-cancel-too-late": "Too late to cancel: the grace period had already ended, so applications are closed. Choose Scheduled or Always open to reopen them.",
+  "filing-cancel-too-late": "Too late to cancel: the grace period had already ended, so it’s closed. Choose Scheduled to reopen it.",
+  "period-cancel-too-late": "Too late to cancel: the grace period had already ended, so applications are closed. Choose Scheduled to reopen them.",
   "application-no-slots": "Not accepted: this position has no slots left. Add a slot under Recruitment → Slots first, then accept again.",
   "application-accepted-email-failed": "Marked as accepted, but the email didn’t send. Check SMTP_USER and SMTP_PASSWORD in .env.local, or use Send email.",
   "application-declined-email-failed": "Marked as rejected, but the email didn’t send. Check SMTP_USER and SMTP_PASSWORD in .env.local, or use Send email.",
   "email-too-late": "Too late: that email had already started sending, or was already cancelled.",
-  "code-submitted-no-email": "Sent for approval, and it’s waiting under Apps → Approvals, but those who sign weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic. Let them know yourself.",
+  "code-submitted-no-email": "Sent for approval, and it’s waiting under Legals → Documents → Approval, but those who sign weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic. Let them know yourself.",
   "code-published-no-email": "Approved by all three, and published: the website shows the new text now. The Central Comelec and its editors weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic.",
   "code-returned-no-email": "Sent back for changes, and it’s a draft again, but its editors and the Central Comelec weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic. Let them know yourself.",
   "code-moved-on": "Nothing was changed: this revision had already moved on. This is where it stands now.",
@@ -95,10 +102,17 @@ const warnings: Record<string, string> = {
 const announced = /^(maintenance|cookie-notice)-|^(slots-saved|access-saved|expiry-saved|email-switches-saved)$/;
 const announcedToUnit = /^(period|filing)-(?!.*too-late|dates$)/;
 
-export function Notice({ notice }: { notice?: string | string[] }) {
+/** The words and tone for a notice key, or null for one that isn't known. */
+export function noticeToast(notice?: string | string[]): { message: string; tone: "ok" | "warn" } | null {
   if (typeof notice !== "string") return null;
-  if (warnings[notice]) return <p className="portal-form-error" role="alert">{warnings[notice]}</p>;
+  if (warnings[notice]) return { message: warnings[notice], tone: "warn" };
   if (!messages[notice]) return null;
   const told = announcedToUnit.test(notice) ? "the unit’s" : announced.test(notice) ? "the Central Comelec’s" : null;
-  return <p className="portal-notice" role="status">{messages[notice]}{told && ` A change here is emailed to ${told} official account and Executive Board, unless that’s switched off under Apps → Email Sender → Automatic.`}</p>;
+  return { message: `${messages[notice]}${told ? ` A change here is emailed to ${told} official account and Executive Board, unless that’s switched off under Apps → Email Sender → Automatic.` : ""}`, tone: "ok" };
+}
+
+/** Shows the outcome of what was just done, as a pop-up on the header; `?notice=` comes off the address. */
+export function Notice({ notice }: { notice?: string | string[] }) {
+  const shown = noticeToast(notice);
+  return shown && <Toast message={shown.message} tone={shown.tone} param="notice" />;
 }

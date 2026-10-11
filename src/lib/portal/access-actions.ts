@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireFullAccess } from "@/lib/auth/session";
 import { actorOf } from "@/lib/notifications/notify";
 import { settingChanged } from "@/lib/notifications/settings-emails";
-import { accessLevels, editableLevels, isLocalLevel, isLocalTab, isTabKey, levelTabs, overridesFor, tabName, type EditableLevel } from "./access";
+import { accessLevels, editableLevels, isTabKey, levelTabs, overridesFor, tabName, type EditableLevel } from "./access";
 import { getSavedAccess, saveAccess } from "./access-store";
 import type { FormState } from "./form";
 
@@ -18,8 +18,8 @@ export async function updateAccess(level: EditableLevel, _state: FormState, form
   const { email } = user;
   if (!editableLevels.includes(level)) return { error: "Unknown access level." };
 
-  // The ticked tabs. A Local level can't be given a Central-only tab, whatever the form says.
-  const chosen = formData.getAll("tab").filter(isTabKey).filter((tab) => !isLocalLevel(level) || isLocalTab(tab));
+  // Validate tab names; every role’s tab access is configurable.
+  const chosen = formData.getAll("tab").filter(isTabKey);
 
   try {
     const before = levelTabs(level, (await getSavedAccess()).overrides);
@@ -47,6 +47,7 @@ export async function updateAccess(level: EditableLevel, _state: FormState, form
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Couldn’t save the access control:", message);
+    if (message.includes("portal_access_level_check")) return { error: "Run supabase/migrations/0048_all_access_levels_editable.sql in the Supabase SQL Editor to enable saving access for every role, then try again." };
     if (message.includes("portal_access") || message.includes("schema cache")) return { error: "The database needs an update first. Run supabase/migrations/0021_account_profiles_and_access.sql in the Supabase SQL Editor, then save again." };
     return { error: "Something went wrong saving the access control. Please try again." };
   }

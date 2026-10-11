@@ -3,8 +3,7 @@
 // Central Executive Board can change them, level by level, under Accounts → Access Control (saved in
 // public.portal_access, read by ./access-store.ts).
 //
-// One tab isn't any level's to be given: Approvals, under Apps, is the Central Executive Board's
-// alone (isBoardTab), so it's never in another level's defaults and can't be switched on for one.
+// Every tab can be configured for every level. Approvals starts off for other levels.
 //
 // Opening a tab is the first of three checks. A Local account only ever sees its own college's
 // records inside a tab, whatever its level (isLocal and canSeeCollege in src/lib/auth/session.ts,
@@ -29,37 +28,59 @@ export const tabGroups = [
     section: null,
     tabs: [
       { key: "apps/inbox", label: "Inbox", local: true },
-      { key: "apps/secretariat", label: "Secretariat", local: true },
       { key: "apps/email", label: "Email Sender", local: true },
-      { key: "apps/calendar", label: "Calendar", local: true },
       { key: "apps/tickets", label: "Tickets", local: true },
-      { key: "apps/approvals", label: "Approvals", local: false },
+      { key: "apps/manual", label: "Manual", local: true },
     ],
   },
   {
-    label: "Publications",
-    section: "Website",
+    label: "Secretariat",
+    section: "Committee",
     tabs: [
-      { key: "news", label: "News", local: false },
-      { key: "statistics", label: "Statistics", local: false },
       { key: "events", label: "Events", local: true },
+      { key: "secretariat/letters-tracker", label: "Letters Tracker", local: true },
       { key: "members", label: "Directory", local: true },
-      { key: "documents", label: "Documents", local: false },
-      { key: "codes/constitution", label: "Constitution", local: false },
-      { key: "codes/elections-code", label: "Elections Code", local: false },
+      { key: "secretariat/calendar", label: "Calendar", local: true },
+      { key: "secretariat/minutes", label: "Minutes of the Meetings", local: true },
+      { key: "news", label: "Publications", local: false },
+      { key: "secretariat/surveys", label: "Surveys", local: true },
+      { key: "secretariat/settings", label: "Settings", local: false },
     ],
   },
   {
-    label: "Petitions & Cases",
-    section: "Website",
+    label: "Documents",
+    section: "Committee",
+    parent: "Legals",
     tabs: [
-      { key: "petitions/submissions", label: "Submissions", local: true },
-      { key: "petitions/settings", label: "Settings", local: false },
+      // Keep existing review links and permissions working without a navigation item.
+      { key: "documents/approval", label: "Approval", local: false, hidden: true },
+      { key: "documents/archive", label: "Archive", local: false },
+      { key: "legals/onboarding", label: "Onboarding", local: false },
+    ],
+  },
+  {
+    label: "Charters",
+    section: "Committee",
+    parent: "Legals",
+    tabs: [
+      { key: "charters/constitution", label: "Constitution", local: false },
+      { key: "charters/elections-code", label: "Elections Code", local: false },
+      { key: "charters/magna-carta", label: "Magna Carta", local: false },
+    ],
+  },
+  {
+    label: "Petitions and Cases",
+    section: "Committee",
+    parent: "Legals",
+    tabs: [
+      { key: "petitions/case-docket", label: "Case Docket", local: true },
+      { key: "petitions/guidelines", label: "Guidelines", local: false },
+      { key: "petitions/settings", label: "Setting", local: false },
     ],
   },
   {
     label: "Recruitment",
-    section: "Website",
+    section: "Registrations",
     tabs: [
       { key: "recruitment/applications", label: "Applicants", local: true },
       { key: "recruitment/interviews", label: "Interviews", local: false },
@@ -69,7 +90,7 @@ export const tabGroups = [
   },
   {
     label: "Political Party",
-    section: "Website",
+    section: "Registrations",
     tabs: [
       { key: "polpar/registrations", label: "Applicants", local: true },
       { key: "polpar/requirements", label: "Requirements", local: false },
@@ -78,7 +99,7 @@ export const tabGroups = [
   },
   {
     label: "Filing of Candidacy",
-    section: "Website",
+    section: "Registrations",
     tabs: [
       { key: "candidacy/filings", label: "Applicants", local: true },
       { key: "candidacy/requirements", label: "Requirements", local: false },
@@ -90,6 +111,7 @@ export const tabGroups = [
     section: null,
     tabs: [
       { key: "accounts", label: "Accounts", local: true },
+      { key: "statistics", label: "Statistics", local: false },
       { key: "maintenance", label: "Maintenance", local: false },
       { key: "logs", label: "Logs", local: false },
     ],
@@ -97,19 +119,44 @@ export const tabGroups = [
 ] as const;
 
 export type TabGroup = (typeof tabGroups)[number];
-export type GroupLabel = NonNullable<TabGroup["label"]>;
+export type GroupLabel = NonNullable<TabGroup["label"]> | "Legals";
 export type TabKey = TabGroup["tabs"][number]["key"];
 
-const tabs = tabGroups.flatMap((group) => group.tabs.map((tab) => ({ ...tab, group: group.label as GroupLabel | null })));
+/** The permission diagram uses the main tabs, with legal subgroup names on its leaves. */
+export const accessTabGroups = tabGroups.reduce<Array<{ label: GroupLabel | null; section: string | null; tabs: Array<{ key: TabKey; label: string; local: boolean }> }>>((groups, group) => {
+  const label = "parent" in group ? group.parent : group.label;
+  const items = group.tabs.map(tab => ({ ...tab, label: "parent" in group && group.label ? `${group.label} → ${tab.label}` : tab.label }));
+  const existing = groups.find(item => item.label === label && item.section === group.section);
+  if (existing) existing.tabs.push(...items);
+  else groups.push({ label, section: group.section, tabs: items });
+  return groups;
+}, []);
+
+const tabs = tabGroups.flatMap((group) => group.tabs.map((tab) => ({ ...tab, group: group.label as GroupLabel | null, parent: "parent" in group ? group.parent : null })));
 
 export const tabKeys: readonly TabKey[] = tabs.map((tab) => tab.key);
+
+/** Review routes may keep their permissions after their navigation item is removed. */
+export const navigationTabKeys: readonly TabKey[] = tabs.filter(tab => !("hidden" in tab && tab.hidden)).map(tab => tab.key);
+
+/** Saved keys from before Legals was introduced. Keep old grants and denials during rollout. */
+export const legacyTabKeys = {
+  "apps/approvals": "documents/approval",
+  "apps/secretariat": "secretariat/letters-tracker",
+  "apps/calendar": "secretariat/calendar",
+  documents: "documents/archive",
+  "codes/constitution": "charters/constitution",
+  "codes/elections-code": "charters/elections-code",
+  "codes/magna-carta": "charters/magna-carta",
+  "petitions/submissions": "petitions/case-docket",
+} as const satisfies Record<string, TabKey>;
 
 export const isTabKey = (value: unknown): value is TabKey => typeof value === "string" && (tabKeys as readonly string[]).includes(value);
 
 /** A tab as it's named outside the sidebar: "Recruitment → Settings", "Dashboard". */
 export const tabName = (key: TabKey) => {
   const tab = tabs.find((item) => item.key === key)!;
-  return tab.group ? `${tab.group} → ${tab.label}` : tab.label;
+  return [tab.parent, tab.group, tab.label].filter(Boolean).join(" → ");
 };
 
 /** The tab's address in the portal. */
@@ -120,10 +167,10 @@ const localTabs = new Set<TabKey>(tabs.filter((tab) => tab.local).map((tab) => t
 /** Whether a Local account can be given this tab at all. */
 export const isLocalTab = (key: TabKey) => localTabs.has(key);
 
-/** The tabs only the Central Executive Board has: where what the legal officers write is signed. */
-const boardTabs = new Set<TabKey>(["apps/approvals"]);
+/** The tabs only the Central Executive Board starts with: where what the legal officers write is signed. */
+const boardTabs = new Set<TabKey>(["documents/approval"]);
 
-/** Whether this tab is the Central Executive Board's alone, so no other level can be given it. */
+/** Whether this tab starts off for every level but the Central Executive Board. Access Control can still switch it on for another level. */
 export const isBoardTab = (key: TabKey) => boardTabs.has(key);
 
 export const accessLevels = {
@@ -143,12 +190,12 @@ export type AccessLevel = keyof typeof accessLevels;
 
 export const isAccessLevel = (value: unknown): value is AccessLevel => typeof value === "string" && value in accessLevels;
 
-/** The level that's always open to everything, and the only one that sees and changes the others' access. */
+/** The level that starts with all tabs and manages every level’s access. */
 export const FULL_ACCESS = "central-board" satisfies AccessLevel;
 
-export type EditableLevel = Exclude<AccessLevel, typeof FULL_ACCESS>;
+export type EditableLevel = AccessLevel;
 
-export const editableLevels = (Object.keys(accessLevels) as AccessLevel[]).filter((level): level is EditableLevel => level !== FULL_ACCESS);
+export const editableLevels = Object.keys(accessLevels) as EditableLevel[];
 
 /**
  * The levels that switch the automatic emails off and on (Apps → Email Sender → Automatic). The
@@ -177,7 +224,7 @@ export function accessLevelOf({ kind, affiliation, position }: Leveled): AccessL
 /** Whether every account at this level is Local, so the Central-only tabs can't be switched on for it. */
 export const isLocalLevel = (level: AccessLevel) => level.startsWith("local-");
 
-const administrative = new Set<TabKey>(tabs.filter((tab) => tab.group === "Administrative").map((tab) => tab.key));
+const administrative = new Set<TabKey>(tabs.filter((tab) => tab.group === "Administrative" && tab.key !== "statistics").map((tab) => tab.key));
 const deputyGroups: readonly (GroupLabel | null)[] = ["Recruitment", "Political Party", "Filing of Candidacy"];
 /** Every tab a level other than the Central Executive Board can have. */
 const grantable = tabKeys.filter((key) => !isBoardTab(key));
@@ -191,7 +238,7 @@ const everythingBut = (...left: Array<TabKey | Set<TabKey>>) => grantable.filter
  *   Advisers and Admins: everything, to read;
  *   Official accounts: what their unit's Executive Board has, but for Approvals.
  * A Local account gets the part of its level's tabs that a Local account can have (tabsFor). Of
- * the apps, Local commissioners get Secretariat, Calendar and Tickets; the Email Sender is for a
+ * the apps, Local commissioners get Inbox, Tickets and Manual, plus Secretariat’s Local tabs; the Email Sender is for a
  * Local unit's official account.
  */
 export const defaultTabs: Record<AccessLevel, readonly TabKey[]> = {
@@ -199,7 +246,7 @@ export const defaultTabs: Record<AccessLevel, readonly TabKey[]> = {
   "local-board": everythingBut("apps/email"),
   "central-associate": everythingBut(administrative),
   "local-associate": everythingBut(administrative, "apps/email"),
-  deputy: ["apps/inbox", ...tabs.filter((tab) => deputyGroups.includes(tab.group)).map((tab) => tab.key)],
+  deputy: ["apps/inbox", "apps/manual", ...tabs.filter((tab) => deputyGroups.includes(tab.group)).map((tab) => tab.key)],
   "central-adviser": grantable,
   "local-adviser": everythingBut("apps/email"),
   admin: grantable,
@@ -211,29 +258,52 @@ export const defaultTabs: Record<AccessLevel, readonly TabKey[]> = {
 export type TabOverrides = Partial<Record<TabKey, boolean>>;
 export type AccessOverrides = Partial<Record<EditableLevel, TabOverrides>>;
 
-/** The tabs switched on for a level, before the Local limit: its defaults with its saved changes over them. */
+/** A level’s default tabs with its saved permission changes applied. */
 export function levelTabs(level: AccessLevel, overrides: AccessOverrides = {}): TabKey[] {
-  if (level === FULL_ACCESS) return [...tabKeys];
   const changes = overrides[level] ?? {};
-  return grantable.filter((key) => changes[key] ?? defaultTabs[level].includes(key));
+  return tabKeys.filter((key) => changes[key] ?? (defaultTabs[level].includes(key) && (!isLocalLevel(level) || isLocalTab(key))));
 }
 
 /** The tabs an account may open. */
 export function tabsFor(account: Leveled, overrides: AccessOverrides = {}): TabKey[] {
   const open = levelTabs(accessLevelOf(account), overrides);
-  return account.affiliation === "local" ? open.filter(isLocalTab) : open;
+  const changes = overrides[accessLevelOf(account)] ?? {};
+  return account.affiliation === "local" ? open.filter(key => isLocalTab(key) || changes[key] === true) : open;
 }
 
-/** The changes that turn a level's defaults into `chosen`, to save. Tabs a Local level can't have, and the board's own, are never recorded. */
+/** Save every configured tab, including tabs outside a level’s default access. */
 export function overridesFor(level: EditableLevel, chosen: readonly TabKey[]): TabOverrides {
   const changes: TabOverrides = {};
-  for (const key of grantable) {
-    if (isLocalLevel(level) && !isLocalTab(key)) continue;
+  for (const key of tabKeys) {
     const on = chosen.includes(key);
-    if (on !== defaultTabs[level].includes(key)) changes[key] = on;
+    const byDefault = defaultTabs[level].includes(key) && (!isLocalLevel(level) || isLocalTab(key));
+    if (on !== byDefault) changes[key] = on;
   }
   return changes;
 }
 
+/** Canonical keys win if both old and new keys are present in a saved row. */
+export function normalizeTabOverrides(value: unknown): TabOverrides {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const entries = Object.entries(value).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean");
+  const normalized: TabOverrides = {};
+  for (const [key, on] of entries) {
+    const renamed = Object.hasOwn(legacyTabKeys, key) ? legacyTabKeys[key as keyof typeof legacyTabKeys] : undefined;
+    if (renamed) normalized[renamed] = on;
+  }
+  for (const [key, on] of entries) if (isTabKey(key)) normalized[key] = on;
+  // Guidelines starts with any explicit permission configured for the existing case settings.
+  if (normalized["petitions/guidelines"] === undefined && normalized["petitions/settings"] !== undefined) {
+    normalized["petitions/guidelines"] = normalized["petitions/settings"];
+  }
+  if (normalized["secretariat/minutes"] === undefined && normalized["secretariat/letters-tracker"] !== undefined) {
+    normalized["secretariat/minutes"] = normalized["secretariat/letters-tracker"];
+  }
+  return normalized;
+}
+
 /** Where someone lands: the Dashboard if they have it, otherwise their first tab, otherwise their own account page. */
-export const homeOf = (open: readonly TabKey[]) => (open.length ? tabHref(tabKeys.find((key) => open.includes(key))!) : "/portal/account");
+export const homeOf = (open: readonly TabKey[]) => {
+  const first = navigationTabKeys.find(key => open.includes(key));
+  return first ? tabHref(first) : "/portal/account";
+};

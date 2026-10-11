@@ -122,11 +122,11 @@ export type Details = Array<[label: string, value: string, href?: string]>;
 const filled = (rows: Details) => rows.filter(([, value]) => value.trim());
 
 /** A spec sheet: a label, its value beside it, a hairline between rows. A long value (an address, a link) wraps rather than widening the email. */
-export const details = (rows: Details) =>
+export const details = (rows: Details, emphasize: readonly string[] = []) =>
   `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 22px">${filled(rows)
     .map(
       ([label, value, href]) =>
-        `${ruleRow(2)}<tr><td width="112" style="padding:11px 18px 11px 0;vertical-align:top;width:112px">${ink(escape(label), `color:${palette.muted};font-size:13px;line-height:1.5`)}</td><td style="padding:11px 0;vertical-align:top;word-break:break-word">${ink(href ? link(href, escape(value)) : escape(value), `color:${palette.text};font-size:14px;line-height:1.5`)}</td></tr>`,
+        `${ruleRow(2)}<tr><td width="112" style="padding:11px 18px 11px 0;vertical-align:top;width:112px">${ink(escape(label), `color:${palette.muted};font-size:13px;line-height:1.5`)}</td><td style="padding:11px 0;vertical-align:top;word-break:break-word">${ink(href ? link(href, escape(value)) : emphasize.includes(label) ? strong(escape(value)) : escape(value), `color:${palette.text};font-size:14px;line-height:1.5`)}</td></tr>`,
     )
     .join("")}</table>`;
 

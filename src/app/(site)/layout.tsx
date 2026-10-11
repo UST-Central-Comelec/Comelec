@@ -1,3 +1,4 @@
+import { isCodePublic } from "@/lib/codes/settings";
 import { newsContentText } from "@/lib/data/news-content";
 import type { Metadata } from "next";
 import "../globals.css";
@@ -94,12 +95,12 @@ function reading(period: ApplicationPeriod): PeriodReading {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Every unit opens and closes its own; the menu says each is open while any unit has it open.
-  const [applicationPeriod, filings, news, settings] = await Promise.all([getPeriodForApplyPage(), listUnitPeriodsForSite(), newsCards(), getSiteSettingsForSite()]);
+  const [applicationPeriod, filings, news, settings, constitutionPublic, electionsCodePublic, magnaCartaPublic] = await Promise.all([getPeriodForApplyPage(), listUnitPeriodsForSite(), newsCards(), getSiteSettingsForSite(), isCodePublic("constitution"), isCodePublic("elections-code"), isCodePublic("magna-carta")]);
   const candidacyPeriod = combinePeriods(filings.filter((period) => period.kind === "candidacy"));
   const partyPeriod = combinePeriods(filings.filter((period) => period.kind === "party-registration"));
   // The cards in the menu's Featured carousel, most important first.
   const featured = [...applicationsCard(applicationPeriod), ...news].slice(0, MAX_FEATURED);
-  const status: NavStatus = { applications: reading(applicationPeriod), candidacy: reading(candidacyPeriod), parties: reading(partyPeriod) };
+  const status: NavStatus = { applications: reading(applicationPeriod), candidacy: reading(candidacyPeriod), parties: reading(partyPeriod), documents: { constitution: constitutionPublic, "elections-code": electionsCodePublic, "magna-carta": magnaCartaPublic } };
   return (
     // The serif italic is the navbar's too (accents), so it loads on every page.
     // The theme toggle restores the visitor's preference on <html> during hydration.

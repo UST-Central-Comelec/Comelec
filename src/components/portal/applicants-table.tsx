@@ -1,5 +1,6 @@
 "use client";
 
+import { ApplicantsSeen } from "./applicant-unread";
 import { useId, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SlidingFilterButtons } from "./sliding-filters";
@@ -104,6 +105,7 @@ export function ApplicantsTable({ rows, localCollege, slots, readOnly, canOnboar
 
   return (
     <>
+      <ApplicantsSeen ids={[...shown.map(row => row.id), ...(review ? [review.id] : [])]} />
       <div className="portal-table-tools portal-registrants-toolbar portal-applicants-toolbar">
         {localCollege === null && <SlidingFilterButtons items={bodyFilters} active={body} label="Filter by where they’d serve" onChange={(value) => changeFilter("body", value)} />}
         <SlidingFilterButtons items={statusFilters} active={status} label="Filter by status" onChange={(value) => changeFilter("status", value)} />

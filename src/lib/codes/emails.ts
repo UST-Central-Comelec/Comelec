@@ -14,9 +14,9 @@ import { approverRoles, awaitedRoles, codes, signedCount, type ApproverRole, typ
 // who may be Executive Associates. The three who sign get their own email when it's sent for
 // approval, since it's theirs to act on; everyone else gets the one that only says so.
 
-const EYEBROW = "Approvals";
+const EYEBROW = "Approval";
 
-const reviewUrl = (revision: RevisionSummary) => `${siteUrl()}/portal/apps/approvals/${revision.id}`;
+const reviewUrl = (revision: RevisionSummary) => `${siteUrl()}/portal/documents/approval/${revision.id}`;
 const revisionUrl = (revision: RevisionSummary) => `${siteUrl()}/portal/${codes[revision.code].tab}/revisions/${revision.id}`;
 
 const by = (person: RevisionPerson) => (person.role ? `${person.name}, ${person.role}` : person.name);

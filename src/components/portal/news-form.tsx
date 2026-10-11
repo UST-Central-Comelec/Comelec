@@ -15,7 +15,7 @@ type Values = Pick<NewsPost, "title" | "category" | "date" | "excerpt" | "body" 
 const categoryOptions: DropdownOption[] = Object.entries(newsCategories).map(([value, label]) => ({ value, label, group: value === "explainer" ? "Election Explainer page" : "News page" }));
 
 export function NewsForm({ action, initial, submitLabel, danger }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const [category, setCategory] = useState<NewsCategory>(initial.category);
   const [summary, setSummary] = useState(initial.excerpt);
   const [body, setBody] = useState(initial.body);
@@ -51,7 +51,7 @@ export function NewsForm({ action, initial, submitLabel, danger }: { action: (st
           </label>
         )}
       </div>
-      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/news" danger={danger} />
+      <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/news" danger={danger} />
     </form>
   );
 }

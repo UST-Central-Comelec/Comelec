@@ -5,11 +5,13 @@ import { BadgeCheck, Ban, CalendarClock, RotateCcw, Trash2 } from "lucide-react"
 import { AccountForm } from "@/components/portal/account-forms";
 import { ActionButton, DeleteButton } from "@/components/portal/delete-button";
 import { Notice } from "@/components/portal/notice";
-import { InfoTip } from "@/components/portal/info-tip";
+import { InfoTip, TitleWithInfo } from "@/components/portal/info-tip";
 import { ViewOnly, ViewOnlyTag } from "@/components/portal/view-only";
 import { allowed, isBuiltInEmail, withPortalUser } from "@/lib/auth/session";
 import { accountStatusOf, detailsFor } from "@/lib/data/accounts";
 import { getAccount } from "@/lib/data/queries";
+import { formatAccepted } from "@/lib/onboarding/documents";
+import "@/components/portal/onboarding.css";
 import { deleteAccount, setAccountAccess, updateAccountDetails } from "@/lib/portal/account-actions";
 import { canManageAccount, canSeeUnit } from "@/lib/portal/account-scope";
 import { expires, formatExpiry, timeLeft } from "@/lib/portal/expiry";
@@ -102,6 +104,19 @@ export default async function ManageAccountPage({ params, searchParams }: PagePr
           />
         </ViewOnly>
       </section>
+
+      {!official && (
+        <section className="portal-card">
+          <TitleWithInfo as="h2" className="portal-card-title" info="What they agreed to in Request access before joining: the Data Privacy Notice and the onboarding documents, each with the version shown and when they accepted it. Edit the texts under Legals → Documents → Onboarding.">E-declarations</TitleWithInfo>
+          {account.declarations.length ? (
+            <ul className="portal-declarations">
+              {account.declarations.map((item) => <li key={item.key}><span>{item.title}</span><small>Accepted {formatAccepted(item.acceptedAt)} · version {item.version}</small></li>)}
+            </ul>
+          ) : (
+            <p className="portal-muted">None on file. This account was added by hand, or before onboarding asked for them.</p>
+          )}
+        </section>
+      )}
     </main>
   );
 }

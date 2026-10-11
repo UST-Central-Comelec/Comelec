@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { calendarDays, calendarTime, formatPortalDate, shiftCalendarDay, shiftCalendarMonth } from "@/lib/forms/calendar";
+import { highlightKinds, type CalendarHighlight } from "@/lib/calendar/options";
+import { dateConflicts, orderedDateRange } from "@/lib/calendar/date-conflicts";
 import "./date-picker.css";
 export { formatPortalDate } from "@/lib/forms/calendar";
 
@@ -11,7 +13,7 @@ const monthName = (month: string) => new Intl.DateTimeFormat("en-US", { month: "
 type Place = { left: number; width: number; top?: number; bottom?: number; maxHeight: number };
 
 /** A custom calendar dropdown with full-date labels and ISO form values. */
-export function DatePicker({ name, value, defaultValue = "", onChange, min, max, required, invalid, id: inputId, label, describedBy }: {
+export function DatePicker({ name, value, defaultValue = "", onChange, onRangeChange, rangeEnd, highlights = [], min, max, required, invalid, id: inputId, label, describedBy }: {
   name?: string;
   id?: string;
   label?: string;
@@ -19,6 +21,9 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
   value?: string;
   defaultValue?: string;
   onChange?: (value: string) => void;
+  onRangeChange?: (start: string, end: string) => void;
+  rangeEnd?: string;
+  highlights?: CalendarHighlight[];
   min?: string;
   max?: string;
   required?: boolean;
@@ -33,11 +38,15 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
   const [place, setPlace] = useState<Place | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLSpanElement>(null);
+  const drag = useRef<{ start: string; end: string; pointerId?: number } | null>(null);
+  const [preview, setPreview] = useState<{ start: string; end: string } | null>(null);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const allowed = (day: string) => (!min || day >= min) && (!max || day <= max);
   const clamp = (day: string) => min && day < min ? min : max && day > max ? max : day;
 
   const close = (focus = false) => {
+    drag.current = null;
+    setPreview(null);
     setOpen(false);
     if (focus) button.current?.focus();
   };
@@ -57,7 +66,10 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
   const pick = (day: string) => {
     if (day && !allowed(day)) return;
     if (value === undefined) setOwnValue(day);
-    onChange?.(day);
+    if (onRangeChange && day) {
+      const range = preview ?? { start: day, end: day };
+      onRangeChange(range.start, range.end);
+    } else onChange?.(day);
     close(true);
   };
   const move = (day: string) => {
@@ -94,7 +106,13 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
     const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
     if (event.key in offsets) {
       event.preventDefault();
-      move(shiftCalendarDay(day, offsets[event.key]));
+      const next = clamp(shiftCalendarDay(day, offsets[event.key]));
+      if (onRangeChange && event.shiftKey) {
+        const anchor = drag.current?.start ?? day;
+        drag.current = { start: anchor, end: next };
+        setPreview(orderedDateRange(anchor, next));
+      } else { drag.current = null; setPreview(null); }
+      move(next);
     } else if (event.key === "PageUp" || event.key === "PageDown") {
       event.preventDefault();
       move(shiftCalendarMonth(day, (event.key === "PageUp" ? -1 : 1) * (event.shiftKey ? 12 : 1)));
@@ -107,6 +125,7 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
   const days = month ? calendarDays(month) : [];
   const previous = month ? shiftCalendarMonth(`${month}-01`, -1).slice(0, 7) : "";
   const next = month ? shiftCalendarMonth(`${month}-01`, 1).slice(0, 7) : "";
+  const range = preview ?? (onRangeChange && chosen ? orderedDateRange(chosen, rangeEnd || chosen) : null);
 
   return (
     <span className={`portal-dropdown is-field portal-calendar${open ? " is-open" : ""}${invalid ? " is-invalid" : ""}`} onBlur={(event) => {
@@ -130,14 +149,44 @@ export function DatePicker({ name, value, defaultValue = "", onChange, min, max,
           <span aria-live="polite">{monthName(month)}</span>
           <button type="button" aria-label="Next month" disabled={Boolean(max && next > max.slice(0, 7))} onClick={() => move(shiftCalendarMonth(active, 1))}><ChevronRight size={16} /></button>
         </span>
-        <span className="portal-calendar-grid" role="grid" aria-label={monthName(month)}>
+        {onRangeChange && <span className="portal-calendar-hint">Drag across days to set the start and end. Use Shift + arrow keys, then Enter, with a keyboard.</span>}
+        <span className={`portal-calendar-grid${onRangeChange ? " is-range-picker" : ""}`} role="grid" aria-label={monthName(month)} onPointerDown={(event) => {
+          if (!onRangeChange || event.button !== 0 || !(event.target instanceof Element)) return;
+          const target = event.target.closest<HTMLButtonElement>("button[data-day]");
+          const day = target?.dataset.day;
+          if (!day || target?.disabled) return;
+          event.preventDefault();
+          drag.current = { start: day, end: day, pointerId: event.pointerId };
+          setPreview({ start: day, end: day });
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }} onPointerMove={(event) => {
+          if (!drag.current || drag.current.pointerId !== event.pointerId) return;
+          const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLButtonElement>("button[data-day]");
+          const day = target?.dataset.day;
+          if (!day || target?.disabled || !event.currentTarget.contains(target)) return;
+          drag.current.end = day;
+          setPreview(orderedDateRange(drag.current.start, day));
+        }} onPointerUp={(event) => {
+          const selection = drag.current;
+          if (!selection || selection.pointerId !== event.pointerId) return;
+          event.preventDefault();
+          const range = orderedDateRange(selection.start, selection.end);
+          onRangeChange?.(range.start, range.end);
+          close(true);
+        }} onPointerCancel={() => { drag.current = null; setPreview(null); }} onLostPointerCapture={() => { drag.current = null; setPreview(null); }}>
           <span role="row">{weekdays.map((day) => <span role="columnheader" key={day}>{day}</span>)}</span>
           {Array.from({ length: 6 }, (_, row) => <span role="row" key={row}>
-            {days.slice(row * 7, row * 7 + 7).map((day) => <span role="gridcell" aria-selected={day === chosen} key={day}>
-              <button type="button" data-day={day} tabIndex={day === active ? 0 : -1} disabled={!allowed(day)} aria-label={formatPortalDate(day)} aria-current={day === today ? "date" : undefined} className={`${day.slice(0, 7) !== month ? "is-outside " : ""}${day === chosen ? "is-selected" : ""}`} onKeyDown={(event) => onDayKey(event, day)} onClick={() => pick(day)}>{Number(day.slice(8))}</button>
-            </span>)}
+            {days.slice(row * 7, row * 7 + 7).map((day) => {
+              const marked = dateConflicts(highlights, day, day);
+              const selected = range ? day >= range.start && day <= range.end : day === chosen;
+              const description = marked.map(highlight => `${highlightKinds[highlight.kind].label}${highlight.label ? `: ${highlight.label}` : ""}`).join("; ");
+              return <span role="gridcell" aria-selected={selected} key={day}>
+                <button type="button" data-day={day} data-calendar-kind={marked[0]?.kind} tabIndex={day === active ? 0 : -1} disabled={!allowed(day)} aria-label={`${formatPortalDate(day)}${description ? `. ${description}` : ""}`} title={description || undefined} aria-current={day === today ? "date" : undefined} className={`${day.slice(0, 7) !== month ? "is-outside " : ""}${selected ? "is-selected" : ""}`} onKeyDown={(event) => onDayKey(event, day)} onClick={() => pick(day)}>{Number(day.slice(8))}{marked.length > 0 && <span className="portal-calendar-marker" aria-hidden="true" />}</button>
+              </span>;
+            })}
           </span>)}
         </span>
+        {highlights.some(highlight => highlight.kind !== "custom") && <span className="portal-calendar-legend">{(["moratorium", "holiday", "university"] as const).map(kind => <span key={kind}><i data-calendar-kind={kind} aria-hidden="true" />{highlightKinds[kind].label}</span>)}</span>}
         <span className="portal-calendar-foot">
           <button type="button" disabled={!allowed(today)} onClick={() => pick(today)}>Today</button>
           {!required && <button type="button" onClick={() => pick("")}>Clear</button>}

@@ -50,6 +50,7 @@ body.fb-body { background: #030305; margin: 0; }
 .fb .fb-button:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.28); filter: brightness(.94); }
 .fb .fb-button.is-primary { background: var(--fb-gold); border-color: transparent; box-shadow: none; color: var(--ui-accent-foreground, #0c0b08); }
 .fb .fb-button.is-primary:hover { background: var(--fb-gold); box-shadow: none; transform: none; filter: brightness(.94); }
+.fb .fb-button:disabled { cursor: default; filter: none; opacity: .5; }
 
 /* What to quote when reporting the problem. */
 .fb .fb-ref { color: var(--fb-faint); font: 500 10.5px/1.4 var(--fb-sans); margin: clamp(32px, 4vw, 52px) 0 0; overflow-wrap: anywhere; text-transform: uppercase; }

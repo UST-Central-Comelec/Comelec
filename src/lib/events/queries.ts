@@ -17,6 +17,9 @@ function normalize(event: CommissionEvent): CommissionEvent {
   return {
     ...event,
     background: event.background ?? "",
+    openToInternal: event.openToInternal ?? false,
+    collaborators: event.collaborators ?? [],
+    otherCollaborators: event.otherCollaborators ?? [],
     // Before supabase/migrations/0028 an event has one date: it ends the day it starts.
     endDate: event.endDate ?? event.eventDate,
     // Before supabase/migrations/0029 every event verified its registrants.

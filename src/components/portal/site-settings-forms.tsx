@@ -1,5 +1,7 @@
 "use client";
 
+import { SlidingSegments } from "./sliding-filters";
+
 import { useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Eye, EyeOff, Radio, RotateCcw, Wrench } from "lucide-react";
@@ -10,11 +12,11 @@ import { useHydrated, usePortalForm } from "./portal-form";
 type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
 
 /** A settings card's footer: "Unsaved changes", Discard and the submit button, as on the period settings. */
-function SettingsFoot({ error, unchanged, pending, onDiscard, submitLabel, danger }: { error?: string; unchanged: boolean; pending: boolean; onDiscard: () => void; submitLabel: string; danger?: boolean }) {
+function SettingsFoot({ unchanged, pending, onDiscard, submitLabel, danger }: { unchanged: boolean; pending: boolean; onDiscard: () => void; submitLabel: string; danger?: boolean }) {
   const hydrated = useHydrated();
   return (
     <footer className={`portal-settings-foot${unchanged ? "" : " is-dirty"}`}>
-      {error ? <p className="portal-form-error" role="alert">{error}</p> : <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>}
+      <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
       <div className="portal-form-actions">
         {!unchanged && <button type="button" className="portal-button is-ghost" onClick={onDiscard} disabled={pending}>Discard</button>}
         <button className={`portal-button${danger ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated || unchanged}>{pending ? "Saving…" : unchanged ? "Saved" : submitLabel}</button>
@@ -25,7 +27,7 @@ function SettingsFoot({ error, unchanged, pending, onDiscard, submitLabel, dange
 
 /** Maintenance → Maintenance mode: take the public website offline or bring it back, and what the page says meanwhile. */
 export function MaintenanceForm({ action, maintenance: saved, message: savedMessage, maxLength }: { action: FormAction; maintenance: boolean; message: string; maxLength: number }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const id = useId();
   const [maintenance, setMaintenance] = useState(saved);
   const [message, setMessage] = useState(savedMessage);
@@ -43,7 +45,7 @@ export function MaintenanceForm({ action, maintenance: saved, message: savedMess
           </InfoTip>
         </div>
         <div className="portal-setting-control">
-          <div className="portal-segmented" role="radiogroup" aria-labelledby={`${id}-status`}>
+          <SlidingSegments active={maintenance} role="radiogroup" aria-labelledby={`${id}-status`}>
             <label className={`portal-segment${maintenance ? "" : " is-selected"}`}>
               <input type="radio" name="status" value="live" checked={!maintenance} onChange={() => setMaintenance(false)} />
               <Radio size={15} strokeWidth={1.9} aria-hidden="true" />
@@ -54,7 +56,7 @@ export function MaintenanceForm({ action, maintenance: saved, message: savedMess
               <Wrench size={15} strokeWidth={1.9} aria-hidden="true" />
               Under maintenance
             </label>
-          </div>
+          </SlidingSegments>
         </div>
       </div>
 
@@ -70,14 +72,14 @@ export function MaintenanceForm({ action, maintenance: saved, message: savedMess
         </div>
       </div>
 
-      <SettingsFoot error={state?.error} unchanged={unchanged} pending={pending} onDiscard={() => { setMaintenance(saved); setMessage(savedMessage); }} submitLabel={goingOffline ? "Take website offline" : !maintenance && saved ? "Bring website back" : "Save"} danger={goingOffline} />
+      <SettingsFoot unchanged={unchanged} pending={pending} onDiscard={() => { setMaintenance(saved); setMessage(savedMessage); }} submitLabel={goingOffline ? "Take website offline" : !maintenance && saved ? "Bring website back" : "Save"} danger={goingOffline} />
     </form>
   );
 }
 
 /** Maintenance → Cookie notice: whether the public website shows it. */
 export function CookieNoticeForm({ action, shown: saved }: { action: FormAction; shown: boolean }) {
-  const { state, pending, onSubmit } = usePortalForm(action);
+  const { pending, onSubmit } = usePortalForm(action);
   const id = useId();
   const [shown, setShown] = useState(saved);
 
@@ -92,7 +94,7 @@ export function CookieNoticeForm({ action, shown: saved }: { action: FormAction;
           </InfoTip>
         </div>
         <div className="portal-setting-control">
-          <div className="portal-segmented" role="radiogroup" aria-labelledby={`${id}-shown`}>
+          <SlidingSegments active={shown} role="radiogroup" aria-labelledby={`${id}-shown`}>
             <label className={`portal-segment${shown ? " is-selected" : ""}`}>
               <input type="radio" name="cookieNotice" value="shown" checked={shown} onChange={() => setShown(true)} />
               <Eye size={15} strokeWidth={1.9} aria-hidden="true" />
@@ -103,10 +105,10 @@ export function CookieNoticeForm({ action, shown: saved }: { action: FormAction;
               <EyeOff size={15} strokeWidth={1.9} aria-hidden="true" />
               Hidden
             </label>
-          </div>
+          </SlidingSegments>
         </div>
       </div>
-      <SettingsFoot error={state?.error} unchanged={shown === saved} pending={pending} onDiscard={() => setShown(saved)} submitLabel="Save" />
+      <SettingsFoot unchanged={shown === saved} pending={pending} onDiscard={() => setShown(saved)} submitLabel="Save" />
     </form>
   );
 }

@@ -1,4 +1,5 @@
 import { affiliations, type Affiliation } from "@/lib/data/types";
+import { comelecUnits } from "@/lib/applications/options";
 import type { PeriodKind } from "@/lib/periods/kinds";
 
 // Events and activities: an event's shape, and the choices on the portal's event form and the
@@ -36,9 +37,17 @@ export type VenueMode = keyof typeof venueModes;
 /** Who may take part, by the checkboxes on the event form. */
 export const audiences = {
   students: "Students",
-  externals: "Externals",
-  admins: "Admins",
+  internal: "Internal",
+  externals: "External",
+  admins: "Admin",
 } as const;
+
+/** Stable keys for the collaborator checklist; other organizations are stored separately. */
+export const collaboratorUnits = [
+  { value: "central", label: "Central Comelec" },
+  ...comelecUnits.map(college => ({ value: college, label: `${college} Comelec Unit` })),
+];
+export const collaboratorLabel = (value: string) => collaboratorUnits.find(unit => unit.value === value)?.label ?? value;
 
 export type Audience = keyof typeof audiences;
 
@@ -72,6 +81,10 @@ export type CommissionEvent = {
   openToStudents: boolean;
   openToExternals: boolean;
   openToAdmins: boolean;
+  /** Internal participants are commissioners from Comelec units. */
+  openToInternal?: boolean;
+  collaborators?: string[];
+  otherCollaborators?: string[];
   registrationStatus: RegistrationStatus;
   /** Whoever registers as a UST student, faculty or staff verifies their UST Google account first. */
   requireGoogle: boolean;
@@ -89,10 +102,10 @@ export type CommissionEvent = {
  * venue and who it's open to. A unit's Recruitment, Political Party Registration and Filing of
  * Candidacy are given the same details under their Settings (src/lib/periods/kinds.ts).
  */
-export type EventDetails = Pick<CommissionEvent, "name" | "summary" | "background" | "eventDate" | "endDate" | "ingressTime" | "startsTime" | "endsTime" | "egressTime" | "venueMode" | "venueDetails" | "openToStudents" | "openToExternals" | "openToAdmins">;
+export type EventDetails = Pick<CommissionEvent, "name" | "summary" | "background" | "eventDate" | "endDate" | "ingressTime" | "startsTime" | "endsTime" | "egressTime" | "venueMode" | "venueDetails" | "openToStudents" | "openToExternals" | "openToAdmins" | "openToInternal" | "collaborators" | "otherCollaborators">;
 
 /** What a new event form starts with: the given day, an afternoon, on-site, students only. */
-export const blankDetails = (date: string): EventDetails => ({ name: "", summary: "", background: "", eventDate: date, endDate: date, ingressTime: null, startsTime: "13:00", endsTime: "15:00", egressTime: null, venueMode: "onsite", venueDetails: "", openToStudents: true, openToExternals: false, openToAdmins: false });
+export const blankDetails = (date: string): EventDetails => ({ name: "", summary: "", background: "", eventDate: date, endDate: date, ingressTime: null, startsTime: "13:00", endsTime: "15:00", egressTime: null, venueMode: "onsite", venueDetails: "", openToStudents: true, openToExternals: false, openToAdmins: false, openToInternal: false, collaborators: [], otherCollaborators: [] });
 
 /**
  * What the Events page and the portal's Events tab list: an event, or a unit's Recruitment, Political
@@ -116,8 +129,8 @@ export function comelecUnit(organizer: Affiliation, college: string | null | und
 }
 
 /** Who an event is open to: "Students only", or "Students, externals and admins". */
-export function describeAudience(event: Pick<CommissionEvent, "openToStudents" | "openToExternals" | "openToAdmins">) {
-  const open = [event.openToStudents && audiences.students, event.openToExternals && audiences.externals, event.openToAdmins && audiences.admins].filter((label): label is (typeof audiences)[Audience] => Boolean(label));
+export function describeAudience(event: Pick<CommissionEvent, "openToStudents" | "openToExternals" | "openToAdmins" | "openToInternal">) {
+  const open = [event.openToStudents && audiences.students, event.openToInternal && "Comelec units (internal)", event.openToExternals && audiences.externals, event.openToAdmins && audiences.admins].filter((label): label is string => Boolean(label));
   if (open.length <= 1) return open.length ? `${open[0]} only` : "To be announced";
   const lower = open.map((label, index) => (index === 0 ? label : label.toLowerCase()));
   return `${lower.slice(0, -1).join(", ")} and ${lower[lower.length - 1]}`;

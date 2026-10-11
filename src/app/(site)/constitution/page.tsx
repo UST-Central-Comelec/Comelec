@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { isCodePublic } from "@/lib/codes/settings";
 import type { Metadata } from "next";
 import { CodeDocument } from "@/components/elections-code/code-document";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
@@ -18,6 +20,7 @@ const two = (value: number) => String(value).padStart(2, "0");
 const day = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", day: "numeric", month: "long", year: "numeric" });
 
 export default async function ConstitutionPage() {
+  if (!(await isCodePublic("constitution"))) notFound();
   // The Constitution as the PDF has it, or as the latest revision approved in the portal has it.
   const { articles, version, publishedAt } = await getPublishedCode("constitution");
 

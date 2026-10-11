@@ -2,13 +2,14 @@ import { newsContentText } from "@/lib/data/news-content";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowUpRight, Flag, Vote } from "lucide-react";
+import { ArrowUpRight, Flag, Vote } from "lucide-react";
 import { PeriodStatus } from "@/components/apply-banner";
 import { CometSky } from "@/components/home/comet-sky";
+import { HeroContent } from "@/components/home/hero-content";
+import { HomeViews } from "@/components/home/home-views";
 import { LitStatement } from "@/components/home/lit-statement";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { SpotlightGrid } from "@/components/home/spotlight-grid";
-import { TimeLeft } from "@/components/home/time-left";
 import { NightSky } from "@/components/night-sky";
 import { getPeriodForApplyPage } from "@/lib/applications/apply-cache";
 import { closingTime, formatClosing, isAccepting, type ApplicationPeriod } from "@/lib/applications/period";
@@ -108,35 +109,10 @@ export default async function Home() {
   return (
     <main className={`lp ${serif.variable}`}>
       <RevealOnScroll />
-
+      <HomeViews>
       <section className="lp-hero" data-hero aria-labelledby="lp-title">
         <CometSky anchor=".lp-wordmark" />
-        <div className="lp-hero-inner">
-          {applications.open && (
-            <Link href="/apply" className="lp-call" data-enter style={enter(0)} aria-label={`Now recruiting: commissioner applications are open${closingLabel ? ` until ${closingLabel}` : ""}. Apply now.`}>
-              <span className="lp-call-signal" aria-hidden="true"><i /><i /><i /><i /></span>
-              <span className="lp-call-label">Now recruiting</span>
-              <span className="lp-call-text">
-                {applications.closesAt === null ? "Commissioner applications are open" : "Commissioner applications close in"}
-                {applications.closesAt !== null && <TimeLeft deadline={applications.closesAt} className="lp-call-clock" />}
-              </span>
-              <ArrowUpRight className="lp-call-arrow" size={15} aria-hidden="true" />
-            </Link>
-          )}
-          <p className="lp-kicker" data-enter style={enter(1)}>UST Central Comelec presents</p>
-          <h1 id="lp-title" className="lp-hero-title">
-            <span className="lp-wordmark" data-enter style={enter(2)}>COMET</span>
-            <span className="visually-hidden">: </span>
-            <span className="lp-tagline" data-enter style={enter(3)}>Elections, <em>illuminated.</em></span>
-          </h1>
-          <p className="lp-lede" data-enter style={enter(4)}>
-            The <strong>COMELEC Engagement and Transparency Technology</strong> initiative serves as a centralized digital platform for UST Central COMELEC—connecting elections, official records, archives, news, applications, public engagements, and transparency initiatives in one accessible space.
-          </p>
-          <div className="lp-actions" data-enter style={enter(5)}>
-            <a href="#comet" className="lp-button is-primary is-down">Explore the initiative <ArrowDown size={16} aria-hidden="true" /></a>
-            <Link href="/news" className="lp-button is-ghost">Latest from the commission <ArrowUpRight size={16} aria-hidden="true" /></Link>
-          </div>
-        </div>
+        <HeroContent />
         <dl className="lp-hud">
           <div data-enter style={enter(6)}>
             <dt>Now tracking</dt>
@@ -346,6 +322,7 @@ export default async function Home() {
         </div>
         <div className="lp-planet" aria-hidden="true" />
       </section>
+      </HomeViews>
     </main>
   );
 }

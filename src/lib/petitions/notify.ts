@@ -5,7 +5,7 @@ import type { ReceiptSection } from "@/lib/notifications/receipt";
 import { petitionNoticeEmail, petitionReceivedEmail, type Petition } from "./emails";
 
 /**
- * What the Petitions & Cases form calls once a submission is saved: the receipt to whoever
+ * What the Petitions and Cases form calls once a submission is saved: the receipt to whoever
  * submitted it, and the notice to the unit it concerns. A Central one reaches the Central Comelec's
  * official account and Executive Board only; a Local one that college's only. Both go after the
  * response, so a slow mail server never holds up the person submitting, and each only if its switch

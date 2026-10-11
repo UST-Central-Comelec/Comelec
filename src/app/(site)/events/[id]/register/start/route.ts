@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { registrationUrl } from "@/lib/events/callback";
+import { eventVerificationReply, registrationUrl } from "@/lib/events/callback";
 import { isEventId, signUpMode } from "@/lib/events/options";
 import { getEvent } from "@/lib/events/queries";
+import { getRsvpSettings } from "@/lib/events/rsvp-store";
+import { getEvaluationSettings } from "@/lib/events/evaluation-store";
 import { startEventFlow } from "@/lib/events/verification";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN, isSupabaseConfigured } from "@/lib/supabase/config";
@@ -16,13 +18,19 @@ export async function GET(request: NextRequest, context: RouteContext<"/events/[
   const { id } = await context.params;
   if (!isEventId(id)) return NextResponse.redirect(new URL("/events", request.nextUrl));
 
-  if (!isSupabaseConfigured()) return NextResponse.redirect(registrationUrl(request, id, "unavailable"));
-  if (!rateLimit(`event-verify:${clientIp(request.headers)}`, limits.eventVerify.limit, limits.eventVerify.windowMs).ok) return NextResponse.redirect(registrationUrl(request, id, "rate-limited"));
+  const requested = request.nextUrl.searchParams.get("form");
+  const target = requested === "rsvp-form" || requested === "evaluate" ? requested : "register";
+  if (!isSupabaseConfigured()) return eventVerificationReply(request, id, target, "unavailable");
+  if (!rateLimit(`event-verify:${clientIp(request.headers)}`, limits.eventVerify.limit, limits.eventVerify.windowMs).ok) return eventVerificationReply(request, id, target, "rate-limited");
 
   // No sign-in for an event that isn't taking sign-ups: its registration page says why.
   const event = await getEvent(id).catch(() => null);
   if (!event) return NextResponse.redirect(new URL("/events", request.nextUrl));
-  if (!signUpMode(event)) return NextResponse.redirect(registrationUrl(request, id));
+  if (target === "register" && !signUpMode(event)) return NextResponse.redirect(registrationUrl(request, id));
+  if (target !== "register") {
+    const settings = await (target === "rsvp-form" ? getRsvpSettings(id) : getEvaluationSettings(id)).catch(() => null);
+    if (!settings?.enabled) return eventVerificationReply(request, id, target, "unavailable");
+  }
 
   const { data, error } = await (await createAuthClient()).auth.signInWithOAuth({
     provider: "google",
@@ -32,8 +40,8 @@ export async function GET(request: NextRequest, context: RouteContext<"/events/[
       queryParams: { hd: ALLOWED_EMAIL_DOMAIN, prompt: "select_account" },
     },
   });
-  if (error || !data.url) return NextResponse.redirect(registrationUrl(request, id, "failed"));
+  if (error || !data.url) return eventVerificationReply(request, id, target, "failed");
 
-  await startEventFlow(id);
+  await startEventFlow(id, target);
   return NextResponse.redirect(data.url);
 }

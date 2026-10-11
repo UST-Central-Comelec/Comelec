@@ -1,0 +1,250 @@
+/* The RSVP and Evaluation form editor (event-form-editor.tsx): steps on the left, the open step on the right. */
+.form-builder { min-width: 0; }
+.form-builder-head { align-items: end; display: flex; flex-wrap: wrap; gap: 12px 16px; justify-content: space-between; margin-bottom: 20px; }
+.form-builder-head h2 { font-size: 18px; font-weight: 600; margin: 0; }
+.form-builder-head p { color: var(--p-muted); font-size: 13px; font-variant-numeric: tabular-nums; margin: 4px 0 0; }
+.form-builder-grid { align-items: start; border-top: 1px solid var(--p-line); display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+
+/* Steps */
+.form-builder-steps { border-right: 1px solid var(--p-line); padding: 20px 20px 20px 0; position: sticky; top: 16px; }
+.form-builder-steps ol { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.form-builder-steps li { align-items: flex-start; border-radius: 10px; display: flex; gap: 2px; position: relative; }
+.form-builder-steps li > button:not(.form-builder-grip) { flex: 1; min-width: 0; }
+.form-builder-steps li > .form-builder-grip { align-self: stretch; padding: 0; width: 22px; }
+.form-builder-steps li > span.form-builder-grip { align-items: center; display: inline-flex; justify-content: center; }
+.form-builder-steps li.is-drop-target { box-shadow: inset 0 0 0 1.5px var(--p-field-active-edge); }
+.form-builder-steps li.is-dragging, .form-builder-field.is-dragging { background: var(--p-raised); box-shadow: var(--p-shadow-pop); position: relative; z-index: 3; }
+.form-builder-steps li button { align-items: flex-start; background: transparent; border: 0; border-radius: 10px; color: var(--p-text); cursor: pointer; display: flex; font: inherit; gap: 12px; padding: 10px; text-align: left; transition: background .15s ease, color .15s ease; width: 100%; }
+.form-builder-steps li button:hover { background: rgba(var(--p-ink), .05); }
+.form-builder-steps li b { align-items: center; border: 1px solid var(--p-line-strong); border-radius: 7px; color: var(--p-muted); display: inline-flex; flex: none; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; height: 24px; justify-content: center; width: 24px; }
+.form-builder-steps li span { display: grid; gap: 2px; min-width: 0; }
+.form-builder-steps li strong { font-size: 13px; font-weight: 500; line-height: 1.4; overflow-wrap: break-word; }
+.form-builder-steps li small { align-items: center; color: var(--p-faint); display: flex; font-size: 12px; gap: 4px; }
+.form-builder-steps li button[aria-current] { background: var(--p-text); color: var(--p-on-bright); }
+.form-builder-steps li button[aria-current] b { background: var(--p-on-bright); border-color: transparent; color: var(--p-text); }
+.form-builder-steps li button[aria-current] small { color: inherit; opacity: .7; }
+.form-builder-add-step { align-items: center; background: transparent; border: 0; border-radius: 10px; color: var(--p-muted); cursor: pointer; display: flex; font: inherit; font-size: 13px; font-weight: 500; gap: 10px; margin-top: 8px; padding: 10px 14px; width: 100%; }
+.form-builder-add-step:hover:not(:disabled) { background: rgba(var(--p-ink), .05); color: var(--p-text); }
+.form-builder-add-step:disabled { cursor: not-allowed; opacity: .45; }
+
+/* The open step */
+.form-builder-panel { border: 0; display: grid; gap: 18px; margin: 0; min-width: 0; padding: 20px 0 4px 28px; }
+.form-builder-step-head { align-items: center; display: flex; gap: 12px; justify-content: space-between; min-height: 32px; }
+.form-builder-step-head .portal-index { align-items: center; display: flex; gap: 12px; margin: 0; }
+.form-builder-builtin { align-items: center; color: var(--p-muted); display: inline-flex; gap: 5px; }
+.form-builder-step-title input { font-size: 16px; font-weight: 600; }
+.form-builder textarea.portal-input { height: auto; line-height: 1.6; min-height: 66px; padding: 10px 13px; resize: vertical; }
+.form-builder .portal-field > span em { color: var(--p-faint); font-style: normal; font-weight: 400; margin-left: 4px; }
+.form-builder-tools { display: flex; flex: none; gap: 4px; }
+.form-builder-icon { align-items: center; background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--p-muted); cursor: pointer; display: inline-flex; flex: none; height: 32px; justify-content: center; padding: 0; transition: background .15s ease, border-color .15s ease, color .15s ease; width: 32px; }
+.form-builder-icon:hover:not(:disabled) { background: rgba(var(--p-ink), .07); border-color: var(--p-line); color: var(--p-text); }
+.form-builder-icon:disabled { cursor: not-allowed; opacity: .3; }
+
+.form-builder-standard { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 12px; color: var(--p-muted); display: flex; gap: 12px; padding: 14px 16px; }
+.form-builder-standard svg { flex: none; margin-top: 2px; }
+.form-builder-standard p { font-size: 13px; line-height: 1.55; margin: 0; }
+.form-builder-standard strong { color: var(--p-text); display: block; font-weight: 500; margin-bottom: 2px; }
+
+.form-builder-list-head { align-items: baseline; border-top: 1px solid var(--p-line); display: flex; gap: 10px; justify-content: space-between; margin-top: 6px; padding-top: 22px; }
+.form-builder-list-head h3 { font-size: 14px; font-weight: 600; margin: 0; }
+.form-builder-list-head span { color: var(--p-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.form-builder-empty { border: 1px dashed var(--p-line-strong); border-radius: 12px; color: var(--p-faint); font-size: 13px; margin: 0; padding: 22px; text-align: center; }
+.form-builder-add { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Questions */
+.form-builder-fields { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.form-builder-field { background: var(--p-surface); border: 1px solid var(--p-line); border-radius: 12px; transition: border-color .15s ease, box-shadow .2s ease; }
+.form-builder-field:hover { border-color: var(--p-line-strong); }
+.form-builder-field.is-open { border-color: var(--p-line-strong); box-shadow: inset 3px 0 0 var(--p-field-active-edge); }
+.form-builder-field.has-problem:not(.is-open) { border-color: var(--p-danger); }
+.form-builder-field-summary { align-items: center; background: transparent; border: 0; border-radius: 12px; color: var(--p-text); cursor: pointer; display: flex; font: inherit; gap: 14px; padding: 14px 16px; text-align: left; transition: background-color .15s ease; width: 100%; }
+.form-builder-field-number { color: var(--p-faint); flex: none; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 18px; }
+.form-builder-field-text { display: grid; flex: 1; gap: 3px; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.form-builder-field-text strong { font-size: 14px; font-weight: 500; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.form-builder-field-text strong em { color: var(--p-faint); font-style: normal; }
+.form-builder-field-text strong i { color: var(--p-danger); font-style: normal; margin-left: 3px; }
+.form-builder-field-text small { align-items: center; color: var(--p-muted); display: flex; flex-wrap: wrap; font-size: 12px; gap: 2px 6px; }
+.form-builder-field-text small svg { flex: none; }
+.form-builder-field-problem { color: var(--p-danger); }
+.form-builder-chevron { color: var(--p-faint); flex: none; transition: transform .2s var(--p-ease); }
+.is-open > .form-builder-field-top > .form-builder-field-summary .form-builder-chevron { transform: rotate(180deg); }
+.form-builder-field-body { border-top: 1px solid var(--p-line); padding: 18px 16px 14px 48px; }
+.form-builder-field-editor { display: grid; gap: 18px; min-width: 0; }
+.form-builder-field-row { align-items: start; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 210px; }
+.form-builder-label { color: var(--p-text); display: block; font-size: 14px; margin-bottom: 8px; }
+
+.form-builder-choices ol { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.form-builder-choices li { align-items: center; display: flex; gap: 10px; }
+.form-builder-choices li .portal-input { flex: 1; height: 38px; min-width: 0; }
+.form-builder-choices li .form-builder-icon { height: 28px; width: 28px; }
+.form-builder-marker { border: 1.5px solid var(--p-faint); flex: none; height: 16px; width: 16px; }
+.form-builder-marker.is-radio { border-radius: 50%; }
+.form-builder-marker.is-checkbox { border-radius: 4px; }
+.form-builder-marker.is-dropdown { border: 0; color: var(--p-faint); font-size: 12px; font-variant-numeric: tabular-nums; height: auto; text-align: right; }
+.form-builder-add-choice { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--p-muted); cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; gap: 8px; margin-top: 6px; padding: 8px 0 8px 2px; }
+.form-builder-add-choice:hover:not(:disabled) { color: var(--p-text); }
+.form-builder-add-choice:disabled { cursor: not-allowed; opacity: .45; }
+
+.form-builder-scale { display: grid; gap: 6px; grid-template-columns: repeat(5, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
+.form-builder-scale li { align-items: center; border: 1px solid var(--p-line); border-radius: 10px; display: grid; gap: 4px; justify-items: center; padding: 10px 6px; text-align: center; }
+.form-builder-scale b { font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.form-builder-scale small { color: var(--p-faint); font-size: 11px; line-height: 1.3; }
+
+.form-builder-problem { color: var(--p-danger); font-size: 13px; margin: 0; }
+.form-builder-field-foot { align-items: center; border-top: 1px solid var(--p-line); display: flex; gap: 12px; justify-content: space-between; padding-top: 12px; }
+.form-builder-required { align-items: center; cursor: pointer; display: inline-flex; font-size: 13px; gap: 10px; }
+.form-builder-note { color: var(--p-faint); font-size: 13px; }
+
+/* Conditional questions */
+.form-builder-choices-head { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; margin-bottom: 8px; }
+.form-builder-choices-head .form-builder-label { margin: 0; }
+.form-builder-conditional { align-items: flex-start; cursor: pointer; display: flex; gap: 10px; }
+.form-builder-conditional strong { align-items: center; display: flex; font-size: 13px; font-weight: 500; gap: 6px; }
+.form-builder-conditional small { color: var(--p-muted); display: block; font-size: 12px; }
+.form-builder-leads { align-items: center; display: grid; gap: 10px; grid-template-columns: auto minmax(0, 1fr); padding-top: 2px; }
+.form-builder-leads > span { color: var(--p-muted); font-size: 12px; white-space: nowrap; }
+.form-builder-leads .portal-dropdown > button { min-height: 34px; padding-block: 6px; }
+.form-builder-choices li:has(.form-builder-leads) { align-items: flex-start; padding-bottom: 8px; }
+.form-builder-choices li:has(.form-builder-leads) .form-builder-marker { margin-top: 11px; }
+.form-builder-head-actions .portal-filters button { align-items: center; display: inline-flex; gap: 6px; }
+
+/* Default questions, and putting the form back */
+.form-builder-head-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-left: auto; }
+.form-builder-head-actions .portal-form-actions { margin-left: 0; }
+.form-builder-head-actions .portal-button.is-small { box-sizing: border-box; flex: 0 0 140px; font-size: 12px; height: 32px; min-height: 32px; padding: 6px 12px; width: 140px; }
+.form-builder-head-rule { align-self: stretch; background: var(--p-line); margin: 4px 4px; width: 1px; }
+.form-builder-reset { align-items: center; display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: flex-end; max-width: 560px; }
+.form-builder-reset > span { color: var(--p-muted); font-size: 13px; line-height: 1.45; text-align: right; }
+.form-builder-fixed { align-items: center; border: 1px solid var(--p-line); border-radius: 12px; color: var(--p-muted); display: flex; font-size: 13px; gap: 8px; line-height: 1.35; margin: 0; min-height: 42px; padding: 8px 13px; }
+.form-builder-fixed svg { flex: none; }
+.form-builder-condition { align-items: flex-start; color: var(--p-muted); display: flex; font-size: 13px; gap: 8px; line-height: 1.5; margin: -4px 0 0; }
+.form-builder-condition svg { flex: none; margin-top: 3px; }
+.form-builder-condition strong { color: var(--p-text); font-weight: 500; }
+.form-builder-field-flag { align-items: center; display: inline-flex; gap: 4px; }
+.form-builder-choice-text { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.form-builder-choices .form-builder-choice-text .portal-input { width: 100%; }
+.form-builder .form-builder-choices textarea.form-builder-choice-note { color: var(--p-muted); field-sizing: content; font-size: 13px; line-height: 1.5; min-height: 0; padding: 7px 13px; resize: none; }
+.form-builder-choices li:has(.form-builder-choice-note) { align-items: flex-start; padding-bottom: 6px; }
+.form-builder-choices li:has(.form-builder-choice-note) .form-builder-marker { margin-top: 11px; }
+.form-builder-choices > .form-builder-note { display: block; margin: 10px 0 0; }
+.form-builder .portal-field > small { color: var(--p-muted); font-size: 12px; line-height: 1.5; }
+
+/* Dragging: a grip on each step and question */
+.form-builder-grip { align-items: center; align-self: stretch; background: none; border: 0; border-radius: 8px; color: var(--p-faint); cursor: grab; display: inline-flex; flex: none; justify-content: center; padding: 0; touch-action: none; width: 22px; }
+.form-builder-grip:hover { background: rgba(var(--p-ink), .06); color: var(--p-text); }
+.form-builder-grip:active { cursor: grabbing; }
+.form-builder-grip.is-pinned { color: var(--p-faint); cursor: default; opacity: .7; }
+.form-builder-grip.is-pinned:hover { background: none; }
+.form-builder-field-top { align-items: stretch; display: flex; padding-left: 6px; }
+.form-builder-field-top .form-builder-field-summary { flex: 1; min-width: 0; padding-left: 6px; }
+.form-builder-field-thumb { border-radius: 6px; flex: none; height: 36px; object-fit: cover; width: 54px; }
+
+/* Answer settings: ticks, counters, sizes */
+.form-builder-settings { border: 1px solid var(--p-line); border-radius: 12px; display: grid; gap: 10px; padding: 14px 16px; }
+.form-builder-settings .form-builder-label { margin: 0; }
+.form-builder-settings > .form-builder-note { margin: 0; }
+.form-builder-ticks { display: grid; gap: 10px 18px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.form-builder-tick { align-items: flex-start; cursor: pointer; display: flex; font-size: 13px; gap: 10px; line-height: 1.4; }
+.form-builder-tick input { accent-color: var(--p-text); flex: none; height: 16px; margin: 1px 0 0; width: 16px; }
+.form-builder-tick strong { display: block; font-weight: 500; }
+.form-builder-tick small { color: var(--p-muted); display: block; font-size: 12px; margin-top: 2px; }
+.form-builder-tick.is-disabled { cursor: not-allowed; opacity: .45; }
+.form-builder-counters { display: flex; flex-wrap: wrap; gap: 12px 24px; grid-column: 1 / -1; }
+.form-builder-counter { align-items: center; display: flex; font-size: 13px; gap: 8px; }
+.form-builder-counter > span { color: var(--p-soft); margin-right: 4px; }
+.form-builder-counter button { align-items: center; background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 8px; color: var(--p-text); cursor: pointer; display: inline-flex; height: 28px; justify-content: center; width: 28px; }
+.form-builder-counter button:hover:not(:disabled) { border-color: var(--p-field-active-edge); }
+.form-builder-counter button:disabled { cursor: not-allowed; opacity: .35; }
+.form-builder-counter output { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 18px; text-align: center; }
+.form-builder-segment { background: rgba(var(--p-ink), .04); border: 1px solid var(--p-line); border-radius: 10px; display: inline-flex; gap: 2px; padding: 3px; width: max-content; }
+.form-builder-segment button { background: none; border: 0; border-radius: 7px; color: var(--p-muted); cursor: pointer; font: inherit; font-size: 13px; padding: 6px 14px; }
+.form-builder-segment button[aria-checked="true"] { background: var(--p-text); color: var(--p-on-bright); }
+.form-builder-segment button:disabled { cursor: not-allowed; opacity: .45; }
+.form-builder-tags { color: var(--p-muted); display: flex; flex-wrap: wrap; font-size: 12px; gap: 6px; margin: -6px 0 0; }
+.form-builder-tags code { background: var(--p-surface-2); border-color: var(--p-line); color: var(--p-text); }
+
+/* Images */
+.form-builder-image { align-items: center; background: rgba(var(--p-ink), .03); border: 1.5px dashed var(--p-line-strong); border-radius: 12px; display: grid; gap: 12px; justify-items: center; min-height: 150px; padding: 18px; text-align: center; }
+.form-builder-image > span { align-items: center; color: var(--p-muted); display: grid; font-size: 13px; gap: 8px; justify-items: center; }
+.form-builder-image.has-image { border-style: solid; }
+.form-builder-image img { border-radius: 8px; max-height: 260px; max-width: 100%; object-fit: contain; }
+
+/* The Preview form: the public form's own styles, in the portal's colours */
+.form-preview { display: grid; gap: 12px; }
+.form-preview-note { align-items: center; color: var(--p-muted); display: flex; font-size: 13px; gap: 8px; margin: 0; }
+.form-preview-frame { background: rgba(var(--p-ink), .025); border: 1px solid var(--p-line); border-radius: 16px; padding: clamp(12px, 3vw, 32px); }
+.portal-shell .ev-form-preview { --ev-bg: var(--p-surface); --ev-ink: var(--p-ink); --ev-base: var(--p-base); --ev-surface: var(--p-surface); --ev-raised: var(--p-surface); --ev-text: var(--p-text); --ev-bright: var(--p-bright); --ev-soft: var(--p-soft); --ev-muted: var(--p-muted); --ev-faint: var(--p-faint); --ev-placeholder: var(--p-placeholder); --ev-line: var(--p-line); --ev-line-strong: var(--p-line-strong); --ev-gold: var(--p-gold); --ev-gold-mark: var(--p-gold-mark); --ev-gold-edge: var(--p-gold-edge); --ev-gold-rgb: var(--p-gold-rgb); --ev-on-bright: var(--p-on-bright); --ev-danger-ink: var(--p-danger-ink); --ev-danger: var(--p-danger); --ev-action: var(--p-action); --ev-on-action: var(--p-on-action); --ev-action-shadow: var(--p-action-shadow); --ev-action-shadow-hover: var(--p-action-shadow-hover); --ev-action-sheen: var(--p-action-sheen); --ev-gold-light: var(--p-gold-light); --ev-shadow: var(--p-shadow-card); --ev-shadow-pop: var(--p-shadow-pop); --ev-glass: var(--p-glass); background: transparent; margin: 0 auto; max-width: 860px; min-height: 0; padding: 0; }
+.portal-shell .ev-form-preview .ev-evaluation-card { box-shadow: var(--p-shadow-card); }
+
+/* The form's link, its copy button and its QR code (event-form-links.tsx) */
+.portal-event-editor-bar { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; margin-bottom: 24px; }
+.portal-event-editor-bar > .portal-filters { margin: 0; }
+.portal-event-editor-view { margin-left: auto; }
+.portal-event-editor-view > .portal-filters { margin: 0; }
+.portal-form-links { align-items: center; display: flex; gap: 8px; min-width: 0; position: relative; }
+.portal-form-links-label { color: var(--p-muted); font-size: 13px; }
+.portal-form-links-url { color: var(--p-text); font-size: 13px; max-width: min(42vw, 420px); overflow: hidden; text-decoration: underline; text-decoration-color: var(--p-line-strong); text-overflow: ellipsis; text-underline-offset: 3px; white-space: nowrap; }
+.portal-form-links-url:hover { text-decoration-color: currentColor; }
+.portal-qr-panel { background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 16px; box-shadow: var(--p-shadow-pop); display: grid; gap: 14px; padding: 18px; position: absolute; right: 0; top: calc(100% + 10px); width: 320px; z-index: 30; }
+.portal-qr-title { align-items: baseline; display: flex; gap: 8px; justify-content: space-between; margin: 0; }
+.portal-qr-title strong { font-size: 14px; }
+.portal-qr-title span { color: var(--p-muted); font-size: 12px; }
+.portal-qr-preview { align-items: center; aspect-ratio: 1; border: 1px solid var(--p-line); border-radius: 12px; display: grid; justify-items: center; overflow: hidden; }
+.portal-qr-preview > span { display: block; width: 100%; }
+.portal-qr-preview svg { display: block; height: auto; width: 100%; }
+.portal-qr-preview.is-white { background: #fff; }
+.portal-qr-preview.is-black { background: #000; }
+.portal-qr-preview.is-transparent { background: repeating-conic-gradient(rgba(var(--p-ink), .1) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+/* A white code on no background is previewed over dark squares, so it can be seen. */
+.portal-qr-preview.is-transparent.is-ink-white { background: repeating-conic-gradient(#2b2b31 0 25%, #1c1c21 0 50%) 0 0 / 16px 16px; }
+.portal-qr-loading { color: var(--p-muted); font-size: 13px; text-align: center; }
+.portal-qr-presets { display: grid; gap: 10px; }
+.portal-qr-segment { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
+.portal-qr-segment > span { color: var(--p-soft); font-size: 12px; }
+.portal-qr-segment > div { background: rgba(var(--p-ink), .04); border: 1px solid var(--p-line); border-radius: 9px; display: flex; gap: 2px; padding: 2px; }
+.portal-qr-segment button { background: none; border: 0; border-radius: 7px; color: var(--p-muted); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 9px; }
+.portal-qr-segment button[aria-checked="true"] { background: var(--p-text); color: var(--p-on-bright); }
+.portal-qr-actions { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; }
+.portal-qr-actions .portal-button { justify-content: center; }
+.portal-qr-actions .portal-button:last-child { grid-column: 1 / -1; }
+.portal-qr-confirm { border: 1px solid var(--p-line); border-radius: 12px; display: grid; gap: 10px; padding: 12px; }
+.portal-qr-confirm p { color: var(--p-soft); font-size: 13px; line-height: 1.5; margin: 0; }
+.portal-qr-confirm div { display: flex; gap: 6px; }
+.portal-qr-url { color: var(--p-faint); font-size: 12px; margin: 0; overflow-wrap: anywhere; }
+.portal-qr-url span { color: var(--p-muted); }
+
+@media (max-width: 900px) {
+	.form-builder-grid { border-top: 0; grid-template-columns: minmax(0, 1fr); }
+	.form-builder-steps { border-bottom: 1px solid var(--p-line); border-right: 0; display: flex; gap: 8px; margin-inline: -4px; overflow-x: auto; padding: 0 4px 14px; position: static; scrollbar-width: none; }
+	.form-builder-steps ol { display: flex; gap: 6px; }
+	.form-builder-steps li button { align-items: center; padding: 8px 12px 8px 8px; white-space: nowrap; width: auto; }
+	.form-builder-steps li small { display: none; }
+	.form-builder-add-step { margin: 0; padding: 8px 12px; white-space: nowrap; width: auto; }
+	.form-builder-panel { padding: 20px 0 4px; }
+}
+@media (max-width: 600px) {
+	.portal-form-links { flex-wrap: wrap; width: 100%; }
+	.portal-form-links-url { max-width: calc(100vw - 120px); }
+	.portal-qr-panel { left: 0; right: auto; width: min(320px, calc(100vw - 48px)); }
+	.form-builder-head-actions { justify-content: flex-start; margin-left: 0; width: 100%; }
+	.form-builder-head-rule { display: none; }
+	.form-builder-reset { justify-content: flex-start; }
+	.form-builder-reset > span { text-align: left; }
+	.form-builder-field-body { padding: 16px 14px 12px; }
+	.form-builder-field-row { grid-template-columns: minmax(0, 1fr); }
+	.form-builder-scale { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+	.form-builder-scale small { display: none; }
+}
+
+/* Daylight: question cards lift off the white panel, the open one more, and the step list reads as a column of its own. */
+:where([data-theme="light"]) .form-builder-steps li b { background: var(--ui-panel); box-shadow: 0 1px 2px rgba(16,24,40,.06); }
+:where([data-theme="light"]) .form-builder-steps li button:hover:not([aria-current]) { background: var(--p-surface-2); }
+:where([data-theme="light"]) .form-builder-field { box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.04); }
+:where([data-theme="light"]) .form-builder-field:hover { border-color: var(--p-line-strong); box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 12px -4px rgba(16,24,40,.12); }
+:where([data-theme="light"]) .form-builder-field.is-open { box-shadow: inset 3px 0 0 var(--p-field-active-edge), 0 2px 4px rgba(16,24,40,.05), 0 16px 32px -16px rgba(16,24,40,.22); }
+:where([data-theme="light"]) .form-builder-field-summary:is(:hover, :focus-visible) { background-color: var(--p-surface-2); color: var(--p-text); }
+:where([data-theme="light"]) .form-builder-field.is-open > .form-builder-field-top > .form-builder-field-summary { border-radius: 12px 12px 0 0; }
+:where([data-theme="light"]) .form-builder-field-body { background: linear-gradient(var(--ui-panel-tint), var(--ui-panel) 72px); border-radius: 0 0 12px 12px; }
+:where([data-theme="light"]) .form-builder-field-number { color: var(--p-muted); }
+:where([data-theme="light"]) .form-builder-fixed { background: var(--p-surface-2); }
+:where([data-theme="light"]) .form-builder-empty { background: var(--p-surface-2); }

@@ -8,7 +8,7 @@ import { sendAnnouncement } from "@/lib/portal/inbox-actions";
 import { DocumentBodyField } from "./document-body-field";
 
 export function AnnouncementComposer({ broadcast, unit }: { broadcast: boolean; unit: string }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(sendAnnouncement);
+  const { pending, onSubmit, errors } = usePortalForm(sendAnnouncement);
   const hydrated = useHydrated();
   const [body, setBody] = useState("");
   return (
@@ -23,7 +23,6 @@ export function AnnouncementComposer({ broadcast, unit }: { broadcast: boolean; 
           <DocumentBodyField value={body} onChange={setBody} invalid={Boolean(errors.body)} label="Message editor" windowTitle="Edit message" />
           {errors.body && <span className="portal-field-error">{errors.body}</span>}
         </div>
-        {state?.error && <p className="portal-form-error" role="alert">{state.error}</p>}
         <div className="portal-announcement-form-actions"><Link className="portal-button is-ghost" href="/portal/apps/inbox">Cancel</Link><button type="submit" className="portal-button" disabled={!hydrated || pending}><Send size={15} aria-hidden="true" />{pending ? "Sending…" : "Send announcement"}</button></div>
       </form>
   );

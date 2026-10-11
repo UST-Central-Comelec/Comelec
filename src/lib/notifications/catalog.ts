@@ -6,6 +6,8 @@ import { approvalRequestEmail, revisionPublishedEmail, revisionReturnedEmail, re
 import type { RevisionSummary } from "@/lib/codes/options";
 import type { Email } from "@/lib/email/send";
 import { changeRequestEmail, registrationEmail, requestDecisionsEmail } from "@/lib/events/emails";
+import { acknowledgementEmail, rsvpReceiptEmail } from "@/lib/events/rsvp-emails";
+import { evaluationAcknowledgement } from "@/lib/events/evaluation";
 import type { CommissionEvent } from "@/lib/events/options";
 import { filingReceivedEmail, filingResultEmail, type Filing } from "@/lib/filings/emails";
 import { petitionNoticeEmail, petitionReceivedEmail, type Petition } from "@/lib/petitions/emails";
@@ -19,6 +21,8 @@ import { emailKeys, type EmailKey } from "./switches";
 // → Automatic lists, each with its switch, and shows with made-up details. Each one's `id` is its
 // switch (./switches.ts). The samples are built by the same code that sends the real ones, so the
 // page shows what a recipient would see.
+
+import type { OnboardingSettings } from "@/lib/applications/onboarding";
 
 export type AutomaticEmail = {
   /** Its switch. */
@@ -34,7 +38,7 @@ export type AutomaticEmail = {
   waiting?: boolean;
   /** What to know before switching it on, for one that's off to begin with. */
   caution?: string;
-  sample: (concern: Concern) => Email;
+  sample: (concern: Concern, onboarding?: OnboardingSettings) => Email;
 };
 
 export type AutomaticGroup = { label: string; emails: AutomaticEmail[] };
@@ -184,7 +188,7 @@ export const automaticEmails: AutomaticGroup[] = [
       {
         id: "access-approved",
         name: "Request approved",
-        when: "A request is approved under Accounts.",
+        when: "A request is approved under Accounts, or sent from an accepted applicant’s Join the Commission link.",
         to: () => "The requester",
         byUnit: true,
         sample: (concern) =>
@@ -221,7 +225,7 @@ export const automaticEmails: AutomaticGroup[] = [
         sample: (concern) =>
           applicationNoticeEmail(unitSample(concern), { ...applicant(concern), id: "00000000-0000-4000-8000-000000000000", name: "JUAN PAOLO R. DELA CRUZ", college: SAMPLE_COLLEGE, program: "Bachelor of Science in Biology, major in Medical Biology" }, { startsAt: "2026-10-12T01:00:00.000Z", durationMinutes: 30, mode: "online", location: "Google Meet" }),
       },
-      { id: "application-accepted", name: "Application accepted", when: "An application is marked Accepted with “Email the applicant” ticked.", to: applicantOnly, byUnit: true, sample: (concern) => resultEmail(applicant(concern), true) },
+      { id: "application-accepted", name: "Application accepted", when: "An application is marked Accepted with “Email the applicant” ticked.", to: applicantOnly, byUnit: true, sample: (concern, onboarding) => resultEmail(applicant(concern), true, onboarding) },
       { id: "application-declined", name: "Application rejected", when: "An application is marked Rejected with “Email the applicant” ticked.", to: applicantOnly, byUnit: true, sample: (concern) => resultEmail(applicant(concern), false) },
     ],
   },
@@ -278,6 +282,8 @@ export const automaticEmails: AutomaticGroup[] = [
   {
     label: "Events",
     emails: [
+      { id: "event-rsvp", name: "Collaborator RSVP received", when: "A collaborator submits the internal RSVP form.", to: () => "The collaborator who submitted the RSVP", byUnit: false, sample: () => rsvpReceiptEmail(person, event) },
+      { id: "event-evaluation", name: "Evaluation received", when: "Someone submits an event’s evaluation, when its form sends the acknowledgement email.", to: () => "The respondent, at their registration’s email", byUnit: false, sample: () => acknowledgementEmail(person.email, { ...evaluationAcknowledgement, email: true }, event, person.firstName, "Event evaluation") },
       { id: "event-registered", name: "Registered", when: "Someone registers for an event, whether or not they were on its waitlist first.", to: () => "Whoever registered, at the email they registered with", byUnit: false, sample: () => registrationEmail(person, event, "registered") },
       { id: "event-waitlisted", name: "On the waitlist", when: "Someone joins an event’s waitlist, while its registration hasn’t opened.", to: () => "Whoever joined, at the email they registered with", byUnit: false, sample: () => registrationEmail(person, event, "waitlisted") },
       {

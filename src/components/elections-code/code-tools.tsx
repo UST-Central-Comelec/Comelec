@@ -83,7 +83,7 @@ const termOf = (query: string) => {
  * The sections themselves are plain <details> rendered on the server (they open without JavaScript);
  * this works on them where they stand, so the Code's text isn't sent to the browser twice.
  */
-export function CodeTools({ pdf, total, name }: { pdf: string; total: number; name: string }) {
+export function CodeTools({ pdf, total, name }: { pdf?: string; total: number; name: string }) {
   const [query, setQuery] = useState("");
   const [found, setFound] = useState(total);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -169,7 +169,7 @@ export function CodeTools({ pdf, total, name }: { pdf: string; total: number; na
       <div className="ec-actions">
         <button type="button" className="bp-button is-ghost is-small" onClick={() => setAll(true)}><ChevronsUpDown size={15} aria-hidden="true" />Open all</button>
         <button type="button" className="bp-button is-ghost is-small" onClick={() => setAll(false)}><ChevronsDownUp size={15} aria-hidden="true" />Close all</button>
-        <a className="bp-button is-primary is-small" href={pdf} download><Download size={15} aria-hidden="true" />Download PDF</a>
+        {pdf && <a className="bp-button is-primary is-small" href={pdf} download><Download size={15} aria-hidden="true" />Download PDF</a>}
       </div>
     </div>
   );

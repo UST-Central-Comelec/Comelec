@@ -5,7 +5,13 @@ import { DeleteButton } from "@/components/portal/delete-button";
 import { EventForm } from "@/components/portal/event-form";
 import { ActingAs } from "@/components/portal/event-tags";
 import { allowed, withPortalUser } from "@/lib/auth/session";
+import { listCalendarHighlights } from "@/lib/calendar/store";
+import { settle } from "@/lib/portal/settle";
 import { canManageEvent, isOwn } from "@/lib/events/access";
+import { getEvaluationSettings } from "@/lib/events/evaluation-store";
+import { siteUrl } from "@/lib/email/template";
+import { getRsvpSettings } from "@/lib/events/rsvp-store";
+import { ensureQrCodes } from "@/lib/events/qr-codes";
 import { getEvent } from "@/lib/events/queries";
 import { countRegistrations } from "@/lib/events/registrations";
 import { deleteEvent, updateEvent } from "@/lib/portal/event-actions";
@@ -18,8 +24,11 @@ export default async function EditEventPage({ params }: PageProps<"/portal/event
   // The unit that organizes an event edits it, and so can the Central Executive Board; any other Central account reading a Local unit's event has no edit page.
   if (!event || !canManageEvent(user, event)) notFound();
 
+  // Opening the editor also makes any of the event's form QR codes that don't exist yet.
+  const [rsvpSettings, evaluationSettings] = await Promise.all([getRsvpSettings(id), getEvaluationSettings(id), ensureQrCodes(id).catch(() => undefined)]);
   const count = counts?.[event.id];
   const signUps = count ? count.registered + count.waitlisted : 0;
+  const highlights = await settle(listCalendarHighlights({ college: event.organizer === "local" ? event.college : null }));
 
   return (
     <main className="portal-page">
@@ -31,14 +40,21 @@ export default async function EditEventPage({ params }: PageProps<"/portal/event
       </header>
       <ActingAs unit={event}>{isOwn(user, event) ? "You’re editing this event as" : "You’re editing an event of the"}</ActingAs>
       <section className="portal-card">
+        {highlights.error && <p className="portal-form-error" role="alert">Calendar conflict checks are unavailable. {highlights.error}</p>}
         <EventForm
+          calendarHighlights={highlights.value ?? []}
           action={updateEvent.bind(null, event.id)}
           submitLabel="Save changes"
           cancelHref={`/portal/events/${event.id}`}
-          initial={{ name: event.name, summary: event.summary, background: event.background, eventDate: event.eventDate, endDate: event.endDate, ingressTime: event.ingressTime, startsTime: event.startsTime, endsTime: event.endsTime, egressTime: event.egressTime, venueMode: event.venueMode, venueDetails: event.venueDetails, openToStudents: event.openToStudents, openToExternals: event.openToExternals, openToAdmins: event.openToAdmins, registrationStatus: event.registrationStatus, requireGoogle: event.requireGoogle }}
+          initial={{ name: event.name, summary: event.summary, background: event.background, eventDate: event.eventDate, endDate: event.endDate, ingressTime: event.ingressTime, startsTime: event.startsTime, endsTime: event.endsTime, egressTime: event.egressTime, venueMode: event.venueMode, venueDetails: event.venueDetails, openToStudents: event.openToStudents, openToExternals: event.openToExternals, openToAdmins: event.openToAdmins, openToInternal: event.openToInternal, collaborators: event.collaborators, otherCollaborators: event.otherCollaborators, registrationStatus: event.registrationStatus, requireGoogle: event.requireGoogle }}
+          eventId={id}
+          baseUrl={siteUrl()}
+          evaluationSettings={evaluationSettings}
+          rsvpSettings={rsvpSettings}
           changeRequest={event.changeRequest}
           danger={
             <DeleteButton
+              key="delete-event"
               action={deleteEvent.bind(null, event.id)}
               label="Delete event"
               prompt={signUps > 0 ? `Delete it, and the ${signUps === 1 ? "registration" : `${signUps} registrations`} for it?` : "Delete permanently?"}

@@ -34,3 +34,6 @@ export type InboxMessage = {
   createdAt: string;
   readAt: string | null;
 };
+
+/** What the notification bell shows of a message: its body as a short line of text, worked out on the server. */
+export type InboxPreview = Omit<InboxMessage, "body"> & { preview: string };

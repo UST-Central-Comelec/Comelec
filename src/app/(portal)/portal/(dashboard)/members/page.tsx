@@ -5,9 +5,10 @@ import { CollegeFilter } from "@/components/portal/college-filter";
 import { DirectoryCards, type DirectoryCard } from "@/components/portal/directory-cards";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { allowed, canOpen, isLocal, withPortalUser } from "@/lib/auth/session";
+import { yearLevelsFor } from "@/lib/applications/options";
 import { detailsFor } from "@/lib/data/accounts";
 import { getAccounts, getDirectory } from "@/lib/data/queries";
-import { directoryGroups, type DirectoryEntry } from "@/lib/data/types";
+import { describeAffiliation, directoryGroups, type AccountSummary, type DirectoryEntry } from "@/lib/data/types";
 import { canManageAccount } from "@/lib/portal/account-scope";
 
 export const metadata: Metadata = { title: "Directory" };
@@ -35,9 +36,28 @@ export default async function PortalMembersPage({ searchParams }: PageProps<"/po
   // Active accounts that aren't listed because their role hasn't been picked, for whoever can pick it.
   const unlisted = manages ? accounts.filter((account) => account.active && !account.role && account.kind === "personal" && detailsFor(account.affiliation, account.position).role && (account.id === user.id || canManageAccount(user, account))) : [];
 
+  // A profile shows what the Directory knows of them, from their account. Student number and mobile
+  // number are for whoever manages the account (and the person themself), not every reader.
+  const byId = new Map(accounts.map((account) => [account.id, account]));
+  const profileOf = (person: DirectoryEntry, account: AccountSummary | undefined, reach: boolean) => {
+    const rows: Array<[string, string]> = [
+      ["Serves in", describeAffiliation(person.affiliation, person.college)],
+      ["Role", person.role],
+      ["Program", person.program ?? ""],
+      ["Year level", account?.yearLevel ? (yearLevelsFor(person.college)[account.yearLevel] ?? "") : ""],
+      ["UST email", person.email],
+      ["Facebook", person.facebookUrl ?? ""],
+      ...(reach ? ([["Student number", account?.studentNumber ?? ""], ["Mobile number", account?.contactNumber ?? ""]] as Array<[string, string]>) : []),
+    ];
+    return { rows: rows.filter(([, value]) => value), declarations: account?.declarations ?? [] };
+  };
+
   // Everyone listed is a commissioner, with a personal account.
   const cards = (people: DirectoryEntry[], subtitle: (person: DirectoryEntry) => string): DirectoryCard[] =>
-    people.map((person) => ({ id: person.id, name: person.name, email: person.email, facebookUrl: person.facebookUrl, photoUrl: person.photoUrl, subtitle: subtitle(person), manageable: manages && (person.id === user.id || canManageAccount(user, { ...person, kind: "personal" })) }));
+    people.map((person) => {
+      const manageable = manages && (person.id === user.id || canManageAccount(user, { ...person, kind: "personal" }));
+      return { id: person.id, name: person.name, email: person.email, facebookUrl: person.facebookUrl, photoUrl: person.photoUrl, subtitle: subtitle(person), manageable, profile: profileOf(person, byId.get(person.id), manageable || person.id === user.id) };
+    });
 
   const empty = (message: string) => <p className="portal-empty">{message}</p>;
   const automatic = <span className="portal-tag">From Accounts</span>;
@@ -46,7 +66,7 @@ export default async function PortalMembersPage({ searchParams }: PageProps<"/po
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Website content</p>
+          <p className="portal-eyebrow">Secretariat</p>
           <TitleWithInfo info={local
             ? "Your college’s Local Comelec, as shown in “Meet the commission” on the website’s About page. It’s filled in from Accounts: everyone with an active account and a role is listed, in order of rank. Its Chairperson and Central Representative also appear in the Chamber of Chairpersons and En Banc."
             : "The commission, as shown in “Meet the commission” on the website’s About page. It’s filled in from Accounts: everyone with an active account and a role is listed, in order of rank. Nobody is added here by hand. To add someone, or change how they’re listed, add or edit their account."}>Directory</TitleWithInfo>

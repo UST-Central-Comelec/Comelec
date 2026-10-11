@@ -107,13 +107,13 @@ type Props = {
  */
 export function RevisionView({ revision, user, holders, place, notice, show }: Props) {
   const { title, the, tab, path } = codes[revision.code];
-  const here = place === "approvals" ? `/portal/apps/approvals/${revision.id}` : `${tabHref(tab)}/revisions/${revision.id}`;
+  const here = place === "approval" ? `/portal/documents/approval/${revision.id}` : `${tabHref(tab)}/revisions/${revision.id}`;
   const state = describeRevision(revision);
   const draft = revision.status === "draft";
   const pending = revision.status === "pending";
   const edits = !user.readOnly && canEditCodes(user);
   // Signing happens under Approvals, which only the Central Executive Board has.
-  const office = !user.readOnly && canOpen(user, "apps/approvals") ? approverRoleOf(user) : null;
+  const office = !user.readOnly && canOpen(user, "documents/approval") ? approverRoleOf(user) : null;
   const awaited = awaitedRoles(revision);
   const diff = diffArticles(revision.baseArticles, revision.articles);
   const view = show === "text" ? "text" : "changes";
@@ -122,7 +122,7 @@ export function RevisionView({ revision, user, holders, place, notice, show }: P
     <main className="portal-page is-wide">
       <header className="portal-page-head">
         <div>
-          <Link className="portal-back" href={place === "approvals" ? tabHref("apps/approvals") : `${tabHref(tab)}?show=revisions`}>← {place === "approvals" ? "Approvals" : title}</Link>
+          <Link className="portal-back" href={place === "approval" ? tabHref("documents/approval") : `${tabHref(tab)}?show=revisions`}>← {place === "approval" ? "Approval" : title}</Link>
           <p className="portal-eyebrow">{title}</p>
           <h1>{revision.status === "approved" && revision.version ? `Version ${revision.version}` : "Revision"} of {the}</h1>
           <p className="portal-muted">Written against {revision.baseVersion > 0 ? `version ${revision.baseVersion}` : "the text as signed"} · {describeStats(revision.stats)}</p>

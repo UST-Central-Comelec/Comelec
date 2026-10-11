@@ -1,5 +1,5 @@
-// The Constitution and the Elections Code as the portal keeps them (Publications → Constitution,
-// Publications → Elections Code): who may write a revision, who signs it, and what a revision is.
+// The Constitution and the Elections Code as the portal keeps them (Charters → Constitution,
+// Charters → Elections Code): who may write a revision, who signs it, and what a revision is.
 //
 // Neither text is edited in place. A change is written as a revision by the commission's legal
 // officers, sent for approval, and signed by the Chairperson, the Vice Chairperson and the Secretary
@@ -20,8 +20,9 @@ type CentralRole = (typeof centralRoles)[number];
  * on the website calls it when searching ("Search the Code"), and `path` that page.
  */
 export const codes = {
-  constitution: { tab: "codes/constitution", title: "Constitution", the: "the Constitution", name: "Constitution", path: "/constitution" },
-  "elections-code": { tab: "codes/elections-code", title: "Elections Code", the: "the Elections Code", name: "Code", path: "/elections-code" },
+  constitution: { tab: "charters/constitution", title: "Constitution", the: "the Constitution", name: "Constitution", path: "/constitution" },
+  "elections-code": { tab: "charters/elections-code", title: "Elections Code", the: "the Elections Code", name: "Code", path: "/elections-code" },
+  "magna-carta": { tab: "charters/magna-carta", title: "Magna Carta", the: "the Magna Carta", name: "Magna Carta", path: "/magna-carta" },
 } as const satisfies Record<string, { tab: TabKey; title: string; the: string; name: string; path: string }>;
 
 export type CodeKey = keyof typeof codes;

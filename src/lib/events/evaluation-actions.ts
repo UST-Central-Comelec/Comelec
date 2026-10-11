@@ -1,9 +1,13 @@
 "use server";
 
+import { readEventPass } from "./verification";
+import { isUstAffiliation } from "./options";
+import { acknowledgementOf, keptAnswers, respondentEmail, validateEditorAnswers, type FormAnswers } from "./form-editor";
+import { acknowledgementEmail } from "./rsvp-emails";
+import { sendAutomatic } from "@/lib/notifications/notify";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
-import { z } from "zod";
 import { containsEmoji, personNamePattern } from "@/lib/forms/input";
 import { requireEditor } from "@/lib/auth/session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
@@ -12,14 +16,13 @@ import { canManageEvent } from "./access";
 import { getEvent, getEventForSite } from "./queries";
 import { findEventRegistrationByReference, getRegistration, listRegistrations } from "./registrations";
 import { getEvaluationSettings, hasEvaluationResponse } from "./evaluation-store";
-import { applyEvaluationRequirements, maxEvaluationQuestions, normalizeName, type EvaluationSettings } from "./evaluation";
+import { defaultEvaluationSteps, evaluationDefinition, applyEvaluationRequirements, evaluationSettingsSchema as settingsSchema, normalizeName, type EvaluationSettings } from "./evaluation";
 
 import { affiliationDetails, participationDetails, type RegistrationDetailGroup } from "./registration-details";
 
-export type EvaluationState = { error?: string; success?: boolean; alreadySubmitted?: boolean };
+export type EvaluationState = { error?: string; success?: boolean; alreadySubmitted?: boolean; name?: string };
 export type EvaluationProfileState = { error?: string; alreadySubmitted?: boolean };
 const alreadyAnswered = "You’ve already answered this evaluation. Your response has been recorded. Thank you for your feedback.";
-const settingsSchema = z.object({ enabled: z.boolean(), allowAnonymous: z.boolean(), questions: z.array(z.object({ id: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/), section: z.union([z.literal(1), z.literal(2), z.literal(3)]), label: z.string().trim().min(1).max(200), prompt: z.string().trim().min(1).max(1000), kind: z.enum(["rating", "text"]), required: z.boolean() })).max(maxEvaluationQuestions) });
 async function manager(eventId: string) {
   const user = await requireEditor("events");
   const event = await getEvent(eventId);
@@ -35,7 +38,7 @@ export async function saveEvaluationForm(eventId: string, settings: EvaluationSe
   if (!parsed.success || new Set(settings.questions.map(q => q.id)).size !== settings.questions.length) return { error: "Check the questions. Labels and prompts are required, with unique question IDs." };
   if (parsed.data.enabled && parsed.data.questions.length === 0) return { error: "Add at least one question before opening the evaluation form." };
   const settingsToSave = applyEvaluationRequirements(parsed.data);
-  const { error } = await createAdminClient().from("event_evaluation_forms").upsert({ event_id: eventId, enabled: settingsToSave.enabled, allow_anonymous: settingsToSave.allowAnonymous, questions: settingsToSave.questions, updated_at: new Date().toISOString() });
+  const { error } = await createAdminClient().from("event_evaluation_forms").upsert({ event_id: eventId, require_google: settingsToSave.requireGoogle ?? false, enabled: settingsToSave.enabled, allow_anonymous: settingsToSave.allowAnonymous, questions: settingsToSave.questions, steps: settingsToSave.steps ?? null, updated_at: new Date().toISOString() });
   if (error) return { error: "Couldn’t save the form. Check migration 0031 and try again." };
   refreshEvent(eventId);
   return { success: true };
@@ -62,13 +65,23 @@ async function resolveEvaluationProfile(eventId: string, form: FormData): Promis
   return { registrationId: registration.id };
 }
 
+async function evaluationVerificationError(eventId: string, registrationId: string | null) {
+  const registration = registrationId ? await getRegistration(registrationId) : null;
+  if (registrationId && (!registration || registration.eventId !== eventId)) return "This registration is no longer available.";
+  if (registration && !isUstAffiliation(registration.affiliation) && !registration.email.toLowerCase().endsWith("@ust.edu.ph")) return null;
+  const pass = await readEventPass(eventId);
+  return !pass || (registration && pass.email !== registration.email.trim().toLowerCase()) ? "Verify your UST Google account before continuing. Use the account on your registration." : null;
+}
+
 export async function checkEvaluationProfile(eventId: string, form: FormData): Promise<EvaluationProfileState> {
   if (!rateLimit(`event-evaluation-profile:${clientIp(await headers())}`, limits.eventRegister.limit, limits.eventRegister.windowMs).ok) return { error: "Too many checks. Please wait a few minutes and try again." };
   try {
     if (!await getEventForSite(eventId)) return { error: "This event is no longer available." };
-    if (!(await getEvaluationSettings(eventId)).enabled) return { error: "This evaluation form is closed." };
+    const settings = await getEvaluationSettings(eventId);
+    if (!settings.enabled) return { error: "This evaluation form is closed." };
     const profile = await resolveEvaluationProfile(eventId, form);
     if ("error" in profile) return profile;
+    if (settings.requireGoogle) { const error = await evaluationVerificationError(eventId, profile.registrationId); if (error) return { error }; }
     return { alreadySubmitted: await hasEvaluationResponse(eventId, profile.registrationId) };
   } catch (error) {
     unstable_rethrow(error);
@@ -81,23 +94,29 @@ export async function submitEvaluation(eventId: string, _state: EvaluationState,
   try {
     const event = await getEventForSite(eventId);
     if (!event) return { error: "This event is no longer available." };
-    const settings = await getEvaluationSettings(eventId);
+    // Forms saved before the consent step existed gain it here too, so every response is checked against, and keeps, the full form.
+    const settings = applyEvaluationRequirements(await getEvaluationSettings(eventId));
     if (!settings.enabled) return { error: "This evaluation form is closed." };
     const anonymous = form.get("anonymous") === "on";
     if (anonymous && !settings.allowAnonymous) return { error: "Anonymous responses are not enabled for this event." };
-    const answers: Record<string, string | number> = {};
+    const values: FormAnswers = Object.fromEntries(settings.questions.map(question => [question.id, question.kind === "checkbox" ? form.getAll(question.id).map(value => String(value).trim()) : String(form.get(question.id) ?? "").trim()]));
+    const definition = evaluationDefinition(settings);
+    const invalid = validateEditorAnswers(definition, values);
+    if (invalid) return { error: invalid };
+    // Questions hidden by a conditional choice weren't asked, so they aren't recorded; the rest are tidied (capitals, spaces).
+    const kept = keptAnswers(definition, values);
+    const answers: Record<string, string | number | string[]> = {};
     for (const question of settings.questions) {
-      const value = String(form.get(question.id) ?? "").trim();
-      if (containsEmoji(value)) return { error: "Emoji aren’t allowed in evaluation answers." };
-      if (question.required && !value) return { error: `Please answer: ${question.label}.` };
-      if (!value) continue;
-      if (question.kind === "rating") {
-        if (!/^[1-5]$/.test(value)) return { error: `Choose a rating from 1 to 5 for ${question.label}.` };
-        answers[question.id] = Number(value);
-      } else {
-        if (value.length > 4000) return { error: "Keep each written answer under 4,000 characters." };
-        answers[question.id] = value;
-      }
+      const value = kept[question.id];
+      if (value === undefined) continue;
+      if ((Array.isArray(value) ? value : [value]).some(text => containsEmoji(text))) return { error: "Emoji aren’t allowed in evaluation answers." };
+      answers[question.id] = question.kind === "rating" ? Number(value) : value;
+    }
+    // An Email question asking for UST Google verification must match the account verified on this browser.
+    const verified = settings.questions.filter(question => question.kind === "email" && question.verifyUst && typeof kept[question.id] === "string");
+    if (verified.length) {
+      const pass = await readEventPass(eventId);
+      if (!pass || verified.some(question => kept[question.id] !== pass.email)) return { error: "Verify your UST Google account before submitting. The email must match the verified account." };
     }
     let registrationId: string | null = null;
     if (!anonymous) {
@@ -106,11 +125,18 @@ export async function submitEvaluation(eventId: string, _state: EvaluationState,
       registrationId = profile.registrationId;
       if (await hasEvaluationResponse(eventId, registrationId)) return { error: alreadyAnswered, alreadySubmitted: true };
     }
-    const { error } = await createAdminClient().from("event_evaluation_responses").insert({ event_id: eventId, registration_id: registrationId, anonymous, answers, questions: settings.questions });
+    if (settings.requireGoogle) { const error = await evaluationVerificationError(eventId, registrationId); if (error) return { error }; }
+    const { error } = await createAdminClient().from("event_evaluation_responses").insert({ event_id: eventId, registration_id: registrationId, anonymous, answers, questions: settings.questions, steps: settings.steps ?? defaultEvaluationSteps });
     if (error?.code === "23505") return { error: alreadyAnswered, alreadySubmitted: true };
     if (error) throw error;
     refreshEvent(eventId);
-    return { success: true };
+    // The acknowledgement email, when it's on: to the registration's email, or the first email answered.
+    const registration = registrationId ? await getRegistration(registrationId) : null;
+    const to = registration?.email ?? respondentEmail(definition, kept);
+    const name = registration?.firstName ?? "";
+    const acknowledgement = acknowledgementOf(definition);
+    if (acknowledgement?.email && to) await sendAutomatic("event-evaluation", () => acknowledgementEmail(to, acknowledgement, event, name, "Event evaluation"));
+    return { success: true, name };
   } catch (error) {
     unstable_rethrow(error);
     return { error: "Couldn’t submit the evaluation. Please try again." };

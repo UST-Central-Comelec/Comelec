@@ -102,6 +102,13 @@ export function isAllowedEmail(email: string) {
   return email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 }
 
+/**
+ * Every account and the access settings, read once per request: the access check, the profile
+ * menu's memberships and the pages' own checks all share it. (Outside a page render, such as in a
+ * route handler, each call reads afresh.)
+ */
+const loadAccounts = cache(() => Promise.all([store.list("accounts"), getAccessOverrides()]));
+
 /** Decides whether a Google-verified email may use the portal, and as whom. */
 export async function checkAccess(emailInput: string, googleName?: string, selectedAccountId?: string): Promise<{ user: PortalUser } | { denied: AccessDenied }> {
   const email = emailInput.trim().toLowerCase();
@@ -109,7 +116,7 @@ export async function checkAccess(emailInput: string, googleName?: string, selec
 
   // The end-of-school-year clean-up, if its date has passed, before anyone is let in.
   await sweepExpiredAccounts(builtInEmail());
-  const [accounts, overrides] = await Promise.all([store.list("accounts"), getAccessOverrides()]);
+  const [accounts, overrides] = await loadAccounts();
   const memberships = accounts.filter((item) => item.email.trim().toLowerCase() === email).map(toSummary);
   // A cookie can select only an active membership belonging to this authenticated email.
   const selected = memberships.find((item) => item.active && item.id === selectedAccountId);
@@ -175,7 +182,7 @@ export const getPortalUser = cache(async (): Promise<PortalUser | null> => {
 /** Active memberships for the authenticated Google email, for the profile menu and switch action. */
 export async function getPortalMemberships(): Promise<PortalUser[]> {
   const user = await requirePortalUser();
-  const [accounts, overrides] = await Promise.all([store.list("accounts"), getAccessOverrides()]);
+  const [accounts, overrides] = await loadAccounts();
   const own = accounts.map(toSummary).filter((account) => account.email.trim().toLowerCase() === user.email.trim().toLowerCase());
   const memberships = own.filter((account) => account.active).map((account) => isBuiltInEmail(user.email) && account.affiliation === "central"
     ? builtInUser(undefined, account)!

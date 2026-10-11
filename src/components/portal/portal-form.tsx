@@ -4,15 +4,19 @@ import Link from "next/link";
 import { startTransition, useActionState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import type { FormState } from "@/lib/portal/form";
 import { InfoTip } from "./info-tip";
+import { useToast } from "./toast";
 
 type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
 
 /**
  * Submits through `onSubmit` rather than `<form action>` so React doesn't reset the fields when
- * the server sends back validation errors — commissioners keep what they typed.
+ * the server sends back validation errors — commissioners keep what they typed. The action's
+ * `error` pops up on the header (toast.tsx), so a form doesn't show it too.
  */
 export function usePortalForm(action: FormAction) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  // What went wrong pops up on the header; the fields' own errors stay beside them.
+  useToast(state?.error, "error", state);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,18 +57,27 @@ export function Field({ label, hint, error, children, wide }: { label: string; h
 }
 
 /** `danger` is the destructive action (a delete button), kept at the far left, away from Cancel and Save. */
-export function FormFooter({ state, pending, submitLabel, cancelHref, danger, beforeActions }: { state: FormState; pending: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; beforeActions?: ReactNode }) {
+export function FormFooter({ pending, submitLabel, cancelHref, danger, beforeActions, formId }: { pending: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; beforeActions?: ReactNode; formId?: string }) {
   const hydrated = useHydrated();
 
   return (
     <div className={`portal-form-footer${danger ? " has-danger" : ""}`}>
-      {state?.error ? <p className="portal-form-error" role="alert">{state.error}</p> : !danger && <span />}
+      {!danger && <span />}
       {danger}
-      <div className="portal-form-actions">
-        {beforeActions}
-        <Link className="portal-button is-ghost" href={cancelHref}>Cancel</Link>
-        <button className="portal-button" type="submit" disabled={pending || !hydrated}>{pending ? "Saving…" : submitLabel}</button>
-      </div>
+      <FormActions pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} formId={formId} hydrated={hydrated}>{beforeActions}</FormActions>
+    </div>
+  );
+}
+
+/** Cancel and Save on their own, for a form that keeps them somewhere other than its footer. */
+export function FormActions({ pending, submitLabel, cancelHref, formId, hydrated, children, small }: { pending: boolean; submitLabel: string; cancelHref: string; formId?: string; hydrated?: boolean; children?: ReactNode; small?: boolean }) {
+  const ready = useHydrated();
+  const size = small ? " is-small" : "";
+  return (
+    <div className="portal-form-actions">
+      {children}
+      <Link className={`portal-button is-ghost${size}`} href={cancelHref}>Cancel</Link>
+      <button className={`portal-button${size}`} type="submit" form={formId} disabled={pending || !(hydrated ?? ready)}>{pending ? "Saving…" : submitLabel}</button>
     </div>
   );
 }

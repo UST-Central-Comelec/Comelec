@@ -64,6 +64,9 @@ export function PortalShell({ initialTheme, children }: { initialTheme: PortalTh
   );
 }
 
+/** The portal's current theme, for parts that start from it (the QR code's colours). Dark outside the shell. */
+export const usePortalTheme = (): PortalTheme => useContext(ThemeContext)?.theme ?? "dark";
+
 /** Shared sun/moon switch in the top bar and mobile sidebar. */
 export function ThemeToggle() {
   const context = useContext(ThemeContext);

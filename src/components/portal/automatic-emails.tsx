@@ -38,7 +38,7 @@ function Switch({ name, value, checked, disabled, onChange, label }: { name: str
  * whoever can't switch them: the switches show how each stands, and that's all.
  */
 export function AutomaticEmails({ action, groups, current, local, updated, children }: { action: FormAction | null; groups: AutomaticItemGroup[]; current: EmailKey; local: boolean; updated: string | null; children: ReactNode }) {
-  const { state, pending, onSubmit } = usePortalForm(action ?? noAction);
+  const { pending, onSubmit } = usePortalForm(action ?? noAction);
   const hydrated = useHydrated();
   const emails = groups.flatMap((group) => group.emails);
   const saved = new Set(emails.filter((email) => email.on).map((email) => email.key));
@@ -66,7 +66,6 @@ export function AutomaticEmails({ action, groups, current, local, updated, child
           {local && <input type="hidden" name="unit" value="local" />}
           {/* Above the list, so what's unsaved and the button that saves it are in view wherever the list is scrolled to. */}
           <div className={`email-auto-bar${unchanged ? "" : " is-dirty"}`}>
-            {state?.error && <p className="portal-form-error" role="alert">{state.error}</p>}
             <span className="portal-settings-dirty" aria-live="polite">{unchanged ? `${on.size} of ${emails.length} switched on` : "Unsaved changes"}</span>
             {!locked && (
               <div className="portal-form-actions">

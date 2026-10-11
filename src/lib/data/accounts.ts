@@ -4,6 +4,7 @@
 
 import { localRolesByCollege } from "./local-roles";
 import { programsByCollege, type College } from "@/lib/applications/options";
+import { readDeclarations } from "@/lib/onboarding/documents";
 import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, DEPUTY, accountKinds, accountPositions, centralRoles, isAccountAffiliation, isAccountPosition, isViewerPosition, localRoles, type AccountAffiliation, type AccountKind, type AccountPosition, type AccountSummary, type Affiliation, type PortalAccount } from "./types";
 
 type Standing = { affiliation: AccountAffiliation; position: AccountPosition; role: string; college?: string | null };
@@ -121,6 +122,8 @@ export function toSummary(account: PortalAccount): AccountSummary {
     emailVerifiedAt: account.emailVerifiedAt ?? null,
     photoUrl: account.photoUrl ?? null,
     chamberRole: account.chamberRole ?? null,
+    declarations: readDeclarations(account.declarations),
+    contactNumber: account.contactNumber ?? null,
     builtIn: false,
   };
 }

@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { CodeTools } from "@/components/elections-code/code-tools";
 import { CopyLink } from "@/components/news/copy-link";
 import { sectionName } from "@/lib/codes/text";
+import { sentenceBlocks } from "@/lib/elections-code/sentences";
 import { blockText, type CodeArticle, type CodeBlock, type CodeRun } from "@/lib/elections-code/usec-2011";
 
 function Run({ run }: { run: CodeRun }) {
@@ -31,7 +32,7 @@ function Block({ block }: { block: CodeBlock }) {
  * ("Code", "Constitution"); the children are the note at its foot. Styled by
  * src/app/(site)/elections-code/elections-code.css.
  */
-export function CodeDocument({ articles, pdf, name, children }: { articles: CodeArticle[]; pdf: string; name: string; children: ReactNode }) {
+export function CodeDocument({ articles, pdf, name, children }: { articles: CodeArticle[]; pdf?: string; name: string; children: ReactNode }) {
   const sections = articles.reduce((total, article) => total + article.sections.length, 0);
 
   return (
@@ -66,7 +67,13 @@ export function CodeDocument({ articles, pdf, name, children }: { articles: Code
                       <ChevronDown className="ec-chevron" size={18} aria-hidden="true" />
                     </summary>
                     <div className="ec-text">
-                      {section.blocks.map((block, index) => <Block key={index} block={block} />)}
+                      <ul className="ec-sentences">
+                        {section.blocks.flatMap(sentenceBlocks).map((block, index) => (
+                          <li key={index} className={block.marker ? "has-marker" : undefined} style={{ "--level": block.level } as CSSProperties}>
+                            <Block block={{ ...block, level: 0 }} />
+                          </li>
+                        ))}
+                      </ul>
                       <p className="ec-cite">
                         <span>{article.numeral ? `Article ${article.numeral}, ${sectionName(section)}` : sectionName(section)}</span>
                         <CopyLink className="ec-copy" hash={section.id} />

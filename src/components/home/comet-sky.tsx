@@ -217,7 +217,7 @@ class Sky {
     });
   }
 
-  draw() {
+  draw(showComet = true) {
     const { ctx, head, sprites, width, height, time: t } = this;
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = 1;
@@ -264,6 +264,8 @@ class Sky {
       ctx.stroke();
       this.stamp(sprites.warm, streak.x, streak.y, 8, alpha);
     }
+
+    if (!showComet) return;
 
     this.drawIonTail(head);
     for (const grain of this.grains) {
@@ -357,7 +359,7 @@ function readoutFor(sky: Sky) {
   return `RA 16h 11m ${seconds.toFixed(1).padStart(4, "0")}s · DEC +14° ${String(Math.floor(minutes)).padStart(2, "0")}′`;
 }
 
-export function CometSky({ anchor }: { anchor: string }) {
+export function CometSky({ anchor, showComet = true }: { anchor: string; showComet?: boolean }) {
   const skyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reticleRef = useRef<HTMLDivElement>(null);
@@ -408,6 +410,7 @@ export function CometSky({ anchor }: { anchor: string }) {
 
     /** Everything that follows the head: the reticle, its readout, the wordmark's light, and the scroll lift. */
     const follow = (dt: number) => {
+      if (!showComet) return;
       const head = sky.head;
       if (!head) return;
       aim = aim ? { x: approach(aim.x, head.x, 6, dt), y: approach(aim.y, head.y, 6, dt) } : { ...head };
@@ -417,7 +420,7 @@ export function CometSky({ anchor }: { anchor: string }) {
         readoutIn = 0.12;
         readout.textContent = readoutFor(sky);
       }
-      const scroll = still ? 0 : clamp(window.scrollY / (sky.height * 0.8), 0, 1);
+      const scroll = still || hero.inert ? 0 : clamp(window.scrollY / (sky.height * 0.8), 0, 1);
       if (scroll !== lastScroll) {
         lastScroll = scroll;
         hero.style.setProperty("--hero-scroll", scroll.toFixed(3));
@@ -437,7 +440,7 @@ export function CometSky({ anchor }: { anchor: string }) {
       sky.grains = [];
       sky.head = { ...sky.rest };
       warmUp(3);
-      sky.draw();
+      sky.draw(showComet);
       aim = null;
       follow(0);
     };
@@ -449,9 +452,11 @@ export function CometSky({ anchor }: { anchor: string }) {
     const render = (now: number) => {
       const dt = Math.min((now - last) / 1000, 1 / 20);
       last = now;
-      sky.step(dt);
-      sky.draw();
-      follow(dt);
+      if (!hero.inert) {
+        sky.step(dt);
+        sky.draw(showComet);
+        follow(dt);
+      }
       frame = requestAnimationFrame(render);
     };
     const start = () => {
@@ -467,7 +472,7 @@ export function CometSky({ anchor }: { anchor: string }) {
     const sync = () => (onScreen && !document.hidden ? start() : stop());
 
     const lean = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse") return;
+      if (event.pointerType !== "mouse" || hero.inert) return;
       sky.leanTarget = { x: clamp(((event.pageX - bounds.left) / bounds.width) * 2 - 1), y: clamp(((event.pageY - bounds.top) / bounds.height) * 2 - 1) };
     };
 
@@ -499,12 +504,12 @@ export function CometSky({ anchor }: { anchor: string }) {
       document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("pointermove", lean);
     };
-  }, [anchor]);
+  }, [anchor, showComet]);
 
   return (
     <div ref={skyRef} className="lp-sky" aria-hidden="true">
       <canvas ref={canvasRef} />
-      <div ref={reticleRef} className="lp-reticle">
+      <div ref={reticleRef} className="lp-reticle" hidden={!showComet}>
         <span className="lp-reticle-frame" />
         <span className="lp-reticle-label">
           <b>C/2026 · COMET</b>

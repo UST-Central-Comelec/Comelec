@@ -57,6 +57,11 @@
 .ec-block { padding-left: calc(var(--level, 0) * var(--ec-step)); }
 .ec-block.has-marker { column-gap: .7em; display: grid; grid-template-columns: max-content minmax(0, 1fr); }
 .ec-block p { margin: 0; overflow-wrap: break-word; }
+.ec-sentences { list-style: disc; margin: 0; padding-left: 1.25em; }
+.ec-sentences > li { margin-left: calc(var(--level, 0) * var(--ec-step)); padding-left: .25em; }
+.ec-sentences > li + li { margin-top: 12px; }
+.ec-sentences > li::marker { color: var(--bp-gold-light); }
+.ec-sentences > li.has-marker { list-style: none; }
 .ec-marker { color: var(--bp-gold-light); font-variant-numeric: tabular-nums; min-width: 1.5em; }
 .ec-marker.is-bold, .ec-text strong { color: var(--bp-text); font-weight: 600; }
 .ec-cite { align-items: center; border-top: 1px solid var(--bp-line); color: var(--bp-faint); display: flex; flex-wrap: wrap; font: 500 10.5px/1.3 var(--bp-sans); gap: 8px 16px; justify-content: space-between; margin: 8px 0 0; padding-top: 14px; text-transform: uppercase; }

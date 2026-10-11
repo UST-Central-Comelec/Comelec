@@ -13,6 +13,7 @@
 .bp::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); content: ""; inset: 0; opacity: .045; pointer-events: none; position: absolute; z-index: 4; }
 .bp ::selection { background: rgba(var(--bp-gold-rgb),.32); color: var(--bp-bright); }
 .bp :focus-visible { outline: 2px solid var(--bp-gold-edge); outline-offset: 3px; }
+.bp :is(input:not([type="checkbox"], [type="radio"]), select, textarea):focus-visible { outline-color: var(--bp-text); }
 
 /* Shared: the frame, small capital labels, and the gold serif italic that carries accent words */
 .bp-wrap { margin: 0 auto; max-width: var(--bp-wrap); padding-inline: var(--bp-gutter); position: relative; }
@@ -122,3 +123,9 @@
 :root[data-theme="light"] .bp :is(.bp-body, .nr-story, .st-layout) .bp-button { border-radius: var(--ui-control-radius); }
 :root[data-theme="light"] .bp .bp-empty { background: var(--ui-panel-tint); border: 1px solid var(--ui-border); box-shadow: var(--ui-card-shadow); }
 :root[data-theme="light"] .bp .bp-head h2 { letter-spacing: -.025em; }
+
+/* A replaced event-form QR code (q/[token]/page.tsx) */
+.bp-qr-gone { align-items: center; display: grid; padding: calc(var(--bp-header) + 48px) var(--bp-gutter) 64px; }
+.bp-qr-card { background: var(--bp-surface); border: 1px solid var(--bp-line); border-radius: 20px; display: grid; gap: 14px; justify-items: start; margin: 0 auto; max-width: 520px; padding: 36px; }
+.bp-qr-card h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 600; letter-spacing: -.02em; line-height: 1.15; margin: 0; }
+.bp-qr-card p { color: var(--bp-soft); line-height: 1.6; margin: 0; }

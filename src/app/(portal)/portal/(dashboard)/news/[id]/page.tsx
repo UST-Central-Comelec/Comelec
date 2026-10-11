@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/portal/delete-button";
 import { NewsForm } from "@/components/portal/news-form";
 import { ViewOnly } from "@/components/portal/view-only";
+import { formatClosing } from "@/lib/applications/period";
 import { allowed, withPortalUser } from "@/lib/auth/session";
 import { postHref } from "@/components/news/story";
 import { getNewsPost } from "@/lib/data/queries";
@@ -21,7 +22,7 @@ export default async function EditNewsPage({ params }: PageProps<"/portal/news/[
         <div>
           <Link className="portal-back" href="/portal/news">← News</Link>
           <h1>{readOnly ? "Post" : "Edit post"}</h1>
-          <p className="portal-muted">Last updated {new Date(post.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} by {post.updatedBy}. <a href={postHref(post)} target="_blank" rel="noreferrer">View on website ↗</a></p>
+          <p className="portal-muted">Last updated {formatClosing(post.updatedAt)} by {post.updatedBy}. <a href={postHref(post)} target="_blank" rel="noreferrer">View on website ↗</a></p>
         </div>
       </header>
       <section className="portal-card">

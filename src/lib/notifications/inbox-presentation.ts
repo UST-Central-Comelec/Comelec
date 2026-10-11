@@ -2,7 +2,7 @@ import type { InboxMessage } from "./inbox-rules";
 import { unitAbbreviations } from "@/lib/applications/options";
 
 /** Prefer stored unit identity; support messages sent before identity was recorded. */
-export function senderLabel(message: InboxMessage): string {
+export function senderLabel(message: Pick<InboxMessage, "senderAffiliation" | "senderCollege" | "senderName">): string {
   if (message.senderAffiliation === "central") return "CENTRAL";
   if (message.senderAffiliation === "osa") return "OSA";
   if (message.senderCollege) return (unitAbbreviations[message.senderCollege] ?? message.senderCollege).toUpperCase();

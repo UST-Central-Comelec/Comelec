@@ -29,7 +29,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <span className="ev-evaluation-context-icon" aria-hidden="true"><MessageSquare size={20} /></span>
             <div><p className="ev-evaluation-kicker">You’re evaluating</p><h2 className="ev-evaluation-event" id="evaluation-event-name">{event.name}</h2></div>
           </header>
-          <EvaluationForm eventId={id} settings={settings} />
+          <EvaluationForm eventId={id} eventName={event.name} settings={settings} />
         </section>
       </div>
     </main>

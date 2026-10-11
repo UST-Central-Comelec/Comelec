@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { decideAccessRequest, getAccessRequest } from "@/lib/access-requests/admin";
 import { accessDecisionEmail } from "@/lib/access-requests/emails";
 import { isBuiltInEmail, requireEditor } from "@/lib/auth/session";
+import { addRequestedAccount } from "@/lib/access-requests/approve";
 import { fullName, isCentralRepresentative, isRoleFor, toSummary, upperName } from "@/lib/data/accounts";
 import { isMissingColumn, store } from "@/lib/data/store";
 import { accountPositions, describeAffiliation, isAffiliation, isCommissionerPosition } from "@/lib/data/types";
@@ -46,36 +47,10 @@ export async function approveAccessRequest(id: string, formData: FormData) {
   // Decided first: only one approval goes through, even if two people click at once.
   if (!(await decideAccessRequest(id, "approved", manager.email))) done("access-request-gone");
 
-  // Names are kept in capitals, as the request form sends them.
-  const firstName = upperName(request.firstName);
-  const lastName = upperName(request.lastName);
   const exists = isBuiltInEmail(email) || accounts.some((account) => account.email === email);
   if (!exists) {
     try {
-      await store.create(
-        "accounts",
-        {
-          kind: "personal",
-          name: fullName({ firstName, middleInitial: request.middleInitial, lastName }),
-          lastName,
-          firstName,
-          middleInitial: request.middleInitial || null,
-          email,
-          studentNumber: request.studentNumber,
-          affiliation,
-          position,
-          role,
-          college,
-          program: request.program,
-          facebookUrl: request.facebookUrl,
-          emailVerifiedAt: new Date().toISOString(),
-          photoUrl: null,
-          chamberRole: null,
-          active: true,
-        },
-        manager.email,
-        `account ${firstName} ${lastName}`,
-      );
+      await addRequestedAccount({ ...request, affiliation, position, role, yearLevel: request.yearLevelKey }, manager.email);
     } catch (error) {
       // Put it back so it can be approved again.
       await createAdminClient().from("access_requests").update({ status: "pending", decided_at: null, decided_by: null }).eq("id", id);
@@ -83,10 +58,12 @@ export async function approveAccessRequest(id: string, formData: FormData) {
       throw error;
     }
   }
+  const firstName = upperName(request.firstName);
+  const lastName = upperName(request.lastName);
 
   // Their details as the account was added: the unit, position and role picked here may differ from what they asked for.
   const account: Details = [
-    ["Name", fullName({ firstName, middleInitial: request.middleInitial, lastName })],
+    ["Name", fullName({ firstName, middleName: request.middleName, middleInitial: request.middleInitial, lastName })],
     ["UST email", email],
     ["Serves in", describeAffiliation(affiliation, college)],
     ["Position", accountPositions[position]],

@@ -8,6 +8,7 @@ import { canOpen, isLocal, requireAccess } from "@/lib/auth/session";
 import { settle } from "@/lib/portal/settle";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { ApplicantsTable } from "@/components/portal/applicants-table";
+import { ApplicantsTabs } from "@/components/portal/applicants-tabs";
 import { Notice } from "@/components/portal/notice";
 
 export const metadata: Metadata = { title: "Applications" };
@@ -38,6 +39,7 @@ export default async function PortalApplicationsPage({ searchParams }: PageProps
           <Link className="portal-button is-ghost" href="/apply" target="_blank" rel="noopener noreferrer">Application form <ArrowUpRight size={15} aria-hidden="true" /></Link>
         </div>
       </header>
+      <ApplicantsTabs current="applicants" />
       <Notice notice={notice} />
 
       {loadError ? (

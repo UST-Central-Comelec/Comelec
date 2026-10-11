@@ -41,15 +41,37 @@ export function clientIp(headers: Headers) {
 }
 
 /** Limits used across the app, in one place. */
+//
+// Most limits are per address, and the campus network reaches the site from one address, so those
+// are sized for a crowd (a meeting signing in at once, a class applying together), not one person.
 export const limits = {
-  /** Google sign-in starts and callbacks. */
-  login: { limit: 10, windowMs: 10 * 60_000 },
-  /** Application submissions (each person needs one). */
-  apply: { limit: 5, windowMs: 60 * 60_000 },
-  /** Track application lookups; also stops guessing reference codes. */
-  track: { limit: 10, windowMs: 15 * 60_000 },
-  /** Every portal request, as a ceiling against floods from one address. */
+  /**
+   * Google sign-in starts and callbacks. Google's own sign-in is what stops abuse; this is a ceiling
+   * against scripts hammering the flow.
+   */
+  login: { limit: 150, windowMs: 10 * 60_000 },
+  /**
+   * Application and access request submissions. What keeps each person to one is the verified UST
+   * account, not this.
+   */
+  apply: { limit: 60, windowMs: 60 * 60_000 },
+  /**
+   * Political party registrations. Only a handful of parties file, there's no verified account, and
+   * each can carry 30 MB of uploads, so this stays low.
+   */
+  party: { limit: 10, windowMs: 60 * 60_000 },
+  /**
+   * Track application lookups. A lookup needs the reference code and the matching last name or
+   * student number, so this still makes guessing codes impractical.
+   */
+  track: { limit: 100, windowMs: 15 * 60_000 },
+  /**
+   * Portal requests from one signed-in account. Someone working quickly sends 10–25 a minute (pages,
+   * link prefetches, the bell's and sidebar's checks), so this only stops a runaway script or tab.
+   */
   portal: { limit: 300, windowMs: 60_000 },
+  /** Portal requests from one address, signed in or not: a ceiling against floods. */
+  portalAddress: { limit: 3000, windowMs: 60_000 },
   /**
    * Google sign-in starts for event registration. A whole class can register at once from the
    * campus network, which reaches the site from one address, so this is a ceiling against scripts

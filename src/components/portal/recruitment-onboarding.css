@@ -1,0 +1,9 @@
+.recruitment-onboarding-content { display: grid; gap: 24px; padding: 26px; }
+.recruitment-onboarding-content[hidden] { display: none; }
+.recruitment-onboarding-fields { border: 0; display: grid; gap: 24px; margin: 0; min-width: 0; padding: 0; }
+.recruitment-onboarding-extra { border-top: 1px solid var(--p-line); display: grid; gap: 16px; padding-top: 24px; }
+.recruitment-onboarding-fields > .portal-button, .recruitment-onboarding-extra > .portal-button { justify-self: start; }
+.recruitment-onboarding-content .portal-field > .portal-button { align-self: flex-start; }
+@media (max-width: 860px) {
+  .recruitment-onboarding-content { padding: 18px; }
+}

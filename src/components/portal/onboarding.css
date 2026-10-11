@@ -1,0 +1,100 @@
+/* Onboarding: the steps of Request access on the sign-in page, and Legals → Documents → Onboarding. */
+
+/* Request access in steps: the step list on the left, the step on the right. */
+.portal-request.onboarding { align-items: start; display: grid; gap: 40px; grid-template-columns: 236px minmax(0, 1fr); }
+.portal-login-card.is-request .portal-request.onboarding { display: grid; }
+.onboarding-main { display: flex; flex-direction: column; min-height: 100%; min-width: 0; }
+.onboarding-main > h1 { margin-bottom: 18px; }
+/* Focused on each new step so it's read out; it isn't a control, so it shows no ring. */
+.onboarding-main > h1:focus { outline: none; }
+.onboarding-main > .portal-login-lede { margin-bottom: 18px; }
+
+.onboarding-steps { display: grid; gap: 18px; position: sticky; top: 8px; }
+.onboarding-step-group > p { color: var(--p-faint); font-size: 11.5px; font-weight: 500; margin: 0 0 6px 10px; }
+.onboarding-step-group ol { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.onboarding-step-group button { align-items: center; background: none; border: 0; border-radius: 6px; color: var(--p-muted); cursor: pointer; display: flex; font: inherit; font-size: 13px; font-weight: 500; gap: 10px; line-height: 1.3; padding: 7px 10px; text-align: left; transition: background-color .15s ease, color .15s ease; width: 100%; }
+.onboarding-step-group button:hover:not(:disabled) { background: rgba(var(--p-ink), .05); color: var(--p-text); }
+.onboarding-step-group button:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 1px; }
+.onboarding-step-group button:disabled { color: var(--p-dim); cursor: default; }
+.onboarding-step-group button.is-current { background: rgba(var(--p-ink), .07); color: var(--p-bright); }
+.onboarding-step-mark { align-items: center; border: 1px solid var(--p-line-strong); border-radius: 999px; color: var(--p-soft); display: inline-flex; flex: none; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 600; height: 20px; justify-content: center; width: 20px; }
+.onboarding-step-group button.is-current .onboarding-step-mark { background: var(--p-gold); border-color: var(--p-gold); color: var(--p-on-action); }
+.onboarding-step-group button.is-done:not(.is-current) .onboarding-step-mark { background: var(--p-ok); border-color: var(--p-ok); color: #04140c; }
+
+/* On a phone the step list gives way to a thin progress line. */
+.onboarding-progress { background: rgba(var(--p-ink), .08); border-radius: 999px; display: none; height: 2px; margin-bottom: 18px; overflow: hidden; }
+.onboarding-progress span { background: var(--p-gold); display: block; height: 100%; transform-origin: left; transition: transform .42s var(--p-ease); }
+
+/* A word about the step: neutral, with the colour in its icon. */
+.onboarding-note { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 14px; color: var(--p-soft); display: flex; font-size: 13px; gap: 10px; line-height: 1.55; margin: 0 0 18px; padding: 12px 14px; }
+.onboarding-note svg { color: var(--p-gold-mark); flex: none; margin-top: 2px; }
+
+/* A document to read, then agree to. */
+.onboarding-reader { background: rgba(var(--p-ink), .03); border: 1px solid var(--p-line); border-radius: 14px; max-height: min(54vh, 560px); overflow: auto; overscroll-behavior: contain; padding: 22px 24px 18px; }
+.onboarding-reader:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+.onboarding-reader.is-preview { max-height: none; }
+.onboarding-reader-end { display: block; height: 1px; }
+.portal-legal-text { color: var(--p-text); font-size: 14px; line-height: 1.65; }
+.portal-legal-text h3 { color: var(--p-bright); font-size: 14.5px; font-weight: 600; margin: 22px 0 8px; }
+.portal-legal-text > :first-child { margin-top: 0; }
+.portal-legal-text p { margin: 0 0 12px; }
+.portal-legal-text :is(ul, ol) { margin: 0 0 12px; padding-left: 22px; }
+.portal-legal-text li { margin-bottom: 6px; padding-left: 2px; }
+.portal-legal-text ol li::marker { color: var(--p-muted); font-variant-numeric: tabular-nums; }
+
+.onboarding-agree { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line-strong); border-radius: 14px; color: var(--p-text); cursor: pointer; display: flex; font-size: 14px; font-weight: 500; gap: 12px; line-height: 1.5; margin-top: 14px; padding: 14px 16px; }
+.onboarding-agree input { accent-color: var(--p-text); flex: none; height: 16px; margin: 3px 0 0; width: 16px; }
+.onboarding-agree small { color: var(--p-muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; margin-top: 4px; }
+.onboarding-agree.is-locked { color: var(--p-muted); cursor: default; }
+
+/* Step 12: everything agreed to, with when. */
+.onboarding-review > p { margin: 0 0 14px; }
+.onboarding-review ul { border-top: 1px solid var(--p-line); list-style: none; margin: 0 0 18px; padding: 0; }
+.onboarding-review li { align-items: flex-start; border-bottom: 1px solid var(--p-line); display: flex; font-size: 13.5px; font-weight: 500; gap: 12px; padding: 11px 2px; }
+.onboarding-review li small { color: var(--p-muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; margin-top: 2px; }
+.onboarding-review-mark { align-items: center; border: 1px solid var(--p-line-strong); border-radius: 999px; display: inline-flex; flex: none; height: 18px; justify-content: center; margin-top: 1px; width: 18px; }
+.onboarding-review-mark.is-done { background: var(--p-ok); border-color: var(--p-ok); color: #04140c; }
+
+/* Legals → Documents → Onboarding. */
+.onboarding-docs .onboarding-figure { font-variant-numeric: tabular-nums; width: 72px; }
+.onboarding-docs td small { display: block; margin-top: 2px; }
+.onboarding-editor { border: 0; display: grid; gap: 22px; margin: 0; min-width: 0; padding: 26px; }
+.onboarding-editor[hidden], .onboarding-preview[hidden] { display: none; }
+.onboarding-editor textarea { min-height: 440px; }
+.onboarding-preview { padding: 26px; }
+.onboarding-preview h2 { font-size: 21px; margin: 0 0 16px; }
+.onboarding-preview .onboarding-agree { cursor: default; }
+
+/* Accepted declarations, on a person's profile and account. */
+.portal-declarations { list-style: none; margin: 0; padding: 0; }
+.portal-declarations li { align-items: baseline; border-bottom: 1px solid var(--p-line); display: flex; flex-wrap: wrap; font-size: 13.5px; gap: 4px 14px; justify-content: space-between; padding: 10px 0; }
+.portal-declarations li:last-child { border-bottom: 0; }
+.portal-declarations li span { color: var(--p-text); font-weight: 500; }
+.portal-declarations li small { color: var(--p-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 860px) {
+  .portal-request.onboarding { gap: 0; grid-template-columns: minmax(0, 1fr); }
+  .onboarding-steps { display: none; }
+  .onboarding-progress { display: block; }
+  .onboarding-reader { max-height: 58vh; padding: 18px 16px 14px; }
+  .onboarding-editor, .onboarding-preview { padding: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-progress span, .onboarding-step-group button { transition: none; }
+}
+
+/* Directory: a person's profile, opened from their name (directory-cards.tsx). */
+.directory-profile-open { background: none; border: 0; color: inherit; cursor: pointer; font: inherit; max-width: 100%; overflow: hidden; padding: 0; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.directory-profile-open:hover { text-decoration: underline; text-decoration-color: var(--p-gold-edge); text-underline-offset: 3px; }
+.directory-profile-open:focus-visible { border-radius: 4px; outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+.directory-profile-facts { display: grid; gap: 0; margin: 0 0 22px; }
+.directory-profile-facts > div { border-bottom: 1px solid var(--p-line); display: grid; gap: 14px; grid-template-columns: 130px minmax(0, 1fr); padding: 9px 0; }
+.directory-profile-facts dt { color: var(--p-muted); font-size: 12.5px; font-weight: 500; }
+.directory-profile-facts dd { color: var(--p-text); font-size: 13.5px; margin: 0; overflow-wrap: anywhere; }
+.directory-profile-facts a { color: inherit; text-decoration: underline; text-decoration-color: var(--p-gold-edge); text-underline-offset: 3px; }
+.directory-profile-section h3 { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+.directory-profile-section > p { font-size: 13px; margin: 0; }
+@media (max-width: 860px) {
+  .directory-profile-facts > div { gap: 2px; grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { accessFinishPage } from "@/lib/access-requests/callback";
-import { readAccessPass, startAccessFlow } from "@/lib/access-requests/verification";
+import { readAccessPass, rememberJoin, startAccessFlow } from "@/lib/access-requests/verification";
 import { isLoginConfigured } from "@/lib/auth/session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
@@ -31,5 +31,8 @@ export async function GET(request: NextRequest) {
   if (error || !data.url) return accessFinishPage("failed");
 
   await startAccessFlow(step);
+  // From a Join the Commission link: the sign-in page finds it again if Google returns to this window.
+  const join = request.nextUrl.searchParams.get("join")?.trim().toUpperCase() ?? "";
+  if (step === "verify" && /^[A-Z0-9-]{4,40}$/.test(join)) await rememberJoin(join);
   return NextResponse.redirect(data.url);
 }

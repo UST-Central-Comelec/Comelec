@@ -1,5 +1,7 @@
 "use client";
 
+import { SlidingSegments } from "./sliding-filters";
+
 import Image from "next/image";
 import { useId, useState, type ReactNode } from "react";
 import { Building2, UserRound } from "lucide-react";
@@ -63,7 +65,7 @@ function NotApplicable({ label, hint }: { label: string; hint: string }) {
  * `danger` is what sits at the footer's left: revoking, restoring and deleting.
  */
 export function AccountForm({ action, initial = emptyAccount, manager, askEmail, email, fixedUnit, submitLabel, cancelHref, danger }: { action: FormAction; initial?: AccountValues; manager: Manager; askEmail?: boolean; email?: string; fixedUnit?: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const localManager = manager.affiliation === "local";
   // Official accounts are the Central Executive Board's to add.
   const canAddOfficial = canManageAccount(manager, { kind: "official", affiliation: "central", position: "executive-board", college: null });
@@ -134,7 +136,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
       {canAddOfficial && !fixedUnit && (
         <fieldset className="portal-form-section">
           <legend>Category</legend>
-          <div className="portal-segmented" role="radiogroup" aria-label="Category">
+          <SlidingSegments active={kind} role="radiogroup" aria-label="Category">
             {(Object.keys(accountKinds) as AccountKind[]).map((value) => {
               const KindIcon = kindIcons[value];
               return (
@@ -145,7 +147,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
                 </label>
               );
             })}
-          </div>
+          </SlidingSegments>
         </fieldset>
       )}
 
@@ -289,7 +291,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
         </fieldset>
       )}
 
-      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} danger={danger} />
+      <FormFooter pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} danger={danger} />
     </form>
   );
 }

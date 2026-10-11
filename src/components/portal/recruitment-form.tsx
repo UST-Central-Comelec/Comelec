@@ -6,7 +6,7 @@ import type { FormState } from "@/lib/portal/form";
 import { FormFooter, usePortalForm } from "./portal-form";
 
 export function RecruitmentForm({ action, slots, unit = "" }: { action: (state: FormState, formData: FormData) => Promise<FormState>; slots: SlotCounts; unit?: string }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const choices = positionsForUnit(unit);
   const positions = choices.map(({ id }) => id);
   const [counts, setCounts] = useState<Record<string, string>>(() => Object.fromEntries(positions.map((id) => [id, String(slots[id] ?? 0)])));
@@ -45,7 +45,7 @@ export function RecruitmentForm({ action, slots, unit = "" }: { action: (state: 
           </div>
         </section>
       </div>
-      <FormFooter state={state} pending={pending} submitLabel={changed ? `Save ${changed} ${changed === 1 ? "change" : "changes"}` : "Save slots"} cancelHref="/portal" />
+      <FormFooter pending={pending} submitLabel={changed ? `Save ${changed} ${changed === 1 ? "change" : "changes"}` : "Save slots"} cancelHref="/portal" />
     </form>
   );
 }

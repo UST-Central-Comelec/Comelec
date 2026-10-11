@@ -1,0 +1,13 @@
+/* Election archive (/archive, /archive/[id]): the banner page frame (banner-page.css) with the News page's
+   tuner, rows and reading column (news/news.css). Only what's the archive's own is here, prefixed ar-. */
+
+.ar-filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: clamp(8px, 1.4vw, 16px); }
+.ar-tuner { position: static; }
+.ar-tuner-label { color: var(--bp-faint); flex: none; font: 500 10.5px/1 var(--bp-sans); padding: 0 6px 0 10px; text-transform: uppercase; }
+
+/* Who signed it, under the text. */
+.ar-signatories { border-top: 1px solid var(--bp-line); display: grid; gap: 22px 32px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-top: 36px; padding-top: 28px; }
+.ar-signatory { display: flex; flex-direction: column; gap: 3px; }
+.ar-signatory span { color: var(--bp-faint); font: 500 10.5px/1 var(--bp-sans); margin-bottom: 6px; text-transform: uppercase; }
+.ar-signatory strong { color: var(--bp-text); font-size: 15px; font-weight: 600; }
+.ar-signatory small { color: var(--bp-muted); font-size: 13px; }

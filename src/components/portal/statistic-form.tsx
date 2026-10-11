@@ -24,7 +24,7 @@ export function StatisticForm({ action, initial, periods, submitLabel, danger }:
   submitLabel: string;
   danger?: ReactNode;
 }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const [data, setData] = useState(() => (initial.columns.length ? toPasteText(initial) : ""));
   const [bar, setBar] = useState(initial.barColumn === null ? "" : String(initial.barColumn));
   const [showTotal, setShowTotal] = useState(initial.showTotal);
@@ -107,7 +107,7 @@ export function StatisticForm({ action, initial, periods, submitLabel, danger }:
         )}
       </fieldset>
 
-      <FormFooter state={state} pending={pending} submitLabel={submitLabel} cancelHref="/portal/statistics" danger={danger} />
+      <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/statistics" danger={danger} />
     </form>
   );
 }

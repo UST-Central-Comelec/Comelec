@@ -1,6 +1,9 @@
 "use client";
 
+import { SlidingFilterButtons } from "./sliding-filters";
+import { rsvpResponseFacts, type RsvpResponse } from "@/lib/events/rsvp";
 import { ReviewModalDetailsGroup, ReviewModalHeader, ReviewModalToolbar } from "./review-modal-ui";
+import { toast } from "./toast";
 import { EvaluationResponseDetails } from "@/components/portal/event-evaluation-editor";
 import type { EvaluationQuestion, EvaluationResponse } from "@/lib/events/evaluation";
 import { useId, useRef, useState, useTransition } from "react";
@@ -12,6 +15,8 @@ import { registrationKinds, requestKinds, requestDecisionStatus, type DecisionsR
 export type RegistrantRow = {
   id: string;
   referenceCode: string;
+  registered?: boolean;
+  rsvp?: RsvpResponse | null;
   attendanceConfirmedAt: string | null;
   evaluation: EvaluationResponse | null;
   name: string;
@@ -41,13 +46,17 @@ export type RegistrantRow = {
 
 const PAGE_SIZE = 25;
 
+type ResponseFilter = "all" | "registrants" | "rsvp" | "evaluation";
+const responseFilters: { key: ResponseFilter; label: string }[] = [{ key: "all", label: "All" }, { key: "registrants", label: "Registrants" }, { key: "rsvp", label: "RSVP Responses" }, { key: "evaluation", label: "Evaluation Responses" }];
+export const matchesResponseFilter = (row: RegistrantRow, filter: ResponseFilter) => filter === "all" || (filter === "registrants" ? row.registered !== false : filter === "rsvp" ? Boolean(row.rsvp) : Boolean(row.evaluation));
+
 type Filter = RegistrationKind | "all";
 type Resend = (registrationId: string) => Promise<{ sent: boolean; message: string }>;
 /** Saves the picks made for one registrant (approved or not) and emails them the ones that changed. */
 type Save = (registrationId: string, decisions: Partial<Record<RequestKind, boolean>>) => Promise<DecisionsResult>;
 
 /** Everything about a registrant that the search box looks through. */
-const searchable = (row: RegistrantRow) => [row.referenceCode, row.studentNumber, row.name, row.email, row.affiliation, row.affiliationSummary, ...row.affiliationFacts.map(([, value]) => value), row.attending.label, ...row.attending.facts.map(([, value]) => value), ...row.requests.flatMap((request) => [request.label, ...request.facts.map(([, value]) => value)])].join(" ").toLowerCase();
+const searchable = (row: RegistrantRow) => [row.referenceCode, row.studentNumber, row.name, row.email, row.affiliation, row.affiliationSummary, ...row.affiliationFacts.map(([, value]) => value), row.attending.label, ...row.attending.facts.map(([, value]) => value), ...(row.rsvp ? rsvpResponseFacts(row.rsvp.answers).map(([, value]) => value) : []), ...row.requests.flatMap((request) => [request.label, ...request.facts.map(([, value]) => value)])].join(" ").toLowerCase();
 
 /** The unit's answer, as the officers read it. Declining tells the registrant it's not available. */
 const answers: Record<RequestStatus, { label: string; icon: LucideIcon }> = {
@@ -127,60 +136,55 @@ function Facts({ title, number, facts }: { title: string; number: string; facts:
 }
 
 /** A compact list row opens a native modal with the registration details. */
-function Registrant({ row, evaluationQuestions, remove, save, resend }: { row: RegistrantRow; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
-  const [view, setView] = useState<"registration" | "logistics" | "evaluation">("registration");
+function Registrant({ row, evaluationQuestions, remove, save, resend, preferredView }: { row: RegistrantRow; preferredView?: "rsvp" | "evaluation"; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
+  const [view, setView] = useState<"registration" | "logistics" | "evaluation" | "rsvp">(preferredView ?? (row.registered === false ? row.rsvp ? "rsvp" : "evaluation" : "registration"));
   const panelId = useId();
   const titleId = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const [visited, setVisited] = useState(false);
-  const [copyMessage, setCopyMessage] = useState("");
   const confirmationDialog = useRef<HTMLDialogElement>(null);
   const confirmationTitleId = useId();
   const [confirmation, setConfirmation] = useState<"update" | "remove" | null>(null);
-  const [confirmationError, setConfirmationError] = useState("");
   const [picks, setPicks] = useState<Partial<Record<RequestKind, boolean>>>({});
-  const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
   const working = useRef(false);
   const changes = row.requests.filter((request) => picks[request.kind] !== undefined && requestDecisionStatus(request.status, picks[request.kind]!) !== request.status);
 
   function reviewRegistration() {
-    setView("registration");
-    setCopyMessage("");
+    setView(preferredView ?? (row.registered === false ? row.rsvp ? "rsvp" : "evaluation" : "registration"));
     setVisited(true);
     dialog.current?.showModal();
   }
 
   function openConfirmation(action: "update" | "remove") {
     setConfirmation(action);
-    setConfirmationError("");
     confirmationDialog.current?.showModal();
   }
 
   function confirm() {
     if (working.current || !confirmation) return;
     working.current = true;
-    setConfirmationError("");
     startTransition(async () => {
       try {
         if (confirmation === "remove" && remove) {
           await remove(row.id);
           confirmationDialog.current?.close();
           dialog.current?.close();
+          toast("Registration removed.");
         } else if (confirmation === "update" && save && changes.length) {
           const result = await save(row.id, Object.fromEntries(changes.map((request) => [request.kind, picks[request.kind]!])));
           if (result.error) {
-            setConfirmationError(result.error);
+            toast(result.error, "error");
             return;
           }
           setPicks({});
           const message = savedMessage(result);
-          setFeedback(message ? { message, error: result.email === "failed" || result.email === "off" } : null);
+          if (message) toast(message, result.email === "failed" || result.email === "off" ? "warn" : "ok");
           confirmationDialog.current?.close();
         }
       } catch (error) {
         unstable_rethrow(error);
-        setConfirmationError(confirmation === "remove" ? "Couldn’t remove the registration. Please try again." : "Couldn’t update the registration. Please try again.");
+        toast(confirmation === "remove" ? "Couldn’t remove the registration. Please try again." : "Couldn’t update the registration. Please try again.", "error");
       } finally {
         working.current = false;
       }
@@ -190,70 +194,73 @@ function Registrant({ row, evaluationQuestions, remove, save, resend }: { row: R
   function resendEmail() {
     if (!resend || working.current) return;
     working.current = true;
-    setFeedback(null);
     startTransition(async () => {
       try {
         const result = await resend(row.id);
-        setFeedback({ message: result.message, error: !result.sent });
+        toast(result.message, result.sent ? "ok" : "warn");
       } catch (error) {
         unstable_rethrow(error);
-        setFeedback({ message: "Couldn’t resend the acknowledgement. Please try again.", error: true });
+        toast("Couldn’t resend the acknowledgement. Please try again.", "error");
       } finally {
         working.current = false;
       }
     });
   }
 
-  async function copyEmail() {
-    setCopyMessage("");
+  async function copy(value: string, label: string) {
     try {
-      await navigator.clipboard.writeText(row.email);
-      setCopyMessage("Email copied.");
+      await navigator.clipboard.writeText(value);
+      toast(`${label} copied to clipboard.`);
     } catch {
-      setCopyMessage("Couldn’t copy. Select the email and copy it manually.");
+      toast(`Couldn’t copy ${label.toLowerCase()}. Try selecting and copying the text.`, "error");
     }
   }
 
   return (
     <li className="portal-registrant">
-      <div className="portal-registrant-toggle portal-event-registrant-row">
-        <span className="portal-registrant-progress" aria-label={`${row.attendanceConfirmedAt ? "Attendance confirmed" : "Attendance not confirmed"}; ${row.evaluation ? "Evaluation answered" : "Evaluation not answered"}`}>
+      <div className="portal-registrant-toggle portal-event-registrant-row" onClick={event => {
+        if ((event.target as Element).closest("button, a")) return;
+        reviewRegistration();
+      }}>
+        <span className="portal-registrant-progress" aria-label={`${row.attendanceConfirmedAt ? "Attendance confirmed" : "Attendance not confirmed"}; ${row.evaluation ? "Evaluation answered" : "Evaluation not answered"}; ${row.rsvp ? "RSVP answered" : "RSVP not answered"}`}>
           {row.attendanceConfirmedAt && <i className="is-attended" title="Attendance confirmed" />}
+          {row.rsvp && <i className="is-rsvp" title="RSVP answered" />}
           {row.evaluation && <i className="is-evaluated" title="Evaluation answered" />}
         </span>
-        <span className="portal-registrant-name">{row.name}</span>
-        <span className="portal-registrant-email">{row.email}</span>
+        <span className="portal-registrant-name"><button type="button" className="portal-registrant-copy" title="Copy name" aria-label={`Copy name ${row.name}`} onClick={() => void copy(row.name, "Name")}>{row.name}</button></span>
+        <span className="portal-registrant-email">{row.email && <button type="button" className="portal-registrant-copy" title="Copy email" aria-label={`Copy email ${row.email}`} onClick={() => void copy(row.email, "Email")}>{row.email}</button>}</span>
         <span className="portal-registrant-affiliation">{row.affiliationSummary}</span>
-        <button type="button" className="portal-list-review" aria-haspopup="dialog" aria-controls={panelId} aria-label={`Review registration for ${row.name}`} onClick={reviewRegistration}><ChevronRight size={18} strokeWidth={1.8} aria-hidden="true" /></button>
+        <button type="button" className="portal-list-review" aria-haspopup="dialog" aria-controls={panelId} aria-label={`Review responses for ${row.name}`} onClick={reviewRegistration}><ChevronRight size={18} strokeWidth={1.8} aria-hidden="true" /></button>
       </div>
       <dialog ref={dialog} className="portal-registrant-dialog" id={panelId} aria-labelledby={titleId} onClick={(event) => {
         if (event.target === event.currentTarget && !pending) dialog.current?.close();
       }} onCancel={(event) => { if (pending) event.preventDefault(); }}>
-        <button type="button" className="portal-icon-button is-light portal-registrant-close" aria-label="Close registration" autoFocus disabled={pending} onClick={() => dialog.current?.close()}><X size={18} aria-hidden="true" /></button>
+        <button type="button" className="portal-icon-button is-light portal-registrant-close" aria-label="Close participant details" autoFocus disabled={pending} onClick={() => dialog.current?.close()}><X size={18} aria-hidden="true" /></button>
         <article className="portal-registrant-receipt">
           <ReviewModalHeader titleId={titleId} name={row.name} date={row.signedUp} reference={row.referenceCode} />
-          <ReviewModalToolbar label="Registrant details view" active={view} onChange={setView} items={[
-            { key: "registration", label: "Registration Details" },
-            { key: "logistics", label: <>Logistical Requests{changes.length > 0 && <span className="portal-logistics-unsaved">{changes.length} unsaved</span>}</> },
+          <ReviewModalToolbar label="Participant details view" active={view} onChange={setView} items={[
+            ...(row.registered !== false ? [{ key: "registration" as const, label: "Registration Details" },
+            { key: "logistics" as const, label: <>Logistical Requests{changes.length > 0 && <span className="portal-logistics-unsaved">{changes.length} unsaved</span>}</> },
+             ] : []),
+            ...(row.rsvp ? [{ key: "rsvp" as const, label: "RSVP Response" }] : []),
             { key: "evaluation", label: "Evaluation Response" },
           ]} actions={visited ? <>
             {view === "registration" && <>
               {resend && <button type="button" className="portal-registrant-action-button" disabled={pending} onClick={resendEmail}><Mail size={14} aria-hidden="true" />{pending && !confirmation ? "Sending…" : "Resend Acknowledgement"}</button>}
-              {remove && <button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => openConfirmation("remove")}>Remove Registration</button>}
+              {remove && <button type="button" className="portal-registrant-action-button portal-destructive-button" disabled={pending} onClick={() => openConfirmation("remove")}>Remove Registration</button>}
             </>}
             {view === "logistics" && save && <button type="button" className="portal-registrant-action-button" disabled={pending || changes.length === 0} onClick={() => openConfirmation("update")}>Update</button>}
           </> : undefined} />
           <div className="portal-registrant-receipt-body">
-            {feedback && <p role="status" className={`portal-registrant-feedback${feedback.error ? " is-error" : ""}`}>{feedback.message}</p>}
-            {view === "evaluation" ? <EvaluationResponseDetails response={row.evaluation} questions={evaluationQuestions} /> : view === "logistics" ? <div className="portal-registrant-logistics">
-              {visited && <Needs row={row} picks={picks} pending={pending} onPick={save ? (kind, approved) => { setPicks((current) => ({ ...current, [kind]: approved })); setFeedback(null); } : undefined} />}
+            {view === "rsvp" && row.rsvp ? <div className="portal-registrant-groups"><Facts title="RSVP Response" number="01" facts={rsvpResponseFacts(row.rsvp.answers)} /></div> : view === "evaluation" ? <EvaluationResponseDetails response={row.evaluation} questions={evaluationQuestions} /> : view === "logistics" ? <div className="portal-registrant-logistics">
+              {visited && <Needs row={row} picks={picks} pending={pending} onPick={save ? (kind, approved) => { setPicks((current) => ({ ...current, [kind]: approved })); } : undefined} />}
             </div> : (
               <div className="portal-registrant-groups">
                 <Facts title="Profile" number="01" facts={[
                   ["Last name", row.lastName],
                   ["First name", row.firstName],
                   ["Middle name", row.middleName || "Not given"],
-                  ["Email", <><button type="button" className="portal-registrant-copy-email" title="Copy email to clipboard" aria-label={`Copy ${row.email} to clipboard`} onClick={copyEmail}>{row.email}</button>{row.verified && <span className="portal-verified" title="Verified through UST Google"><ShieldCheck size={12} aria-hidden="true" />Verified</span>}<span className="portal-registrant-copy-status" role="status">{copyMessage}</span></>],
+                  ["Email", <><button type="button" className="portal-registrant-copy-email" title="Copy email to clipboard" aria-label={`Copy ${row.email} to clipboard`} onClick={() => void copy(row.email, "Email")}>{row.email}</button>{row.verified && <span className="portal-verified" title="Verified through UST Google"><ShieldCheck size={12} aria-hidden="true" />Verified</span>}</>],
                   ["Sex", row.sex],
                   ["Age", row.age === null ? "Not given" : String(row.age)],
                   ["Student number", row.studentNumber || "Not given"],
@@ -271,10 +278,9 @@ function Registrant({ row, evaluationQuestions, remove, save, resend }: { row: R
         <p>{confirmation === "remove"
           ? <>This will permanently remove <strong>{row.name}</strong>’s registration and logistics requests.</>
           : <>Save the updated logistics decisions for <strong>{row.name}</strong>? An email with these changes will be sent to <strong>{row.email}</strong>.</>}</p>
-        {confirmationError && <p className="portal-form-error" role="alert">{confirmationError}</p>}
         <div className="portal-registrant-confirmation-actions">
           <button type="button" className="portal-registrant-action-button" disabled={pending} autoFocus onClick={() => confirmationDialog.current?.close()}>Cancel</button>
-          <button type="button" className="portal-registrant-action-button" disabled={pending} onClick={confirm}>{pending ? confirmation === "remove" ? "Removing…" : "Updating…" : confirmation === "remove" ? "Remove Registration" : "Update & Send Email"}</button>
+          <button type="button" className={`portal-registrant-action-button${confirmation === "remove" ? " portal-destructive-button" : ""}`} disabled={pending} onClick={confirm}>{pending ? confirmation === "remove" ? "Removing…" : "Updating…" : confirmation === "remove" ? "Remove Registration" : "Update & Send Email"}</button>
         </div>
       </dialog>
     </li>
@@ -287,13 +293,15 @@ function Registrant({ row, evaluationQuestions, remove, save, resend }: { row: R
  * it asked for under Logistics answered.
  */
 export function RegistrantsTable({ rows, evaluationQuestions, remove, save, resend }: { rows: RegistrantRow[]; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
+  const [responseFilter, setResponseFilter] = useState<ResponseFilter>("all");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [page, setPage] = useState(0);
 
-  const counts = { all: rows.length, registered: rows.filter((row) => row.status === "registered").length, waitlisted: rows.filter((row) => row.status === "waitlisted").length };
+  const filtered = rows.filter(row => matchesResponseFilter(row, responseFilter));
+  const counts = { all: filtered.length, registered: filtered.filter((row) => row.registered !== false && row.status === "registered").length, waitlisted: filtered.filter((row) => row.registered !== false && row.status === "waitlisted").length };
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const matching = rows.filter((row) => (filter === "all" || row.status === filter) && (terms.length === 0 || terms.every((term) => searchable(row).includes(term))));
+  const matching = filtered.filter((row) => (filter === "all" || (row.registered !== false && row.status === filter)) && (terms.length === 0 || terms.every((term) => searchable(row).includes(term))));
   const pages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
   // Removing the last row of the last page, or narrowing the search, can leave the page number past the end.
   const current = Math.min(page, pages - 1);
@@ -306,21 +314,12 @@ export function RegistrantsTable({ rows, evaluationQuestions, remove, save, rese
 
   return (
     <>
-      <div className="portal-table-tools portal-registrants-toolbar">
-        <div className="portal-registrants-tools">
-          <div className="portal-progress-legend" aria-label="Registrant status legends">
-            <span><i className="is-attended" aria-hidden="true" />Attendance confirmed</span>
-            <span><i className="is-evaluated" aria-hidden="true" />Evaluation answered</span>
-          </div>
+      <div className="portal-table-tools portal-registrants-toolbar portal-participant-toolbar">
+        <div className="portal-registrants-tools portal-participant-filters">
+          <SlidingFilterButtons items={responseFilters} active={responseFilter} label="Participant response type" onChange={next => { setResponseFilter(next); setFilter("all"); setPage(0); }} />
           {/* Only worth showing when there's a waitlist to tell apart. */}
           {counts.waitlisted > 0 && (
-            <div className="portal-filters" role="group" aria-label="Filter by status">
-              {(["all", "registered", "waitlisted"] as const).map((value) => (
-                <button key={value} type="button" className={filter === value ? "is-active" : undefined} aria-pressed={filter === value} onClick={() => show(value)}>
-                  {value === "all" ? "Everyone" : registrationKinds[value]}<small>{counts[value]}</small>
-                </button>
-              ))}
-            </div>
+            <SlidingFilterButtons active={filter} label="Filter by status" onChange={show} items={(["all", "registered", "waitlisted"] as const).map(value => ({ key: value, label: <>{value === "all" ? "Everyone" : registrationKinds[value]}<small>{counts[value]}</small></> }))} />
           )}
         </div>
         <label className="portal-search">
@@ -330,13 +329,22 @@ export function RegistrantsTable({ rows, evaluationQuestions, remove, save, rese
         </label>
       </div>
 
+      <div className="portal-table-tools portal-participant-summary">
+        <div className="portal-progress-legend" aria-label="Registrant status legends">
+          <span><i className="is-attended" aria-hidden="true" />Attendance confirmed</span>
+          <span><i className="is-rsvp" aria-hidden="true" />RSVP answered</span>
+          <span><i className="is-evaluated" aria-hidden="true" />Evaluation answered</span>
+        </div>
+        <span className="portal-index">{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</span>
+      </div>
+
       {shown.length === 0 ? (
-        <p className="portal-empty" role="status">{rows.length === 0 ? "Nobody has signed up yet. Registrations appear here as they come in." : "No registrants match that search."}</p>
+        <p className="portal-empty" role="status">{rows.length === 0 ? "No registrations or responses yet." : "No entries match the selected filters or search."}</p>
       ) : (
         <div className="portal-registrants">
           <div className="portal-registrants-head" aria-hidden="true"><span>Status</span><span>Name</span><span>Email</span><span>Affiliation</span></div>
           <ul className="portal-registrants-list">
-            {shown.map((row) => <Registrant key={row.id} row={row} evaluationQuestions={evaluationQuestions} remove={remove} save={save} resend={resend} />)}
+            {shown.map((row) => <Registrant key={row.id} row={row} preferredView={responseFilter === "rsvp" || responseFilter === "evaluation" ? responseFilter : undefined} evaluationQuestions={evaluationQuestions} remove={row.registered !== false ? remove : undefined} save={row.registered !== false ? save : undefined} resend={row.registered !== false ? resend : undefined} />)}
           </ul>
         </div>
       )}

@@ -1,5 +1,7 @@
 "use client";
 
+import { SlidingSegments } from "./sliding-filters";
+
 import { startTransition, useActionState, useId, useMemo, useState } from "react";
 import { CalendarClock, FlaskConical, Send } from "lucide-react";
 import { formatClosing, fromManilaInput } from "@/lib/applications/period";
@@ -16,6 +18,7 @@ import { DocumentBodyField } from "./document-body-field";
 import { EmailPreview } from "./email-preview";
 import { InfoTip } from "./info-tip";
 import { useHydrated } from "./portal-form";
+import { useToast } from "./toast";
 
 type Action = (state: EmailFormState, formData: FormData) => Promise<EmailFormState>;
 
@@ -54,6 +57,9 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
   const hydrated = useHydrated();
   const [state, send, sending] = useActionState(action, undefined);
   const [testState, sendTest, testing] = useActionState(testAction, undefined);
+  useToast(state?.error, "error", state);
+  useToast(testState?.error, "error", testState);
+  useToast(testState?.sent, "ok", testState);
 
   const [audience, setAudience] = useState<Audience>(draft.audience);
   const [subject, setSubject] = useState(draft.subject);
@@ -202,7 +208,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
           {!(sendToEmail || sendToInbox) && <span className="portal-field-error">Choose at least one delivery option.</span>}
           {errors.delivery && <span className="portal-field-error">{errors.delivery}</span>}
           <div className="email-delivery">
-            <div className="portal-segmented" role="radiogroup" aria-label="When it goes out">
+            <SlidingSegments active={when} role="radiogroup" aria-label="When it goes out">
               <label className={`portal-segment${when === "now" ? " is-selected" : ""}`}>
                 <input type="radio" name={`${id}-when`} checked={when === "now"} onChange={() => { setWhen("now"); setArmed(false); }} />
                 <Send size={15} strokeWidth={1.9} aria-hidden="true" /> Send now
@@ -211,7 +217,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
                 <input type="radio" name={`${id}-when`} checked={when === "later"} onChange={() => { setWhen("later"); setArmed(false); }} />
                 <CalendarClock size={15} strokeWidth={1.9} aria-hidden="true" /> Schedule
               </label>
-            </div>
+            </SlidingSegments>
             {when === "later" && (
               <div className="portal-setting-inline">
                 <DateTimePicker label="Date and time it goes out, Manila time" value={sendAt} min={sendAtMin} onChange={setSendAt} invalid={Boolean(errors.sendAt)} required />
@@ -223,7 +229,7 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
         </fieldset>
 
         <div className="portal-form-footer email-compose-foot">
-          {shown?.error ? <p className="portal-form-error" role="alert">{shown.error}</p> : last === "test" && testState?.sent ? <p className="portal-notice" role="status">{testState.sent}</p> : <span />}
+          <span />
           {armed ? (
             <span className="portal-confirm email-confirm">
               <span>Send to {countOf(recipients.length)} now? This can’t be undone.</span>

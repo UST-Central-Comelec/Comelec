@@ -29,7 +29,7 @@ const dayMonth = new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "shor
 const updated = new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "short", day: "numeric", year: "numeric" });
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
-const sectionIcons: Record<string, typeof Newspaper> = { News: Newspaper, Documents: FileText, Directory: Users, Events: CalendarDays };
+const sectionIcons: Record<string, typeof Newspaper> = { Publications: Newspaper, Archive: FileText, Directory: Users, Events: CalendarDays };
 
 /** A period as the hero reads it: "Open until Oct 29", "Open", "Closing soon" or `closed`. Null is one that couldn't be loaded. */
 function periodReading(label: string, href: string, period: ApplicationPeriod | null, closed: string): Reading {
@@ -68,7 +68,7 @@ export default async function PortalDashboardPage() {
   // dashboard down: one that can't be loaded just says so.
   const [news, documents, directory, events, applications, candidacy, parties, pending, requests, revisions] = await Promise.all([
     can("news") ? getPosts() : [],
-    can("documents") ? getDocuments() : [],
+    can("documents/archive") ? getDocuments() : [],
     can("members") ? getDirectory() : null,
     can("events") ? settle(getEvents()) : null,
     recruitmentTab && unit ? settle(getUnitPeriod("recruitment", unit)) : null,
@@ -76,7 +76,7 @@ export default async function PortalDashboardPage() {
     partiesTab && unit ? settle(getUnitPeriod("party-registration", unit)) : null,
     can("recruitment/applications") ? settle(listApplications(local ? { status: "pending", college: user.college ?? "" } : { status: "pending" })) : null,
     can("accounts") ? settle(listPendingAccessRequests()) : null,
-    can("apps/approvals") ? settle(listRevisions({ status: "pending" })) : null,
+    can("documents/approval") ? settle(listRevisions({ status: "pending" })) : null,
   ]);
 
   // Their own unit's: the Central Comelec's for a Central account, their college's for a Local one.
@@ -93,12 +93,12 @@ export default async function PortalDashboardPage() {
     ...(partiesTab && parties ? [periodReading("Parties", tabHref(partiesTab), parties.value, "Not open")] : []),
     ...(pending ? [queueReading("To review", `/portal/recruitment/applications?status=pending${local ? "" : "&body=all"}`, pending.value?.length ?? null, "application")] : []),
     ...(requests ? [queueReading("Access requests", "/portal/accounts?status=pending", waiting, "request")] : []),
-    ...(revisions ? [queueReading(office ? "To approve" : "Approvals", tabHref("apps/approvals"), toApprove, "revision")] : []),
+    ...(revisions ? [queueReading(office ? "To approve" : "Approval", tabHref("documents/approval"), toApprove, "revision")] : []),
   ];
 
   const recent = [
     ...news.map((item) => ({ key: `news-${item.id}`, title: item.title, type: newsCategories[item.category], href: `/portal/news/${item.id}`, updatedAt: item.updatedAt })),
-    ...documents.map((item) => ({ key: `doc-${item.id}`, title: item.title, type: documentKinds[item.kind], href: `/portal/documents/${item.id}`, updatedAt: item.updatedAt })),
+    ...documents.map((item) => ({ key: `doc-${item.id}`, title: item.title, type: documentKinds[item.kind], href: `/portal/documents/archive/${item.id}`, updatedAt: item.updatedAt })),
     ...ownEvents.map((item) => ({ key: `event-${item.id}`, title: item.name, type: "Event", href: `/portal/events/${item.id}`, updatedAt: item.updatedAt })),
   ]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -108,8 +108,8 @@ export default async function PortalDashboardPage() {
   // Adviser or Admin, who only reads.
   const adds = !user.readOnly;
   const stats = [
-    ...(can("news") ? [{ section: "News", label: "News posts", count: news.length, href: "/portal/news", newHref: adds ? "/portal/news/new" : null }] : []),
-    ...(can("documents") ? [{ section: "Documents", label: "Official documents", count: documents.length, href: "/portal/documents", newHref: adds ? "/portal/documents/new" : null }] : []),
+    ...(can("news") ? [{ section: "Publications", label: "Posts", count: news.length, href: "/portal/news", newHref: adds ? "/portal/news/new" : null }] : []),
+    ...(can("documents/archive") ? [{ section: "Archive", label: "Official documents", count: documents.length, href: "/portal/documents/archive", newHref: adds ? "/portal/documents/archive/new" : null }] : []),
     ...(can("members") ? [{ section: "Directory", label: local ? "In your Local Comelec" : "Commission members", count: people.length, href: "/portal/members", newHref: null }] : []),
     ...(can("events") ? [{ section: "Events", label: local ? "Your unit’s events" : "Central Comelec events", count: ownEvents.length, href: "/portal/events", newHref: adds ? "/portal/events/new" : null }] : []),
   ].slice(0, 3);
@@ -118,7 +118,7 @@ export default async function PortalDashboardPage() {
   const actions = adds
     ? [
         ...(can("news") ? [{ href: "/portal/news/new", label: "New post" }] : []),
-        ...(can("documents") ? [{ href: "/portal/documents/new", label: "Add document" }] : []),
+        ...(can("documents/archive") ? [{ href: "/portal/documents/archive/new", label: "Add document" }] : []),
         ...(can("events") ? [{ href: "/portal/events/new", label: "Add event" }] : []),
       ]
     : [];
@@ -128,7 +128,7 @@ export default async function PortalDashboardPage() {
   const lead = news.find((post) => post.featured && post.category !== "explainer");
   const showLead = can("news");
   // Nothing to list for an account with none of the tabs it draws from.
-  const showRecent = can("news") || can("documents") || can("events");
+  const showRecent = can("news") || can("documents/archive") || can("events");
   // Who to greet. Names are kept in capitals; a greeting isn't shouted. An official account is greeted
   // as its unit. An account with no name parts yet: what comes before the middle initial
   // ("JUAN MIGUEL D. DELA CRUZ"), or, with no initial to go by, everything but the last word.

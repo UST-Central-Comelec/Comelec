@@ -13,7 +13,7 @@
 .pp-sidebar a, .pp-form a, .pp-receipt a { display: inline-flex; align-items: center; gap: 6px; color: var(--bp-gold-mark); text-decoration: underline; text-underline-offset: 4px; }
 .pp-form { min-width: 0; border: 1px solid var(--bp-line-strong); background: var(--bp-surface); border-radius: 22px; padding: clamp(20px, 3.5vw, 42px); }
 .pp-form-head { border-bottom: 1px solid var(--bp-line); margin-bottom: 28px; padding-bottom: 24px; }
-.pp-form-head > span, .pp-source { color: var(--bp-gold-mark); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.pp-form-head > span, .pp-source { color: var(--bp-gold-mark); font-size: 11px; text-transform: uppercase; }
 .pp-form-head h2, .pp-receipt h2 { font-size: clamp(25px, 2.4vw, 34px); font-weight: 550; letter-spacing: -.04em; margin: 8px 0; }
 .pp-form-head p, .pp-note { color: var(--bp-muted); font-size: 13px; line-height: 1.7; margin-top: 12px; }
 .pp-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -22,7 +22,7 @@
 :root[data-theme="light"] .pp-form { border-color: var(--ui-border); border-radius: var(--ui-card-radius); box-shadow: var(--ui-card-shadow); }
 :root[data-theme="light"] .pp-field :is(input, select) { background: var(--ui-panel-tint); border-color: var(--ui-border-strong); border-radius: var(--ui-control-radius); color-scheme: light; }
 :root[data-theme="light"] .pp-field input[aria-invalid="true"] { border-color: #b0243b; }
-:root[data-theme="light"] .pp-field :is(input, select):focus { background: var(--ui-panel); outline: 2px solid var(--ui-accent-edge); outline-offset: 2px; }
+:root[data-theme="light"] .pp-field :is(input, select):focus { background: var(--ui-panel); border-color: var(--ui-text); }
 :root[data-theme="light"] .pp-form :is(.pp-error, .pp-alert) { color: #b0243b; }
 :root[data-theme="light"] .pp-form .pp-person { background: var(--ui-panel-tint); border-color: var(--ui-border); border-radius: 16px; }
 :root[data-theme="light"] .pp-form .pp-actions .bp-button { border-radius: var(--ui-control-radius); }
@@ -32,6 +32,7 @@
 .pp-field > span { color: var(--bp-soft); }
 .pp-field input, .pp-field select { background: var(--bp-raised); border: 1px solid var(--bp-line-strong); border-radius: 9px; padding: 12px; color: var(--bp-text); min-height: 46px; width: 100%; min-width: 0; font: inherit; color-scheme: dark; }
 .pp-field input[aria-invalid="true"] { border-color: #d87878; }
+.pp-field :is(input, select):focus { border-color: var(--bp-text); box-shadow: var(--field-lift); outline: 0; }
 .pp-error, .pp-alert { color: #ed9898; font-size: 13px; line-height: 1.6; }
 .pp-alert { background: rgba(180,50,50,.1); border: 1px solid rgba(200,70,70,.4); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
 .pp-declaration { border-left: 2px solid var(--bp-gold-edge); background: rgba(var(--bp-ink), .025); padding: 16px 20px; margin: 22px 0; color: var(--bp-soft); font-size: 13px; line-height: 1.85; }
@@ -78,7 +79,7 @@
 .pp-receipt > p { font-size: 14px; line-height: 1.8; margin: 18px 0; color: var(--bp-muted); }
 .pp-reference { background: var(--bp-raised); border-radius: 12px; padding: 24px; margin-block: 26px; display: flex; flex-direction: column; gap: 10px; }
 .pp-reference span { font-size: 12px; color: var(--bp-muted); }
-.pp-reference strong { font-size: clamp(20px, 4vw, 30px); letter-spacing: .05em; color: var(--bp-gold-mark); overflow-wrap: anywhere; }
+.pp-reference strong { font-size: clamp(20px, 4vw, 30px); color: var(--bp-gold-mark); overflow-wrap: anywhere; }
 .pp-pdf-downloads { display: grid; gap: 18px; padding: 24px; margin-block: 24px; border: 1px solid var(--bp-line-strong); border-radius: 12px; background: var(--bp-raised); }
 .pp-pdf-downloads > button { justify-self: start; }
 .pp-pdf-downloads > button:disabled { opacity: .6; cursor: wait; }

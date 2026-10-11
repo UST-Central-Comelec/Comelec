@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { UserPlus } from "lucide-react";
 import type { AccessProfile } from "@/lib/access-requests/channel";
+import type { OnboardingDocument } from "@/lib/onboarding/documents";
 import { RequestAccessForm } from "./request-access-form";
 
 /** Lights the card under the mouse, through --spot-x/--spot-y. */
@@ -17,30 +18,42 @@ function followPointer(event: PointerEvent<HTMLDivElement>) {
 /**
  * The sign-in card, which swaps to Request access in place. `note` is the line under the sign-in
  * buttons. `accessStatus` is set when Google verification finished in this window instead of a popup
- * (?access=…), so the request opens straight away.
+ * (?access=…), so the request opens straight away. `join` is the reference code of an accepted
+ * application, from the acceptance email's Join the Commission button: its details fill in the
+ * profile, and the request is approved as soon as it's sent. `documents` are what Request access
+ * asks them to agree to.
  */
-export function LoginPanel({ signIn, note, canRequest, verified, accessStatus }: { signIn: ReactNode; note?: ReactNode; canRequest: boolean; verified: AccessProfile | null; accessStatus?: string }) {
-  const [requesting, setRequesting] = useState(Boolean(accessStatus) && canRequest);
+export function LoginPanel({ signIn, note, canRequest, verified, accessStatus, requestAccess = false, join, documents }: { signIn: ReactNode; note?: ReactNode; canRequest: boolean; verified: AccessProfile | null; accessStatus?: string; requestAccess?: boolean; join: string | null; documents: OnboardingDocument[] }) {
+  const [requesting, setRequesting] = useState((requestAccess || Boolean(accessStatus)) && canRequest);
   // The UST account verified for a request; kept here so going back to sign in doesn't lose it.
   const [profile, setProfile] = useState(verified);
   // Why the last verification in this window didn't go through; shown once.
   const [status, setStatus] = useState(accessStatus === "verified" ? undefined : accessStatus);
 
-  // The card's height at sign-in, held while requesting so the card doesn't change size. Only the long About you form outgrows it.
   const card = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number>();
+
+  useEffect(() => {
+    if (requesting) {
+      card.current?.style.removeProperty("--spot-x");
+      card.current?.style.removeProperty("--spot-y");
+    }
+    const background = card.current?.closest(".portal-login")?.querySelector<HTMLElement>(".portal-login-aside");
+    if (!background) return;
+    background.inert = requesting;
+    return () => { background.inert = false; };
+  }, [requesting]);
 
   return (
-    <div ref={card} className={`portal-login-card${requesting ? " is-request" : ""}`} data-enter style={{ "--enter": 3, minHeight: requesting ? height : undefined } as CSSProperties} onPointerMove={followPointer}>
+    <div ref={card} className={`portal-login-card${requesting ? " is-request" : ""}`} data-enter style={{ "--enter": 3 } as CSSProperties} onPointerMove={requesting ? undefined : followPointer}>
       {requesting ? (
-        <RequestAccessForm profile={profile} onProfileChange={setProfile} initialStatus={status} onBack={() => { setRequesting(false); setStatus(undefined); }} />
+        <RequestAccessForm profile={profile} onProfileChange={setProfile} initialStatus={status} join={join} documents={documents} onBack={() => { setRequesting(false); setStatus(undefined); }} />
       ) : (
         <>
           {signIn}
           {canRequest && (
             <div className="portal-login-request">
               <p><span>Don’t have an account yet?</span></p>
-              <button className="portal-button is-ghost is-beam is-block" type="button" onClick={() => { setHeight(card.current?.offsetHeight); setRequesting(true); }}><UserPlus size={16} aria-hidden="true" /> Request access</button>
+              <button className="portal-button is-ghost is-beam is-block" type="button" onClick={() => setRequesting(true)}><UserPlus size={16} aria-hidden="true" /> Request access</button>
             </div>
           )}
           {note}

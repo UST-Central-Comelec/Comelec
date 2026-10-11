@@ -34,14 +34,16 @@ export async function GET(request: NextRequest) {
     return toLogin(access.denied);
   }
 
+  // Only Google sign-in proves the UST email: a session made any other way (Supabase's email
+  // sign-up, a magic link) is signed straight back out, as getPortalUser would refuse it anyway.
   const { data: claims } = await supabase.auth.getClaims();
   const sessionId = claims?.claims.session_id;
-  if (typeof sessionId !== "string") {
+  if (typeof sessionId !== "string" || !isGoogleSession(claims?.claims)) {
     await supabase.auth.signOut({ scope: "local" });
     return toLogin("failed");
   }
 
-  if (isGoogleSession(claims?.claims)) await markEmailVerified(data.user.email);
+  await markEmailVerified(data.user.email);
 
   const now = Date.now();
   const response = NextResponse.redirect(new URL("/portal", request.nextUrl));

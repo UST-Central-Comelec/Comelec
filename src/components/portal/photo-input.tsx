@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
+import { toast } from "./toast";
 
 // Photo picker that shrinks the image in the browser before it's sent: resized to at most
 // MAX_SIDE pixels and re-encoded as JPEG, lowering quality until it fits under 1 MB. Member
@@ -14,9 +15,10 @@ function formatSize(bytes: number) {
   return bytes >= MAX_BYTES ? `${(bytes / MAX_BYTES).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-async function compress(file: File): Promise<File> {
+/** Also used for images on event forms (form-field-editor.tsx), which may be larger on screen. */
+export async function compress(file: File, maxSide = MAX_SIDE): Promise<File> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  let scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  let scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
 
   // Already small enough and not oversized: keep the original untouched.
   if (file.size <= MAX_BYTES && scale === 1) return file;
@@ -40,7 +42,7 @@ async function compress(file: File): Promise<File> {
   throw new Error("too-large");
 }
 
-type Status = { kind: "idle" } | { kind: "working" } | { kind: "done"; message: string } | { kind: "error"; message: string };
+type Status = { kind: "idle" } | { kind: "working" } | { kind: "done"; message: string };
 
 export function PhotoInput({ name }: { name: string }) {
   const input = useRef<HTMLInputElement>(null);
@@ -51,7 +53,8 @@ export function PhotoInput({ name }: { name: string }) {
     if (!file) return setStatus({ kind: "idle" });
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       event.target.value = "";
-      return setStatus({ kind: "error", message: "Choose a JPG, PNG or WebP photo." });
+      setStatus({ kind: "idle" });
+      return toast("Choose a JPG, PNG or WebP photo.", "error");
     }
 
     setStatus({ kind: "working" });
@@ -64,7 +67,8 @@ export function PhotoInput({ name }: { name: string }) {
       setStatus({ kind: "done", message: compressed === file ? `Ready · ${formatSize(file.size)}` : `Compressed ${formatSize(file.size)} → ${formatSize(compressed.size)}` });
     } catch {
       event.target.value = "";
-      setStatus({ kind: "error", message: "Couldn’t read that photo. Try a different file." });
+      setStatus({ kind: "idle" });
+      toast("Couldn’t read that photo. Try a different file.", "error");
     }
   };
 
@@ -73,7 +77,6 @@ export function PhotoInput({ name }: { name: string }) {
       <input ref={input} name={name} type="file" accept="image/jpeg,image/png,image/webp" onChange={onChange} />
       {status.kind === "working" && <span className="portal-field-hint" aria-live="polite">Compressing…</span>}
       {status.kind === "done" && <span className="portal-file-status" aria-live="polite">{status.message}</span>}
-      {status.kind === "error" && <span className="portal-field-error" aria-live="polite">{status.message}</span>}
     </>
   );
 }

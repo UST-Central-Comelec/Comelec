@@ -8,6 +8,7 @@ import { recipientMention, senderLabel } from "@/lib/notifications/inbox-present
 import type { InboxMessage } from "@/lib/notifications/inbox-rules";
 import { deleteAnnouncement, readNotification } from "@/lib/portal/inbox-actions";
 import { SlidingFilters } from "./sliding-filters";
+import { toast } from "./toast";
 
 const inboxFilters = [
   { key: "all", href: "/portal/apps/inbox?tab=all", label: "All Messages" },
@@ -19,7 +20,6 @@ const dateFormat = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", d
 
 export function InboxMessages({ messages, empty, tab }: { messages: InboxMessage[]; empty: string; tab?: "all" | "read" | "unread" }) {
   const id = useId();
-  const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const [reading, setReading] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -43,35 +43,33 @@ export function InboxMessages({ messages, empty, tab }: { messages: InboxMessage
 
   const markRead = (messageId: string) => {
     setReading(messageId);
-    setError(undefined);
     startTransition(async () => {
       try {
         const result = await readNotification(messageId);
-        setError(result.error);
-        if (!result.error) window.dispatchEvent(new Event("portal-notifications-changed"));
-      } catch { setError("Couldn’t mark this as read. Try again."); }
+        if (result.error) toast(result.error, "error");
+        else window.dispatchEvent(new Event("portal-notifications-changed"));
+      } catch { toast("Couldn’t mark this as read. Try again.", "error"); }
       finally { setReading(null); }
     });
   };
 
   const removeAnnouncement = (messageId: string) => {
     setDeleting(messageId);
-    setError(undefined);
     startTransition(async () => {
       try {
         const result = await deleteAnnouncement(messageId);
-        setError(result.error);
-        if (!result.error) {
+        if (result.error) toast(result.error, "error");
+        else {
           setExpanded(null);
+          toast("Announcement deleted.");
           window.dispatchEvent(new Event("portal-notifications-changed"));
         }
-      } catch { setError("Couldn’t delete the announcement. Try again."); }
+      } catch { toast("Couldn’t delete the announcement. Try again.", "error"); }
       finally { setDeleting(null); }
     });
   };
 
   return <div className="portal-inbox-list">
-    {error && <p className="portal-form-error" role="alert">{error}</p>}
     <div className="portal-inbox-toolbar">
       {tab && <SlidingFilters label="Filter messages by read status" active={tab} items={inboxFilters} />}
       <div className="portal-inbox-search">

@@ -26,7 +26,7 @@ body:has(.site-header.is-visible) .nr-tuner { top: calc(var(--bp-header) + 14px)
 /* Search: always open, so it's found without hunting for it */
 .nr-search { align-items: center; background: rgba(var(--bp-ink),.045); border: 1px solid var(--bp-line); border-radius: 12px; color: var(--bp-muted); display: flex; flex: 0 1 320px; height: 42px; margin: 0; min-width: 0; transition: background-color .25s ease, border-color .25s ease, box-shadow .25s ease; }
 .nr-search:hover { background: rgba(var(--bp-ink),.07); }
-.nr-search:focus-within { background: rgba(var(--bp-ink),.07); border-color: rgba(var(--bp-gold-rgb),.6); box-shadow: 0 0 0 4px rgba(var(--bp-gold-rgb),.14); }
+.nr-search:focus-within { background: rgba(var(--bp-ink),.07); border-color: var(--bp-text); box-shadow: var(--field-lift); }
 .nr-search label { align-items: center; align-self: stretch; cursor: text; display: flex; flex: none; justify-content: center; width: 40px; }
 .nr-search input { -webkit-appearance: none; appearance: none; background: none; border: 0; color: var(--bp-text); flex: 1; font: inherit; font-size: 14px; min-width: 0; padding: 0 8px 0 0; }
 .nr-search input:focus-visible { outline: 0; }

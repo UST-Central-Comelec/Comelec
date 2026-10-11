@@ -11,6 +11,7 @@ import { allowed, withPortalUser } from "@/lib/auth/session";
 import { isEmailConfigured } from "@/lib/email/send";
 import { LOGO_CID, LOGO_PATH } from "@/lib/email/template";
 import { automaticEmails, findAutomaticEmail, sampleLocal } from "@/lib/notifications/catalog";
+import { getOnboarding } from "@/lib/applications/onboarding-store";
 import { CENTRAL, unitOf } from "@/lib/notifications/concern";
 import { getSavedSwitches, isSwitchesMissing } from "@/lib/notifications/switch-store";
 import { emailDefaults, switchesWith } from "@/lib/notifications/switches";
@@ -35,7 +36,10 @@ export default async function AutomaticEmailsPage({ searchParams }: PageProps<"/
   // The commission's settings and texts are always the Central Comelec's, so those are only ever shown as Central.
   const local = unit === "local" && email.byUnit;
   const concern = local ? sampleLocal : CENTRAL;
-  const sample = email.sample(concern);
+  const onboarding = email.id === "application-accepted"
+    ? await settle(getOnboarding(concern.unit === "local" ? concern.college : "", true))
+    : null;
+  const sample = email.sample(concern, onboarding?.value ?? undefined);
   const from = `${process.env.EMAIL_FROM_NAME?.trim() || "UST Central Comelec"}${process.env.SMTP_USER?.trim() ? ` <${process.env.SMTP_USER.trim()}>` : ""}`;
   const href = (id: string, shownAs = local) => `${PAGE}?email=${id}${shownAs ? "&unit=local" : ""}`;
   const groups: AutomaticItemGroup[] = automaticEmails.map((group) => ({
@@ -92,6 +96,7 @@ export default async function AutomaticEmailsPage({ searchParams }: PageProps<"/
           />
         )}
 
+        {onboarding?.error && <p className="portal-form-error" role="alert">Couldn’t load onboarding links. Reload to try again. This preview uses the default buttons.</p>}
         <EmailPreview html={sample.html.replaceAll(`cid:${LOGO_CID}`, LOGO_PATH)} from={from} to={sample.to} subject={sample.subject} />
         <p className="email-auto-note portal-muted">Shown with made-up details. The real email carries the person’s own.</p>
       </AutomaticEmails>

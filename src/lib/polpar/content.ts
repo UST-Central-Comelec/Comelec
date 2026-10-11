@@ -44,4 +44,5 @@ export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_TOTAL_BYTES = 30 * 1024 * 1024;
 export const MAX_REQUEST_BYTES = 32 * 1024 * 1024;
 export const uploadTypes = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" } as const;
+/** The Supabase Storage bucket documents filed before the move to R2 still sit in. New ones go to R2. */
 export const POLPAR_BUCKET = "party-registration";

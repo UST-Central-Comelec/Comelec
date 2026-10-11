@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CornerDownLeft, Newspaper, Search, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { readings, readingText, searchLinks, searchPrompts, topSearches, type NavStatus } from "@/components/nav/nav-data";
+import { isNavItemAvailable, readings, readingText, searchLinks, searchPrompts, topSearches, type NavStatus } from "@/components/nav/nav-data";
 
 type Option = { id: string; label: string; hint?: string; meta?: string; href: string; icon: LucideIcon; live?: boolean };
 type Group = { label: string; options: Option[] };
@@ -16,10 +16,10 @@ function groupsFor(query: string, status: NavStatus): Group[] {
     const open = readings.filter((reading) => status[reading.key].open);
     return [
       { label: "Open now", options: open.map((reading) => ({ id: `open-${reading.key}`, label: reading.label, hint: readingText(status[reading.key], reading.closed), href: reading.href, icon: TrendingUp, live: true })) },
-      { label: "Top searches", options: topSearches.map((search, index) => ({ id: `top-${index}`, label: search.label, href: search.href, icon: Search })) },
+      { label: "Top searches", options: topSearches.filter((search) => isNavItemAvailable(search, status)).map((search, index) => ({ id: `top-${index}`, label: search.label, href: search.href, icon: Search })) },
     ].filter((group) => group.options.length > 0);
   }
-  const links = searchLinks(term);
+  const links = searchLinks(term, 7, status);
   return [
     { label: "Go to", options: links.map((link) => ({ id: `link-${link.href}-${link.label}`, label: link.label, hint: link.description, meta: link.section, href: link.href, icon: link.icon })) },
     { label: "News", options: [{ id: "newsroom", label: `Search the news for “${term}”`, href: `/news?q=${encodeURIComponent(term)}`, icon: Newspaper }] },

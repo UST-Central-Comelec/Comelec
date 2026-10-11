@@ -5,7 +5,8 @@ import { unitFromKey } from "@/lib/periods/kinds";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
-import { MAX_FILE_BYTES, MAX_REQUEST_BYTES, MAX_TOTAL_BYTES, POLPAR_BUCKET, requirements, uploadTypes } from "@/lib/polpar/content";
+import { deleteObjects, isR2Configured, putObject } from "@/lib/storage/r2";
+import { MAX_FILE_BYTES, MAX_REQUEST_BYTES, MAX_TOTAL_BYTES, requirements, uploadTypes } from "@/lib/polpar/content";
 import { fieldErrors, partyRegistrationSchema, type PartyDocument, type PartyResponse } from "@/lib/polpar/schema";
 
 export const runtime = "nodejs";
@@ -36,8 +37,8 @@ function matchesType(bytes: Buffer, type: string) {
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(request.url).origin) return reply({ error: "Please submit through the registration page." }, 403);
-  if (!isSupabaseConfigured()) return reply({ error: "Online registration is unavailable. Please contact comelec@ust.edu.ph." }, 503);
-  const limited = rateLimit(`polpar:${clientIp(request.headers)}`, limits.apply.limit, limits.apply.windowMs);
+  if (!isSupabaseConfigured() || !isR2Configured()) return reply({ error: "Online registration is unavailable. Please contact comelec@ust.edu.ph." }, 503);
+  const limited = rateLimit(`polpar:${clientIp(request.headers)}`, limits.party.limit, limits.party.windowMs);
   if (!limited.ok) return reply({ error: "Too many submission attempts. Please try again later." }, 429);
   if (Number(request.headers.get("content-length")) > MAX_REQUEST_BYTES) return reply({ error: "Keep the combined uploads below 30 MB." }, 413);
 
@@ -83,11 +84,10 @@ export async function POST(request: Request) {
     const batch = randomUUID();
     for (const { file, requirement, bytes } of files) {
       const extension = uploadTypes[file.type as keyof typeof uploadTypes];
-      const path = `${submissionId}/${batch}/${requirement}-${randomUUID()}.${extension}`;
-      const { error } = await client.storage.from(POLPAR_BUCKET).upload(path, bytes, { contentType: file.type, upsert: false });
-      if (error) throw new Error(error.message);
+      const path = `party-registration/${submissionId}/${batch}/${requirement}-${randomUUID()}.${extension}`;
+      await putObject("private", path, bytes, { contentType: file.type });
       uploaded.push(path);
-      documents.push({ requirement, name: file.name.slice(0, 250), path, size: file.size, type: file.type });
+      documents.push({ requirement, name: file.name.slice(0, 250), path, size: file.size, type: file.type, store: "r2" });
     }
     const reference = `PP-${randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
     const { data: saved, error } = await client.from("party_registrations").insert({ id: submissionId, reference, party_name: data.partyName, college: unit.college ?? "", email: data.email, payload: data, documents }).select("reference, party_name, created_at").single();
@@ -108,10 +108,7 @@ export async function POST(request: Request) {
     return reply({ error: "Your registration could not be saved. Please retry or contact comelec@ust.edu.ph. Your entries are still on this page." }, 503);
   } finally {
     if (!committed && uploaded.length) {
-      try {
-        const { error } = await client.storage.from(POLPAR_BUCKET).remove(uploaded);
-        if (error) console.error("Couldn’t remove incomplete party uploads:", error.message);
-      } catch { console.error("Couldn’t remove incomplete party uploads."); }
+      try { await deleteObjects("private", uploaded); } catch { console.error("Couldn’t remove incomplete party uploads."); }
     }
   }
 }

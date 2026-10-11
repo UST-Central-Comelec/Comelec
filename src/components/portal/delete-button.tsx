@@ -10,7 +10,7 @@ type Props = {
   pendingLabel?: string;
   /** Shown before the label. */
   icon?: ReactNode;
-  /** "quiet" is a plain outlined button, for something that can be undone (revoking access); the confirm step is still red. */
+  /** "quiet" is a plain outlined button, for something that can be undone (revoking access); the confirm step shares the destructive hover style. */
   tone?: "danger" | "quiet" | "black";
 };
 
@@ -20,14 +20,14 @@ export function DeleteButton({ action, label = "Delete", prompt = "Delete perman
   const [pending, startTransition] = useTransition();
 
   if (!armed) {
-    return <button className={tone === "black" ? "portal-registrant-action-button" : `portal-button ${tone === "quiet" ? "is-ghost" : "is-danger-ghost"}`} type="button" onClick={() => setArmed(true)}>{icon}{label}</button>;
+    return <button className={`portal-destructive-button ${tone === "black" ? "portal-registrant-action-button" : `portal-button ${tone === "quiet" ? "is-ghost" : "is-danger-ghost"}`}`} type="button" onClick={() => setArmed(true)}>{icon}{label}</button>;
   }
 
   return (
     <span className="portal-confirm">
       <span>{prompt}</span>
       <button className={tone === "black" ? "portal-registrant-action-button" : "portal-button is-ghost"} type="button" disabled={pending} onClick={() => setArmed(false)}>Keep</button>
-      <button className={tone === "black" ? "portal-registrant-action-button" : "portal-button is-danger"} type="button" disabled={pending} onClick={() => startTransition(() => action())}>
+      <button className={`portal-destructive-button ${tone === "black" ? "portal-registrant-action-button" : "portal-button is-danger"}`} type="button" disabled={pending} onClick={() => startTransition(() => action())}>
         {pending ? pendingLabel : confirmLabel}
       </button>
     </span>

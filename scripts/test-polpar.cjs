@@ -46,7 +46,7 @@ function endpoint({ closed = false, insertError = null, uploadFailureAt = -1, ex
     "@/lib/applications/period": period,
     "@/lib/periods/store": { getUnitPeriod: async () => ({ mode: closed ? "closed" : "open", closesAt: null, graceEndsAt: null }) },
     "@/lib/periods/kinds": { unitFromKey: (college) => ({ organizer: college ? "local" : "central", college: college || null }) },
-    "@/lib/security/rate-limit": { clientIp: () => "test", limits: { apply: { limit: 5, windowMs: 1 } }, rateLimit: () => ({ ok: true }) },
+    "@/lib/security/rate-limit": { clientIp: () => "test", limits: { party: { limit: 10, windowMs: 1 } }, rateLimit: () => ({ ok: true }) },
     "@/lib/supabase/config": { isSupabaseConfigured: () => true },
     "@/lib/supabase/server": { createAdminClient: () => client },
     "@/lib/polpar/content": content,

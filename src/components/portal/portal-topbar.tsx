@@ -6,6 +6,7 @@ import { Eye } from "lucide-react";
 import { useNow } from "./period-overview";
 import { trail } from "./portal-nav";
 import { NotificationBell } from "./notification-bell";
+import { OnlinePill } from "./online-pill";
 
 const zone = "Asia/Manila";
 const dayFormat = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "short", day: "numeric" });
@@ -29,7 +30,7 @@ function ManilaClock() {
 }
 
 /**
- * The bar across the top of every portal page: where you are and the time.
+ * The bar across the top of every portal page: where you are, who's online, and the time.
  * `home` is where "Portal" leads. `viewOnly` says so beside the time, for an Adviser or Admin: it
  * holds on every page, so it's said once here rather than on each.
  */
@@ -49,6 +50,7 @@ export function PortalTopbar({ home, viewOnly }: { home: string; viewOnly?: bool
         </ol>
       </nav>
       <div className="portal-topbar-tools">
+        <OnlinePill />
         <NotificationBell />
         {viewOnly && <span className="portal-topbar-mode" title="Your account reads the portal and changes nothing."><Eye size={13} aria-hidden="true" /> View only</span>}
         <ManilaClock />

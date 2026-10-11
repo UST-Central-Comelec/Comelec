@@ -3,6 +3,7 @@
 
 import type { CommissionEvent } from "@/lib/events/options";
 import type { StatisticTable } from "@/lib/statistics/table";
+import type { Declaration } from "@/lib/onboarding/documents";
 
 /**
  * What a post is filed under. Press releases, announcements and publications make up the News page
@@ -201,6 +202,10 @@ export type PortalAccount = Record & {
   photoUrl?: string | null;
   /** Local Chairpersons only: Primus or Vicar of the Chamber of Chairpersons. */
   chamberRole?: ChamberRole | null;
+  /** The onboarding documents they accepted, with when (src/lib/onboarding/documents.ts). Missing before supabase/migrations/0074. */
+  declarations?: unknown;
+  /** From their access request. Missing before 0074. */
+  contactNumber?: string | null;
 };
 
 /** An account with every gap filled in, as pages and forms read it. */
@@ -225,6 +230,9 @@ export type AccountSummary = Record & {
   emailVerifiedAt: string | null;
   photoUrl: string | null;
   chamberRole: ChamberRole | null;
+  /** Empty for accounts added by hand, or before onboarding asked for them. */
+  declarations: Declaration[];
+  contactNumber: string | null;
   /** The executive set on the server as PORTAL_EXECUTIVE_EMAIL. */
   builtIn: boolean;
 };

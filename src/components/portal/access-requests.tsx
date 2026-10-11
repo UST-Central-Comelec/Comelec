@@ -36,10 +36,11 @@ export function AccessRequestRow({ request, manager }: { request: AccessRequest;
   return (
     <tr className="portal-request-row">
       <td>
-        <span className="portal-row-title">{request.lastName}, {request.firstName} {request.middleInitial}.</span>
+        <span className="portal-row-title">{request.lastName}, {request.firstName} {request.middleName || `${request.middleInitial}.`}</span>
         <span className="portal-tag is-gold">Request</span>
         <small className="portal-muted">{request.email} · Verified with Google</small>
         <small className="portal-muted">{request.referenceCode} · Sent {formatDate(request.submittedAt)}{request.contactNumber ? ` · ${request.contactNumber}` : ""}</small>
+        {request.declarations.length > 0 && <small className="portal-muted">Accepted {request.declarations.length} e-declarations</small>}
       </td>
       <td>
         {request.studentNumber}

@@ -10,7 +10,6 @@ import { comelecUnits } from "@/lib/applications/options";
 import { addInterviewSlots } from "@/lib/portal/interview-actions";
 import { canManageEvent, canSeeInside, unitOfAccount } from "@/lib/events/access";
 import { localUnit, unitKey } from "@/lib/periods/kinds";
-import { comelecUnit } from "@/lib/events/options";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 
 export const metadata: Metadata = { title: "Interviews" };
@@ -33,7 +32,6 @@ export default async function PortalInterviewsPage({ searchParams }: PageProps<"
         <div>
           <p className="portal-eyebrow">Recruitment</p>
           <TitleWithInfo info="Each Comelec unit adds its own interview times. Applicants only see the times for the unit they’re applying to, and a slot disappears from the form once it’s full or its time has passed.">Interviews</TitleWithInfo>
-          {unit && <p className="portal-muted">{comelecUnit(unit.organizer, unit.college)}</p>}
         </div>
         <div className="portal-head-actions">
           <Link className="portal-button is-ghost" href="/apply/preview" target="_blank">View Mode <ArrowUpRight size={15} /></Link>

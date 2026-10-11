@@ -9,7 +9,6 @@ import { requireAccess } from "@/lib/auth/session";
 import { comelecUnits } from "@/lib/applications/options";
 import { canManageEvent, canSeeInside, unitOfAccount } from "@/lib/events/access";
 import { localUnit, unitKey } from "@/lib/periods/kinds";
-import { comelecUnit } from "@/lib/events/options";
 import { UnitSwitcher } from "@/components/portal/unit-switcher";
 import { settle } from "@/lib/portal/settle";
 import { getSlots } from "@/lib/applications/slots";
@@ -32,7 +31,6 @@ export default async function PortalRecruitmentSlotsPage({ searchParams }: PageP
         <div>
           <p className="portal-eyebrow">Recruitment</p>
           <h1>Slots</h1>
-          {unit && <p className="portal-muted">{comelecUnit(unit.organizer, unit.college)}</p>}
           <HelpDialog label="How slots work" title="How slots work">
             <ul>
               <li><strong>Set the number of open slots</strong> for each position. Applicants see these counts on the Apply page.</li>

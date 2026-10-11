@@ -6,18 +6,22 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { homeOf, type TabKey } from "@/lib/portal/access";
 import { SIDEBAR_COOKIE } from "@/lib/portal/sidebar";
+import { usePortalAttention } from "./portal-attention";
+import type { AttentionCounts } from "@/lib/portal/attention-types";
 import { PortalNav } from "./portal-nav";
 import { ProfileMenu, type PortalMembership } from "./profile-menu";
 import { NotificationBell } from "./notification-bell";
+import { OnlinePill } from "./online-pill";
 
 /** `role` is the line under their name; `tabs` are the tabs open to them. */
-type SidebarUser = { id: string; name: string; role: string; email: string; avatarUrl: string | null; tabs: readonly TabKey[] };
+type SidebarUser = { id: string; name: string; role: string; email: string; avatarUrl: string | null; tabs: readonly TabKey[]; showAccessControl: boolean };
 
 /**
  * The portal's sidebar. It can shrink to a thin strip of icons; that choice is kept in a
  * cookie so the server renders the same width on the next visit (no jump while the page loads).
  */
-export function PortalSidebar({ user, memberships, initialCollapsed }: { user: SidebarUser; memberships: PortalMembership[]; initialCollapsed: boolean }) {
+export function PortalSidebar({ user, memberships, initialCollapsed, attention }: { user: SidebarUser; memberships: PortalMembership[]; initialCollapsed: boolean; attention: Promise<AttentionCounts> }) {
+  const counts = usePortalAttention(attention);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
 
   const toggle = () => {
@@ -39,9 +43,9 @@ export function PortalSidebar({ user, memberships, initialCollapsed }: { user: S
           {collapsed ? <ChevronRight size={14} strokeWidth={2.2} /> : <ChevronLeft size={14} strokeWidth={2.2} />}
         </button>
       </div>
-      <PortalNav tabs={user.tabs} collapsed={collapsed} />
+      <PortalNav counts={counts} tabs={user.tabs} collapsed={collapsed} onExpand={toggle} showAccessControl={user.showAccessControl} />
       <div className="portal-sidebar-foot">
-        <div className="portal-mobile-notifications"><NotificationBell mobile /></div>
+        <div className="portal-mobile-notifications"><OnlinePill /><NotificationBell mobile /></div>
         <ProfileMenu user={user} memberships={memberships} />
       </div>
     </aside>

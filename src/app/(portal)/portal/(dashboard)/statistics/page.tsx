@@ -21,7 +21,7 @@ export default async function PortalStatisticsPage({ searchParams }: PageProps<"
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Website content</p>
+          <p className="portal-eyebrow">Administrative</p>
           <TitleWithInfo info="Tables of figures shown on the website’s Statistics page: voters, turnout, candidates, results. Each is pasted from a spreadsheet, and the page groups them by the election or period they belong to.">Statistics</TitleWithInfo>
         </div>
         {readOnly ? <ViewOnlyTag /> : <Link className="portal-button" href="/portal/statistics/new"><Plus size={16} /> Add table</Link>}

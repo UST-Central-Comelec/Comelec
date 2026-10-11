@@ -7,8 +7,9 @@ import { allowed, withPortalUser } from "@/lib/auth/session";
 import { getPosts } from "@/lib/data/queries";
 import { formatDate, newsCategories } from "@/lib/data/types";
 import { TitleWithInfo } from "@/components/portal/info-tip";
+import { PortalTableRow } from "@/components/portal/portal-table-row";
 
-export const metadata: Metadata = { title: "News" };
+export const metadata: Metadata = { title: "Publications" };
 
 export default async function PortalNewsPage({ searchParams }: PageProps<"/portal/news">) {
   const [{ readOnly }, [news, { notice }]] = await withPortalUser(Promise.all([getPosts(), searchParams]), allowed("news"));
@@ -17,8 +18,8 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Website content</p>
-          <TitleWithInfo info="Press releases, announcements and publications shown on the website’s News page, and the guides on its Election Explainer page. A post’s category decides which page it’s on.">News</TitleWithInfo>
+          <p className="portal-eyebrow">Secretariat</p>
+          <TitleWithInfo info="Press releases, announcements and publications shown on the website’s News page, and the guides on its Election Explainer page. A post’s category decides which page it’s on.">Publications</TitleWithInfo>
         </div>
         {readOnly ? <ViewOnlyTag /> : <Link className="portal-button" href="/portal/news/new"><Plus size={16} /> New post</Link>}
       </header>
@@ -26,14 +27,14 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
 
       <section className="portal-card is-flush">
         {news.length === 0 ? (
-          <p className="portal-empty">No news posts yet.{!readOnly && <> <Link href="/portal/news/new">Write the first one.</Link></>}</p>
+          <p className="portal-empty">No publications yet.{!readOnly && <> <Link href="/portal/news/new">Write the first one.</Link></>}</p>
         ) : (
           <div className="portal-table-wrap">
             <table className="portal-table">
               <thead><tr><th>Title</th><th>Category</th><th>Shown on</th><th>Date</th><th /></tr></thead>
               <tbody>
                 {news.map((post) => (
-                  <tr key={post.id}>
+                  <PortalTableRow key={post.id} href={`/portal/news/${post.id}`}>
                     <td>
                       <Link className="portal-row-title" href={`/portal/news/${post.id}`}>{post.title}</Link>
                       {post.featured && <span className="portal-featured-star" role="img" aria-label="Featured" title="Featured"><Star size={16} fill="currentColor" aria-hidden="true" /></span>}
@@ -42,7 +43,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
                     <td className="portal-muted">{post.category === "explainer" ? "Election Explainer" : "News"}</td>
                     <td className="portal-muted">{formatDate(post.date)}</td>
                     <td className="portal-row-actions"><Link href={`/portal/news/${post.id}`}>{readOnly ? "View" : "Edit"}</Link></td>
-                  </tr>
+                  </PortalTableRow>
                 ))}
               </tbody>
             </table>

@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 
 const MIN_DISPLAY_MS = 2600;
 const FADE_MS = 700;
+// On slow mobile connections one stalled image or video can hold back the load event for a long
+// time; stop waiting for it after this.
+const MAX_WAIT_MS = 8000;
 
 export function SiteLoader() {
   const [phase, setPhase] = useState<"loading" | "leaving" | "done">("loading");
@@ -15,6 +18,7 @@ export function SiteLoader() {
     const pageLoaded = new Promise((resolve) => {
       if (document.readyState === "complete") resolve(null);
       else window.addEventListener("load", resolve, { once: true });
+      window.setTimeout(resolve, MAX_WAIT_MS);
     });
 
     let fadeTimer = 0;
@@ -35,5 +39,5 @@ export function SiteLoader() {
 
   if (phase === "done") return null;
 
-  return <ComelecLoadingScreen leaving={phase === "leaving"} />;
+  return <ComelecLoadingScreen leaving={phase === "leaving"} failsafe />;
 }

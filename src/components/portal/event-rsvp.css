@@ -1,0 +1,26 @@
+.event-rsvp-workspace { align-items: start; display: grid; gap: 24px; grid-template-columns: minmax(0,1fr) 300px; }
+.event-rsvp-content { min-width: 0; }
+.event-rsvp-preview-card { overflow: hidden; }
+.event-rsvp-settings { margin-top: 0; padding: 22px; }
+.event-rsvp-link-box { border-bottom: 1px solid var(--p-line); margin-bottom: 22px; padding-bottom: 22px; }
+.event-rsvp-link-box h3 { align-items: center; display: flex; font-size: 12px; gap: 8px; margin: 0; }
+.event-rsvp-link-box p { color: var(--p-muted); font-size: 12px; line-height: 1.6; margin: 12px 0 0; }
+.event-rsvp-link-box .portal-event-registration-link { align-items: start; gap: 8px; }
+.event-rsvp-link-box .portal-event-registration-link > span:first-child { display: none; }
+.event-rsvp-link-box .portal-event-registration-link > a { flex: 1; font-size: 11px; line-height: 1.65; }
+.event-rsvp-open { justify-content: center; margin-top: 16px; width: 100%; }
+.event-rsvp-link-note { align-items: center; display: flex; gap: 7px; }
+.event-rsvp-settings .portal-check { align-items: start; }
+.event-rsvp-save { justify-content: center; margin-top: 22px; width: 100%; }
+.event-rsvp-feedback { color: var(--p-muted); font-size: 12px; margin-top: 14px; }
+.portal-shell .ev-rsvp-preview { --ev-bg: var(--p-surface); --ev-ink: var(--p-ink); --ev-surface: var(--p-surface); --ev-raised: var(--p-surface); --ev-text: var(--p-text); --ev-bright: var(--p-bright); --ev-soft: var(--p-muted); --ev-muted: var(--p-muted); --ev-faint: var(--p-faint); --ev-placeholder: var(--p-faint); --ev-line: var(--p-line); --ev-line-strong: var(--p-line-strong); --ev-gold: var(--p-gold); --ev-gold-mark: var(--p-gold-mark); --ev-gold-edge: var(--p-gold-edge); --ev-on-bright: var(--p-surface); border-radius: 0; margin: 0; min-height: 0; padding: 0; }
+.portal-shell .ev-rsvp-preview .ev-rsvp-form { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.portal-shell .ev-rsvp-preview .ev-rsvp-form .ev-steps { grid-template-columns: repeat(3,minmax(0,1fr)); row-gap: 18px; }
+@media (max-width: 1100px) { .event-rsvp-workspace { grid-template-columns: minmax(0,1fr); } .event-rsvp-settings { grid-row: 1; margin-top: 0; } }
+@media (max-width: 480px) { .event-rsvp-preview-card .event-builder-head { padding: 18px 20px; } }
+
+.event-rsvp-limit { display: grid; gap: 8px; margin-top: 20px; }
+.event-rsvp-limit input { width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--p-line); border-radius: 8px; background: var(--p-surface); color: var(--p-text); font: inherit; }
+.event-rsvp-limit small { color: var(--p-muted); }
+
+.event-rsvp-workspace.is-preview-only { grid-template-columns: minmax(0, 1fr); }

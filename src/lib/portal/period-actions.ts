@@ -78,6 +78,10 @@ export async function updateUnitPeriod(kind: PeriodKind, college: string, _state
   const mode: "scheduled" | "closed" = picked;
 
   const raw = readDetails(formData);
+  // Internal collaborators belong to standalone events, not application listings.
+  raw.openToInternal = false;
+  raw.collaborators = [];
+  raw.otherCollaborators = [];
   // Recruitment accepts University students only, regardless of submitted participant fields.
   if (kind === "recruitment") {
     raw.openToStudents = true;

@@ -46,7 +46,6 @@ export function CodeDecision({ role, signed, last, approve, sendBack }: Props) {
         <label className={`portal-field${state?.error ? " has-error" : ""}`}>
           <span className="portal-field-label">What should change?</span>
           <textarea name="note" rows={4} maxLength={2000} required autoFocus placeholder="e.g. Section 5’s new wording leaves out independent candidates. Please restore the second sentence." />
-          {state?.error && <span className="portal-field-error" role="alert">{state.error}</span>}
         </label>
         <p className="portal-muted">Its editors are emailed what you write. It becomes a draft again, and every approval so far is cleared.</p>
         <div className="portal-form-actions">

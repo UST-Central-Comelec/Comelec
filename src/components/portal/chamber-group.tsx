@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { chamberRoles, type ChamberRole } from "@/lib/data/types";
 import { setChamberRole } from "@/lib/portal/directory-actions";
 import { MemberAvatar } from "./member-avatar";
+import { toast } from "./toast";
 
 export type ChamberMember = { id: string; name: string; college: string; photoUrl: string | null; role: ChamberRole | null };
 
@@ -27,13 +28,11 @@ export function ChamberGroup({ members, editable, manageable }: { members: Chamb
   const dialog = useRef<HTMLDialogElement>(null);
   const [selected, setSelected] = useState<ChamberMember | null>(null);
   const [role, setRole] = useState<ChamberRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const open = (member: ChamberMember) => {
     setSelected(member);
     setRole(member.role);
-    setError(null);
     dialog.current?.showModal();
   };
 
@@ -41,8 +40,9 @@ export function ChamberGroup({ members, editable, manageable }: { members: Chamb
     if (!selected) return;
     startTransition(async () => {
       const result = await setChamberRole(selected.id, role);
-      if (result.error) return setError(result.error);
+      if (result.error) return toast(result.error, "error");
       dialog.current?.close();
+      toast("Role saved.");
       router.refresh();
     });
   };
@@ -96,7 +96,6 @@ export function ChamberGroup({ members, editable, manageable }: { members: Chamb
                 );
               })}
             </fieldset>
-            {error && <p className="portal-form-error" role="alert">{error}</p>}
             <footer className="portal-help-foot chamber-dialog-foot">
               {manageable ? <Link className="chamber-edit-link" href={`/portal/accounts/${selected.id}`}>Manage their account</Link> : <span />}
               <button type="button" className="portal-button" onClick={save} disabled={pending || role === selected.role}>{pending ? "Saving…" : "Save role"}</button>

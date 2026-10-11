@@ -3,7 +3,8 @@
 import { useId, useRef, useState, useTransition } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { Check, ExternalLink, X } from "lucide-react";
-import { Notice } from "@/components/portal/notice";
+import { Notice, noticeToast } from "@/components/portal/notice";
+import { toast } from "./toast";
 import type { ApplicationRecord } from "@/lib/applications/admin";
 import { applicantDisplayName } from "@/lib/applications/name";
 import { applicationStatuses, statusTag } from "@/lib/applications/status";
@@ -48,44 +49,43 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
   const statusDescriptionId = useId();
   const [proposedStatus, setProposedStatus] = useState<"accepted" | "declined">("accepted");
   const [notifyApplicant, setNotifyApplicant] = useState(true);
-  const [statusError, setStatusError] = useState("");
-  const [actionNotice, setActionNotice] = useState<string>();
   const [updatingStatus, startStatusTransition] = useTransition();
   const updatingStatusRef = useRef(false);
   const confirmationDialog = useRef<HTMLDialogElement>(null);
   const confirmationTitleId = useId();
   const confirmationDescriptionId = useId();
-  const [confirmationError, setConfirmationError] = useState("");
   const [deleting, startDeleteTransition] = useTransition();
   const deletingRef = useRef(false);
   const [onboarding, startOnboardingTransition] = useTransition();
   const onboardingRef = useRef(false);
   const [onboarded, setOnboarded] = useState(false);
-  const [onboardingError, setOnboardingError] = useState("");
   const full = application.status !== "accepted" && slotsLeft === 0;
 
   const setStatus = updateApplicationStatus.bind(null, application.id);
   const decided = application.status === "accepted" || application.status === "declined";
   const interview = application.interviewDetails;
 
+  function showNotice(key: string | undefined) {
+    const shown = noticeToast(key);
+    if (shown) toast(shown.message, shown.tone);
+  }
+
   function openStatusConfirmation(status: "accepted" | "declined") {
     setProposedStatus(status);
     setNotifyApplicant(true);
-    setStatusError("");
     statusDialog.current?.showModal();
   }
 
   function confirmStatus(formData: FormData) {
     if (updatingStatusRef.current) return;
     updatingStatusRef.current = true;
-    setStatusError("");
     startStatusTransition(async () => {
       try {
-        setActionNotice(await setStatus(formData));
+        showNotice(await setStatus(formData));
         statusDialog.current?.close();
       } catch (error) {
         unstable_rethrow(error);
-        setStatusError("Couldn’t update the application. Please try again.");
+        toast("Couldn’t update the application. Please try again.", "error");
       } finally {
         updatingStatusRef.current = false;
       }
@@ -95,14 +95,13 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
   function confirmDeletion() {
     if (deletingRef.current) return;
     deletingRef.current = true;
-    setConfirmationError("");
     startDeleteTransition(async () => {
       try {
         await deleteApplicationRecord(application.id);
         confirmationDialog.current?.close();
       } catch (error) {
         unstable_rethrow(error);
-        setConfirmationError("Couldn’t delete the application. Please try again.");
+        toast("Couldn’t delete the application. Please try again.", "error");
       } finally {
         deletingRef.current = false;
       }
@@ -112,19 +111,18 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
   function onboard() {
     if (onboardingRef.current || onboarded) return;
     onboardingRef.current = true;
-    setOnboardingError("");
     startOnboardingTransition(async () => {
       try {
         const result = await onboardApplication(application.id);
         if (result?.error) {
-          setOnboardingError([result.error, ...Object.values(result.fieldErrors ?? {})].join(" "));
+          toast([result.error, ...Object.values(result.fieldErrors ?? {})].join(" "), "error");
         } else {
           setOnboarded(true);
-          setActionNotice("application-onboarded");
+          showNotice("application-onboarded");
         }
       } catch (error) {
         unstable_rethrow(error);
-        setOnboardingError("Couldn’t onboard the applicant. Please try again.");
+        toast("Couldn’t onboard the applicant. Please try again.", "error");
       } finally {
         onboardingRef.current = false;
       }
@@ -198,15 +196,11 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
             <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("accepted")} disabled={full}><Check size={15} /> Accept</button>
             <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("declined")}><X size={15} /> Reject</button>
           </div>}
-          <button type="button" className="portal-registrant-action-button" disabled={deleting || onboarding} onClick={() => {
-            setConfirmationError("");
-            confirmationDialog.current?.showModal();
-          }}>Delete application</button>
+          <button type="button" className="portal-registrant-action-button" disabled={deleting || onboarding} onClick={() => confirmationDialog.current?.showModal()}>Delete application</button>
           {application.status === "accepted" && <button type="button" className="portal-registrant-action-button portal-application-onboard" disabled={!canOnboard || onboarding || onboarded || deleting} title={!canOnboard ? "Account management access is required to onboard applicants." : undefined} onClick={onboard}>{onboarding ? "Onboarding…" : onboarded ? "Onboarded" : "Onboard"}</button>}
         </> : undefined} />
       <div className="portal-registrant-receipt-body">
-        <Notice notice={actionNotice ?? notice} />
-        {onboardingError && <p className="portal-form-error" role="alert">{onboardingError}</p>}
+        <Notice notice={notice} />
         <div className="portal-registrant-groups">
           {view === "details" && <>
             {profile}
@@ -252,7 +246,6 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
             <input type="checkbox" name="notify" checked={notifyApplicant} onChange={(event) => setNotifyApplicant(event.target.checked)} disabled={updatingStatus} />
             <span>Email the applicant about this result<InfoTip>Sent to {application.email} when you confirm.</InfoTip></span>
           </label>
-          {statusError && <p className="portal-form-error" role="alert">{statusError}</p>}
           <div className="portal-registrant-confirmation-actions">
             <button type="button" className="portal-registrant-action-button" disabled={updatingStatus} autoFocus onClick={() => statusDialog.current?.close()}>Cancel</button>
             <button type="submit" className="portal-registrant-action-button" disabled={updatingStatus || (proposedStatus === "accepted" && full)}>{updatingStatus ? "Saving…" : proposedStatus === "accepted" ? "Accept application" : "Reject application"}</button>
@@ -271,7 +264,6 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
       >
         <h2 id={confirmationTitleId}>Delete application?</h2>
         <p id={confirmationDescriptionId}>This will permanently delete <strong>{applicantDisplayName(application)}</strong>’s application. This can’t be undone.{application.status === "accepted" && " Their slot stays taken."}</p>
-        {confirmationError && <p className="portal-form-error" role="alert">{confirmationError}</p>}
         <div className="portal-registrant-confirmation-actions">
           <button type="button" className="portal-registrant-action-button" disabled={deleting} autoFocus onClick={() => confirmationDialog.current?.close()}>Cancel</button>
           <button type="button" className="portal-registrant-action-button" disabled={deleting} onClick={confirmDeletion}>{deleting ? "Deleting…" : "Delete application"}</button>

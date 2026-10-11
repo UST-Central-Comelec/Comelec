@@ -25,7 +25,8 @@ const PASS_LIFETIME_MS = 60 * 60_000;
 const FLOW_LIFETIME_MS = 10 * 60_000;
 
 export type EventPass = { eventId: string; email: string; firstName: string; lastName: string; expiresAt: number };
-type Flow = { eventId: string; expiresAt: number };
+export type EventFormTarget = "register" | "rsvp-form" | "evaluate";
+type Flow = { eventId: string; target?: EventFormTarget; expiresAt: number };
 
 const cookieOptions = (path: string, lifetimeMs: number) => ({
   httpOnly: true,
@@ -54,8 +55,8 @@ export async function clearEventPass() {
   (await cookies()).delete({ name: EVENT_PASS_COOKIE, path: eventPassCookieOptions.path });
 }
 
-export async function startEventFlow(eventId: string) {
-  (await cookies()).set(FLOW_COOKIE, await signJson(FLOW_PURPOSE, { eventId, expiresAt: Date.now() + FLOW_LIFETIME_MS } satisfies Flow), flowCookieOptions);
+export async function startEventFlow(eventId: string, target: EventFormTarget = "register") {
+  (await cookies()).set(FLOW_COOKIE, await signJson(FLOW_PURPOSE, { eventId, target, expiresAt: Date.now() + FLOW_LIFETIME_MS } satisfies Flow), flowCookieOptions);
 }
 
 /** The event a Google sign-in was started for, if it was started from an event's Register button. Reading it ends it. */
@@ -63,7 +64,7 @@ export async function takeEventFlow() {
   const cookieStore = await cookies();
   const flow = await verifyJson<Flow>(FLOW_PURPOSE, cookieStore.get(FLOW_COOKIE)?.value);
   if (cookieStore.has(FLOW_COOKIE)) cookieStore.delete({ name: FLOW_COOKIE, path: flowCookieOptions.path });
-  return flow && flow.expiresAt > Date.now() && isEventId(flow.eventId) ? flow.eventId : null;
+  return flow && flow.expiresAt > Date.now() && isEventId(flow.eventId) ? { eventId: flow.eventId, target: flow.target === "rsvp-form" || flow.target === "evaluate" ? flow.target : "register" as const } : null;
 }
 
 /** An applicant's verification is starting; make sure an abandoned event sign-in doesn't catch its callback. */

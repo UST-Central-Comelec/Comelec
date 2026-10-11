@@ -2,7 +2,9 @@ import "server-only";
 
 // PDFs uploaded from the portal go into a folder in the commission's own Google Drive. The site
 // acts as that account through a refresh token made once by scripts/drive-setup.mjs. The scope is
-// drive.file, so it can only touch files and folders it created, never the rest of the Drive.
+// drive.file, so it can only touch files it created, never the rest of the Drive. The folder may sit
+// in a shared drive the account belongs to (as Contributor or above): the app can't read that
+// folder, but it can still add files to it. Shared drives need supportsAllDrives on every request.
 
 export const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 const PDF = "application/pdf";
@@ -40,7 +42,7 @@ async function accessToken() {
  * The address is the only credential the browser gets: good for this one file, and tied to `origin`.
  */
 export async function startDriveUpload(name: string, size: number, origin: string) {
-  const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id", {
+  const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${await accessToken()}`,
@@ -65,12 +67,12 @@ export async function publishDriveUpload(id: string) {
   const headers = { Authorization: `Bearer ${await accessToken()}` };
   const file = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}`;
 
-  const response = await fetch(`${file}?fields=mimeType,size,parents,trashed`, { headers, cache: "no-store" });
+  const response = await fetch(`${file}?supportsAllDrives=true&fields=mimeType,size,parents,trashed`, { headers, cache: "no-store" });
   if (!response.ok) return null;
   const meta = (await response.json()) as { mimeType?: string; size?: string; parents?: string[]; trashed?: boolean };
   if (meta.mimeType !== PDF || meta.trashed || !meta.parents?.includes(config().folderId!) || Number(meta.size) > MAX_DOCUMENT_BYTES) return null;
 
-  const shared = await fetch(`${file}/permissions`, {
+  const shared = await fetch(`${file}/permissions?supportsAllDrives=true`, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: JSON.stringify({ role: "reader", type: "anyone" }),

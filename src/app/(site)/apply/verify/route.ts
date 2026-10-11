@@ -19,8 +19,8 @@ type Metadata = { full_name?: string; name?: string; given_name?: string; family
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const eventId = await takeEventFlow();
-  if (eventId) return finishEventVerification(request, code, eventId);
+  const eventFlow = await takeEventFlow();
+  if (eventFlow) return finishEventVerification(request, code, eventFlow.eventId, eventFlow.target);
 
   if (!code) return verificationFinishPage("failed");
 

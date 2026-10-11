@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isCurrent, sections, two, type NavStatus } from "@/components/nav/nav-data";
+import { isNavItemAvailable, isCurrent, sections, two, type NavStatus } from "@/components/nav/nav-data";
 import { useReticle } from "@/components/nav/use-reticle";
 
 /**
@@ -27,11 +27,13 @@ export function FooterLinks({ status }: { status: NavStatus }) {
         <div className="sf-col" key={section.id}>
           <p className="sh-label" id={`sf-${section.id}`}><b>{two(index + 1)}</b>{section.label}</p>
           <ul aria-labelledby={`sf-${section.id}`}>
-            {section.items.map((item) => {
+            {section.items.filter((item) => isNavItemAvailable(item, status)).map((item) => {
               const live = item.status ? status[item.status].open : false;
               return (
                 <li key={item.label}>
-                  <Link
+                  {item.disabled ? (
+                    <span className="sf-disabled" role="link" aria-disabled="true">{item.label} <small>Not open yet</small></span>
+                  ) : <Link
                     href={item.href}
                     aria-current={isCurrent(item.href, pathname) ? "page" : undefined}
                     onPointerEnter={(event) => { if (event.pointerType === "mouse") lock(event.currentTarget); }}
@@ -41,7 +43,7 @@ export function FooterLinks({ status }: { status: NavStatus }) {
                       // The dot stays with the label's last word, so it never wraps on to a line of its own.
                       <>{item.label.slice(0, item.label.lastIndexOf(" ") + 1)}<span className="sf-live">{item.label.slice(item.label.lastIndexOf(" ") + 1)}<i className="sh-live" aria-hidden="true" /></span><span className="visually-hidden"> (open now)</span></>
                     ) : item.label}
-                  </Link>
+                  </Link>}
                 </li>
               );
             })}

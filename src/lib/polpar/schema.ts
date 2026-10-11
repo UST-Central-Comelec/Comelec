@@ -45,7 +45,8 @@ export const partyRegistrationSchema = partyRegistrationFields.superRefine((data
   if (data.petitionDate < data.establishedAt) ctx.addIssue({ code: "custom", path: ["petitionDate"], message: "The petition date cannot precede the party’s establishment." });
 });
 export type PartyRegistration = z.infer<typeof partyRegistrationSchema>;
-export type PartyDocument = { requirement: string; name: string; path: string; size: number; type: string };
+// `store` marks documents kept in R2; older ones, without it, sit in the Supabase `party-registration` bucket.
+export type PartyDocument = { requirement: string; name: string; path: string; size: number; type: string; store?: "r2" };
 export type PartyReceipt = { reference: string; partyName: string; submittedAt: string };
 export type PartyResponse = { error?: string; fieldErrors?: Record<string, string>; receipt?: PartyReceipt };
 

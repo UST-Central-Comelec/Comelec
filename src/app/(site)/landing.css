@@ -23,7 +23,7 @@
 .lp-title { color: var(--lp-text); font-size: clamp(44px, 6.2vw, 104px); font-weight: 560; letter-spacing: -.058em; line-height: .94; margin: 22px 0 0; }
 .lp-intro { color: var(--lp-muted); font-size: clamp(15.5px, 1.2vw, 18px); line-height: 1.7; margin: 28px 0 0; max-width: 38em; }
 .lp-intro b { color: var(--lp-gold); font-weight: 600; }
-.lp-tagline em, .lp-title em, .lp-pillar h3 em, .lp-card-title em, .lp-statement em { background: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--lp-gold) 28%, var(--ui-accent, #f2a900) 52%, var(--lp-gold) 76%, var(--ui-accent-pale, #ffe7a3)) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--lp-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
+.lp-tagline em, .lp-title em, .lp-pillar h3 em, .lp-card-title em, .lp-statement em, .sg-intro h1 em { background: linear-gradient(100deg, var(--ui-accent-pale, #ffe7a3), var(--lp-gold) 28%, var(--ui-accent, #f2a900) 52%, var(--lp-gold) 76%, var(--ui-accent-pale, #ffe7a3)) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-family: var(--lp-serif); font-size: 1.06em; font-style: italic; font-weight: 400; letter-spacing: -.015em; margin-right: -.08em; padding-right: .08em; }
 /* Light runs slowly through the two brand lines only; everywhere else the gold holds still */
 .lp-tagline em, .lp-finale .lp-title em { animation: lp-sheen 10s linear infinite; }
 @keyframes lp-sheen { to { background-position: 200% 0; } }
@@ -45,10 +45,11 @@
 .lp-dot.is-open, .lp-eyebrow.is-live::before { background: var(--lp-ok); }
 .lp-eyebrow.is-live::before { border-radius: 50%; }
 .lp-status { align-items: center; border: 1px solid var(--lp-line-strong); border-radius: 3px; color: var(--lp-muted); display: inline-flex; flex: none; font: 500 10.5px/1 var(--lp-sans); gap: 8px; padding: 6px 11px 6px 9px; text-transform: uppercase; }
-.lp-status.is-open { background: rgba(62,207,142,.08); border-color: rgba(62,207,142,.3); color: #7be3b4; }
+.lp-status.is-open { color: var(--lp-text); }
 
 /* Hero: the sky fills it, the copy sits over the left, and the HUD runs along the foot */
-.lp-hero { background: radial-gradient(50% 58% at 80% 24%, rgba(var(--ui-accent-rgb, 254,195,12),.08), transparent 70%), radial-gradient(46% 60% at 6% 10%, rgba(66,84,190,.16), transparent 72%), radial-gradient(42% 50% at 58% 110%, rgba(124,74,180,.11), transparent 70%), linear-gradient(180deg, #030306, #05050a 58%, var(--lp-bg)); display: flex; flex-direction: column; isolation: isolate; min-height: calc(100svh - 78px); position: relative; }
+.lp-hero, .sg-landing { background: radial-gradient(50% 58% at 80% 24%, rgba(var(--ui-accent-rgb, 254,195,12),.08), transparent 70%), radial-gradient(46% 60% at 6% 10%, rgba(66,84,190,.16), transparent 72%), radial-gradient(42% 50% at 58% 110%, rgba(124,74,180,.11), transparent 70%), linear-gradient(180deg, #030306, #05050a 58%, var(--lp-bg)); }
+.lp-hero { display: flex; flex-direction: column; isolation: isolate; min-height: calc(100svh - 78px); position: relative; }
 /* A shade behind the copy, so the stars never fight the words */
 .lp-hero::before { background: radial-gradient(56% 64% at 16% 56%, rgba(3,3,5,.72), transparent 72%); content: ""; inset: 0; pointer-events: none; position: absolute; z-index: -1; }
 .lp-sky { inset: 0; -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); mask-image: linear-gradient(180deg, #000 70%, transparent); pointer-events: none; position: absolute; z-index: -2; }
@@ -72,8 +73,210 @@
 .lp-call-clock small { color: var(--lp-faint); font-size: 10.5px; margin-left: 1px; }
 .lp-call-arrow { color: var(--lp-gold); flex: none; transition: transform .4s var(--lp-ease); }
 .lp-call:hover .lp-call-arrow { transform: translate(2px, -2px); }
-.lp-kicker { align-items: center; color: var(--lp-muted); display: flex; font: 500 11px/1 var(--lp-sans); gap: 14px; margin: 0 0 clamp(14px, 2vh, 24px); text-transform: uppercase; }
-.lp-kicker::before { background: linear-gradient(90deg, transparent, var(--lp-gold)); content: ""; height: 1px; width: 32px; }
+.lp-kicker { color: var(--lp-muted); font: 500 11px/1 var(--lp-sans); margin: 0 0 clamp(14px, 2vh, 24px); text-transform: uppercase; }
+.lp .lp-kicker::before { content: none; display: none; }
+.lp-content-switcher { align-self: flex-start; background: rgba(255,255,255,.035); border: 1px solid var(--lp-line); border-radius: 999px; display: inline-flex; gap: 3px; margin-bottom: clamp(24px, 3vh, 36px); max-width: 100%; padding: 3px; }
+.lp-content-switcher button { background: transparent; border: 0; border-radius: 999px; color: var(--lp-muted); cursor: pointer; font: 500 clamp(10.5px, .9vw, 12px)/1.4 var(--lp-sans); padding: 8px clamp(10px, 1.2vw, 16px); transition: background .2s ease, color .2s ease; }
+.lp-content-switcher button:hover { color: var(--lp-text); }
+.lp-content-switcher button[aria-selected="true"] { background: var(--lp-gold); color: #111; }
+.lp-content-switcher button:focus-visible { outline: 2px solid var(--lp-gold); outline-offset: 3px; }
+.lp-view-nav { left: 0; margin: 0 auto; max-width: var(--lp-wrap); padding: 28px var(--lp-gutter) 0; position: absolute; right: 0; top: 0; z-index: 5; }
+.lp-view-nav .lp-content-switcher { margin-bottom: 0; }
+.lp-view-panel[hidden] { display: none; }
+.lp-home-views .lp-hero-inner { padding-top: clamp(104px, 14vh, 160px); }
+
+/* Student Government: three banners cut from the same circular arc, on a gold-lit stage. */
+.sg-landing { isolation: isolate; min-height: calc(100svh - 78px); overflow: hidden; padding: clamp(92px, 12vh, 118px) var(--lp-gutter) 36px; position: relative; }
+.sg-landing > .lp-sky { transition: opacity .6s ease; }
+/* Central Student Council: a grand podium of polished black stone and gold under two spotlights shining down from
+   high behind it (csc-backdrop.tsx; the WebGL scene is council-podium.ts). The wash stands in where WebGL can't run. */
+.sg-csc { inset: 0; opacity: 0; overflow: hidden; pointer-events: none; position: absolute; transition: opacity .8s ease; z-index: -1; }
+.sg-csc-wash { background: radial-gradient(ellipse 46% 26% at 50% 84%, rgba(255,196,110,.12), transparent 72%), radial-gradient(ellipse 22% 60% at 22% 0, rgba(255,214,150,.07), transparent 70%), radial-gradient(ellipse 22% 60% at 78% 0, rgba(255,214,150,.07), transparent 70%), linear-gradient(180deg, #040303, #0b0805 72%, #060404); inset: 0; position: absolute; }
+.sg-csc-scene { display: block; height: 100%; left: 0; position: absolute; top: 0; width: 100%; }
+.sg-landing:has(.sg-pillar-link-0:is(:hover, :focus-visible)) .sg-csc { opacity: 1; }
+/* The footer's rule would cut across the podium's top. */
+.sg-landing:has(.sg-pillar-link-0:is(:hover, :focus-visible)) .sg-foot { border-top-color: transparent; }
+.sg-landing:has(:is(.sg-pillar-link-0, .sg-pillar-link-2):is(:hover, :focus-visible)) .sg-foot::before { visibility: hidden; }
+/* Comelec: a colossal justice scale seen from the floor, towering over the banners with a blinding light behind
+   its beam (comelec-backdrop.tsx; the WebGL scene is justice-scale.ts). The wash stands in where WebGL can't run. */
+.sg-cc { inset: 0; opacity: 0; overflow: hidden; pointer-events: none; position: absolute; transition: opacity .8s ease; z-index: -1; }
+.sg-cc-wash { background: radial-gradient(ellipse 34% 46% at 50% 44%, rgba(255,214,140,.09), transparent 70%), linear-gradient(180deg, #06070e, #020204); inset: 0; position: absolute; }
+.sg-cc-scene { display: block; height: 100%; left: 0; position: absolute; top: 0; width: 100%; }
+.sg-landing:has(.sg-pillar-link-1:is(:hover, :focus-visible)) .sg-cc { opacity: 1; }
+.sg-landing:has(.sg-pillar-link-1:is(:hover, :focus-visible)) > .lp-sky { opacity: 0; }
+.sg-landing:has(.sg-pillar-link-0:is(:hover, :focus-visible)) > .lp-sky { opacity: 0; }
+/* Student Organizations Coordinating Council: a colossal red moon whose edge is the banners' arc, a star breaking out
+   from behind it beside the Council's banner, over a plain of black glass (socc-backdrop.tsx; the WebGL scene is
+   red-moon.ts). Once it's running (data-live), the flat moon and nebula below stand down; they show where it can't. */
+.sg-socc { inset: 0; opacity: 0; overflow: hidden; pointer-events: none; position: absolute; transition: opacity .8s ease; z-index: -1; }
+.sg-socc-scene { display: block; height: 100%; left: 0; position: absolute; top: 0; width: 100%; }
+.sg-landing:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-socc { opacity: 1; }
+/* The footer's rule would cut across the moon's reflection in the glass. */
+.sg-landing:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-foot { border-top-color: transparent; }
+.sg-landing:has(.sg-socc-scene[data-live]) :is(.sg-red-horizon, .sg-top-moon) { display: none; }
+.sg-landing:has(.sg-socc-scene[data-live]):has(.sg-pillar-link-2:is(:hover, :focus-visible)) > .lp-sky { opacity: 0; }
+.sg-red-horizon { background: radial-gradient(ellipse at 50% 78%, rgba(190,30,35,.2), transparent 62%), linear-gradient(180deg, rgba(12,3,8,.25), rgba(20,4,9,.6)); inset: 0; opacity: 0; overflow: hidden; pointer-events: none; position: absolute; transition: opacity .8s ease; z-index: -1; }
+/* Overlapping translucent clouds and wisps are drawn entirely with CSS. */
+.sg-red-nebula {
+  animation: sg-nebula-drift 36s ease-in-out infinite alternate;
+  animation-play-state: paused;
+  background:
+    radial-gradient(ellipse 18% 7% at 88% 12%, rgba(246,97,49,.24), transparent 74%),
+    radial-gradient(ellipse 18% 7% at 12% 12%, rgba(246,97,49,.24), transparent 74%),
+    radial-gradient(ellipse 26% 12% at 98% 20%, rgba(177,28,55,.38), transparent 70%),
+    radial-gradient(ellipse 26% 12% at 2% 20%, rgba(177,28,55,.38), transparent 70%),
+    radial-gradient(ellipse 20% 8% at 76% 6%, rgba(181,44,66,.25), transparent 72%),
+    radial-gradient(ellipse 20% 8% at 24% 6%, rgba(181,44,66,.25), transparent 72%),
+    radial-gradient(ellipse 17% 22% at 99% 43%, rgba(120,20,57,.28), transparent 74%),
+    radial-gradient(ellipse 17% 22% at 1% 43%, rgba(120,20,57,.28), transparent 74%),
+    radial-gradient(ellipse 22% 10% at 96% 55%, rgba(154,34,55,.2), transparent 76%),
+    radial-gradient(ellipse 22% 10% at 4% 55%, rgba(154,34,55,.2), transparent 76%),
+    radial-gradient(ellipse 18% 8% at 88% 65%, rgba(100,29,65,.23), transparent 72%),
+    radial-gradient(ellipse 18% 8% at 12% 65%, rgba(100,29,65,.23), transparent 72%);
+  filter: blur(22px);
+  inset: -8%;
+  position: absolute;
+}
+.sg-red-nebula-wisps {
+  animation-delay: -18s;
+  animation-direction: alternate-reverse;
+  animation-duration: 44s;
+  background:
+    radial-gradient(ellipse 26% 2% at 84% 17%, rgba(246,112,78,.18), transparent 72%),
+    radial-gradient(ellipse 26% 2% at 16% 17%, rgba(246,112,78,.18), transparent 72%),
+    radial-gradient(ellipse 20% 4% at 98% 27%, rgba(214,67,90,.2), transparent 74%),
+    radial-gradient(ellipse 20% 4% at 2% 27%, rgba(214,67,90,.2), transparent 74%),
+    radial-gradient(ellipse 25% 3% at 92% 59%, rgba(196,62,82,.16), transparent 72%),
+    radial-gradient(ellipse 25% 3% at 8% 59%, rgba(196,62,82,.16), transparent 72%);
+  filter: blur(12px);
+  transform-origin: 80% 20%;
+}
+.sg-landing:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-red-horizon { opacity: 1; }
+.sg-landing:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-red-nebula { animation-play-state: running; }
+@keyframes sg-nebula-drift {
+  from { transform: translate3d(-1%, 2%, 0) scale(1); }
+  to { transform: translate3d(3%, -2%, 0) scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-landing > .lp-sky, .sg-red-horizon, .sg-top-moon, .sg-csc, .sg-cc, .sg-socc, .sg-landing .sg-foot { transition: none; }
+  .sg-red-nebula { animation: none; }
+}
+/* The view's hero. The kicker sits between hairlines that end in points of light. The headline is brushed silver,
+   catching light on the tops of its letters and warming to gold toward their feet, as if lit from below by the
+   monoliths; its second line is the gold serif. The strip of light that passes across the monoliths glints across both
+   lines as it goes: monoliths.tsx keeps its distance from the middle in --sg-band (parked far off between passes). */
+.sg-intro { --sg-glint: linear-gradient(100deg, transparent 49%, rgba(255,251,236,.95) 50%, transparent 51%) calc(var(--sg-band, 9999px) + 50%) 0 / 1000% 100% no-repeat; margin: 0 auto; max-width: 1000px; position: relative; text-align: center; z-index: 1; }
+.sg-kicker { align-items: center; color: #dcc089; display: inline-flex; font: 500 11px/1.6 var(--lp-sans); gap: 14px; margin: 0 0 clamp(14px, 2.2vh, 22px); text-transform: uppercase; }
+.sg-kicker::before, .sg-kicker::after { background: radial-gradient(circle at calc(100% - 2.5px) 50%, #ffeec2 0 1.3px, rgba(255,226,150,.35) 2.2px, transparent 3.4px), linear-gradient(90deg, transparent, rgba(220,192,137,.75) 85%) 0 50% / calc(100% - 4px) 1px no-repeat; content: ""; flex: none; height: 7px; width: 46px; }
+.sg-kicker::after { transform: scaleX(-1); }
+.sg-intro h1 { display: flex; filter: drop-shadow(0 2px 22px rgba(3,3,6,.6)); flex-direction: column; font-size: clamp(46px, 6.3vw, 104px); font-weight: 600; justify-content: center; letter-spacing: -.06em; line-height: .98; margin: 0; min-height: clamp(122px, 13.2vw, 212px); }
+.sg-intro.is-introducing h1 { font-size: clamp(34px, 4.6vw, 70px); }
+.sg-title-line { display: block; }
+.sg-title-line:not(.is-accent) > .rise-text { background: var(--sg-glint), linear-gradient(180deg, #fff 10%, #efe9df 40%, #cdc4b6 62%, #e8c67f 79%, #b98e42 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .1em; }
+.sg-intro h1 em { background: var(--sg-glint), linear-gradient(180deg, var(--ui-accent-pale, #ffe7a3) 8%, var(--lp-gold) 52%, var(--ui-accent, #f2a900) 92%); -webkit-background-clip: text; background-clip: text; padding-block: .12em .24em; text-shadow: none; }
+.sg-intro.is-socc h1 em { background: var(--sg-glint), linear-gradient(180deg, #f2aaa7 6%, #e77c83 30%, #c94d5d 62%, #b4495b 96%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 1px 0 rgba(80,0,8,.3)); }
+/* While the words rise (rise-text.tsx), each is its own inline-block behind a mask, which a gradient clipped to the
+   whole line can't reach, so each word carries its own (vertical, so they match) and the line's stands down until
+   they join up again. The masks and words reach past their boxes so italics and descenders aren't cut. */
+.rise-text { font: inherit; color: inherit; }
+.rise-text[data-rising] > [aria-hidden] { opacity: 0; }
+.rise-text-readable { border: 0; clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; white-space: nowrap; width: 1px; }
+.rise-text-word-mask { margin: -.14em -.14em -.3em; padding: .14em .14em .3em; }
+.sg-title-line .rise-text-word { -webkit-background-clip: text; background-clip: text; color: transparent; margin: -.12em -.1em -.26em; padding: .12em .1em .26em; }
+.sg-title-line:not(.is-accent) .rise-text-word { background-image: linear-gradient(180deg, #fff 10%, #efe9df 40%, #cdc4b6 62%, #e8c67f 79%, #b98e42 100%); }
+.sg-intro h1 em .rise-text-word { background-image: linear-gradient(180deg, var(--ui-accent-pale, #ffe7a3) 8%, var(--lp-gold) 52%, var(--ui-accent, #f2a900) 92%); }
+.sg-intro.is-socc h1 em .rise-text-word { background-image: linear-gradient(180deg, #f2aaa7 6%, #e77c83 30%, #c94d5d 62%, #b4495b 96%); }
+.sg-title-line :is(.rise-text, em):has(.rise-text-word) { background: none; filter: none; }
+.sg-intro .sg-lede { margin-inline: auto; max-width: 620px; min-height: 3.4em; text-wrap: balance; }
+.sg-lede { color: #b3a68f; font-size: clamp(14px, 1.15vw, 17px); line-height: 1.7; margin: clamp(16px, 2.6vh, 26px) 0 0; text-shadow: 0 1px 18px rgba(3,3,6,.9), 0 0 2px rgba(3,3,6,.6); }
+.sg-lede strong { color: #f3eee4; font-weight: 500; }
+/* Each time the view opens, its pieces rise in one after another, as the COMET hero's do. */
+@media (prefers-reduced-motion: no-preference) {
+  .sg-enter { animation: lp-rise 1.2s var(--lp-ease) both; animation-delay: calc(.08s + var(--enter, 0) * .09s); }
+}
+/* As wide as the screen's height allows, so the banners stand whole on the first screen. The outer banners'
+   tops sit 13% of the stage's width down it, so the stage tucks up under the lede by about that much. */
+.sg-stage { --sg-w: min(100%, 1060px, max(560px, calc((100svh - 565px) * 2.25))); aspect-ratio: 1200 / 820; container-type: inline-size; margin: calc(var(--sg-w) * -.13 + 36px) auto 0; position: relative; width: var(--sg-w); }
+.sg-top-moon { height: 100%; inset: 0; opacity: 0; overflow: visible; pointer-events: none; position: absolute; transition: opacity .8s ease; width: 100%; z-index: -1; }
+.sg-stage:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-top-moon { opacity: 1; }
+.sg-banners { display: block; height: 100%; overflow: visible; width: 100%; }
+/* The monoliths (monoliths.tsx) overhang the banners' artwork on every side, for their glow and the glass they stand
+   on. While they're coming or drawn, the flat banners, which stand in for them where WebGL can't run, stay hidden. */
+.sg-monoliths { height: 140%; left: -18%; pointer-events: none; position: absolute; top: -14%; width: 136%; }
+.sg-stage:has(.sg-monoliths:is([data-live], [data-pending])) .sg-banners { visibility: hidden; }
+/* On the monoliths the words are cut into the gold, catching the light along their lower edges, and everything on a
+   face comes up with its light (--sg-rise, 0–1, set as they're drawn). */
+.sg-stage:has(.sg-monoliths:is([data-live], [data-pending])) .sg-body { color: #2e1c05; opacity: calc(.12 + .88 * var(--sg-rise, 1)); text-shadow: 0 1px 0 rgba(255,236,180,.42); }
+.sg-stage:has(.sg-monoliths:is([data-live], [data-pending])) .sg-body-rule { background: rgba(58,34,4,.5); box-shadow: 0 1px 0 rgba(255,236,180,.42); }
+.sg-stage:has(.sg-monoliths:is([data-live], [data-pending])) .sg-crest img { filter: drop-shadow(0 1px 0 rgba(255,238,190,.32)) drop-shadow(0 3px 6px rgba(42,22,2,.38)); }
+/* Cut into the gold, the words stay put when their monolith is pointed at: its light answers instead. */
+.sg-stage:has(.sg-monoliths:is([data-live], [data-pending])) .sg-pillar-link:is(:hover, :focus-visible) .sg-body { transform: none; }
+.sg-pillar-shine { animation: sg-pillar-shine 5.5s linear -1s infinite; pointer-events: none; transform: translateX(-380px) skewX(-18deg); transform-origin: 0 0; }
+.lp-view-panel[hidden] .sg-pillar-shine { animation-play-state: paused; }
+@keyframes sg-pillar-shine {
+  0% { opacity: 0; transform: translateX(-380px) skewX(-18deg); }
+  12%, 72% { opacity: .85; }
+  90%, 100% { opacity: 0; transform: translateX(1550px) skewX(-18deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-pillar-shine { animation: none; opacity: .2; transform: translateX(620px) skewX(-18deg); }
+}
+.sg-bodies { inset: 0; position: absolute; }
+.sg-pillar-link { cursor: pointer; height: 84.14634%; left: 10%; position: absolute; top: 0; width: 20%; clip-path: polygon(0 22.79%, 25% 27.2%, 50% 30.9%, 75% 33.9%, 100% 36.35%, 100% 100%, 0 100%); }
+.sg-pillar-link-1 { left: 38.333%; width: 23.333%; clip-path: polygon(0 39.15%, 25% 40.2%, 50% 40.58%, 75% 40.2%, 100% 39.15%, 100% 100%, 0 100%); }
+.sg-pillar-link-2 { left: 70%; clip-path: polygon(0 36.35%, 25% 33.9%, 50% 30.9%, 75% 27.2%, 100% 22.79%, 100% 100%, 0 100%); }
+.sg-pillar-link:focus-visible { background: rgba(255,248,220,.1); box-shadow: inset 0 0 0 3px #fff0bf; outline: none; }
+.sg-pillar-link .sg-body { height: 54.66667%; left: 0; top: 44.08986%; transition: transform .25s ease; width: 100%; }
+.sg-pillar-link:is(:hover, :focus-visible) .sg-body { transform: translateY(-4px); }
+.sg-pillar-hover { filter: brightness(1.18); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.sg-pillar-dim { fill: #07050a; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+.sg-stage:has(.sg-pillar-link:is(:hover, :focus-visible)) .sg-pillar-dim { opacity: .3; }
+/* The Comelec scene is a dark stage, so the other two banners step further back into it. */
+.sg-stage:has(.sg-pillar-link-1:is(:hover, :focus-visible)) .sg-pillar-dim { opacity: .48; }
+.sg-stage:has(.sg-pillar-link-0:is(:hover, :focus-visible)) .sg-pillar-dim-0,
+.sg-stage:has(.sg-pillar-link-1:is(:hover, :focus-visible)) .sg-pillar-dim-1,
+.sg-stage:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-pillar-dim-2 { opacity: 0; }
+.sg-pillar-link .sg-body > * { transition: opacity .35s ease; }
+.sg-bodies:has(.sg-pillar-link:is(:hover, :focus-visible)) .sg-pillar-link:not(:hover, :focus-visible) .sg-body > * { opacity: .72; }
+.sg-stage:has(.sg-pillar-link-0:is(:hover, :focus-visible)) .sg-pillar-hover-0,
+.sg-stage:has(.sg-pillar-link-1:is(:hover, :focus-visible)) .sg-pillar-hover-1,
+.sg-stage:has(.sg-pillar-link-2:is(:hover, :focus-visible)) .sg-pillar-hover-2 { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .sg-pillar-link .sg-body, .sg-pillar-link .sg-body > *, .sg-pillar-hover, .sg-pillar-dim, .sg-body-more svg { transition: none; }
+  .sg-pillar-link:is(:hover, :focus-visible) .sg-body { transform: none; }
+}
+.sg-body { align-items: center; color: #39250b; display: flex; flex-direction: column; justify-content: center; left: 10%; padding: 0 12px; position: absolute; text-align: center; top: 37.1%; width: 20%; height: 46%; }
+.sg-body-1 { left: 38.333%; width: 23.333%; }
+.sg-body-2 { left: 70%; }
+.sg-crest { align-items: center; display: flex; flex: none; height: clamp(40px, 9cqi, 96px); justify-content: center; margin-bottom: clamp(12px, 2.3cqi, 24px); width: 90%; max-width: 160px; }
+.sg-crest img { filter: drop-shadow(0 2px 3px rgba(35,20,3,.35)); height: 100%; object-fit: contain; transform: translateY(clamp(4px, .66cqi, 7px)); width: 100%; }
+.sg-body h2 { font-size: clamp(17px, 4.3cqi, 41px); font-weight: 650; letter-spacing: -.05em; line-height: 1; margin: clamp(8px, 1.7cqi, 18px) 0 clamp(6px, 1.1cqi, 12px); }
+.sg-body-1 h2 { font-size: clamp(15px, 3.75cqi, 36px); }
+.sg-body p { font-size: clamp(10px, 1.5cqi, 14px); font-weight: 500; line-height: 1.45; margin: 0; max-width: 19ch; }
+.sg-body-rule { background: rgba(77,46,8,.4); height: 1px; margin-top: auto; width: 28px; }
+.sg-body-more { align-items: center; display: inline-flex; font-size: clamp(9px, 1.13cqi, 12px); font-weight: 600; gap: 4px; margin-top: clamp(6px, 1.13cqi, 12px); }
+.sg-body-more svg { height: 1.15em; transition: transform .3s var(--lp-ease); width: 1.15em; }
+.sg-pillar-link:is(:hover, :focus-visible) .sg-body-more svg { transform: translate(2px, -2px); }
+.sg-foot { align-items: center; border-top: 1px solid rgba(220,179,103,.16); display: flex; flex-wrap: wrap; gap: 14px 24px; justify-content: space-between; margin: -20px auto 0; max-width: 900px; padding-top: 20px; position: relative; transition: border-color .6s ease; }
+.sg-foot::before { animation: sg-scan 9s var(--lp-ease) 2.4s infinite; background: linear-gradient(90deg, transparent, var(--lp-gold), transparent); content: ""; height: 1px; left: 0; opacity: 0; position: absolute; top: -1px; width: 22%; }
+.sg-foot p { color: #a1937c; font-size: 14px; margin: 0; }
+.sg-foot p em { color: #ead198; font-family: var(--lp-serif); font-size: 1.18em; font-style: italic; letter-spacing: -.01em; }
+@keyframes sg-scan { 0% { opacity: 0; transform: translateX(0); } 8%, 42% { opacity: 1; } 50%, 100% { opacity: 0; transform: translateX(355%); } }
+@media (max-width: 600px) {
+  .sg-landing { padding-inline: 12px; }
+  .sg-intro { padding-inline: 12px; }
+  .sg-kicker { font-size: 10px; }
+  .sg-kicker::before, .sg-kicker::after { display: none; }
+  .sg-intro .sg-lede { min-height: 5.1em; }
+  .sg-stage { aspect-ratio: 1200 / 1260; margin-top: -16px; }
+  .sg-body { padding-inline: 3px; }
+  .sg-body h2 { margin-bottom: 7px; }
+  .sg-body p { font-size: 10px; line-height: 1.4; }
+  .sg-crest { height: 38px; margin-bottom: 8px; }
+  .sg-body-rule { width: 18px; }
+  .sg-body-more { font-size: 9px; margin-top: 6px; }
+  .sg-foot { justify-content: center; margin-top: 28px; text-align: center; }
+}
 .lp-hero-title { font-weight: inherit; margin: 0; }
 /* The wordmark catches the comet's light: a gold glow centred on the head (--lx/--ly) over silver.
    Padding keeps the glyphs' overhang inside the painted box, where background-clip can reach it. */

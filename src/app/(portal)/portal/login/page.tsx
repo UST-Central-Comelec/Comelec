@@ -8,7 +8,9 @@ import { ArrowUpRight, Globe, Lock, Vote } from "lucide-react";
 import { CometSky } from "@/components/home/comet-sky";
 import { LoginForm } from "@/components/portal/login-form";
 import { LoginPanel } from "@/components/portal/login-panel";
-import { readAccessPass } from "@/lib/access-requests/verification";
+import { readAccessPass, readJoin } from "@/lib/access-requests/verification";
+import { defaultDocument, onboardingDocumentKeys } from "@/lib/onboarding/documents";
+import { getOnboardingDocuments } from "@/lib/onboarding/store";
 import { getPortalUser, isLoginConfigured } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -39,12 +41,16 @@ export default async function PortalLoginPage({ searchParams }: PageProps<"/port
   // Read the env and session at request time, not at build time.
   await connection();
   if (await getPortalUser()) redirect("/portal");
-  const { error, reason, access } = await searchParams;
+  const { error, reason, access, request, join } = await searchParams;
   const message = typeof error === "string" ? errors[error] : undefined;
   const ended = !message && typeof reason === "string" ? reasons[reason] : undefined;
   const configured = isLoginConfigured();
   // A UST account already verified for Request access, so the form doesn't ask again.
   const pass = configured ? await readAccessPass() : null;
+  // From an acceptance email's Join the Commission button, or kept from it through Google sign-in.
+  const joinRef = (typeof join === "string" && /^[A-Za-z0-9-]{4,40}$/.test(join) ? join.toUpperCase() : null) ?? (pass ? await readJoin() : null);
+  // What Request access asks them to agree to; the original texts if they can't be read.
+  const documents = configured ? await getOnboardingDocuments().catch(() => onboardingDocumentKeys.map(defaultDocument)) : onboardingDocumentKeys.map(defaultDocument);
 
   return (
     <main className="portal-login">
@@ -120,6 +126,9 @@ export default async function PortalLoginPage({ searchParams }: PageProps<"/port
           }
           note={<p className="portal-login-restricted"><Lock size={13} aria-hidden="true" /> Restricted to authorized members of the UST Central Comelec.</p>}
           canRequest={configured}
+          requestAccess={request === "1" || typeof join === "string"}
+          join={joinRef}
+          documents={documents}
           verified={pass && { email: pass.email, firstName: pass.firstName, lastName: pass.lastName }}
           accessStatus={typeof access === "string" ? access : undefined}
         />

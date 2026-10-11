@@ -69,7 +69,7 @@ async function readDriveLink(formData: FormData, required: boolean): Promise<{ l
 }
 
 export async function createDocument(_state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireEditor("documents");
+  const { email } = await requireEditor("documents/archive");
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
   const drive = await readDriveLink(formData, true);
@@ -77,11 +77,11 @@ export async function createDocument(_state: FormState, formData: FormData): Pro
 
   await store.create("documents", { ...parsed.data, fileUrl: drive.link, fileName: null }, email, `${parsed.data.date.slice(0, 4)} ${parsed.data.reference || parsed.data.title}`);
   refresh();
-  redirect("/portal/documents?notice=created");
+  redirect("/portal/documents/archive?notice=created");
 }
 
 export async function updateDocument(id: string, _state: FormState, formData: FormData): Promise<FormState> {
-  const { email } = await requireEditor("documents");
+  const { email } = await requireEditor("documents/archive");
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
   const drive = await readDriveLink(formData, false);
@@ -94,13 +94,13 @@ export async function updateDocument(id: string, _state: FormState, formData: Fo
   // Documents uploaded before the switch to Drive links: remove the old file from Storage.
   if (existing.fileUrl !== drive.link) await deleteUpload(existing.fileUrl);
   refresh();
-  redirect("/portal/documents?notice=updated");
+  redirect("/portal/documents/archive?notice=updated");
 }
 
 export async function deleteDocument(id: string) {
-  await requireEditor("documents");
+  await requireEditor("documents/archive");
   const removed = await store.remove("documents", id);
   await deleteUpload(removed?.fileUrl ?? null);
   refresh();
-  redirect("/portal/documents?notice=deleted");
+  redirect("/portal/documents/archive?notice=deleted");
 }

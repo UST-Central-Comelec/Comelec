@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { text } from "@/lib/portal/form";
 import { backgroundSchema } from "./background";
-import { TIME_STEP_MINUTES, venueModes, type EventDetails, type VenueMode } from "./options";
+import { collaboratorUnits, TIME_STEP_MINUTES, venueModes, type EventDetails, type VenueMode } from "./options";
 
 // The rules for an event's details, shared by the event form (src/lib/portal/event-actions.ts) and
 // the event details under a unit's Recruitment, Political Party and Filing of Candidacy settings
@@ -33,6 +33,9 @@ export const detailFields = {
   openToStudents: z.boolean(),
   openToExternals: z.boolean(),
   openToAdmins: z.boolean(),
+  openToInternal: z.boolean().default(false),
+  collaborators: z.array(z.string().refine(value => collaboratorUnits.some(unit => unit.value === value), "Choose a Comelec unit from the checklist.")).max(collaboratorUnits.length).default([]),
+  otherCollaborators: z.array(z.string().trim().min(2, "Enter the organization name.").max(200, "Keep organization names under 200 characters.")).max(20).default([]),
 };
 
 type DetailValues = z.infer<z.ZodObject<typeof detailFields>>;
@@ -44,7 +47,7 @@ export function checkDetails(value: DetailValues, context: z.RefinementCtx) {
   else if (value.endDate === value.eventDate && value.startsTime >= value.endsTime) context.addIssue({ code: "custom", path: ["endsTime"], message: "On a one-day event, it has to end after it starts." });
   if (value.ingressTime && value.ingressTime > value.startsTime) context.addIssue({ code: "custom", path: ["ingressTime"], message: "Ingress can’t be after the activity starts." });
   if (value.egressTime && value.egressTime < value.endsTime) context.addIssue({ code: "custom", path: ["egressTime"], message: "Egress can’t be before the activity ends." });
-  if (!value.openToStudents && !value.openToExternals && !value.openToAdmins) context.addIssue({ code: "custom", path: ["participants"], message: "Tick at least one." });
+  if (!value.openToStudents && !value.openToExternals && !value.openToAdmins && !value.openToInternal) context.addIssue({ code: "custom", path: ["participants"], message: "Tick at least one." });
 }
 
 export const detailsSchema = z.object(detailFields).superRefine(checkDetails);
@@ -66,6 +69,9 @@ export function readDetails(formData: FormData) {
     openToStudents: formData.get("openToStudents") === "on",
     openToExternals: formData.get("openToExternals") === "on",
     openToAdmins: formData.get("openToAdmins") === "on",
+    openToInternal: formData.get("openToInternal") === "on",
+    collaborators: formData.get("openToInternal") === "on" ? [...new Set(formData.getAll("collaborators").filter((value): value is string => typeof value === "string"))] : [],
+    otherCollaborators: formData.get("openToInternal") === "on" ? formData.getAll("otherCollaborators").filter((value): value is string => typeof value === "string") : [],
   };
 }
 

@@ -16,7 +16,7 @@ import { approverRoleOf, isCodeKey, type ApproverRole, type CodeKey, type CodeRe
 const TABLE = "code_revisions";
 
 /** Each text as it was signed: what the website shows until a revision is approved, and what the first revision starts from. */
-const signed: Record<CodeKey, CodeArticle[]> = { constitution: cscConstitution, "elections-code": usec2011 };
+const signed: Record<CodeKey, CodeArticle[]> = { constitution: cscConstitution, "elections-code": usec2011, "magna-carta": [] };
 
 /** Everything but the two texts, which a list has no use for. */
 const SUMMARY = "id, code, status, summary, stats, author_email, author_name, author_role, submitted, approvals, returned, events, base_version, version, edits, created_at, updated_at, updated_by, decided_at";

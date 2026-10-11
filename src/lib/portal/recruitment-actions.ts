@@ -12,6 +12,31 @@ import { concernOf } from "@/lib/notifications/concern";
 import { actorOf } from "@/lib/notifications/notify";
 import { settingChanged } from "@/lib/notifications/settings-emails";
 import { text, type FormState } from "./form";
+import { onboardingSchema } from "@/lib/applications/onboarding";
+import { saveOnboarding } from "@/lib/applications/onboarding-store";
+
+export async function updateRecruitmentOnboarding(_state: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireEditor("recruitment/applications");
+  const college = text(formData, "unit");
+  const unit = unitFromKey(college);
+  if ((college && !comelecUnits.includes(college) && !isOwn(user, unit)) || !canManageEvent(user, unit)) return { error: "You can’t manage onboarding for this unit." };
+  let buttons: unknown;
+  try { buttons = JSON.parse(text(formData, "buttons") || "[]"); } catch { return { error: "Couldn’t read the buttons. Reload and try again." }; }
+  const parsed = onboardingSchema.safeParse({ messengerUrl: text(formData, "messengerUrl").trim(), buttons });
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path.join(".")] ??= issue.message;
+    return { error: "Check the highlighted fields.", fieldErrors };
+  }
+  try {
+    await saveOnboarding(college, parsed.data, user.email);
+  } catch {
+    return { error: "Couldn’t save onboarding settings. Try again." };
+  }
+  revalidatePath("/portal/recruitment/applications/onboarding");
+  revalidatePath("/portal/apps/email/automatic");
+  redirect(`/portal/recruitment/applications/onboarding?notice=onboarding-saved${college ? `&unit=${encodeURIComponent(college)}` : ""}`);
+}
 
 /**
  * Saves the counts a commissioner changed. Accepting applicants lowers the counts on its own

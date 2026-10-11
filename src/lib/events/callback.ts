@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkAccess } from "@/lib/auth/session";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
 import { createAdminClient, createAuthClient } from "@/lib/supabase/server";
-import { createEventPass, EVENT_PASS_COOKIE, eventPassCookieOptions } from "./verification";
+import { finishPage } from "@/lib/applications/verification-page";
+import { createEventPass, EVENT_PASS_COOKIE, eventPassCookieOptions, type EventFormTarget } from "./verification";
 
 type Metadata = { full_name?: string; name?: string; given_name?: string; family_name?: string };
 
@@ -20,8 +21,13 @@ export const registrationUrl = (request: NextRequest, eventId: string, status?: 
  * ends straight away and only a signed pass is kept (verification.ts). The student lands on the
  * event's registration form.
  */
-export async function finishEventVerification(request: NextRequest, code: string | null, eventId: string) {
-  if (!code) return NextResponse.redirect(registrationUrl(request, eventId, "failed"));
+export function eventVerificationReply(request: NextRequest, eventId: string, target: EventFormTarget, status: EventVerifyStatus | "ok", email?: string) {
+  if (target === "register") return NextResponse.redirect(registrationUrl(request, eventId, status === "ok" ? undefined : status));
+  return finishPage({ channel: `event-verify:${eventId}:${target}`, message: { status, email }, ok: status === "ok", fallback: `/events/${eventId}/${target}`, backLabel: "Back to the form" });
+}
+
+export async function finishEventVerification(request: NextRequest, code: string | null, eventId: string, target: EventFormTarget = "register") {
+  if (!code) return eventVerificationReply(request, eventId, target, "failed");
 
   const supabase = await createAuthClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -37,10 +43,10 @@ export async function finishEventVerification(request: NextRequest, code: string
     if (deleteError) console.error("Couldn’t delete the registrant’s sign-in record:", deleteError.message);
   }
 
-  if (error || !email) return NextResponse.redirect(registrationUrl(request, eventId, "failed"));
-  if (!email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) return NextResponse.redirect(registrationUrl(request, eventId, "not-ust"));
+  if (error || !email) return eventVerificationReply(request, eventId, target, "failed");
+  if (!email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) return eventVerificationReply(request, eventId, target, "not-ust");
 
-  const response = NextResponse.redirect(registrationUrl(request, eventId));
+  const response = eventVerificationReply(request, eventId, target, "ok", email);
   response.cookies.set(EVENT_PASS_COOKIE, await createEventPass({ eventId, email, firstName: metadata.given_name?.trim() ?? "", lastName: metadata.family_name?.trim() ?? "" }), eventPassCookieOptions);
   return response;
 }

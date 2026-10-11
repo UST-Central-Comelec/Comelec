@@ -6,6 +6,7 @@ import { COMET, isLocalConcern, relayNote, through, topicFor, unitOf, type Conce
 import { receiptBlocks, receiptText, type ReceiptSection } from "@/lib/notifications/receipt";
 import { interviewModes, slotDate, slotTimeRange, type InterviewSlot } from "./interview-format";
 import { formatClosing } from "./period";
+import { acceptanceEmail, defaultOnboarding, type OnboardingSettings } from "./onboarding";
 
 // The emails applicants get: a receipt when they submit, and the result when a commissioner accepts
 // or rejects them in the portal. Built from the commission's email kit (src/lib/email/template.ts).
@@ -145,7 +146,7 @@ export function applicationNoticeEmail(recipients: string[], application: NewApp
 }
 
 /** The decision: sent when an application is accepted or rejected in the portal with "Email the applicant" ticked. */
-export function resultEmail(applicant: Applicant, accepted: boolean): Email {
+export function resultEmail(applicant: Applicant, accepted: boolean, onboarding: OnboardingSettings = defaultOnboarding()): Email {
   const { concern } = applicant;
   const local = isLocalConcern(concern);
   const trackUrl = trackUrlOf(applicant);
@@ -155,34 +156,7 @@ export function resultEmail(applicant: Applicant, accepted: boolean): Email {
   const rows: Details = [["Position", applicant.position], ...(applicant.division ? [["Division", applicant.division] as [string, string]] : []), ["Applied to", unitOf(concern)], ["Reference code", applicant.referenceCode]];
   const relayed = local ? ` This result comes to you through the ${COMET}.` : "";
 
-  if (accepted) {
-    const intro = local ? `Congratulations! The ${unitOf(concern)} has accepted you as ${applicant.position}${applicant.division ? ` in its ${applicant.division}` : ""}.${relayed}` : `Congratulations! You’ve been accepted as ${applicant.position} in ${place.text}.`;
-    const next = local ? `The unit will reach out soon with your next steps. Welcome to the commission.` : `The commission will reach out soon with your next steps. Welcome to the UST Central Comelec.`;
-    return {
-      to: applicant.email,
-      subject: local ? `${through("You’re in! Application result", concern)} (${applicant.referenceCode})` : `You’re in! Your Central COMELEC application (${applicant.referenceCode})`,
-      text: [greeting, intro, next, detailsText(rows), `Track application: ${trackUrl}`, end.text, COMMISSION].join("\n\n"),
-      html: shell({
-        eyebrow: topicFor(TOPIC, concern),
-        title: "Welcome to the *commission*",
-        preheader: `You’ve been accepted as ${applicant.position}.`,
-        blocks: [
-          status("Accepted", "ok"),
-          paragraph(escape(greeting)),
-          paragraph(
-            local
-              ? `Congratulations! The ${strong(escape(unitOf(concern)))} has accepted you as ${strong(escape(applicant.position))}${applicant.division ? ` in its ${strong(escape(applicant.division))}` : ""}.${escape(relayed)}`
-              : `Congratulations! You’ve been accepted as ${strong(escape(applicant.position))} in ${place.html}.`,
-          ),
-          highlight("Your position", applicant.position, "name"),
-          paragraph(escape(next)),
-          details(rows),
-          button("Track application", trackUrl),
-          ...end.blocks,
-        ],
-      }),
-    };
-  }
+  if (accepted) return acceptanceEmail(applicant, onboarding);
 
   const verdict = local ? `After careful review, the unit won’t be moving forward with your application this time.${relayed}` : `After careful review, we won’t be moving forward with your application this time.`;
   const thanks = `We appreciate your interest in serving the Thomasian community, and we hope you’ll apply again in a future cycle.`;

@@ -9,7 +9,7 @@ import { receiptBlocks, receiptText, type ReceiptSection } from "@/lib/notificat
 // The emails a petition or a case sends when it's submitted: a receipt to whoever submitted it,
 // and a notice to the unit it concerns (its official account and its Executive Board).
 //
-// The Petitions & Cases form isn't built yet, so nothing sends these today. They're ready for it:
+// The Petitions and Cases form isn't built yet, so nothing sends these today. They're ready for it:
 // on submit, call `petitionSubmitted` (./notify.ts), which sends both to the right people.
 //
 // A submission concerns the Central Comelec or a Local unit: the form asks which, and the college
@@ -30,10 +30,10 @@ export type Petition = {
   statement?: string;
 };
 
-const TOPIC = "Petitions & Cases";
+const TOPIC = "Petitions and Cases";
 
 const trackUrlOf = (petition: Petition) => `${siteUrl()}/apply/track?ref=${petition.referenceCode}`;
-const portalUrl = () => `${siteUrl()}/portal/petitions/submissions`;
+const portalUrl = () => `${siteUrl()}/portal/petitions/case-docket`;
 
 const summaryOf = (petition: Petition): Details => [["Type", petition.type], ["About", petition.subject], ["Submitted", formatClosing(petition.submittedAt)], ["Addressed to", unitOf(petition.concern)]];
 
@@ -84,7 +84,7 @@ export function petitionNoticeEmail(recipients: string[], petition: Petition): E
     ? `A ${kind} addressed to the ${unitOf(concern)} was submitted through the ${COMET}. It’s your unit’s to act on, and only your unit’s official account and Executive Board were told.`
     : `A ${kind} addressed to the Central Comelec was submitted on the website. Only the Central Comelec’s official account and Executive Board were told.`;
   const rows: Details = [...summaryOf(petition), ["Submitted by", `${petition.submitter.name} (${petition.submitter.email})`], ["Reference code", petition.referenceCode]];
-  const next = "Open Petitions & Cases in the Commission Portal to read the whole submission. Replying to this email writes to whoever submitted it.";
+  const next = "Open Petitions and Cases in the Commission Portal to read the whole submission. Replying to this email writes to whoever submitted it.";
   const statement = petition.statement?.trim();
 
   return {
@@ -95,7 +95,7 @@ export function petitionNoticeEmail(recipients: string[], petition: Petition): E
       eyebrow: topicFor(TOPIC, concern),
       title: local ? `${petition.type} received through *COMET*` : `A new *${kind}*`,
       preheader: `${petition.type}: ${petition.subject}.`,
-      blocks: [highlight(`New ${kind}`, petition.subject, "name"), paragraph("Hi,"), paragraph(escape(intro)), details(rows), ...(statement ? [quote(statement)] : []), paragraph(escape(next)), button("Open Petitions & Cases", url)],
+      blocks: [highlight(`New ${kind}`, petition.subject, "name"), paragraph("Hi,"), paragraph(escape(intro)), details(rows), ...(statement ? [quote(statement)] : []), paragraph(escape(next)), button("Open Petitions and Cases", url)],
     }),
     replyTo: { name: petition.submitter.name, address: petition.submitter.email },
   };

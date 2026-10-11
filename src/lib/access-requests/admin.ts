@@ -2,7 +2,9 @@ import "server-only";
 
 import { retentionCutoff, yearLevels } from "@/lib/applications/options";
 import { isAffiliation, isCommissionerPosition, type Affiliation, type CommissionerPosition } from "@/lib/data/types";
+import { readDeclarations, type Declaration } from "@/lib/onboarding/documents";
 import { createAdminClient } from "@/lib/supabase/server";
+import { fullName } from "@/lib/data/accounts";
 
 // Reading and deciding portal access requests (supabase/migrations/0016_access_requests.sql).
 
@@ -16,6 +18,8 @@ export type AccessRequest = {
   lastName: string;
   firstName: string;
   middleInitial: string;
+  /** Empty for requests sent before full middle names were collected. */
+  middleName: string;
   email: string;
   studentNumber: string;
   contactNumber: string | null;
@@ -28,23 +32,28 @@ export type AccessRequest = {
   college: string;
   program: string;
   yearLevel: string;
+  /** The year level's key ("1", "g11"), as accounts keep it. */
+  yearLevelKey: string;
   facebookUrl: string | null;
+  /** The onboarding documents they accepted, with when. Empty on requests sent before supabase/migrations/0074. */
+  declarations: Declaration[];
   status: AccessRequestStatus;
   submittedAt: string;
 };
 
 const columns = "*";
 
-type Row = { id: string; reference_code: string; first_name: string; middle_initial: string; last_name: string; email: string; student_number: string; contact_number: string | null; position: string; account_position?: string | null; facebook_url?: string | null; affiliation?: string; college: string; program: string; year_level: string; status: AccessRequestStatus; created_at: string };
+type Row = { id: string; reference_code: string; first_name: string; middle_initial: string; middle_name?: string | null; last_name: string; email: string; student_number: string; contact_number: string | null; position: string; account_position?: string | null; facebook_url?: string | null; affiliation?: string; college: string; program: string; year_level: string; declarations?: unknown; status: AccessRequestStatus; created_at: string };
 
 function toRequest(row: Row): AccessRequest {
   return {
     id: row.id,
     referenceCode: row.reference_code,
-    name: `${row.first_name} ${row.middle_initial}. ${row.last_name}`,
+    name: fullName({ firstName: row.first_name, middleName: row.middle_name ?? "", middleInitial: row.middle_initial, lastName: row.last_name }),
     lastName: row.last_name,
     firstName: row.first_name,
     middleInitial: row.middle_initial,
+    middleName: row.middle_name ?? "",
     email: row.email,
     studentNumber: row.student_number,
     contactNumber: row.contact_number,
@@ -55,6 +64,8 @@ function toRequest(row: Row): AccessRequest {
     program: row.program,
     facebookUrl: row.facebook_url ?? null,
     yearLevel: yearLevels[row.year_level as keyof typeof yearLevels] ?? row.year_level,
+    yearLevelKey: row.year_level,
+    declarations: readDeclarations(row.declarations),
     status: row.status,
     submittedAt: row.created_at,
   };

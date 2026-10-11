@@ -12,7 +12,7 @@ export function isSupabaseConfigured() {
   return Boolean(supabaseUrl && supabasePublishableKey && supabaseSecretKey());
 }
 
-/** Public bucket holding document PDFs and member photos. Created by supabase/migrations. */
+/** The Supabase Storage bucket photos lived in before files moved to R2; only read to clean up old files. */
 export const UPLOADS_BUCKET = "uploads";
 
 /** Only Google accounts on this domain can sign in to the portal. */

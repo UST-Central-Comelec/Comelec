@@ -8,7 +8,7 @@ import { useHydrated, usePortalForm } from "./portal-form";
 
 /** Accounts → Expiration: the date commissioners' access ends. `today` is the earliest it can be, in Manila. */
 export function ExpiryForm({ action, expiresOn: saved, today }: { action: (state: FormState, formData: FormData) => Promise<FormState>; expiresOn: string; today: string }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const hydrated = useHydrated();
   const [date, setDate] = useState(saved);
   const unchanged = date === saved;
@@ -26,7 +26,7 @@ export function ExpiryForm({ action, expiresOn: saved, today }: { action: (state
         </div>
       </div>
       <footer className={`portal-settings-foot${unchanged ? "" : " is-dirty"}`}>
-        {state?.error && !state.fieldErrors ? <p className="portal-form-error" role="alert">{state.error}</p> : <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>}
+        <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
         <div className="portal-form-actions">
           {!unchanged && <button type="button" className="portal-button is-ghost" onClick={() => setDate(saved)} disabled={pending}>Discard</button>}
           <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}>{pending ? "Saving…" : unchanged ? "Saved" : "Save date"}</button>

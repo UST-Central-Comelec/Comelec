@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/portal/delete-button";
 import { StatisticForm } from "@/components/portal/statistic-form";
 import { ViewOnly } from "@/components/portal/view-only";
+import { formatClosing } from "@/lib/applications/period";
 import { allowed, withPortalUser } from "@/lib/auth/session";
 import { deleteStatistic, updateStatistic } from "@/lib/portal/statistic-actions";
 import { getStatistics } from "@/lib/statistics/queries";
@@ -22,7 +23,7 @@ export default async function EditStatisticPage({ params }: PageProps<"/portal/s
         <div>
           <Link className="portal-back" href="/portal/statistics">← Statistics</Link>
           <h1>{readOnly ? "Table" : "Edit table"}</h1>
-          <p className="portal-muted">Last updated {new Date(table.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} by {table.updatedBy}. <a href={`/statistics#${table.id}`} target="_blank" rel="noreferrer">View on website ↗</a></p>
+          <p className="portal-muted">Last updated {formatClosing(table.updatedAt)} by {table.updatedBy}. <a href={`/statistics#${table.id}`} target="_blank" rel="noreferrer">View on website ↗</a></p>
         </div>
       </header>
       <section className="portal-card">

@@ -15,6 +15,8 @@ import type { AccessProfile, AccessStep } from "./channel";
 const PASS_COOKIE = "portal_access_pass";
 const CONFIRM_COOKIE = "portal_access_confirmed";
 const FLOW_COOKIE = "portal_access_flow";
+/** The reference code of a Join the Commission link, so it outlasts Google sign-in in this window. */
+const JOIN_COOKIE = "portal_access_join";
 
 const PASS_LIFETIME_MS = 2 * 60 * 60_000;
 /** Time from confirming in the popup to the form submitting, with room for a slow connection. */
@@ -60,7 +62,14 @@ export async function isConfirmed(pass: AccessPass) {
 
 /** "Use a different account", and after a request is saved: one request per verification. */
 export async function clearAccessVerification() {
-  await Promise.all([remove(PASS_COOKIE), remove(CONFIRM_COOKIE)]);
+  await Promise.all([remove(PASS_COOKIE), remove(CONFIRM_COOKIE), remove(JOIN_COOKIE)]);
+}
+
+/** Verifying from a Join the Commission link: keeps its reference code for as long as the verification. */
+export const rememberJoin = (referenceCode: string) => write("access-join", JOIN_COOKIE, { referenceCode }, PASS_LIFETIME_MS);
+
+export async function readJoin() {
+  return (await read<{ referenceCode: string; expiresAt: number }>("access-join", JOIN_COOKIE))?.referenceCode ?? null;
 }
 
 export const startAccessFlow = (step: AccessStep) => write("access-flow", FLOW_COOKIE, { step }, FLOW_LIFETIME_MS);

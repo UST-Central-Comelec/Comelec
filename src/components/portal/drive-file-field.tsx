@@ -3,11 +3,12 @@
 import { useState, type ChangeEvent } from "react";
 import { finishDocumentUpload, startDocumentUpload } from "@/lib/portal/document-upload-actions";
 import { Field } from "./portal-form";
+import { toast } from "./toast";
 
 // Same limit as MAX_DOCUMENT_BYTES in src/lib/data/drive-upload.ts, which is server-only.
 const MAX_BYTES = 25 * 1024 * 1024;
 
-type Status = { kind: "idle" } | { kind: "working"; percent: number } | { kind: "done"; message: string } | { kind: "error"; message: string };
+type Status = { kind: "idle" } | { kind: "working"; percent: number };
 
 /** Sends the file straight to the Drive upload session, reporting progress. Resolves with the new file's id. */
 function send(session: string, file: File, onProgress: (percent: number) => void) {
@@ -41,7 +42,8 @@ export function DriveFileField({ initialLink, error, canUpload }: { initialLink:
     if (!file) return;
     const reject = (message: string) => {
       event.target.value = "";
-      setStatus({ kind: "error", message });
+      setStatus({ kind: "idle" });
+      toast(message, "error");
     };
     // The reported type comes from the file extension, so also check the file starts like a PDF.
     const isPdf = file.type === "application/pdf" && (await file.slice(0, 5).text()) === "%PDF-";
@@ -55,7 +57,8 @@ export function DriveFileField({ initialLink, error, canUpload }: { initialLink:
       const finished = await finishDocumentUpload(id);
       if ("error" in finished) return reject(finished.error);
       setLink(finished.link);
-      setStatus({ kind: "done", message: `Uploaded ${file.name}. Save the document to keep it.` });
+      setStatus({ kind: "idle" });
+      toast(`Uploaded ${file.name}. Save the document to keep it.`);
     } catch {
       reject("The upload didn’t finish. Check your connection and try again.");
     }
@@ -67,8 +70,6 @@ export function DriveFileField({ initialLink, error, canUpload }: { initialLink:
         <Field label="Upload PDF" hint="Up to 25 MB. The file is stored in the commission’s Google Drive and shared as view-only." wide>
           <input type="file" accept="application/pdf" onChange={onChange} disabled={status.kind === "working"} />
           {status.kind === "working" && <span className="portal-field-hint" aria-live="polite">Uploading… {status.percent}%</span>}
-          {status.kind === "done" && <span className="portal-file-status" aria-live="polite">{status.message}</span>}
-          {status.kind === "error" && <span className="portal-field-error" aria-live="polite">{status.message}</span>}
         </Field>
       )}
       <Field

@@ -70,7 +70,7 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 .ck-cards { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; margin: 34px 0 0; padding: 0; }
 .ck-cards li { background: var(--ck-glass-card); border: 1px solid var(--ck-line); border-radius: 20px; padding: 22px 22px 24px; position: relative; }
 .ck-cards li:hover { border-color: var(--ck-line-strong); }
-.ck-card-icon { align-items: center; background: rgba(var(--ck-gold-rgb),.09); border: 1px solid rgba(var(--ck-gold-rgb),.26); border-radius: 12px; color: var(--ck-gold-mark); display: inline-flex; height: 40px; justify-content: center; width: 40px; }
+.ck-card-icon { align-items: center; background: rgba(var(--ck-ink),.04); border: 1px solid var(--ck-line-strong); border-radius: 12px; color: var(--ck-gold-mark); display: inline-flex; height: 40px; justify-content: center; width: 40px; }
 .ck-cards h3 { color: var(--ck-text); font-size: 17px; font-weight: 580; letter-spacing: -.02em; line-height: 1.25; margin: 20px 0 0; }
 .ck-cards p { color: var(--ck-muted); font-size: 14px; line-height: 1.65; margin: 8px 0 0; }
 
@@ -87,8 +87,10 @@ body:has(.site-header.is-visible) .ck-toc { top: calc(var(--ck-header) + 28px); 
 .ck-ledger tbody tr + tr :is(th, td) { border-top: 1px solid var(--ck-line); padding-top: 20px; }
 .ck-ledger code { color: var(--ck-text); display: block; font: 500 13px/1.5 var(--ck-sans); font-variant-numeric: tabular-nums; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .ck-ledger tbody td:last-child { color: var(--ck-soft); }
-.ck-kind { align-items: center; background: rgba(62,207,142,.08); border: 1px solid rgba(62,207,142,.3); border-radius: 3px; color: var(--ck-ok-ink); display: inline-flex; font: 500 9.5px/1 var(--ck-sans); margin-top: 10px; padding: 5px 9px; text-transform: uppercase; }
-.ck-kind.is-preference { background: rgba(var(--ck-gold-rgb),.08); border-color: rgba(var(--ck-gold-rgb),.3); color: var(--ck-gold-light); }
+.ck-kind { align-items: center; border: 1px solid var(--ck-line-strong); border-radius: 3px; color: var(--ck-soft); display: inline-flex; gap: 7px; font: 500 9.5px/1 var(--ck-sans); margin-top: 10px; padding: 5px 9px; text-transform: uppercase; }
+/* Words led by a solid dot: green for essential, gold for a preference. */
+.ck-kind::before { background: var(--ck-ok); border-radius: 50%; content: ""; height: 6px; width: 6px; }
+.ck-kind.is-preference::before { background: var(--ck-gold); }
 
 /* Other services: who, then what they do */
 .ck-list { margin: 30px 0 0; }

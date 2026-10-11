@@ -19,7 +19,7 @@ function describeDays(days: string[]) {
  * selection). Each slot is one applicant; the server fills in that default.
  */
 export function InterviewSlotForm({ action, dates = [], layout, unit = "", unitOptions, rangeMode, minDate, onDateRangeChange }: { action: (state: FormState, formData: FormData) => Promise<FormState>; dates?: string[]; layout?: "side"; unit?: string; unitOptions?: readonly string[]; rangeMode?: boolean; minDate?: string; onDateRangeChange: (start: string, end: string) => void }) {
-  const { state, pending, onSubmit, errors } = usePortalForm(action);
+  const { pending, onSubmit, errors } = usePortalForm(action);
   const isRange = rangeMode || (dates.length > 1 && dates.every((day, index) => index === 0 || Date.parse(`${day}T00:00:00Z`) - Date.parse(`${dates[index - 1]}T00:00:00Z`) === 86_400_000));
   const startDate = dates[0];
   const endDate = dates[dates.length - 1];
@@ -67,11 +67,10 @@ export function InterviewSlotForm({ action, dates = [], layout, unit = "", unitO
       </div>
       {layout === "side" ? (
         <div className="portal-side-footer">
-          {state?.error && <p className="portal-form-error" role="alert">{state.error}</p>}
           <button className="portal-button is-block" type="submit" disabled={pending}>{pending ? "Adding…" : dates.length > 1 ? `Add a slot to ${dates.length} days` : "Add slot"}</button>
         </div>
       ) : (
-        <FormFooter state={state} pending={pending} submitLabel="Add slots" cancelHref="/portal" />
+        <FormFooter pending={pending} submitLabel="Add slots" cancelHref="/portal" />
       )}
     </form>
   );

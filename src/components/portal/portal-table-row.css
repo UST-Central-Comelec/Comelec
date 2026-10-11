@@ -1,0 +1,9 @@
+.portal-clickable-row.is-clickable { cursor: pointer; }
+.portal-clickable-row .portal-row-actions > a { transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .15s ease; }
+.portal-clickable-row .portal-row-actions > a:hover,
+.portal-clickable-row .portal-row-actions > a:focus-visible { background: rgba(var(--p-ink),.08); border-color: var(--p-line-strong); color: var(--p-text); transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .portal-clickable-row .portal-row-actions > a { transition: none; }
+  .portal-clickable-row .portal-row-actions > a:hover,
+  .portal-clickable-row .portal-row-actions > a:focus-visible { transform: none; }
+}

@@ -13,7 +13,7 @@ import { emailCentral, later, sendAutomatic } from "@/lib/notifications/notify";
 import { tabHref } from "./access";
 import { text, type FormState } from "./form";
 
-// Publications → Constitution and Elections Code, and Apps → Approvals: writing a revision, sending
+// Charters → Constitution and Elections Code, and Documents → Approval: writing a revision, sending
 // it for approval, and signing it or sending it back.
 //
 // Every step is emailed to the Central Comelec, whose texts these are: its official account and its
@@ -32,14 +32,14 @@ import { text, type FormState } from "./form";
  */
 export type CodeFormState = { error?: string; problems?: string[]; saved?: { id: string; edits: number; at: string } } | undefined;
 
-/** Where an approver came from, to go back to: the Approvals tab, or the text's own tab. */
-export type ReviewPlace = "approvals" | "tab";
+/** Where an approver came from, to go back to: the Approval tab, or the text's own tab. */
+export type ReviewPlace = "approval" | "tab";
 
 const MAX_SUMMARY = 2000;
 const MIGRATION = "supabase/migrations/0025_code_revisions.sql";
 
 const pageOf = (code: CodeKey) => tabHref(codes[code].tab);
-const revisionPage = (revision: Pick<RevisionSummary, "id" | "code">, place: ReviewPlace = "tab") => (place === "approvals" ? `/portal/apps/approvals/${revision.id}` : `${pageOf(revision.code)}/revisions/${revision.id}`);
+const revisionPage = (revision: Pick<RevisionSummary, "id" | "code">, place: ReviewPlace = "tab") => (place === "approval" ? `/portal/documents/approval/${revision.id}` : `${pageOf(revision.code)}/revisions/${revision.id}`);
 
 /** The signed-in account, if it's one that writes the texts. Anyone else lands back on the tab. */
 async function requireCodeEditor(code: CodeKey) {
@@ -50,8 +50,8 @@ async function requireCodeEditor(code: CodeKey) {
 
 /** The signed-in account, if it's one of the three who sign. */
 async function requireApprover() {
-  const user = await requireEditor("apps/approvals");
-  if (!approverRoleOf(user)) redirect(tabHref("apps/approvals"));
+  const user = await requireEditor("documents/approval");
+  if (!approverRoleOf(user)) redirect(tabHref("documents/approval"));
   return user;
 }
 
@@ -203,7 +203,7 @@ export async function approveCodeRevision(id: string, place: ReviewPlace) {
 
   for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
     const revision = await getRevisionSummary(id);
-    if (!revision) redirect(tabHref("apps/approvals"));
+    if (!revision) redirect(tabHref("documents/approval"));
     if (revision.status !== "pending") return back(revision, "code-moved-on");
     const role = approverRoleOf(user);
     if (!role || revision.approvals[role]) return back(revision, "code-already-signed");
@@ -229,7 +229,7 @@ export async function approveCodeRevision(id: string, place: ReviewPlace) {
     const emailed = (await emailCentral("revision-published", (to) => revisionPublishedEmail(to, changed), { also: editorsOf(changed) })) === "sent";
     return back(changed, emailed ? "code-published" : "code-published-no-email");
   }
-  redirect(`${tabHref("apps/approvals")}?notice=code-busy`);
+  redirect(`${tabHref("documents/approval")}?notice=code-busy`);
 }
 
 /**
@@ -240,7 +240,7 @@ export async function returnCodeRevision(id: string, place: ReviewPlace, _state:
   const user = await requireApprover();
   const person = personOf(user);
   const role = approverRoleOf(user);
-  if (!role) redirect(tabHref("apps/approvals"));
+  if (!role) redirect(tabHref("documents/approval"));
   const note = text(formData, "note").trim();
   if (note.length < 10) return { error: "Say what should change (at least 10 characters)." };
   if (note.length > MAX_SUMMARY) return { error: "Keep it under 2,000 characters." };

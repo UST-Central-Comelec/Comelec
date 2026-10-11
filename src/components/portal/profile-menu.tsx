@@ -8,6 +8,7 @@ import { logout, switchPortalAccount } from "@/lib/portal/auth-actions";
 import { unitAbbreviations } from "@/lib/applications/options";
 import { describeAffiliation, type AccountAffiliation } from "@/lib/data/types";
 import { ThemeToggle } from "./portal-theme";
+import { useToast } from "./toast";
 
 export type PortalMembership = { id: string; affiliation: AccountAffiliation; college: string | null; role: string };
 type ProfileUser = { id: string; name: string; role: string; email: string; avatarUrl: string | null };
@@ -25,6 +26,7 @@ export function ProfileMenu({ user, memberships }: { user: ProfileUser; membersh
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [position, setPosition] = useState<CSSProperties>({});
   const [state, switchAccount, pending] = useActionState(switchPortalAccount, undefined);
+  useToast(state?.error, "error", state);
   useEffect(() => {
     if (state?.error && !pending) panel.current?.showPopover();
   }, [state, pending]);
@@ -88,7 +90,6 @@ export function ProfileMenu({ user, memberships }: { user: ProfileUser; membersh
                 </form>
               );
             })}
-            {state?.error && <p className="portal-profile-message is-error" role="alert">{state.error}</p>}
           </section>
         )}
         <div className="portal-profile-actions">
