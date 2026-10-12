@@ -11,16 +11,19 @@ html:has(.ev-evaluation-form) { overflow-anchor: none; }
 .ev-form-preview { overflow-anchor: none; }
 
 /* Mirror the native email input so only the UST domain changes colour. */
-.ev .ev-ust-email { display: block; position: relative; }
-.ev .ev-field .ev-ust-email input { caret-color: var(--ev-text); color: transparent; -webkit-text-fill-color: transparent; }
-.ev .ev-ust-email-display { align-items: center; color: var(--ev-text); display: flex; font: inherit; font-size: 16px; inset: 1px; overflow: hidden; padding: 11px 14px; pointer-events: none; position: absolute; white-space: pre; }
+.ev .ev-ust-email { --email-end: 14px; display: block; position: relative; }
+.ev .ev-ust-email.is-verified { --email-end: 104px; }
+.ev .ev-ust-email.has-suggestion { --email-end: 48px; }
+.ev .ev-field .ev-ust-email input { caret-color: var(--ev-text); color: transparent; padding-right: var(--email-end); -webkit-text-fill-color: transparent; }
+.ev .ev-ust-email-display { align-items: center; color: var(--ev-text); display: flex; font: inherit; font-size: 16px; inset: 1px; right: calc(var(--email-end) - 13px); overflow: hidden; padding: 11px 14px; pointer-events: none; position: absolute; white-space: pre; }
 .ev .ev-ust-email-display > span { flex: none; }
 .ev .ev-ust-email-domain { transition: color .3s var(--ev-ease); }
 .ev .ev-ust-email-domain.is-ust { color: var(--ev-gold-mark); }
 .ev .ev-ust-email-suggestion { color: var(--ev-placeholder); }
-.ev .ev-ust-email-status { align-items: center; color: var(--ev-soft); display: flex; font-size: 12px; gap: 6px; }
+.ev .ev-ust-email-status, .ev .ev-ust-email-tab { align-items: center; bottom: 0; color: var(--ev-soft); display: flex; font-size: 12px; gap: 6px; position: absolute; right: 14px; top: 0; white-space: nowrap; }
 .ev .ev-ust-email-status:empty { display: none; }
 .ev .ev-ust-email-status svg { color: var(--ev-ok-ink); flex: none; }
+.ev .ev-ust-email-tab kbd { align-items: center; border: 1px solid var(--ev-line-strong); border-radius: 4px; display: flex; font-family: inherit; height: 24px; justify-content: center; width: 24px; }
 @media (prefers-reduced-motion: reduce) {
   .ev .ev-field-reveal { animation: none; transition: none; }
   .ev .ev-ust-email-domain { transition: none; }

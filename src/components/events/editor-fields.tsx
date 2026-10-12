@@ -3,7 +3,7 @@ import { answerHint, type EditorField, type FormAnswers } from "@/lib/events/for
 import { StudentVerification } from "./student-verification";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRightToLine, CheckCircle2 } from "lucide-react";
 import "./editor-fields.css";
 
 const emailGuide = "With a UST email, you’ll also give your student number.";
@@ -30,7 +30,7 @@ function RsvpEmail({ field, value, onChange }: { field: EditorField; value: stri
 
   return <>
     <label className="ev-field"><span className="ev-sr-only">{field.label}</span>
-      <span className="ev-ust-email">
+      <span className={`ev-ust-email${verified ? " is-verified" : suggestion ? " has-suggestion" : ""}`}>
         <input ref={input} name={field.id} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} maxLength={254} required={field.required} value={value}
           aria-describedby={suggestion ? hintId : undefined}
           onChange={event => onChange(event.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onScroll={syncScroll}
@@ -41,19 +41,19 @@ function RsvpEmail({ field, value, onChange }: { field: EditorField; value: stri
             }
           }} />
         <span className="ev-ust-email-display" aria-hidden="true"><span ref={mirror}>{local}<span className={`ev-ust-email-domain${highlighted ? " is-ust" : ""}`}>{domain}</span><span className="ev-ust-email-suggestion">{suggestion}</span></span></span>
+        <span className="ev-ust-email-status" role="status">{verified && <><CheckCircle2 size={14} aria-hidden="true" /><span>Verified <span className="ev-sr-only">UST email domain</span></span></>}</span>
+        {suggestion && <span className="ev-ust-email-tab" title={`Press Tab to complete ${ustDomain}`}><kbd><ArrowRightToLine size={14} aria-hidden="true" /></kbd><span className="ev-sr-only" id={hintId}>Press Tab to complete {ustDomain}.</span></span>}
       </span>
     </label>
-    {suggestion && <p className="ev-field-hint" id={hintId}>Press Tab to complete {ustDomain}.</p>}
-    <span className="ev-ust-email-status" role="status">{verified && <><CheckCircle2 size={14} aria-hidden="true" /><span>Verified <span className="ev-sr-only">UST email domain</span></span></>}</span>
   </>;
 }
 
 type Verify = { eventId: string; target: "rsvp-form" | "evaluate"; preview?: boolean };
 
 function Required({ field }: { field: EditorField }) { return field.required ? <span className="ev-evaluation-required" aria-label="required">*</span> : null; }
-function Hint({ field }: { field: EditorField }) {
+function Hint({ field, hideStudentNumber = false }: { field: EditorField; hideStudentNumber?: boolean }) {
   const prompt = field.prompt.trim() === emailGuide ? "" : field.prompt;
-  const rules = answerHint(field).split(" · ").filter(text => text !== "Letters only" && text !== "No special characters").join(" · ");
+  const rules = answerHint(field).split(" · ").filter(text => text !== "Letters only" && text !== "No special characters" && !(hideStudentNumber && text === "Your 10-digit student number.")).join(" · ");
   const text = [prompt, rules].filter(Boolean).join(" ");
   return text ? <p className="ev-field-hint">{text}</p> : null;
 }
@@ -194,7 +194,7 @@ function Question({ field, value, onChange, verify, span }: { field: EditorField
       <label className="ev-field"><span className="ev-sr-only">{field.label}</span>
         {field.kind === "textarea" ? <textarea rows={4} maxLength={4000} {...common} /> : <input type={field.kind === "email" ? "email" : field.kind === "link" ? "url" : "text"} maxLength={rules.studentNumber ? 10 : field.kind === "email" ? 254 : 4000} autoCapitalize={rules.uppercase ? "characters" : undefined} placeholder={field.kind === "link" ? "https://" : undefined} {...common} />}
       </label>
-      <Hint field={field} />
+      <Hint field={field} hideStudentNumber={verify?.target === "rsvp-form"} />
     </fieldset>
   );
 }
