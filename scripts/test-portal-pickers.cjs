@@ -37,7 +37,8 @@ assert.equal(new Set(days).size, days.length);
 const { DatePicker } = load("src/components/portal/date-picker.tsx");
 const markup = renderToStaticMarkup(React.createElement(DatePicker, { name: "date", defaultValue: "2026-10-05", required: true }));
 assert.match(markup, /October 05, 2026/);
-assert.match(markup, /type="hidden" name="date" value="2026-10-05"/);
+assert.match(markup, /<input type="hidden"[^>]*name="date" value="2026-10-05"/);
+assert.match(markup, /<input type="hidden"[^>]*data-required="true"/, "A required picker marks its value for the form check (form-validation.tsx)");
 assert.match(markup, /aria-haspopup="dialog"/);
 const { TimePicker } = load("src/components/portal/time-picker.tsx");
 const time = TimePicker({ name: "time", defaultValue: "09:00" });
@@ -47,5 +48,6 @@ assert.equal(time.props.options.find((option) => option.value === "23:55").label
 assert.equal(TimePicker({ optional: true }).props.options[0].value, "", "Optional ingress and egress can be cleared");
 const timeMarkup = renderToStaticMarkup(time);
 assert.match(timeMarkup, /9:00 AM/);
-assert.match(timeMarkup, /type="hidden" name="time" value="09:00"/);
+assert.match(timeMarkup, /<input type="hidden"[^>]*name="time" value="09:00"/);
+assert.match(timeMarkup, /<input type="hidden"[^>]*data-required="true"/, "A time with no None option is required");
 console.log("Calendar month/year boundaries, date display, form values, and time dropdown choices passed.");

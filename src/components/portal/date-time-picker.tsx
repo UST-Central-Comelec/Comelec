@@ -26,6 +26,6 @@ export function DateTimePicker({ name, value, defaultValue = "", onChange, min, 
   return <span className="portal-date-time">
     <DatePicker value={date} onChange={(next) => update(next, time)} min={min?.slice(0, 10)} required={required} invalid={invalid} label={`${label}: date`} />
     <input className="portal-input" type="time" value={time} onChange={(event) => update(date, event.target.value)} min={date === min?.slice(0, 10) ? min?.slice(11) : undefined} required={required} aria-invalid={invalid || undefined} aria-label={`${label}: time`} />
-    {name && <input type="hidden" name={name} value={date && time ? `${date}T${time}` : ""} />}
+    {name && <input type="hidden" name={name} value={date && time ? `${date}T${time}` : ""} data-required={required || undefined} />}
   </span>;
 }

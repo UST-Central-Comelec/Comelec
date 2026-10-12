@@ -1,5 +1,16 @@
 :root { --ui-button-radius: 6px; }
 
+/* A field that needs fixing before a form can be sent (src/components/form-validation.tsx): a red
+   edge on the field, and a tooltip that stays dark in both themes, like every tooltip here. */
+:root {
+	--ui-danger: #ff6b7d;
+	--ui-danger-ink: #ff9aa6;
+	--ui-tip-bg: #16161d;
+	--ui-tip-text: #f3f1eb;
+	--ui-tip-line: rgba(255,255,255,.12);
+	--ui-tip-shadow: 0 12px 32px -12px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.25);
+}
+
 /* Light content uses a cool blue-gray canvas and slate neutrals, with UST yellow for actions.
    Gold used as text is darker for contrast; always-dark sections retain their local palette. */
 :root[data-theme="light"],
@@ -48,6 +59,8 @@
 	--ui-accent-soft-rgb: 255,224,92;
 	--ui-notice-rgb: 8,145,178;
 	--ui-on-accent-rgb: 17,24,39;
+	--ui-danger: #d92d48;
+	--ui-danger-ink: #ff9aa6;
 }
 
 /* Dark landing sections, banners and navigation always use gold night colours.

@@ -566,7 +566,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   }
 
   return (
-    <form ref={formRef} className="apply-form" onSubmit={onSubmit} onInput={(event) => clearError((event.target as HTMLInputElement).name)} noValidate>
+    <form ref={formRef} className="apply-form" onSubmit={onSubmit} onInput={(event) => clearError((event.target as HTMLInputElement).name)} noValidate data-validation={preview ? "off" : undefined}>
       {tracker}
 
       <div className={`apply-body${leaving ? " is-leaving" : ""}`} data-direction={direction}>
@@ -605,7 +605,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
             </div>
             <p className="apply-privacy-rights"><Mail size={16} aria-hidden="true" /><span>You may ask to access, correct or delete your information, or withdraw your consent, by emailing <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link>.</span></p>
             <label className={`apply-consent${errors.consent ? " has-error" : ""}`}>
-              {verified ? <><input type="checkbox" checked disabled readOnly /><input type="hidden" name="consent" value="on" /></> : <input name="consent" type="checkbox" />}
+              {verified ? <><input type="checkbox" checked disabled readOnly /><input type="hidden" name="consent" value="on" /></> : <input name="consent" type="checkbox" required />}
               <span><Required /> I have read this privacy statement and consent to the Central COMELEC collecting, using and processing my personal information for the purposes stated above.</span>
             </label>
           </section>
@@ -646,7 +646,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                 {qualificationFields.map((field) => (
                   <li key={field}>
                     <label className={`apply-requirement${errors[field] ? " has-error" : ""}`}>
-                      <input name={field} type="checkbox" />
+                      <input name={field} type="checkbox" required />
                       <span className="apply-requirement-box" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
                       <span className="apply-requirement-text">
                         {qualifications[field]}
@@ -675,7 +675,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                 <div className="apply-conflict-reveal-inner">
                   <div className="apply-check">
                     <label className={`apply-consent apply-conflict-pledge${errors.conflictPledge ? " has-error" : ""}`}>
-                      <input name="conflictPledge" type="checkbox" disabled={!hasConflict} />
+                      <input name="conflictPledge" type="checkbox" disabled={!hasConflict} required />
                       <span><Required /> Should I be appointed, I will step down from the office or end the affiliation I named above before my term begins, and remain apart from it while I serve. I understand my appointment depends on this.</span>
                     </label>
                     {errors.conflictPledge && <span className="apply-field-error">{errors.conflictPledge}</span>}
@@ -706,7 +706,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
             <legend>Contact and student details</legend>
             <div className="apply-grid">
               <Field label="Student number" error={errors.studentNumber} span={3}>
-                <input name="studentNumber" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="2023123456" onInput={(event) => formatNumericInput(event.currentTarget, (value) => digitsOnly(value, 10))} />
+                <input name="studentNumber" required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="2023123456" onInput={(event) => formatNumericInput(event.currentTarget, (value) => digitsOnly(value, 10))} />
               </Field>
               <Field label="Mobile number" error={errors.contactNumber} span={3} optional>
                 <input name="contactNumber" type="tel" inputMode="numeric" autoComplete="tel" pattern="09[0-9]{9}" placeholder="09171234567" maxLength={11} onInput={(event) => formatNumericInput(event.currentTarget, formatMobileNumber)} />
@@ -744,6 +744,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                     clearError("college");
                   }}
                   placeholder="Type or pick your college"
+                  required
                   invalid={Boolean(errors.college)}
                   describedBy="college-label"
                 />
@@ -764,6 +765,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                     placeholder={college ? "Type or pick your program" : "Pick a college first"}
                     emptyText="No match. Try another program."
                     disabled={!college}
+                    required
                     invalid={Boolean(errors.program)}
                     describedBy="program-label"
                   />
@@ -783,6 +785,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                   }}
                   placeholder="Select"
                   pickOnly
+                  required
                   invalid={Boolean(errors.yearLevel)}
                   describedBy="year-level-label"
                 />
@@ -842,19 +845,19 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
           <p className="apply-note">Upload each file to Google Drive, set sharing to <strong>Anyone with the link can view</strong>, then paste the link here.</p>
           <div className="apply-grid">
             <Field label="CV or résumé" error={errors.cvUrl} span={12}>
-              <input name="cvUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
+              <input name="cvUrl" required type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Latest Registration Form" error={errors.registrationFormUrl} span={12}>
-              <input name="registrationFormUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
+              <input name="registrationFormUrl" required type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Letter of Intent" error={errors.letterOfIntentUrl} span={12}>
-              <input name="letterOfIntentUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
+              <input name="letterOfIntentUrl" required type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Recommendation Letter" error={errors.endorsementUrl} span={12} optional>
               <input name="endorsementUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Portfolio" hint="Optional, but required for public information and creatives positions." error={errors.portfolioUrl} span={12} optional={!portfolio}>
-              <input name="portfolioUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
+              <input name="portfolioUrl" required={portfolio} type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Latest Copy of Grades" error={errors.gradesUrl} span={12} optional>
               <input name="gradesUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />

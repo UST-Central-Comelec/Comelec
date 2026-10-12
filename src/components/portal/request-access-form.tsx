@@ -441,10 +441,10 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                 <legend>Name</legend>
                 <div className="portal-form-grid portal-request-name">
                   <Field label="Last name" error={errors.lastName}>
-                    <input name="lastName" autoComplete="family-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("lastName")} defaultValue={tidyPersonName(application?.lastName ?? profile.lastName)} />
+                    <input name="lastName" required autoComplete="family-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("lastName")} defaultValue={tidyPersonName(application?.lastName ?? profile.lastName)} />
                   </Field>
                   <Field label="First name" error={errors.firstName}>
-                    <input name="firstName" autoComplete="given-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("firstName")} defaultValue={tidyPersonName(application?.firstName ?? profile.firstName)} />
+                    <input name="firstName" required autoComplete="given-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("firstName")} defaultValue={tidyPersonName(application?.firstName ?? profile.firstName)} />
                   </Field>
                   <Field label="Middle name" error={errors.middleName}>
                     <input name="middleName" autoComplete="additional-name" autoCapitalize="characters" maxLength={80} defaultValue={tidyPersonName(application?.middleName ?? "")} onChange={() => clearError("middleName")} onInput={uppercase} required />
@@ -462,7 +462,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                     </span>
                   </Field>
                   <Field label="Student number" error={errors.studentNumber}>
-                    <input name="studentNumber" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="2023123456" defaultValue={cleanStudentNumber(application?.studentNumber ?? "")} onChange={() => clearError("studentNumber")} />
+                    <input name="studentNumber" required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="2023123456" defaultValue={cleanStudentNumber(application?.studentNumber ?? "")} onChange={() => clearError("studentNumber")} />
                   </Field>
                   <Field label="Mobile number" error={errors.contactNumber} optional>
                     <input name="contactNumber" type="tel" inputMode="numeric" autoComplete="tel" pattern="09[0-9]{9}" placeholder="09171234567" maxLength={11} defaultValue={cleanMobileNumber(application?.contactNumber ?? "")} onChange={() => clearError("contactNumber")} />
@@ -481,20 +481,20 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                     {application ? (
                       <><input type="hidden" name="college" value={application.college} /><input value={application.college} readOnly className="is-fixed" aria-labelledby="request-college-label" /></>
                     ) : (
-                      <Combobox name="college" options={colleges} value={college} onChange={(nextValue) => { if (nextValue === college) return; setCollege(nextValue); setYearLevel(""); setProgram(""); clearError("college"); }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy="request-college-label" />
+                      <Combobox required name="college" options={colleges} value={college} onChange={(nextValue) => { if (nextValue === college) return; setCollege(nextValue); setYearLevel(""); setProgram(""); clearError("college"); }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy="request-college-label" />
                     )}
                     {errors.college && <span className="portal-field-error">{errors.college}</span>}
                   </div>
                   <div className={`portal-field${errors.program ? " has-error" : ""}`}>
                     <span className="portal-field-label" id="request-program-label">Program</span>
                     {programLocked(college) ? <input value="None" readOnly aria-label="Program" /> : (
-                      <Combobox key={`${college}-${application?.referenceCode ?? ""}`} name="program" options={programs} value={program} onChange={(nextValue) => { setProgram(nextValue); clearError("program"); }} placeholder={college ? "Type or pick your program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!college} invalid={Boolean(errors.program)} labelledBy="request-program-label" />
+                      <Combobox required key={`${college}-${application?.referenceCode ?? ""}`} name="program" options={programs} value={program} onChange={(nextValue) => { setProgram(nextValue); clearError("program"); }} placeholder={college ? "Type or pick your program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!college} invalid={Boolean(errors.program)} labelledBy="request-program-label" />
                     )}
                     {errors.program && <span className="portal-field-error">{errors.program}</span>}
                   </div>
                   <div className={`portal-field${errors.yearLevel ? " has-error" : ""}`}>
                     <span className="portal-field-label" id="request-year-label">Year level</span>
-                    <Combobox key={`year-${college}-${application?.referenceCode ?? ""}`} name="yearLevel" options={yearLevelLabels} value={yearLevel} submitValue={yearLevelValue(yearLevel)} onChange={(nextValue) => { setYearLevel(nextValue); clearError("yearLevel"); }} placeholder="Select" pickOnly invalid={Boolean(errors.yearLevel)} labelledBy="request-year-label" />
+                    <Combobox required key={`year-${college}-${application?.referenceCode ?? ""}`} name="yearLevel" options={yearLevelLabels} value={yearLevel} submitValue={yearLevelValue(yearLevel)} onChange={(nextValue) => { setYearLevel(nextValue); clearError("yearLevel"); }} placeholder="Select" pickOnly invalid={Boolean(errors.yearLevel)} labelledBy="request-year-label" />
                     {errors.yearLevel && <span className="portal-field-error">{errors.yearLevel}</span>}
                   </div>
                 </div>
@@ -515,11 +515,11 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                 ) : (
                   <div className="portal-form-grid">
                     <Field label="Serves in" error={errors.affiliation}>
-                      <Dropdown name="affiliation" value={unit.affiliation} onChange={(nextValue) => { unit.setAffiliation(nextValue as Affiliation); clearError("affiliation"); clearError("role"); }} options={optionsOf(affiliations)} invalid={Boolean(errors.affiliation)} />
+                      <Dropdown required name="affiliation" value={unit.affiliation} onChange={(nextValue) => { unit.setAffiliation(nextValue as Affiliation); clearError("affiliation"); clearError("role"); }} options={optionsOf(affiliations)} invalid={Boolean(errors.affiliation)} />
                     </Field>
                     <Field label="Position" error={errors.position}>
                       {/* Commissioners ask here; advisers and admins are added by the Executive Board. */}
-                      <Dropdown name="position" value={unit.position} onChange={(nextValue) => { unit.setPosition(nextValue as AccountPosition); clearError("position"); clearError("role"); }} options={commissionerPositions.map((value) => ({ value, label: accountPositions[value] }))} invalid={Boolean(errors.position)} />
+                      <Dropdown required name="position" value={unit.position} onChange={(nextValue) => { unit.setPosition(nextValue as AccountPosition); clearError("position"); clearError("role"); }} options={commissionerPositions.map((value) => ({ value, label: accountPositions[value] }))} invalid={Boolean(errors.position)} />
                     </Field>
                     <Field label="Role" error={errors.role} wide>
                       <RoleSelect name="role" position={unit.position} role={unit.role} options={unit.options} onChange={(nextValue) => { unit.setRole(nextValue); clearError("role"); }} />

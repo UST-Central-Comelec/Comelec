@@ -97,6 +97,22 @@ Gold is scarce: the main action, the current tab, live markers, and accent words
 - **Selected choices fill solid** (ink and cream swapped, or solid green or red), never as a tinted pill. Unselected choices stay neutral: hairline border, faint fill. Status can be a dot plus words. Checkboxes use `accent-color: var(--p-text)`.
 - **Settings forms** end in `.portal-settings-foot`: "Unsaved changes" on the left, then Discard (ghost), then Save.
 
+## Required fields and the validation tooltip
+
+Every form, site and portal, is checked before it's sent by `FormValidation` (`src/components/form-validation.tsx`, mounted beside `FormInputGuard` in each root layout). When a required field on screen is empty, or a field is in the wrong format (`type="email"`, `pattern`), the form isn't sent:
+- every such field gets a red edge (`--ui-danger`), and a tick box or group of choices gets a red outline;
+- the first is focused and scrolled to, and a dark tooltip under it says what to do ("Fill in Last name.", "Choose College.", "Tick this box to continue.");
+- each red edge goes as its field is fixed, and the tooltip goes once its field is fixed or left.
+
+It replaces the browser's own bubbles, including a step's `reportValidity()`. Multi-step forms get it on Next, since Next is a submit button. Fields on hidden steps (`hidden`, not rendered) aren't checked.
+
+When building a form:
+- Mark every field the server requires with `required`, including tick boxes and radio groups. A field required only in some cases gets `required={condition}`. The checker only knows what the markup says.
+- Pickers take `required` too: `Dropdown`, `Combobox`, `DatePicker`, `DateTimePicker` (`TimePicker` is required unless `optional`). Their hidden input carries `data-required`, and the red edge and the tooltip go on the picker's button.
+- Keep the field's label findable: a `<label>`, `aria-labelledby`, or a `*-field-label` span inside the field's wrapper. The tooltip names the field from it.
+- Don't build another validation tooltip, and don't turn the check off, except on a preview that only moves between steps (`data-validation="off"` on the form). A submit button that saves a draft can skip it with `formNoValidate`.
+- Server-side errors still show under their fields as before (`Field`'s `error`).
+
 ## Names, numbers and emails (strict)
 
 These hold on every form, on the site and in the portal, with no exceptions. Each is enforced twice: as people type, by `FormInputGuard` (`src/components/form-input-guard.tsx`, which reads the field's `name`) and the form builder's `cleanAnswer`; and again on the server. Never write a new regex or zod rule for these fields: build schemas from `src/lib/forms/fields.ts` (`personName`, `studentNumber`, `mobileNumber`, `optionalMobileNumber`, `email`), and the patterns and cleaners in `src/lib/forms/input.ts`.

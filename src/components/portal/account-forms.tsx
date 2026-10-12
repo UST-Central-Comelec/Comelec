@@ -119,7 +119,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
       {lockedCollege !== null ? (
         <input className="is-fixed" name="college" value={lockedCollege} readOnly aria-labelledby={collegeLabel} />
       ) : (
-        <Combobox name="college" options={comelecUnits} value={college} onChange={(next) => { if (next === college) return; setCollege(next); setProgram(""); setYearLevel(""); }} placeholder="Type or pick a college" invalid={Boolean(errors.college)} labelledBy={collegeLabel} />
+        <Combobox required={required} name="college" options={comelecUnits} value={college} onChange={(next) => { if (next === college) return; setCollege(next); setProgram(""); setYearLevel(""); }} placeholder="Type or pick a college" invalid={Boolean(errors.college)} labelledBy={collegeLabel} />
       )}
       {errors.college && <span className="portal-field-error">{errors.college}</span>}
     </div>
@@ -241,13 +241,13 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
               ) : (
                 <div className={`portal-field${errors.program ? " has-error" : ""}`}>
                   <span className="portal-field-label" id={programLabel}>Program</span>
-                  <Combobox key={college} name="program" options={programs} value={program} onChange={setProgram} placeholder={college ? "Type or pick a program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!college} invalid={Boolean(errors.program)} labelledBy={programLabel} />
+                  <Combobox required key={college} name="program" options={programs} value={program} onChange={setProgram} placeholder={college ? "Type or pick a program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!college} invalid={Boolean(errors.program)} labelledBy={programLabel} />
                   {errors.program && <span className="portal-field-error">{errors.program}</span>}
                 </div>
               )}
               {needs.program ? (
                 <Field label="Year level" error={errors.yearLevel}>
-                  <Dropdown name="yearLevel" invalid={Boolean(errors.yearLevel)} value={yearLevel} onChange={setYearLevel} options={Object.entries(levels).map(([value, label]) => ({ value, label }))} placeholder="Select year level" />
+                  <Dropdown required name="yearLevel" invalid={Boolean(errors.yearLevel)} value={yearLevel} onChange={setYearLevel} options={Object.entries(levels).map(([value, label]) => ({ value, label }))} placeholder="Select year level" />
                 </Field>
               ) : <NotApplicable label="Year level" hint="Advisers and admins have no year level." />}
               {affiliation === "local" && college && (

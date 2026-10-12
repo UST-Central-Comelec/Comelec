@@ -9,7 +9,7 @@ import { useId, useRef, useState, type KeyboardEvent } from "react";
  * when the sent value differs from the label). `pickOnly` makes it a plain picker for short lists.
  * `freeText` makes the options suggestions: whatever is typed is the value, trimmed on leaving.
  */
-export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, disabled, pickOnly, freeText, describedBy, labelledBy, filterOptions, emptyText = "No match. Try another name." }: {
+export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, required, disabled, pickOnly, freeText, describedBy, labelledBy, filterOptions, emptyText = "No match. Try another name." }: {
   name: string;
   options: readonly string[];
   value: string;
@@ -17,6 +17,8 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
   onChange: (value: string) => void;
   placeholder?: string;
   invalid?: boolean;
+  /** Left empty, the form isn't sent (src/components/form-validation.tsx). */
+  required?: boolean;
   disabled?: boolean;
   pickOnly?: boolean;
   freeText?: boolean;
@@ -122,7 +124,7 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
       <button type="button" className="combobox-toggle" tabIndex={-1} aria-label="Show all options" disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={() => { if (open) setOpen(false); else show(); inputRef.current?.focus(); }}>
         <ChevronDown size={16} aria-hidden="true" />
       </button>
-      <input type="hidden" name={name} value={submitValue ?? value} />
+      <input type="hidden" name={name} value={submitValue ?? value} data-required={required || undefined} />
       {open && (
         // data-lenis-prevent: the site's smooth scrolling (smooth-scroll.tsx) would otherwise take the wheel and scroll the page, not the list.
         <ul className="combobox-list" id={listId} role="listbox" data-lenis-prevent>

@@ -26,5 +26,5 @@ export function TimePicker({ name, value, defaultValue = "", onChange, optional,
   const choices = optional && !(value ?? defaultValue) && suggest
     ? [...timeOptions.filter((option) => option.value === suggest), ...timeOptions.filter((option) => option.value !== suggest)]
     : timeOptions;
-  return <Dropdown name={name} value={value} defaultValue={defaultValue} onChange={onChange} options={optional ? [{ value: "", label: "None" }, ...choices] : choices} placeholder={optional ? "None" : "Pick a time"} invalid={invalid} label={label} labelledBy={labelledBy} />;
+  return <Dropdown name={name} value={value} defaultValue={defaultValue} onChange={onChange} options={optional ? [{ value: "", label: "None" }, ...choices] : choices} placeholder={optional ? "None" : "Pick a time"} invalid={invalid} required={!optional} label={label} labelledBy={labelledBy} />;
 }

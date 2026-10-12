@@ -24,8 +24,10 @@ const GAP = 6;
  *
  * `size="pill"` is the small rounded one for table rows and card headings.
  */
-export function Dropdown({ name, options, value, defaultValue = "", onChange, placeholder = "Select", disabled, invalid, size = "field", label, labelledBy, className }: {
+export function Dropdown({ name, options, value, defaultValue = "", onChange, placeholder = "Select", disabled, invalid, required, size = "field", label, labelledBy, className }: {
   name?: string;
+  /** Left on the placeholder, the form isn't sent (src/components/form-validation.tsx). */
+  required?: boolean;
   options: readonly DropdownOption[];
   value?: string;
   defaultValue?: string;
@@ -177,7 +179,7 @@ export function Dropdown({ name, options, value, defaultValue = "", onChange, pl
         <span id={`${id}-value`} className={selected ? undefined : "is-placeholder"}>{selected?.label ?? placeholder}</span>
         <ChevronDown size={size === "pill" ? 13 : 16} strokeWidth={2} aria-hidden="true" />
       </button>
-      {name !== undefined && <input type="hidden" name={name} value={chosen} />}
+      {name !== undefined && <input type="hidden" name={name} value={chosen} data-required={required || undefined} />}
       {open && place && (
         // Spans, so the dropdown can sit inside a <label> or a line of text; the stylesheet lays them out.
         <span

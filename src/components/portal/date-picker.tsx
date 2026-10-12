@@ -140,7 +140,7 @@ export function DatePicker({ name, value, defaultValue = "", onChange, onRangeCh
         <span className={chosen ? undefined : "is-placeholder"}>{formatPortalDate(chosen) || "Select date"}</span>
         <CalendarDays size={16} aria-hidden="true" />
       </button>
-      <input name={name} type="hidden" value={chosen} />
+      <input name={name} type="hidden" value={chosen} data-required={required || undefined} />
       {open && place && <span ref={panel} id={`${id}-calendar`} className="portal-calendar-panel" role="dialog" aria-label="Choose date" popover="manual" style={place} onClick={(event) => event.preventDefault()} onKeyDown={(event) => {
         if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(true); }
       }}>

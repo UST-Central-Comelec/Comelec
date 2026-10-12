@@ -73,7 +73,7 @@ function Choices<T extends string>({ name, label, options, value, onChange, erro
       <div className={`ev-choices is-${columns}`} role="radiogroup" aria-labelledby={labelId}>
         {options.map(([option, text]) => (
           <label key={option} className="ev-choice">
-            <input type="radio" name={name} value={option} checked={value === option} onChange={() => onChange(option)} />
+            <input type="radio" name={name} value={option} checked={value === option} required onChange={() => onChange(option)} />
             <span>{text}</span>
             <i className="ev-choice-ring" aria-hidden="true"><Check size={12} strokeWidth={3.2} /></i>
           </label>
@@ -85,10 +85,10 @@ function Choices<T extends string>({ name, label, options, value, onChange, erro
 }
 
 /** A box to tick, with what ticking it says beside it. */
-function CheckRow({ name, checked, onChange, invalid, children }: { name: string; checked: boolean; onChange: (checked: boolean) => void; invalid?: boolean; children: ReactNode }) {
+function CheckRow({ name, checked, onChange, invalid, required, children }: { name: string; checked: boolean; onChange: (checked: boolean) => void; invalid?: boolean; required?: boolean; children: ReactNode }) {
   return (
     <label className={`ev-check${invalid ? " has-error" : ""}`}>
-      <input name={name} type="checkbox" checked={checked} onChange={(change) => onChange(change.target.checked)} />
+      <input name={name} type="checkbox" checked={checked} required={required} onChange={(change) => onChange(change.target.checked)} />
       <span className="ev-check-box" aria-hidden="true"><Check size={13} strokeWidth={3.2} /></span>
       <span className="ev-check-text">{children}</span>
     </label>
@@ -305,7 +305,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
           </div>
           <p><Link href="/privacy" target="_blank" rel="noreferrer">Read the full website and portal privacy statement</Link>.</p>
           <div data-field="consent" className="ev-consent">
-            <CheckRow name="consent" checked={values.consent} onChange={(checked) => set("consent", checked)} invalid={Boolean(errors.consent)}>
+            <CheckRow name="consent" required checked={values.consent} onChange={(checked) => set("consent", checked)} invalid={Boolean(errors.consent)}>
               I have read the Data Privacy Consent and Collection Notice, and I agree to the collection and use of my personal information for this event.
             </CheckRow>
             {errors.consent && <span className="ev-field-error">{errors.consent}</span>}
@@ -317,17 +317,17 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
           <legend className="visually-hidden">{steps[1]}</legend>
           <div className="ev-grid">
             <Field name="lastName" label="Last name" error={errors.lastName} size={4}>
-              <input name="lastName" autoComplete="family-name" autoCapitalize="characters" maxLength={80} value={values.lastName} onChange={(change) => upper("lastName")(change.target.value)} />
+              <input name="lastName" required autoComplete="family-name" autoCapitalize="characters" maxLength={80} value={values.lastName} onChange={(change) => upper("lastName")(change.target.value)} />
             </Field>
             <Field name="firstName" label="First name" error={errors.firstName} size={4}>
-              <input name="firstName" autoComplete="given-name" autoCapitalize="characters" maxLength={80} value={values.firstName} onChange={(change) => upper("firstName")(change.target.value)} />
+              <input name="firstName" required autoComplete="given-name" autoCapitalize="characters" maxLength={80} value={values.firstName} onChange={(change) => upper("firstName")(change.target.value)} />
             </Field>
             <Field name="middleName" label="Middle name" error={errors.middleName} size={4}>
               <input name="middleName" required autoComplete="additional-name" autoCapitalize="characters" maxLength={80} value={values.middleName} onChange={(change) => upper("middleName")(change.target.value)} />
             </Field>
             <Choices name="sex" label="Sex" options={Object.entries(sexChoices) as Array<[string, string]>} value={values.sex} onChange={(value) => set("sex", value)} error={errors.sex} columns={2} />
             <Field name="age" label="Age" error={errors.age} size={3}>
-              <input name="age" inputMode="numeric" maxLength={3} value={values.age} onChange={(change) => set("age", change.target.value.replace(/\D/g, ""))} />
+              <input name="age" required inputMode="numeric" maxLength={3} value={values.age} onChange={(change) => set("age", change.target.value.replace(/\D/g, ""))} />
             </Field>
             {verifying && verifiedEmail ? (
               <div className="ev-field is-9" data-field="email">
@@ -377,25 +377,25 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
                   <input name="studentNumber" inputMode="numeric" maxLength={10} value={values.studentNumber} onChange={change => set("studentNumber", change.target.value)} />
                 </Field>
                 <PickerField name="college" label="College/Faculty" error={errors.college} size={6}>
-                  {(labelId) => <Combobox name="college" options={colleges} value={values.college} onChange={(value) => { if (value !== values.college) { set("college", value); set("program", ""); set("yearLevel", ""); } }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy={labelId} />}
+                  {(labelId) => <Combobox required name="college" options={colleges} value={values.college} onChange={(value) => { if (value !== values.college) { set("college", value); set("program", ""); set("yearLevel", ""); } }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy={labelId} />}
                 </PickerField>
                 <PickerField name="program" label="Program" error={errors.program} size={6}>
-                  {(labelId) => programLocked(values.college) ? <input value="None" readOnly aria-labelledby={labelId} /> : <Combobox key={values.college} name="program" options={programs} value={values.program} onChange={(value) => set("program", value)} placeholder={values.college ? "Type or pick your program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!values.college} invalid={Boolean(errors.program)} labelledBy={labelId} />}
+                  {(labelId) => programLocked(values.college) ? <input value="None" readOnly aria-labelledby={labelId} /> : <Combobox required key={values.college} name="program" options={programs} value={values.program} onChange={(value) => set("program", value)} placeholder={values.college ? "Type or pick your program" : "Pick a college first"} emptyText="No match. Try another program." disabled={!values.college} invalid={Boolean(errors.program)} labelledBy={labelId} />}
                 </PickerField>
                 <PickerField name="yearLevel" label="Year level" error={errors.yearLevel} size={6}>
-                  {(labelId) => <Combobox name="yearLevel" options={Object.values(levels)} value={levels[values.yearLevel] ?? ""} submitValue={Object.hasOwn(levels, values.yearLevel) ? values.yearLevel : ""} onChange={(label) => set("yearLevel", Object.entries(levels).find(([, value]) => value === label)?.[0] ?? "")} placeholder="Pick your year level" invalid={Boolean(errors.yearLevel)} labelledBy={labelId} />}
+                  {(labelId) => <Combobox required name="yearLevel" options={Object.values(levels)} value={levels[values.yearLevel] ?? ""} submitValue={Object.hasOwn(levels, values.yearLevel) ? values.yearLevel : ""} onChange={(label) => set("yearLevel", Object.entries(levels).find(([, value]) => value === label)?.[0] ?? "")} placeholder="Pick your year level" invalid={Boolean(errors.yearLevel)} labelledBy={labelId} />}
                 </PickerField>
               </>
             )}
             {values.affiliation === "ust-staff" && (
               <Field name="office" label="College/Faculty/Office" error={errors.office} size={12}>
-                <input name="office" list={`${event.id}-offices`} maxLength={120} value={values.office} onChange={(change) => set("office", change.target.value)} placeholder="Type or pick, e.g. Office for Student Affairs" />
+                <input name="office" required list={`${event.id}-offices`} maxLength={120} value={values.office} onChange={(change) => set("office", change.target.value)} placeholder="Type or pick, e.g. Office for Student Affairs" />
                 <datalist id={`${event.id}-offices`}>{comelecUnits.map((unit) => <option key={unit} value={unit} />)}</datalist>
               </Field>
             )}
             {values.affiliation === "other-institution" && (
               <Field name="institution" label="University/Institution name" error={errors.institution} size={12}>
-                <input name="institution" maxLength={160} value={values.institution} onChange={(change) => set("institution", change.target.value)} />
+                <input name="institution" required maxLength={160} value={values.institution} onChange={(change) => set("institution", change.target.value)} />
               </Field>
             )}
             {values.affiliation === "independent" && (
@@ -414,13 +414,13 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
             {values.attendingAs === "representative" && (
               <>
                 <Field name="organizationName" label="Organization name" error={errors.organizationName} size={12}>
-                  <input name="organizationName" maxLength={160} value={values.organizationName} onChange={(change) => set("organizationName", change.target.value)} />
+                  <input name="organizationName" required maxLength={160} value={values.organizationName} onChange={(change) => set("organizationName", change.target.value)} />
                 </Field>
                 <Field name="organizationCommittee" label="Committee/Department" optional error={errors.organizationCommittee} size={6}>
                   <input name="organizationCommittee" maxLength={120} value={values.organizationCommittee} onChange={(change) => set("organizationCommittee", change.target.value)} placeholder="External Relations" />
                 </Field>
                 <Field name="organizationPosition" label="Position" error={errors.organizationPosition} size={6}>
-                  <input name="organizationPosition" maxLength={120} value={values.organizationPosition} onChange={(change) => set("organizationPosition", change.target.value)} placeholder="Vice President for External Relations" />
+                  <input name="organizationPosition" required maxLength={120} value={values.organizationPosition} onChange={(change) => set("organizationPosition", change.target.value)} placeholder="Vice President for External Relations" />
                 </Field>
               </>
             )}
@@ -438,23 +438,23 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
                 {kind === "parking" && values.requests.includes("parking") && (
                   <div className="ev-grid">
                     <Field name="parkingPlate" label="Car plate number" error={errors.parkingPlate} size={6}>
-                      <input name="parkingPlate" maxLength={20} autoCapitalize="characters" value={values.parkingPlate} onChange={(change) => set("parkingPlate", change.target.value.toUpperCase())} placeholder="ABC 1234" />
+                      <input name="parkingPlate" required maxLength={20} autoCapitalize="characters" value={values.parkingPlate} onChange={(change) => set("parkingPlate", change.target.value.toUpperCase())} placeholder="ABC 1234" />
                     </Field>
                     <Field name="parkingModel" label="Model" error={errors.parkingModel} size={6}>
-                      <input name="parkingModel" maxLength={60} value={values.parkingModel} onChange={(change) => set("parkingModel", change.target.value)} placeholder="Toyota Vios" />
+                      <input name="parkingModel" required maxLength={60} value={values.parkingModel} onChange={(change) => set("parkingModel", change.target.value)} placeholder="Toyota Vios" />
                     </Field>
                     <Field name="parkingColor" label="Color" error={errors.parkingColor} size={6}>
-                      <input name="parkingColor" maxLength={40} value={values.parkingColor} onChange={(change) => set("parkingColor", change.target.value)} placeholder="White" />
+                      <input name="parkingColor" required maxLength={40} value={values.parkingColor} onChange={(change) => set("parkingColor", change.target.value)} placeholder="White" />
                     </Field>
                     <Field name="parkingArrival" label="Expected time of arrival" error={errors.parkingArrival} size={6}>
-                      <input name="parkingArrival" type="time" step={300} value={values.parkingArrival} onChange={(change) => set("parkingArrival", change.target.value)} />
+                      <input name="parkingArrival" required type="time" step={300} value={values.parkingArrival} onChange={(change) => set("parkingArrival", change.target.value)} />
                     </Field>
                   </div>
                 )}
                 {kind === "dietary" && values.requests.includes("dietary") && (
                   <div className="ev-grid">
                     <Field name="dietaryAllergens" label="Allergens" error={errors.dietaryAllergens} size={12}>
-                      <input name="dietaryAllergens" maxLength={300} value={values.dietaryAllergens} onChange={(change) => set("dietaryAllergens", change.target.value)} placeholder="e.g. peanuts, shellfish; vegetarian" />
+                      <input name="dietaryAllergens" required maxLength={300} value={values.dietaryAllergens} onChange={(change) => set("dietaryAllergens", change.target.value)} placeholder="e.g. peanuts, shellfish; vegetarian" />
                     </Field>
                   </div>
                 )}

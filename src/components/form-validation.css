@@ -1,0 +1,58 @@
+/* A field that needs fixing before its form is sent (form-validation.tsx). The edge is red on every
+   kind of field; the tooltip stays dark in both themes. Tokens: theme-palette.css. */
+
+:is(input, select, textarea, button, .combobox input)[data-field-problem]:not([type="checkbox"], [type="radio"]) {
+	border-color: var(--ui-danger) !important;
+}
+/* A tick box or a group of choices: the whole label or group is outlined. */
+:is(label, fieldset, [role="radiogroup"])[data-field-problem] {
+	border-radius: 8px;
+	outline: 1px solid var(--ui-danger);
+	outline-offset: 1px;
+}
+input:is([type="checkbox"], [type="radio"])[data-field-problem] { outline: 1px solid var(--ui-danger); outline-offset: 2px; }
+
+.field-tip {
+	align-items: flex-start;
+	background: var(--ui-tip-bg);
+	border: 1px solid var(--ui-tip-line);
+	border-radius: 10px;
+	box-shadow: var(--ui-tip-shadow);
+	color: var(--ui-tip-text);
+	display: none;
+	font-family: var(--font-sans), system-ui, sans-serif;
+	font-size: 12.5px;
+	font-weight: 500;
+	gap: 8px;
+	inset: auto;
+	line-height: 1.45;
+	margin: 0;
+	max-width: min(320px, calc(100vw - 16px));
+	overflow: visible;
+	padding: 8px 12px 8px 10px;
+	pointer-events: none;
+	position: fixed;
+	z-index: 2147483000;
+}
+.field-tip:popover-open, .field-tip[data-open] { display: flex; }
+.field-tip svg { color: var(--ui-danger-ink); flex: none; margin-top: 1px; }
+/* The arrow: a small square turned to a point, toward the field. */
+.field-tip::before {
+	background: var(--ui-tip-bg);
+	border: 1px solid var(--ui-tip-line);
+	content: "";
+	height: 9px;
+	left: var(--tip-arrow, 16px);
+	position: absolute;
+	transform: translateX(-50%) rotate(45deg);
+	width: 9px;
+}
+.field-tip[data-side="below"]::before { border-bottom: 0; border-right: 0; top: -5.5px; }
+.field-tip[data-side="above"]::before { border-left: 0; border-top: 0; bottom: -5.5px; }
+.field-tip.is-in { animation: field-tip-in .14s cubic-bezier(.22, 1, .36, 1) both; }
+.field-tip[data-side="above"].is-in { animation-name: field-tip-in-above; }
+@keyframes field-tip-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@keyframes field-tip-in-above { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+	.field-tip.is-in { animation: none; }
+}
