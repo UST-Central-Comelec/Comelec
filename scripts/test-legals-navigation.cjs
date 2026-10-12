@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports, @next/next/no-assign-module-variable -- Standalone CommonJS test runner. */
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const ts = require("typescript");

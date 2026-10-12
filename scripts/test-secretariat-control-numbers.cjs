@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Isolated PostgreSQL migration checks.
- * Run with node scripts/test-secretariat-control-numbers.cjs /path/to/@electric-sql/pglite
+ * Run with node scripts/test-secretariat-control-numbers.cjs (PGlite is a dev dependency; another
+ * copy can be passed as the first argument).
  * The test uses an in-memory database and never connects to Supabase.
  */
 const assert = require("node:assert/strict");

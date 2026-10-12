@@ -34,13 +34,6 @@ function endpoint({ closed = false, insertError = null, uploadFailureAt = -1, ex
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: existing, error: null }) }) }),
       insert: (row) => ({ select: () => ({ single: async () => { rows.push(row); return { error: insertError, data: insertError ? null : { ...row, created_at: "2026-10-04T10:00:00Z" } }; } }) }),
     }),
-    storage: { from: () => ({
-      upload: async (path) => {
-        if (uploaded.length === uploadFailureAt) return { error: { message: "upload failure" } };
-        uploaded.push(path); return { error: null };
-      },
-      remove: async (paths) => { removed.push(...paths); return { error: null }; },
-    }) },
   };
   const route = load("src/app/api/polpar/route.ts", {
     "@/lib/applications/period": period,
@@ -49,6 +42,12 @@ function endpoint({ closed = false, insertError = null, uploadFailureAt = -1, ex
     "@/lib/security/rate-limit": { clientIp: () => "test", limits: { party: { limit: 10, windowMs: 1 } }, rateLimit: () => ({ ok: true }) },
     "@/lib/supabase/config": { isSupabaseConfigured: () => true },
     "@/lib/supabase/server": { createAdminClient: () => client },
+    // Files go to the private R2 bucket; a failed upload throws, as the real one does.
+    "@/lib/storage/r2": {
+      isR2Configured: () => true,
+      putObject: async (bucket, key) => { assert.equal(bucket, "private"); if (uploaded.length === uploadFailureAt) throw new Error("upload failure"); uploaded.push(key); },
+      deleteObjects: async (bucket, keys) => { assert.equal(bucket, "private"); removed.push(...keys); },
+    },
     "@/lib/polpar/content": content,
     "@/lib/polpar/schema": schema,
   });

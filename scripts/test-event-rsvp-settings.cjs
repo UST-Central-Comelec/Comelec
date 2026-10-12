@@ -10,7 +10,10 @@ function load(file, dependencies = {}, cache = new Map()) {
   const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   new Function('require', 'module', 'exports', source)(name => {
     if (name in dependencies) return dependencies[name];
-    if (name.startsWith('@/')) return load(`src/${name.slice(2)}.ts`, dependencies, cache);
+    if (name.endsWith('.css')) return {};
+    // Image uploads in the form editor are a server action; nothing here uploads.
+    if (name === '@/lib/portal/form-image-actions') return { uploadFormImage: async () => ({ error: 'Not in this check.' }) };
+    if (name.startsWith('@/')) { const target = path.resolve(`src/${name.slice(2)}.ts`); return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     if (name.startsWith('.')) { const target = path.resolve(path.dirname(file), `${name}.ts`); return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     return require(name);
   }, compiled, compiled.exports);
@@ -45,7 +48,7 @@ const slots = []; let cursor = 0;
 const Details = () => null, Rsvp = () => null, Evaluation = () => null, Footer = () => null;
 const FormLinks = () => null;
 const eventUi = load('src/components/portal/event-form.tsx', {
-  react: { ...React, useId: () => 'event-editor-form', useState: initial => { const index = cursor++; if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial; return [slots[index], value => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }]; } },
+  react: { ...React, useId: () => 'event-editor-form', useRef: value => ({ current: value }), useEffect: () => {}, useState: initial => { const index = cursor++; if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial; return [slots[index], value => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }]; } },
   './sliding-filters': { SlidingFilterButtons: () => null },
   './event-rsvp-form': { EventRsvpForm: Rsvp },
   './event-evaluation-editor': { EventEvaluationEditor: Evaluation },
@@ -53,6 +56,8 @@ const eventUi = load('src/components/portal/event-form.tsx', {
   './event-details-fields': { EventDetailsFields: Details },
   './info-tip': { InfoTip: () => null },
   './edit-guard': { EditPresence: () => null, EditConflict: () => null },
+  // The Forms/Preview choice is remembered in the browser; this check starts on the Forms editor.
+  './event-form-editor': { useFormEditorMode: () => ({ mode: 'forms', pickMode: () => {} }), FormEditorViewToggle: () => null },
   './portal-form': { usePortalForm: () => ({ state: undefined, pending: false, onSubmit: () => {}, errors: {} }), FormFooter: Footer },
 });
 function walk(node) { if (!node || typeof node !== 'object') return []; if (Array.isArray(node)) return node.flatMap(walk); return [node, ...walk(node.props?.children)]; }

@@ -52,6 +52,9 @@ const actions = load("src/lib/portal/recruitment-actions.ts", {
   "@/lib/notifications/concern": { concernOf: () => ({}) },
   "@/lib/notifications/notify": { actorOf: () => ({ name: "Manager" }) },
   "@/lib/notifications/settings-emails": { settingChanged: () => {} },
+  // Onboarding settings share this file but aren't part of this check.
+  "@/lib/applications/onboarding": { onboardingSchema: { safeParse: () => ({ success: false, error: { issues: [] } }) } },
+  "@/lib/applications/onboarding-store": { saveOnboarding: async () => {} },
   "./form": load("src/lib/portal/form.ts"),
 });
 function form(unit) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Standalone CommonJS test runner. */
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
@@ -40,10 +41,12 @@ function load(path, imports) {
   let authorized = true;
   let writes = 0;
   const refreshed = [];
+  let menuRefreshes = 0;
   const codes = Object.fromEntries(["constitution", "elections-code", "magna-carta"].map(code => [code, { tab: `charters/${code}` }]));
   const actions = load("src/lib/portal/code-settings-actions.ts", {
     "next/cache": { revalidatePath: (...args) => refreshed.push(args) },
     "next/navigation": { redirect: (path) => { throw new Error(`redirect:${path}`); } },
+    "@/lib/site-menu": { refreshSiteMenu: () => { menuRefreshes++; } },
     "@/lib/auth/session": { requireEditor: async (tab) => { assert.equal(tab, "charters/magna-carta"); if (!authorized) throw new Error("Forbidden"); return { email: "editor@example.com" }; } },
     "@/lib/codes/options": { codes, isCodeKey: code => Object.hasOwn(codes, code) },
     "@/lib/codes/settings": { saveCodeVisibility: async (...args) => { writes++; assert.deepEqual(args, ["magna-carta", "published", "editor@example.com"]); } },
@@ -63,5 +66,6 @@ function load(path, imports) {
   await assert.rejects(actions.updateCodeVisibility("magna-carta", undefined, form), /redirect:\/portal\/charters\/magna-carta\?show=settings/);
   assert.equal(writes, 1);
   assert.deepEqual(refreshed, [["/", "layout"]]);
+  assert.equal(menuRefreshes, 1, "Publishing or hiding a document refreshes the website menu");
   console.log("Document visibility and settings authorization checks passed.");
 })();
