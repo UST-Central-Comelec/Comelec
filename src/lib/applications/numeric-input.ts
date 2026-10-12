@@ -3,9 +3,9 @@ export function digitsOnly(value: string, length: number) {
   return value.replace(/[^0-9]/g, "").slice(0, length);
 }
 
+/** A mobile number is digits only: 11 of them, no dashes or spaces. */
 export function formatMobileNumber(value: string) {
-  const digits = digitsOnly(value, 11);
-  return [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join("-");
+  return digitsOnly(value, 11);
 }
 
 /** Keep the cursor by the same digit when formatting an edit in the middle of the number. */

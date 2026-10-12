@@ -1,5 +1,6 @@
 "use client";
 
+import { cleanMobileNumber, cleanStudentNumber, tidyPersonName } from "@/lib/forms/input";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
@@ -440,13 +441,13 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                 <legend>Name</legend>
                 <div className="portal-form-grid portal-request-name">
                   <Field label="Last name" error={errors.lastName}>
-                    <input name="lastName" autoComplete="family-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("lastName")} defaultValue={application?.lastName ?? profile.lastName.toUpperCase()} />
+                    <input name="lastName" autoComplete="family-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("lastName")} defaultValue={tidyPersonName(application?.lastName ?? profile.lastName)} />
                   </Field>
                   <Field label="First name" error={errors.firstName}>
-                    <input name="firstName" autoComplete="given-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("firstName")} defaultValue={application?.firstName ?? profile.firstName.toUpperCase()} />
+                    <input name="firstName" autoComplete="given-name" autoCapitalize="characters" maxLength={80} onInput={uppercase} onChange={() => clearError("firstName")} defaultValue={tidyPersonName(application?.firstName ?? profile.firstName)} />
                   </Field>
                   <Field label="Middle name" error={errors.middleName}>
-                    <input name="middleName" autoComplete="additional-name" autoCapitalize="characters" maxLength={80} defaultValue={application?.middleName ?? ""} onChange={() => clearError("middleName")} onInput={uppercase} required />
+                    <input name="middleName" autoComplete="additional-name" autoCapitalize="characters" maxLength={80} defaultValue={tidyPersonName(application?.middleName ?? "")} onChange={() => clearError("middleName")} onInput={uppercase} required />
                   </Field>
                 </div>
               </fieldset>
@@ -461,10 +462,10 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                     </span>
                   </Field>
                   <Field label="Student number" error={errors.studentNumber}>
-                    <input name="studentNumber" inputMode="numeric" maxLength={10} placeholder="2023123456" defaultValue={application?.studentNumber ?? ""} onChange={() => clearError("studentNumber")} />
+                    <input name="studentNumber" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="2023123456" defaultValue={cleanStudentNumber(application?.studentNumber ?? "")} onChange={() => clearError("studentNumber")} />
                   </Field>
                   <Field label="Mobile number" error={errors.contactNumber} optional>
-                    <input name="contactNumber" type="tel" autoComplete="tel" placeholder="0917 123 4567" maxLength={16} defaultValue={application?.contactNumber ?? ""} onChange={() => clearError("contactNumber")} />
+                    <input name="contactNumber" type="tel" inputMode="numeric" autoComplete="tel" pattern="09[0-9]{9}" placeholder="09171234567" maxLength={11} defaultValue={cleanMobileNumber(application?.contactNumber ?? "")} onChange={() => clearError("contactNumber")} />
                   </Field>
                   <Field label="Facebook link" error={errors.facebookUrl} optional wide>
                     <FacebookProfileInput defaultValue={application?.facebookUrl ?? ""} invalid={Boolean(errors.facebookUrl)} onChange={() => clearError("facebookUrl")} />

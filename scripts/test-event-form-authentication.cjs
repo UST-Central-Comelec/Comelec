@@ -26,6 +26,7 @@ let settings = { enabled: true, requireGoogle: true, allowAnonymous: true, quest
 let registration = { id: 'registration', eventId: 'sample', email: 'ana@ust.edu.ph', affiliation: 'ust-student' };
 const writes = [];
 const evaluation = load('src/lib/events/evaluation-actions.ts', {
+  '@/lib/forms/email-domain': { emailDomainProblem: async email => email.endsWith('@nomail.test') ? 'nomail.test can’t receive email. Check the spelling of the address.' : null },
   'next/headers': { headers: async () => new Headers() }, 'next/cache': { revalidatePath: () => {} }, 'next/navigation': { unstable_rethrow: () => {} },
   '@/lib/auth/session': {}, '@/lib/supabase/server': { createAdminClient: () => ({ from: () => ({ insert: async row => { writes.push(row); return {}; } }) }) },
   '@/lib/security/rate-limit': { clientIp: () => 'test', limits: { eventRegister: {} }, rateLimit: () => ({ ok: true }) },

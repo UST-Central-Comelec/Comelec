@@ -1,5 +1,5 @@
 "use client";
-import { answerHint, type EditorField, type FormAnswers } from "@/lib/events/form-editor";
+import { answerHint, cleanAnswer, rulesOf, type EditorField, type FormAnswers } from "@/lib/events/form-editor";
 import { StudentVerification } from "./student-verification";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -33,7 +33,7 @@ function RsvpEmail({ field, value, onChange }: { field: EditorField; value: stri
       <span className={`ev-ust-email${verified ? " is-verified" : suggestion ? " has-suggestion" : ""}`}>
         <input ref={input} name={field.id} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} maxLength={254} required={field.required} value={value}
           aria-describedby={suggestion ? hintId : undefined}
-          onChange={event => onChange(event.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onScroll={syncScroll}
+          onChange={event => onChange(cleanAnswer(field, event.target.value))} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onScroll={syncScroll}
           onKeyDown={event => {
             if (event.key === "Tab" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && suggestion) {
               event.preventDefault();
@@ -174,25 +174,26 @@ function Question({ field, value, onChange, verify, span }: { field: EditorField
     </fieldset>
   );
 
-  const rules = field.rules ?? {};
+  const rules = rulesOf(field);
   if (field.kind === "email" && verify?.target === "rsvp-form") return (
     <fieldset className={fieldset}>{legend}
       <RsvpEmail field={field} value={text} onChange={onChange} />
       <Hint field={field} />
     </fieldset>
   );
-  const numeric = rules.studentNumber || rules.digits;
+  const numeric = rules.studentNumber || rules.mobile || rules.digits;
   const common = {
     name: field.id,
     required: field.required,
     value: text,
     inputMode: numeric ? "numeric" as const : field.kind === "email" ? "email" as const : field.kind === "link" ? "url" as const : undefined,
-    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(rules.uppercase ? event.target.value.toLocaleUpperCase("en-PH") : event.target.value),
+    // Names, numbers and emails keep only what their rules allow, as they're typed (src/lib/forms/input.ts).
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(cleanAnswer(field, event.target.value)),
   };
   return (
     <fieldset className={fieldset}>{legend}
       <label className="ev-field"><span className="ev-sr-only">{field.label}</span>
-        {field.kind === "textarea" ? <textarea rows={4} maxLength={4000} {...common} /> : <input type={field.kind === "email" ? "email" : field.kind === "link" ? "url" : "text"} maxLength={rules.studentNumber ? 10 : field.kind === "email" ? 254 : 4000} autoCapitalize={rules.uppercase ? "characters" : undefined} placeholder={field.kind === "link" ? "https://" : undefined} {...common} />}
+        {field.kind === "textarea" ? <textarea rows={4} maxLength={4000} {...common} /> : <input type={field.kind === "email" ? "email" : field.kind === "link" ? "url" : "text"} maxLength={rules.studentNumber ? 10 : rules.mobile ? 11 : field.kind === "email" ? 254 : 4000} autoCapitalize={rules.uppercase ? "characters" : undefined} placeholder={field.kind === "link" ? "https://" : undefined} {...common} />}
       </label>
       <Hint field={field} hideStudentNumber={verify?.target === "rsvp-form"} />
     </fieldset>

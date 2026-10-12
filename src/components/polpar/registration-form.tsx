@@ -1,5 +1,6 @@
 "use client";
 
+import { isStudentNumberField } from "@/lib/forms/input";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileText, Plus, Trash2 } from "lucide-react";
@@ -15,7 +16,7 @@ type Rows = Record<RosterId, string[]>;
 function Field({ name, label, type = "text", required = true, error, children, defaultValue }: { name: string; label: string; type?: string; required?: boolean; error?: string; children?: ReactNode; defaultValue?: string }) {
   return <label className="pp-field" htmlFor={`pp-${name}`}>
     <span>{label}{required && <span aria-hidden="true"> *</span>}</span>
-    {children ?? (type === "date" ? <DatePicker id={`pp-${name}`} name={name} defaultValue={defaultValue} required={required} invalid={!!error} describedBy={error ? `pp-error-${name}` : undefined} /> : <input id={`pp-${name}`} name={name} type={type} defaultValue={defaultValue} required={required} maxLength={type === "text" || type === "tel" ? 250 : undefined} aria-invalid={!!error} aria-describedby={error ? `pp-error-${name}` : undefined} />)}
+    {children ?? (type === "date" ? <DatePicker id={`pp-${name}`} name={name} defaultValue={defaultValue} required={required} invalid={!!error} describedBy={error ? `pp-error-${name}` : undefined} /> : <input id={`pp-${name}`} name={name} type={type} defaultValue={defaultValue} required={required} inputMode={type === "tel" || isStudentNumberField(name) ? "numeric" : undefined} maxLength={type === "tel" ? 11 : isStudentNumberField(name) ? 10 : type === "text" ? 250 : undefined} aria-invalid={!!error} aria-describedby={error ? `pp-error-${name}` : undefined} />)}
     {error && <small id={`pp-error-${name}`} className="pp-error">{error}</small>}
   </label>;
 }

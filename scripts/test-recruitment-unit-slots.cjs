@@ -8,7 +8,7 @@ function load(file, dependencies = {}) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const compiled = { exports: {} };
-  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports);
+  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : name === "@/lib/forms/fields" ? load("src/lib/forms/fields.ts", { "./input": load("src/lib/forms/input.ts") }) : require(name), compiled, compiled.exports);
   return compiled.exports;
 }
 const options = load("src/lib/applications/options.ts");

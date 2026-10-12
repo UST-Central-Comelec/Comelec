@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { containsEmoji, personNamePattern } from "@/lib/forms/input";
+import { containsEmoji } from "@/lib/forms/input";
+import { email, optionalMobileNumber, personName, studentNumber } from "@/lib/forms/fields";
 import { comelecUnit } from "@/lib/events/options";
 import { isBodyOpen, type OpenBodies } from "@/lib/periods/summary";
 import { colleges, conflicts, positionsForUnit, preferredBodies, programsByCollege, yearLevels, programLocked, isYearLevelFor, type College, type ConflictId, type DeclaredConflict, type SlotCounts } from "./options";
@@ -12,17 +13,16 @@ const driveLink = (message: string) => z.string().trim().max(500).regex(/^https:
 const confirmed = z.literal(true, "This qualification is required to apply.");
 const conflictAnswer = z.enum(["no", "yes"], "Answer yes or no.");
 const conflictDetail = z.string().trim().max(200, "Keep it under 200 characters.");
-const name = (message: string) => z.string().trim().min(1, message).max(80).regex(personNamePattern, "Use letters and spaces only.");
 
 /** Field rules, one per input. `.pick()` checks a single step's fields. */
 export const applicationFields = z.object({
-  lastName: name("Add your last name."),
-  firstName: name("Add your first name."),
-  middleName: name("Add your middle name."),
-  studentNumber: z.string().trim().regex(/^\d{10}$/, "Use your 10-digit student number."),
+  lastName: personName("Add your last name."),
+  firstName: personName("Add your first name."),
+  middleName: personName("Add your middle name."),
+  studentNumber: studentNumber("Use your 10-digit student number, numbers only."),
   // Optional: empty, or a Philippine mobile number.
-  contactNumber: z.union([z.literal(""), z.string().trim().regex(/^09\d{2}-?\d{3}-?\d{4}$/, "Use an 11-digit mobile number starting with 09, like 0917-123-4567.")]),
-  email: z.string().trim().toLowerCase().email("Use a valid email address.").max(120).refine((value) => value.endsWith("@ust.edu.ph"), "Use your @ust.edu.ph email."),
+  contactNumber: optionalMobileNumber(),
+  email: email("Use a valid email address.", 120).refine((value) => value.endsWith("@ust.edu.ph"), "Use your @ust.edu.ph email."),
   college: z.enum(colleges as [College, ...College[]], "Pick your college or faculty from the list."),
   program: z.string().trim(),
   yearLevel: z.enum(keys(yearLevels), "Pick your year level."),

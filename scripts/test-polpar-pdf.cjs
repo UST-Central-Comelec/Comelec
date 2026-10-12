@@ -9,7 +9,7 @@ const { PDFDocument } = require("pdf-lib");
 function load(file, dependencies = {}) {
   const source = ts.transpileModule(readFileSync(resolve(file), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText;
   const compiled = { exports: {} };
-  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports);
+  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : name === "@/lib/forms/fields" ? load("src/lib/forms/fields.ts", { "./input": load("src/lib/forms/input.ts") }) : require(name), compiled, compiled.exports);
   return compiled.exports;
 }
 const content = load("src/lib/polpar/content.ts");
@@ -55,7 +55,7 @@ const assets = { regular: asset("DejaVuSerif.ttf"), bold: asset("DejaVuSerif-Bol
   writeFileSync(join(dir, "long-roster.pdf"), roster);
   const twoConformes = await generatePartyPdf({ ...data, conformes: [conforme, { ...conforme, fullName: "Second Applicant" }] }, "06", assets);
   assert.equal((await PDFDocument.load(twoConformes)).getPageCount(), 2, "Each applicant gets their own conforme");
-  const longCell = await generatePartyPdf({ ...data, officers: [{ ...officer, email: `${"a".repeat(180)}@example.com`, college: "LongAcademicUnit".repeat(15) }] }, "02", assets);
+  const longCell = await generatePartyPdf({ ...data, officers: [{ ...officer, email: `${"a".repeat(64)}@${"b".repeat(60)}.${"c".repeat(60)}.com` /* as long as a real address gets */, college: "LongAcademicUnit".repeat(15) }] }, "02", assets);
   writeFileSync(join(dir, "long-cells.pdf"), longCell);
   assert.equal(pdfData.validatePdf({ ...data, partyName: "Test 🐈" }, "01").success, false, "Emoji must be rejected before PDF generation");
   await assert.rejects(generatePartyPdf({ ...data, partyName: "Test 🐈" }, "01", assets), /Complete the fields/, "Emoji must not reach PDF generation");

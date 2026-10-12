@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { containsEmoji, personNamePattern } from "@/lib/forms/input";
+import { emailDomainProblem } from "@/lib/forms/email-domain";
 import { requireEditor } from "@/lib/auth/session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -49,7 +50,7 @@ async function resolveEvaluationProfile(eventId: string, form: FormData): Promis
   const names = ["lastName", "firstName", "middleName"].map(key => normalizeName(String(form.get(key) ?? "")));
   const reference = String(form.get("referenceCode") ?? "").trim().toUpperCase();
   if (names.some(name => name.length > 80)) return { error: "Keep each name under 80 characters." };
-  if (names.some(name => name && !personNamePattern.test(name))) return { error: "Use letters and spaces only in names." };
+  if (names.some(name => name && !personNamePattern.test(name))) return { error: "Use letters only in names, with single spaces between them." };
   if (reference && !/^[A-Z0-9]{5}$/.test(reference)) return { error: "Enter the five-character reference code from your confirmation email." };
 
   if (reference && names.every(name => !name)) {
@@ -117,6 +118,11 @@ export async function submitEvaluation(eventId: string, _state: EvaluationState,
     if (verified.length) {
       const pass = await readEventPass(eventId);
       if (!pass || verified.some(question => kept[question.id] !== pass.email)) return { error: "Verify your UST Google account before submitting. The email must match the verified account." };
+    }
+    // Every email answered must have a domain that takes mail.
+    for (const question of settings.questions.filter(item => item.kind === "email" && typeof kept[item.id] === "string")) {
+      const problem = await emailDomainProblem(String(kept[question.id]));
+      if (problem) return { error: `${question.label}: ${problem}` };
     }
     let registrationId: string | null = null;
     if (!anonymous) {

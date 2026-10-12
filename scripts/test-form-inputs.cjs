@@ -32,12 +32,14 @@ for (const emoji of ["😀", "👨‍👩‍👧‍👦", "🇵🇭", "👍🏽"
   assert.equal(input.containsEmoji(emoji), true);
 }
 assert.equal(input.withoutEmoji("2026000001 #1 *2 + ₱100 José Niño"), "2026000001 #1 *2 + ₱100 José Niño");
-assert.equal(input.sanitizeFormInput("JUAN 😀123 DELA-CRUZ.", "lastName"), "JUAN  DELACRUZ");
-assert.equal(input.sanitizeFormInput("José1 Niño🎉", "officers.0.fullName"), "José Niño");
+assert.equal(input.sanitizeFormInput("JUAN 😀123 DELA-CRUZ.", "lastName"), "JUAN DELACRUZ", "names keep letters, single spaces, in capitals");
+assert.equal(input.sanitizeFormInput("José1 Niño🎉", "officers.0.fullName"), "JOSÉ NIÑO");
 assert.equal(input.sanitizeFormInput("Party 2026!😀", "partyName"), "Party 2026!");
 assert.equal(input.sanitizeFormInput("Partner 2026!😀", "affiliates.0.name"), "Partner 2026!");
 for (const name of ["José Niño", "DELA CRUZ", "Jose\u0301", "李 明"]) {
-  assert.equal(input.personNamePattern.test(name), true);
+  // Typed in any case; saved in capitals.
+  assert.equal(input.personNamePattern.test(input.tidyPersonName(name)), true);
+  assert.equal(input.personNamePattern.test(name), name === name.toLocaleUpperCase("en-PH"));
   assert.equal(applications.applicationFields.shape.firstName.safeParse(name).success, true);
   assert.equal(polpar.conformeSchema.shape.fullName.safeParse(name).success, true);
 }
@@ -134,7 +136,7 @@ try {
   FormInputGuard();
   const name = new Input("J😀uan1", "firstName");
   listeners.get("input")(new InputEvent(name));
-  assert.equal(name.value, "Juan");
+  assert.equal(name.value, "JUAN", "A name is cleaned to capital letters as it's typed");
   assert.equal(name.tracked, "J😀uan1", "Leave React's tracker untouched so onChange detects the cleaned input");
   assert.equal(name.selectionStart, 4, "Keep the caret after the cleaned text");
   const text = new Input("A😀B", "description");
@@ -149,7 +151,7 @@ try {
   listeners.get("input")(new InputEvent(composing, true));
   assert.equal(composing.value, "José😀", "Let composition finish before cleaning text");
   listeners.get("compositionend")({ type: "compositionend", target: composing });
-  assert.equal(composing.value, "José");
+  assert.equal(composing.value, "JOSÉ");
   const file = new Input("photo😀.png", "photo", "file");
   listeners.get("input")(new InputEvent(file));
   assert.equal(file.value, "photo😀.png", "Never rewrite browser-managed file inputs");

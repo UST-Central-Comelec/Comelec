@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { personNamePattern } from "@/lib/forms/input";
+import { email as emailField, personName } from "@/lib/forms/fields";
+import { studentNumberPattern } from "@/lib/forms/input";
 import { canSeeCollege, isBuiltInEmail, requireEditor, type PortalUser } from "@/lib/auth/session";
 import { sameAccountUnit, detailsFor, facebookHref, fullName, isCentralRepresentative, isLocalChairperson, isRoleFor, officialName, positionsFor, programsOf, toSummary, upperName } from "@/lib/data/accounts";
 import { conflictState, readGuard, saveGuarded } from "@/lib/data/edit-guard";
@@ -33,13 +34,10 @@ import { text, toFormState, type FormState } from "./form";
 // each unless it's switched off under Email Sender → Automatic.
 
 const keys = <T extends object>(record: T) => Object.keys(record) as [keyof T & string, ...(keyof T & string)[]];
-const namePart = (message: string) => z.string().trim().min(1, message).max(80).regex(personNamePattern, "Use letters and spaces only.");
+const namePart = (message: string) => personName(message);
 const isUnit = (value: string) => comelecUnits.includes(value);
 
-const email = z
-  .email("Enter a valid email.")
-  .trim()
-  .toLowerCase()
+const email = emailField("Enter a valid email.")
   .refine((value) => value.endsWith("@ust.edu.ph"), "Use their @ust.edu.ph Google account.");
 
 const personalSchema = z
@@ -63,7 +61,7 @@ const personalSchema = z
     const needs = detailsFor(value.affiliation, value.position);
     if (needs.role && !isRoleFor(value.affiliation, value.position, value.role, value.college)) issue("role", "Pick their role.");
     if (needs.program && !isYearLevelFor(value.college, value.yearLevel)) issue("yearLevel", "Pick their year level.");
-    if (needs.studentNumber && !/^\d{10}$/.test(value.studentNumber)) issue("studentNumber", "Use their 10-digit student number.");
+    if (needs.studentNumber && !studentNumberPattern.test(value.studentNumber)) issue("studentNumber", "Use their 10-digit student number.");
     if (needs.college === "required" ? !isUnit(value.college) : needs.college === "optional" && value.college !== "" && !isUnit(value.college)) return issue("college", "Pick their college or faculty from the list.");
     const programs = programsOf(value.college);
     if (needs.program && programs.length > 0 && !programs.includes(value.program)) issue("program", value.program ? "Pick a program from their college’s list." : "Pick their program.");

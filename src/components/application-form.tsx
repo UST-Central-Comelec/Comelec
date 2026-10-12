@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Copy, Eye, Mail, Sh
 import { submitApplication, type ApplicationState, type SubmittedApplication } from "@/lib/applications/actions";
 import { forgetApplicantVerification } from "@/lib/applications/verification-actions";
 import { digitsOnly, formatMobileNumber, formatNumericInput } from "@/lib/applications/numeric-input";
+import { tidyPersonName } from "@/lib/forms/input";
 import { existingCommissionAccount } from "@/lib/applications/account-eligibility";
 import { VERIFICATION_CHANNEL, type VerifiedProfile, type VerificationMessage } from "@/lib/applications/verification-channel";
 import { colleges, conflicts, positionsForUnit, preferredBodies, preferredBodyDescriptions, programsByCollege, programLocked, yearLevelsFor, qualifications, type College, type ConflictId, type QualificationField, type SlotCounts, type UnitSlotCounts } from "@/lib/applications/options";
@@ -690,10 +691,10 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
             <legend>Name</legend>
             <div className="apply-grid">
               <Field label="Last name" error={errors.lastName} span={4}>
-                <input name="lastName" autoComplete="family-name" autoCapitalize="characters" maxLength={80} required onInput={uppercase} key={`last-${profile?.email}`} defaultValue={profile?.lastName.toUpperCase()} />
+                <input name="lastName" autoComplete="family-name" autoCapitalize="characters" maxLength={80} required onInput={uppercase} key={`last-${profile?.email}`} defaultValue={profile ? tidyPersonName(profile.lastName) : undefined} />
               </Field>
               <Field label="First name" error={errors.firstName} span={4}>
-                <input name="firstName" autoComplete="given-name" autoCapitalize="characters" maxLength={80} required onInput={uppercase} key={`first-${profile?.email}`} defaultValue={profile?.firstName.toUpperCase()} />
+                <input name="firstName" autoComplete="given-name" autoCapitalize="characters" maxLength={80} required onInput={uppercase} key={`first-${profile?.email}`} defaultValue={profile ? tidyPersonName(profile.firstName) : undefined} />
               </Field>
               <Field label="Middle name" error={errors.middleName} span={4}>
                 <input name="middleName" autoComplete="additional-name" autoCapitalize="characters" maxLength={80} required onInput={uppercase} />
@@ -708,7 +709,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
                 <input name="studentNumber" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="2023123456" onInput={(event) => formatNumericInput(event.currentTarget, (value) => digitsOnly(value, 10))} />
               </Field>
               <Field label="Mobile number" error={errors.contactNumber} span={3} optional>
-                <input name="contactNumber" type="tel" inputMode="numeric" autoComplete="tel" pattern="09[0-9]{2}-[0-9]{3}-[0-9]{4}" placeholder="0917-123-4567" maxLength={13} onInput={(event) => formatNumericInput(event.currentTarget, formatMobileNumber)} />
+                <input name="contactNumber" type="tel" inputMode="numeric" autoComplete="tel" pattern="09[0-9]{9}" placeholder="09171234567" maxLength={11} onInput={(event) => formatNumericInput(event.currentTarget, formatMobileNumber)} />
               </Field>
               <Field label="UST email" error={errors.email} span={6}>
                 <span className={profile ? "apply-input-verified" : undefined}>

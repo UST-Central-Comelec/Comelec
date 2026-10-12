@@ -236,7 +236,7 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
   const entered = { reference: text(formData, "reference").toUpperCase(), identity: text(formData, "identity").toUpperCase() };
   const registrationCode = /^[A-Z0-9]{5}$/.test(entered.reference.trim()) ? entered.reference.trim() : null;
   const parsed = parseReferenceCode(entered.reference);
-  const identity = entered.identity.trim();
+  const identity = entered.identity.trim().replace(/\s+/g, " ");
   const studentNumber = identity.replace(/\s+/g, "");
   const isStudentNumber = /^\d{10}$/.test(studentNumber);
   const isLastName = identity.length > 0 && identity.length <= 80 && personNamePattern.test(identity);

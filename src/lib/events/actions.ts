@@ -6,6 +6,8 @@ import { text, type FormState } from "@/lib/portal/form";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
+import { emailDomainProblem } from "@/lib/forms/email-domain";
+import { tidyPersonName } from "@/lib/forms/input";
 import { registrationEmail } from "./emails";
 import { allowedAffiliations, isEventId, signUpMode, type AffiliationChoice, type CommissionEvent, type RegistrationKind } from "./options";
 import { getEvent } from "./queries";
@@ -69,15 +71,18 @@ export async function submitRegistration(eventId: string, _state: RegistrationSt
   const verifiedHere = Boolean(pass && needsVerification(values, context));
   const email = verifiedHere ? pass!.email : values.email.trim().toLowerCase();
   const verified = Boolean(pass && pass.email === email);
+  // A typed email must have a domain that takes mail.
+  const domainProblem = verified ? null : await emailDomainProblem(email);
+  if (domainProblem) return { error: "Check the highlighted fields.", fieldErrors: { email: domainProblem } };
   const affiliation = values.affiliation as AffiliationChoice;
   const representative = values.attendingAs === "representative";
-  const middleName = values.middleName.trim().toUpperCase();
+  const middleName = tidyPersonName(values.middleName);
 
   const kind: RegistrationKind = mode === "register" ? "registered" : "waitlisted";
   const answers = {
     status: kind,
-    last_name: values.lastName.trim().toUpperCase(),
-    first_name: values.firstName.trim().toUpperCase(),
+    last_name: tidyPersonName(values.lastName),
+    first_name: tidyPersonName(values.firstName),
     middle_name: middleName,
     middle_initial: middleName.charAt(0),
     sex: values.sex,

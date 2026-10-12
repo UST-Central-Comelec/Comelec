@@ -117,7 +117,7 @@ const actions = load("src/lib/access-requests/actions.ts", {
 const tickedAt = new Date(Date.now() - 5 * 60_000).toISOString();
 function form({ join, skip, version = {}, time = tickedAt } = {}) {
   const data = new FormData();
-  const fields = { lastName: "DELA CRUZ", firstName: "JUAN", middleName: "PEDRO", studentNumber: "2023123456", contactNumber: "0917-123-4567", facebookUrl: "", college, program, yearLevel: Object.keys(options.yearLevelsFor(college))[0], affiliation: "central", position: "executive-associate", role: "Office of the Chairperson" };
+  const fields = { lastName: "DELA CRUZ", firstName: "JUAN", middleName: "PEDRO", studentNumber: "2023123456", contactNumber: "09171234567", facebookUrl: "", college, program, yearLevel: Object.keys(options.yearLevelsFor(college))[0], affiliation: "central", position: "executive-associate", role: "Office of the Chairperson" };
   for (const [name, value] of Object.entries(fields)) data.set(name, value);
   for (const key of documents.onboardingDocumentKeys) if (key !== skip) data.set(`declaration.${key}`, `${version[key] ?? 1}|${time}`);
   if (join) data.set("join", join);

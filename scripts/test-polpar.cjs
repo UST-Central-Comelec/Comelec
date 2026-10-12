@@ -11,7 +11,7 @@ function load(file, dependencies = {}) {
   const filename = resolve(file);
   const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText;
   const compiled = { exports: {} };
-  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : require(name), compiled, compiled.exports);
+  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : name === "@/lib/forms/fields" ? load("src/lib/forms/fields.ts", { "./input": load("src/lib/forms/input.ts") }) : require(name), compiled, compiled.exports);
   return compiled.exports;
 }
 
@@ -42,6 +42,8 @@ function endpoint({ closed = false, insertError = null, uploadFailureAt = -1, ex
     "@/lib/security/rate-limit": { clientIp: () => "test", limits: { party: { limit: 10, windowMs: 1 } }, rateLimit: () => ({ ok: true }) },
     "@/lib/supabase/config": { isSupabaseConfigured: () => true },
     "@/lib/supabase/server": { createAdminClient: () => client },
+    // Domains that take mail: anything but "nomail.test".
+    "@/lib/forms/email-domain": { emailDomainProblems: async (emails) => Object.fromEntries(Object.entries(emails).filter(([, value]) => value.endsWith("@nomail.test")).map(([key]) => [key, "nomail.test can’t receive email. Check the spelling of the address."])) },
     // Files go to the private R2 bucket; a failed upload throws, as the real one does.
     "@/lib/storage/r2": {
       isR2Configured: () => true,
@@ -108,6 +110,12 @@ function request({ data = payload, missing = [], spoof = false, origin = "http:/
   finally { console.error = originalError; }
   assert.deepEqual(brokenUpload.removed, brokenUpload.uploaded);
   assert.equal(brokenUpload.rows.length, 0);
+  // An email whose domain takes no mail is refused before anything is uploaded.
+  const noMail = endpoint();
+  const noMailResponse = await noMail.POST(request({ data: { ...payload, officers: [{ ...officer, email: "officer@nomail.test" }] } }));
+  assert.equal(noMailResponse.status, 400);
+  assert.match((await noMailResponse.json()).fieldErrors["officers.0.email"], /can’t receive email/);
+  assert.equal(noMail.uploaded.length, 0);
   const retry = endpoint({ existing: { reference: "PP-EXISTING", party_name: payload.partyName, created_at: "2026-10-04T10:00:00Z" } });
   assert.equal((await (await retry.POST(request())).json()).receipt.reference, "PP-EXISTING");
   assert.equal(retry.uploaded.length, 0);

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { branchChoices, flowProblems, resolveFlow } from "./form-flow";
+import { cleanEmail, cleanMobileNumber, cleanPersonName, cleanStudentNumber, emailPattern, mobileNumberPattern, personNamePattern, studentNumberPattern, tidyPersonName } from "@/lib/forms/input";
 
 /** What a question can ask for. `content` (Add Text) and `image` (Add Image) are blocks to read, not answers. */
 export const fieldKinds = {
@@ -24,6 +25,7 @@ export const choiceKinds: readonly FieldKind[] = ["radio", "checkbox", "dropdown
 export const textRules = {
   uppercase: "Auto-uppercase",
   studentNumber: "Student number (10 digits)",
+  mobile: "Mobile number (11 digits, starts with 09)",
   letters: "Letters only",
   digits: "Numbers only",
   noSpecial: "No special characters",
@@ -50,7 +52,7 @@ export const editorFieldSchema = z.object({
   notes: z.array(z.string().trim().max(1000)).max(30).optional(),
   /** On a conditional question: the questions each choice leads to, matched to its choices by position (form-flow.ts). Forms saved with one question per choice still read. */
   branches: z.preprocess(value => Array.isArray(value) ? value.map(entry => entry == null ? [] : typeof entry === "string" ? [entry] : entry) : value, z.array(z.array(id).max(20)).max(30)).optional(),
-  rules: z.object({ uppercase: z.boolean(), studentNumber: z.boolean(), letters: z.boolean(), digits: z.boolean(), noSpecial: z.boolean(), hyphenOnly: z.boolean() }).partial().optional(),
+  rules: z.object({ uppercase: z.boolean(), studentNumber: z.boolean(), mobile: z.boolean(), letters: z.boolean(), digits: z.boolean(), noSpecial: z.boolean(), hyphenOnly: z.boolean() }).partial().optional(),
   /** On an Email question: the answer must be a UST Google account the respondent signs in with. */
   verifyUst: z.boolean().optional(),
   /** On a Link question: the kinds of link accepted; none means any web link. */
@@ -68,8 +70,10 @@ export const editorFieldSchema = z.object({
   if (choiceKinds.includes(field.kind) && (!field.options.length || new Set(field.options).size !== field.options.length)) issue(`Give “${field.label}” distinct choices.`);
   if (field.kind === "checkbox" && field.min !== undefined && field.max !== undefined && field.min > field.max) issue(`“${field.label}” needs a minimum no higher than its maximum.`);
   if (field.kind === "checkbox" && field.max !== undefined && field.max > field.options.length) issue(`“${field.label}” can’t allow more ticks than it has choices.`);
-  if (field.rules?.letters && (field.rules.digits || field.rules.studentNumber)) issue(`“${field.label}” can’t be letters only and numbers only.`);
+  if (field.rules?.letters && (field.rules.digits || field.rules.studentNumber || field.rules.mobile)) issue(`“${field.label}” can’t be letters only and numbers only.`);
   if (field.rules?.studentNumber && field.kind !== "text") issue(`Only a short answer can be a student number.`);
+  if (field.rules?.mobile && field.kind !== "text") issue(`Only a short answer can be a mobile number.`);
+  if (field.rules?.mobile && field.rules.studentNumber) issue(`“${field.label}” can’t be both a student number and a mobile number.`);
   if (field.kind === "image" && !field.image) issue(`Upload the image for “${field.label}”.`);
 });
 
@@ -115,22 +119,48 @@ export const defaultAcknowledgementStep = (acknowledgement: Acknowledgement): Ed
 export const acknowledgementOf = (definition: EditorDefinition) => definition.steps.find(step => step.kind === "acknowledgement")?.acknowledgement;
 export const fillTags = (text: string, values: { name?: string; event: string; link: string }) => text.replaceAll("{name}", values.name || "there").replaceAll("{event}", values.event).replaceAll("{link}", values.link);
 
-/* Answer rules, the same in the browser and on the server. */
+/* Answer rules, the same in the browser and on the server. Names, student numbers, mobile numbers and
+   emails follow the rules every form does (src/lib/forms/input.ts, AGENTS.md). */
 const patterns = {
   letters: /^[\p{L}\p{M}\s.'’-]*$/u,
   digits: /^\d*$/,
   digitLines: /^[\d\s]*$/,
   noSpecial: /^[\p{L}\p{M}\p{N}\s.,'’"“”()?!:;\-–—]*$/u,
-  studentNumber: /^\d{10}$/,
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  studentNumber: studentNumberPattern,
+  mobile: mobileNumberPattern,
+  email: emailPattern,
 };
+
+/** A question that asks for the respondent's own last, first or middle name. */
+export const isNameQuestion = (field: EditorField) => field.identity === "lastName" || field.identity === "firstName" || field.identity === "middleName";
+
+/** The rules a question is held to: its own, and those its identity sets whatever was ticked. */
+export function rulesOf(field: EditorField): NonNullable<EditorField["rules"]> {
+  const rules = field.rules ?? {};
+  if (isNameQuestion(field)) return { ...rules, uppercase: true, letters: true };
+  if (field.identity === "studentNumber") return { ...rules, studentNumber: true };
+  return rules;
+}
+
+/** What a typed answer keeps as it's typed, by its rules. */
+export function cleanAnswer(field: EditorField, value: string): string {
+  const rules = rulesOf(field);
+  if (field.kind === "email") return cleanEmail(value);
+  if (isNameQuestion(field)) return cleanPersonName(value);
+  if (rules.studentNumber) return cleanStudentNumber(value);
+  if (rules.mobile) return cleanMobileNumber(value);
+  if (rules.digits && field.kind === "text") return value.replace(/\D/g, "");
+  return rules.uppercase ? value.toLocaleUpperCase("en-PH") : value;
+}
 const driveHosts = ["drive.google.com", "docs.google.com"];
 const facebookHosts = ["facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com", "fb.com", "www.fb.com", "fb.me"];
 
 /** What a respondent is told about a question's rules, under its box. */
 export function answerHint(field: EditorField): string {
-  const rules = field.rules ?? {};
+  const rules = rulesOf(field);
   if (field.kind === "text" && rules.studentNumber) return "Your 10-digit student number.";
+  if (field.kind === "text" && rules.mobile) return "An 11-digit mobile number starting with 09, numbers only.";
+  if (isNameQuestion(field)) return "Letters only, in capitals.";
   if (field.kind === "email" && field.verifyUst) return "Sign in with your UST Google account to fill this in.";
   if (field.kind === "link") return field.links?.length ? `A ${field.links.map(kind => linkKinds[kind]).join(" or ")}.` : "A full web address, starting with https://";
   if (field.kind === "checkbox") {
@@ -145,7 +175,8 @@ export function answerHint(field: EditorField): string {
 export function normalizeAnswer(field: EditorField, value: string | string[] | undefined): string | string[] | undefined {
   if (typeof value !== "string") return value;
   const trimmed = field.kind === "textarea" ? value.trim() : value.trim().replace(/\s+/g, " ");
-  return field.rules?.uppercase ? trimmed.toLocaleUpperCase("en-PH") : field.kind === "email" ? trimmed.toLowerCase() : trimmed;
+  if (isNameQuestion(field)) return /^[\p{L}\p{M} ]*$/u.test(trimmed) ? tidyPersonName(trimmed) : trimmed;
+  return rulesOf(field).uppercase ? trimmed.toLocaleUpperCase("en-PH") : field.kind === "email" ? trimmed.toLowerCase() : trimmed;
 }
 
 /** Why an answer can't be accepted, or null. `value` is already normalized. */
@@ -180,8 +211,10 @@ export function answerProblem(field: EditorField, raw: string | string[] | undef
     if (kinds.length && !kinds.some(kind => (kind === "drive" ? driveHosts : facebookHosts).includes(host))) return `${name} needs a ${kinds.map(kind => linkKinds[kind]).join(" or ")}.`;
   }
   if (field.kind === "text" || field.kind === "textarea") {
-    const rules = field.rules ?? {};
+    const rules = rulesOf(field);
+    if (isNameQuestion(field) && !personNamePattern.test(value)) return `Use letters only, with single spaces between names, in ${name}.`;
     if (rules.studentNumber && !patterns.studentNumber.test(value)) return `Enter a 10-digit student number for ${name}.`;
+    if (rules.mobile && !patterns.mobile.test(value)) return `Enter an 11-digit mobile number starting with 09 for ${name}, numbers only.`;
     if (rules.letters && !patterns.letters.test(value)) return `Use letters only in ${name}.`;
     if (rules.digits && !(field.kind === "textarea" ? patterns.digitLines : patterns.digits).test(value)) return `Use numbers only in ${name}.`;
     if (rules.noSpecial && !patterns.noSpecial.test(value)) return `Remove special characters from ${name}.`;

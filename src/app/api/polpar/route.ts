@@ -5,6 +5,7 @@ import { unitFromKey } from "@/lib/periods/kinds";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
+import { emailDomainProblems } from "@/lib/forms/email-domain";
 import { deleteObjects, isR2Configured, putObject } from "@/lib/storage/r2";
 import { MAX_FILE_BYTES, MAX_REQUEST_BYTES, MAX_TOTAL_BYTES, requirements, uploadTypes } from "@/lib/polpar/content";
 import { fieldErrors, partyRegistrationSchema, type PartyDocument, type PartyResponse } from "@/lib/polpar/schema";
@@ -52,6 +53,9 @@ export async function POST(request: Request) {
     const parsed = partyRegistrationSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) return reply({ error: "Check the highlighted fields.", fieldErrors: fieldErrors(parsed.error) }, 400);
     const data = parsed.data;
+    // Every email typed must have a domain that takes mail.
+    const domains = await emailDomainProblems({ email: data.email, ...Object.fromEntries(data.officers.map((officer, index) => [`officers.${index}.email`, officer.email])), ...Object.fromEntries(data.affiliates.map((affiliate, index) => [`affiliates.${index}.email`, affiliate.email])) });
+    if (Object.keys(domains).length) return reply({ error: "Check the highlighted fields.", fieldErrors: domains }, 400);
     const submissionId = form.get("submissionId");
     if (typeof submissionId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submissionId)) return reply({ error: "Reload the registration page and try again." }, 400);
 

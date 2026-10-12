@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { sendAutomatic } from "@/lib/notifications/notify";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { siteUrl } from "@/lib/email/template";
+import { emailDomainProblem } from "@/lib/forms/email-domain";
 import { canManageEvent } from "./access";
 import { getEvent } from "./queries";
 import { getRsvpSettings, validRsvpToken } from "./rsvp-store";
@@ -79,6 +80,11 @@ export async function submitRsvp(eventId: string, token: string, _state: RsvpSta
     if (needsPass.length) {
       const pass = await readEventPass(eventId);
       if (!pass || needsPass.some(field => values[field.id] !== pass.email)) return { error: "Verify your UST Google account before submitting. The email must match the verified account." };
+    }
+    // Every email answered must have a domain that takes mail.
+    for (const field of emails) {
+      const problem = await emailDomainProblem(String(values[field.id]));
+      if (problem) return { error: `${field.label}: ${problem}` };
     }
 
     const email = respondentEmail(definition, values);

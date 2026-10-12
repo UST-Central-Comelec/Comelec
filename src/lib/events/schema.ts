@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { containsEmoji, personNamePattern } from "@/lib/forms/input";
+import { containsEmoji, studentNumberPattern } from "@/lib/forms/input";
+import { email, personName } from "@/lib/forms/fields";
 import { colleges, programsByCollege, programLocked, isYearLevelFor, type College } from "@/lib/applications/options";
 import { affiliationChoices, attendingChoices, isUstAffiliation, requestKinds, sexChoices, type AffiliationChoice, type RequestKind, type Requests, type SexChoice } from "./options";
 
@@ -9,17 +10,16 @@ import { affiliationChoices, attendingChoices, isUstAffiliation, requestKinds, s
 // What step 3 asks depends on the affiliation picked, step 4's details only follow "Official
 // Organization Representative", and step 5's extra fields only follow the requests that need them.
 
-const upperName = (message: string) => z.string().trim().min(1, message).max(80, "Keep it under 80 characters.").regex(personNamePattern, "Use letters and spaces only.");
 const short = (message: string, max = 120) => z.string().trim().min(1, message).max(max, `Keep it under ${max} characters.`);
 
 const fields = {
   consent: z.literal(true, "You need to agree before we can take your registration."),
-  lastName: upperName("Add your last name."),
-  firstName: upperName("Add your first name."),
-  middleName: upperName("Add your middle name."),
+  lastName: personName("Add your last name."),
+  firstName: personName("Add your first name."),
+  middleName: personName("Add your middle name."),
   sex: z.enum(Object.keys(sexChoices) as [SexChoice, ...SexChoice[]], "Pick one."),
   age: z.string().trim().regex(/^\d{1,3}$/, "Use your age in years.").refine((value) => Number(value) >= 10 && Number(value) <= 120, "Use your age in years."),
-  email: z.string().trim().toLowerCase().max(120).email("Use a valid email address."),
+  email: email("Use a valid email address, like name@example.com.", 120),
   affiliation: z.enum(Object.keys(affiliationChoices) as [AffiliationChoice, ...AffiliationChoice[]], "Pick one."),
   attendingAs: z.enum(Object.keys(attendingChoices) as [keyof typeof attendingChoices, ...(keyof typeof attendingChoices)[]], "Pick one."),
 };
@@ -128,7 +128,7 @@ export function checkRegistration(values: RegistrationValues, context: Registrat
   if (values.affiliation && !context.allowed.includes(values.affiliation as AffiliationChoice)) add("affiliation", "This event isn’t open to that. Pick another, or check who it’s open to.");
   if (needsVerification(values, context) && !context.verifiedEmail) add("verification", "Verify your UST Google account to continue.");
   if (values.affiliation === "ust-student") {
-    if (values.studentNumber.trim() && !/^\d{10}$/.test(values.studentNumber.trim())) add("studentNumber", "Use your 10-digit student number, or leave it blank.");
+    if (values.studentNumber.trim() && !studentNumberPattern.test(values.studentNumber.trim())) add("studentNumber", "Use your 10-digit student number, or leave it blank.");
     if (!isYearLevelFor(values.college, values.yearLevel)) add("yearLevel", "Pick your year level from the list.");
     if (!(colleges as readonly string[]).includes(values.college)) add("college", "Pick your college or faculty from the list.");
     else if (programLocked(values.college) ? Boolean(values.program) : !(programsByCollege[values.college as College] as readonly string[]).includes(values.program)) add("program", "Pick your program from the list.");

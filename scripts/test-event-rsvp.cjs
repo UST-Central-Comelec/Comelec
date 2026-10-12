@@ -119,6 +119,7 @@ const writes = [], emails = [], refreshed = [];
 let duplicate = false;
 let verifiedPass = null;
 const actions = load('src/lib/events/rsvp-actions.ts', {
+  '@/lib/forms/email-domain': { emailDomainProblem: async email => email.endsWith('@nomail.test') ? 'nomail.test can’t receive email. Check the spelling of the address.' : null },
   './verification': { readEventPass: async () => verifiedPass },
   'next/headers': { headers: async () => new Headers() },
   'next/cache': { revalidatePath: value => refreshed.push(value) },
@@ -126,7 +127,7 @@ const actions = load('src/lib/events/rsvp-actions.ts', {
   '@/lib/auth/session': { requireEditor: async () => { if (user.readOnly) throw Error('Denied'); return user; } },
   '@/lib/supabase/server': { createAdminClient: () => ({ from(table) { return { insert: async row => { writes.push({ table, row }); return { error: duplicate ? { code: '23505' } : null }; }, update: row => ({ eq: async () => { writes.push({ table, row }); return { error: null }; } }) }; } }) },
   '@/lib/notifications/notify': { sendAutomatic: async (key, build) => { assert.equal(key, 'event-rsvp'); emails.push(build()); return 'sent'; } },
-  '@/lib/forms/input': { containsEmoji: text => /\p{Extended_Pictographic}/u.test(text) },
+  '@/lib/forms/input': load('src/lib/forms/input.ts'),
   '@/lib/security/rate-limit': { clientIp: () => 'local', limits: { eventRegister: { limit: 10, windowMs: 1000 } }, rateLimit: () => ({ ok: true }) },
   '@/lib/email/template': { siteUrl: () => 'https://example.com' },
   './queries': { getEvent: async () => event },

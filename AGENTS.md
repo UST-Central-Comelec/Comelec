@@ -97,6 +97,21 @@ Gold is scarce: the main action, the current tab, live markers, and accent words
 - **Selected choices fill solid** (ink and cream swapped, or solid green or red), never as a tinted pill. Unselected choices stay neutral: hairline border, faint fill. Status can be a dot plus words. Checkboxes use `accent-color: var(--p-text)`.
 - **Settings forms** end in `.portal-settings-foot`: "Unsaved changes" on the left, then Discard (ghost), then Save.
 
+## Names, numbers and emails (strict)
+
+These hold on every form, on the site and in the portal, with no exceptions. Each is enforced twice: as people type, by `FormInputGuard` (`src/components/form-input-guard.tsx`, which reads the field's `name`) and the form builder's `cleanAnswer`; and again on the server. Never write a new regex or zod rule for these fields: build schemas from `src/lib/forms/fields.ts` (`personName`, `studentNumber`, `mobileNumber`, `optionalMobileNumber`, `email`), and the patterns and cleaners in `src/lib/forms/input.ts`.
+
+1. **People's names** (last, first and middle names, full names, contact persons, witnesses): **letters only, always UPPERCASE.** Letters include Ñ and accented letters, and a single space may separate words (DELA CRUZ, MARIA CLARA). No digits, hyphens, apostrophes, periods or other symbols. The server refuses them rather than quietly removing them, and saves the name in capitals. Organization, party and event names are not people's names.
+2. **Student numbers: numbers only, exactly 10 digits.**
+3. **Emails must have a valid domain.** The address must be well formed (`name@domain.tld`), and the server checks that the domain takes mail (it has MX records) with `emailDomainProblem` / `emailDomainProblems` (`src/lib/forms/email-domain.ts`) before saving. Fields that need a UST account also require `@ust.edu.ph`. Only when DNS can't be reached at all is an address let through, so an outage doesn't block every form.
+4. **Mobile numbers: numbers only.** Exactly 11 digits starting with 09 (09171234567). No dashes, spaces or +63, in what's typed, shown or saved.
+
+When adding a field of one of these kinds:
+- Name the input so the guard knows it: `lastName`, `firstName`, `middleName`, `fullName`, `contactPerson`, `submittedBy`, `witness1Name`; `studentNumber`; `contactNumber` or `mobileNumber`; `email`. A field inside a list keeps its last part (`officers.0.contactNumber`).
+- Give it the matching box: `inputMode="numeric"`, `maxLength={10}` or `{11}` and a `pattern` for numbers; `type="email"` for emails.
+- Clean any prefilled value (from Google, an application or an older record) with `tidyPersonName`, `cleanStudentNumber` or `cleanMobileNumber`. The guard only cleans what's typed.
+- In the form builder, a question whose `identity` is a name or student number follows these rules whatever is ticked. Mobile numbers use the "Mobile number" answer rule.
+
 ## Status, tags and picked states
 
 There are no tinted pills anywhere, on the portal or the site. A tinted pill is a coloured border around a faded fill of the same colour.
