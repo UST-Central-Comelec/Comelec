@@ -1,7 +1,8 @@
 "use client";
 
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Download, FileText, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileText, Plus, Trash2 } from "lucide-react";
 import { communicationDeclaration, conformeDeclarations, MAX_FILE_BYTES, MAX_TOTAL_BYTES, petitionDeclaration, requirements, rosterSections, templateHref, uploadTypes, type RosterId } from "@/lib/polpar/content";
 import { fieldErrors, partyRegistrationSchema, type Conforme, type PartyRegistration, type PartyResponse } from "@/lib/polpar/schema";
 import { DatePicker } from "@/components/portal/date-picker";
@@ -159,7 +160,7 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
       <ol className="pp-steps">{steps.map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined} className={step === index ? "is-current" : step > index ? "is-done" : ""}>
         <span>{step > index ? <Check size={14} aria-hidden="true" /> : String(index + 1).padStart(2, "0")}</span><button type="button" disabled={index > step || pending} onClick={() => { setStep(index); setResult({}); }}>{label}</button>
       </li>)}</ol>
-      <div className="pp-sidebar-note"><FileText size={19} aria-hidden="true" /><p>Fill in your details here, download the completed PDFs, then sign and upload your copies. Your roster entries carry into the forms automatically.</p><a href={templateHref("Form 07 - Requirement Checklist.docx")} download>View the original checklist <Download size={14} aria-hidden="true" /></a></div>
+      <div className="pp-sidebar-note"><FileText size={19} aria-hidden="true" /><p>Fill in your details here, download the completed PDFs, then sign and upload your copies. Your roster entries carry into the forms automatically.</p><a href={templateHref("Form 07 - Requirement Checklist.docx")} download>View the original checklist <DownloadIcon size={14} aria-hidden="true" /></a></div>
     </aside>
 
     <form ref={form} onSubmit={submit} noValidate method="post" className="pp-form">
@@ -189,7 +190,7 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
         </section>
 
         {rosterSections.map((section, sectionIndex) => <section key={section.id} data-step={sectionIndex + 2} hidden={step !== sectionIndex + 2}>
-          <div className="pp-roster-head"><p className="pp-source">{section.source} · {rows[section.id].length} listed</p><a href={templateHref(requirements.filter((item) => "template" in item).find((item) => item.id === section.id)!.template)} download>Download form <Download size={14} aria-hidden="true" /></a></div>
+          <div className="pp-roster-head"><p className="pp-source">{section.source} · {rows[section.id].length} listed</p><a href={templateHref(requirements.filter((item) => "template" in item).find((item) => item.id === section.id)!.template)} download>Download form <DownloadIcon size={14} aria-hidden="true" /></a></div>
           <p className="pp-note">Add an entry for each {section.singular}. The total updates automatically.</p>
           {rows[section.id].map((id, index) => <fieldset className="pp-person" key={id}><legend>{section.singular} {index + 1}</legend>
             <button className="pp-remove" type="button" aria-label={`Remove ${section.singular} ${index + 1}`} onClick={() => setRows((value) => ({ ...value, [section.id]: value[section.id].filter((row) => row !== id) }))}><Trash2 size={15} aria-hidden="true" /> Remove</button>
@@ -238,7 +239,7 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
             return <div className="pp-upload" key={requirement.id}>
               <div className="pp-upload-title"><span>{String(index + 1).padStart(2, "0")}</span><label htmlFor={`pp-file-${requirement.id}`}>{requirement.label}{!optional && " *"}</label>{files.length > 0 && <CheckCircle2 size={18} aria-label="Files selected" />}</div>
               <p>{optional ? "No active alumni are listed, so no alumni IDs are requested." : requirement.hint}</p>
-              {"template" in requirement && <a href={templateHref(requirement.template)} download>Download template <Download size={13} aria-hidden="true" /></a>}
+              {"template" in requirement && <a href={templateHref(requirement.template)} download>Download template <DownloadIcon size={13} aria-hidden="true" /></a>}
               <input id={`pp-file-${requirement.id}`} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple aria-invalid={!!errors[requirement.id]} aria-describedby={`pp-upload-info-${requirement.id}`} onChange={(event) => { setUploads((value) => ({ ...value, [requirement.id]: Array.from(event.target.files ?? []) })); }} />
               <div id={`pp-upload-info-${requirement.id}`}>{files.length > 0 && <ul className="pp-file-list">{files.map((file, i) => <li key={i}>{file.name} <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span></li>)}</ul>}{errors[requirement.id] && <p className="pp-error">{errors[requirement.id]}</p>}</div>
             </div>;

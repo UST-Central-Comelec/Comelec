@@ -128,7 +128,7 @@ assert.equal(rsvpShows(ust).visible.has('rsvp_student_number'), true, 'A UST ema
 assert.equal(rsvpShows({ rsvp_email: 'a@gmail.com' }).visible.has('rsvp_student_number'), false);
 assert.equal(rsvpShows(ust).visible.has('rsvp_college'), true, 'Local councils pick their college');
 assert.equal(rsvpShows(ust).visible.has('rsvp_org_name'), false);
-assert.deepEqual(steps(ust), ['privacy', 'rsvp_profile', 'rsvp_affiliation', 'rsvp_role', 'rsvp_attendance', 'rsvp_delegation', 'rsvp_committees', 'rsvp_conforme']);
+assert.deepEqual(steps(ust), ['privacy', 'rsvp_profile', 'rsvp_affiliation', 'rsvp_role', 'rsvp_attendance', 'rsvp_delegation', 'rsvp_committees', 'rsvp_resources_step', 'rsvp_conforme']);
 const guest = { rsvp_affiliation: 'External', rsvp_external_type: 'Invited Guest (Delegates)' };
 assert.deepEqual(steps(guest), ['privacy', 'rsvp_profile', 'rsvp_affiliation', 'rsvp_attendance', 'rsvp_delegation', 'rsvp_logistics', 'rsvp_conforme'], 'Guests skip Attending as and committees, and see logistical needs');
 const rep = { rsvp_affiliation: 'External', rsvp_external_type: 'Organization / Institution Representative' };

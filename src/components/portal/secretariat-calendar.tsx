@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { Popover } from "@base-ui/react/popover";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowUpRight, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Highlighter, ListTodo, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
+import { Combobox } from "@/components/combobox";
+import { SlidingFilterButtons } from "./sliding-filters";
 import { DatePicker } from "@/components/portal/date-picker";
 import { ViewOnlyTag } from "@/components/portal/view-only";
 import { highlightColors, highlightKinds, highlightOrder, type CalendarData, type CalendarEntry, type CalendarHighlight, type CalendarNote, type CalendarTodo, type HighlightColor, type HighlightKind } from "@/lib/calendar/options";
+import { comelecUnits, unitAbbreviations } from "@/lib/applications/options";
+import { comelecUnit } from "@/lib/events/options";
+import { rankUnitLabels } from "@/lib/portal/unit-filter";
 import { dateParts, formatDayLabel } from "@/lib/events/format";
 import { addCalendarNote, addCalendarTodo, deleteFromCalendar, editCalendarNote, editCalendarTodo, saveCalendarHighlight, setCalendarTodoDone } from "@/lib/portal/calendar-actions";
-import { periodKinds } from "@/lib/periods/kinds";
 import { toast } from "./toast";
 import "./secretariat-calendar.css";
 
@@ -68,7 +72,7 @@ const entryLabels: Record<EntryKind, string> = { event: "Events", recruitment: "
 const layers: Layer[] = ["event", "recruitment", "party-registration", "candidacy", "highlights", "notes", "todos"];
 const layerLabels: Record<Layer, string> = { ...entryLabels, highlights: "Highlights", notes: "Notes", todos: "To-dos" };
 const allLayers = Object.fromEntries(layers.map((layer) => [layer, true])) as Record<Layer, boolean>;
-const kindName = (entry: CalendarEntry) => (entry.kind === "event" ? "Event" : periodKinds[entry.kind].title);
+const unitLabel = (entry: CalendarEntry) => entry.organizer === "central" ? "Central Comelec" : `${entry.unit} Unit`;
 /** The dot before a status: open, waiting (scheduled, waitlisted, moved), or over. */
 const stateOf = (entry: CalendarEntry) => (entry.cancelled || entry.status === "Ended" || entry.status.endsWith("closed") ? "off" : entry.scheduled || /waitlist|rescheduled/i.test(entry.status) ? "waiting" : entry.status.endsWith(" open") ? "open" : "off");
 
@@ -115,9 +119,14 @@ const kept = new WeakMap<CalendarData, CalendarData>();
 type Selection = { anchor: string; start: string; end: string };
 /** `updatedAt`: when the highlight being edited was last saved, so a save doesn’t silently replace someone else’s. */
 type HighlightDraft = { id: string | null; start: string; end: string; kind: HighlightKind; color: HighlightColor; label: string; updatedAt?: string };
-type UnitFilter = "all" | "central" | "local" | "own";
+type UnitFilter = "all" | "central" | `unit:${string}`;
+const unitFilters: Array<[UnitFilter, string]> = [
+  ["all", "All units"],
+  ["central", "Central Comelec"],
+  ...comelecUnits.map((college): [UnitFilter, string] => [`unit:${college}`, unitAbbreviations[college] ? `${college} (${unitAbbreviations[college]})` : college]),
+];
 
-export function SecretariatCalendar({ today, entries, data, unitName, local, readOnly, canAddEvent, loadError }: {
+export function SecretariatCalendar({ today, entries, data, readOnly, canAddEvent, loadError }: {
   today: string;
   entries: CalendarEntry[];
   data: CalendarData;
@@ -127,6 +136,7 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
   canAddEvent: boolean;
   loadError: string | null;
 }) {
+  const unitLabelId = useId();
   const [month, setMonth] = useState(today.slice(0, 7));
   const [direction, setDirection] = useState(0);
   const [view, setView] = useState<"month" | "agenda">("month");
@@ -153,10 +163,9 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
 
   const { start, end } = selection;
   const single = start === end;
-  const unitFilters: Array<[UnitFilter, string]> = local ? [["all", "All units"], ["central", "Central Comelec"], ["own", "Your unit"]] : [["all", "All units"], ["central", "Central Comelec"], ["local", "Local units"]];
 
   // What's drawn: the layers switched on, from the units picked.
-  const visible = useMemo(() => entries.filter((entry) => shown[entry.kind] && (unitFilter === "all" || (unitFilter === "own" ? entry.own : entry.organizer === unitFilter))), [entries, shown, unitFilter]);
+  const visible = useMemo(() => entries.filter((entry) => shown[entry.kind] && (unitFilter === "all" || (unitFilter === "central" ? entry.organizer === "central" : entry.organizer === "local" && entry.unitName === comelecUnit("local", unitFilter.slice(5))))), [entries, shown, unitFilter]);
   const shownHighlights = useMemo(() => (shown.highlights ? [...highlights].sort(byWeight) : []), [highlights, shown.highlights]);
   const notesByDay = useMemo(() => group(shown.notes ? notes : [], (note) => note.date), [notes, shown.notes]);
   const todosByDay = useMemo(() => group(shown.todos ? todos.filter((todo) => !todo.done && todo.dueDate) : [], (todo) => todo.dueDate!), [todos, shown.todos]);
@@ -274,9 +283,6 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
   const daysHighlights = shownHighlights.filter((highlight) => overlaps(highlight, start, end));
   const daysNotes = (shown.notes ? notes : []).filter((note) => note.date >= start && note.date <= end).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt));
   const parts = dateParts(start);
-  const monthEntries = visible.filter((entry) => overlaps(entry, `${month}-01`, `${month}-31`));
-  const monthDays = weeks.flat().filter((day) => day.slice(0, 7) === month);
-  const highlightedDays = monthDays.filter((day) => shownHighlights.some((highlight) => overlaps(highlight, day, day))).length;
   const startTone = single ? highlightsOn(start)[0] : undefined;
   const openTodos = todos.filter((todo) => !todo.done).length;
   // The calendar's links aren't prefetched: this one changes with every day picked, and the Agenda
@@ -287,24 +293,10 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
     <div className="cal">
       <header className="cal-head">
         <div className="cal-head-title">
-          <p className="cal-eyebrow"><i aria-hidden="true" />{unitName}</p>
           <MonthJump month={month} onPick={goToMonth} />
-          <dl className="cal-stats">
-            <div><dt>{monthEntries.length === 1 ? "Event or period" : "Events and periods"}</dt><dd>{monthEntries.length}</dd></div>
-            <div><dt>{highlightedDays === 1 ? "Highlighted day" : "Highlighted days"}</dt><dd>{highlightedDays}</dd></div>
-            <div><dt>{openTodos === 1 ? "Open to-do" : "Open to-dos"}</dt><dd>{openTodos}</dd></div>
-          </dl>
         </div>
         <div className="cal-head-tools">
           {readOnly && !loadError && <ViewOnlyTag />}
-          <div className="cal-nav" role="group" aria-label="Month">
-            <button type="button" onClick={() => goToMonth(shiftMonth(month, -1))} aria-label="Previous month"><ChevronLeft size={17} aria-hidden="true" /></button>
-            <button type="button" className="cal-nav-today" onClick={goToday}>Today</button>
-            <button type="button" onClick={() => goToMonth(shiftMonth(month, 1))} aria-label="Next month"><ChevronRight size={17} aria-hidden="true" /></button>
-          </div>
-          <div className="cal-switch" role="group" aria-label="View">
-            {(["month", "agenda"] as const).map((value) => <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)}>{value === "month" ? "Month" : "Agenda"}</button>)}
-          </div>
           {canAddEvent && <Link className="portal-button" href={addEventHref} prefetch={false}><Plus size={16} aria-hidden="true" /> Add event</Link>}
         </div>
       </header>
@@ -312,17 +304,33 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
       {loadError && <p className="portal-form-error cal-error" role="alert">{loadError}</p>}
 
       <div className="cal-body">
-        <div className="cal-switch cal-units" role="group" aria-label="Whose events">
-          {unitFilters.map(([value, label]) => <button key={value} type="button" aria-pressed={unitFilter === value} onClick={() => setUnitFilter(value)}>{label}</button>)}
-        </div>
-        <div className="cal-switch cal-side-switch" role="group" aria-label="Show in the side panel">
-          {panels.map(([value, label]) => <button key={value} type="button" aria-pressed={panel === value} onClick={() => setPanel(value)}>{label}</button>)}
+        <div className="cal-toolbar">
+          <div className="cal-toolbar-navigation">
+            <div className="cal-nav" role="group" aria-label="Month">
+              <button type="button" onClick={() => goToMonth(shiftMonth(month, -1))} aria-label="Previous month"><ChevronLeft size={17} aria-hidden="true" /></button>
+              <button type="button" className="cal-nav-today" onClick={goToday}>Today</button>
+              <button type="button" onClick={() => goToMonth(shiftMonth(month, 1))} aria-label="Next month"><ChevronRight size={17} aria-hidden="true" /></button>
+            </div>
+            <SlidingFilterButtons items={[{ key: "month", label: "Month" }, { key: "agenda", label: "Agenda" }]} active={view} label="View" onChange={setView} />
+          </div>
+          <div className="cal-toolbar-tools">
+            <div className="portal-field cal-units">
+              <span id={unitLabelId} className="portal-visually-hidden">Whose events</span>
+              <Combobox key={unitFilter} name="calendar-unit" options={unitFilters.map(([, label]) => label)} value={unitFilters.find(([value]) => value === unitFilter)![1]} onChange={label => {
+                const choice = unitFilters.find(([, text]) => text === label);
+                if (choice) setUnitFilter(choice[0]);
+              }} labelledBy={unitLabelId} placeholder="Search unit or abbreviation…" filterOptions={rankUnitLabels} emptyText="No matching unit." />
+            </div>
+            <div className="cal-side-switch">
+              <SlidingFilterButtons items={panels.map(([key, label]) => ({ key, label }))} active={panel} label="Show in the side panel" onChange={setPanel} />
+            </div>
+          </div>
         </div>
 
         <section className="cal-board" aria-label={`${monthLabel(month)} ${month.slice(0, 4)}`}>
           <div className="cal-board-head">
             <div className="cal-layers" role="group" aria-label="Show on the calendar">
-              {layers.map((layer) => <button key={layer} type="button" data-layer={layer} aria-pressed={shown[layer]} onClick={() => setShown((current) => ({ ...current, [layer]: !current[layer] }))}><i aria-hidden="true" />{layerLabels[layer]}</button>)}
+              {layers.filter(layer => layer !== "notes" && layer !== "todos" && layer !== "highlights").map((layer) => <button key={layer} type="button" data-layer={layer} aria-pressed={shown[layer]} onClick={() => setShown((current) => ({ ...current, [layer]: !current[layer] }))}><i aria-hidden="true" />{layerLabels[layer]}</button>)}
             </div>
           </div>
           {view === "month" ? (
@@ -393,7 +401,7 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
                           data-on-tone={highlightsOn(week[column]).length > 0 || undefined}
                           // Lane 0 sits on the bottom row.
                           style={{ gridColumn: column + 1, gridRow: LANES + 2 - lane }}
-                          title={`${entry.name} · ${rangeLabel(entry.start, entry.end)} · ${entry.unit}`}
+                          title={`${entry.name} · ${rangeLabel(entry.start, entry.end)} · ${unitLabel(entry)}`}
                           aria-hidden="true"
                           onClick={() => {
                             select(week[column]);
@@ -429,7 +437,6 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
               {!readOnly && <button type="button" className="cal-action" onClick={() => openHighlight()} aria-expanded={draft !== null && draft.id === null}><Highlighter size={15} aria-hidden="true" /> Highlight {single ? "day" : "days"}</button>}
               {canAddEvent && <Link className="cal-action" href={addEventHref} prefetch={false}><CalendarPlus size={15} aria-hidden="true" /> Add event</Link>}
             </div>
-            {!readOnly && single && <p className="cal-tip is-pointer">Drag across days, or Shift-click, to pick several.</p>}
 
             {draft && <HighlightForm draft={draft} setDraft={setDraft} busy={busy === "highlight"} onSave={async () => {
               const saved = await run("highlight", () => saveCalendarHighlight(draft.id, { start: draft.start, end: draft.end, kind: draft.kind, color: draft.kind === "custom" ? draft.color : null, label: draft.label }, draft.updatedAt), (value: CalendarHighlight) => {
@@ -460,7 +467,7 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
                 <li key={entry.id} className="cal-row" data-kind={entry.kind} data-focused={focusedEntry === entry.id || undefined} data-cancelled={entry.cancelled || undefined}>
                   <i className="cal-swatch" aria-hidden="true" />
                   <div>
-                    <small className="cal-row-kind">{kindName(entry)} · <span title={entry.unitName}>{entry.unit}</span></small>
+                    <small className="cal-row-kind"><span title={entry.unitName}>{unitLabel(entry)}</span></small>
                     <strong>{entry.name}</strong>
                     <small>{entry.time}</small>
                     <small className="cal-row-status" data-state={stateOf(entry)}>{entry.status}</small>
@@ -726,7 +733,7 @@ function Agenda({ month, today, entries, highlights, notes, todos, selected, onS
                 {items.entries.map((entry) => (
                   <li key={entry.id} className="cal-row" data-kind={entry.kind} data-cancelled={entry.cancelled || undefined}>
                     <i className="cal-swatch" aria-hidden="true" />
-                    <div><small className="cal-row-kind">{kindName(entry)} · {entry.unit}</small><strong>{entry.name}</strong><small>{entry.time}</small><small className="cal-row-status" data-state={stateOf(entry)}>{entry.status}</small></div>
+                    <div><small className="cal-row-kind"><span title={entry.unitName}>{unitLabel(entry)}</span></small><strong>{entry.name}</strong><small>{entry.time}</small><small className="cal-row-status" data-state={stateOf(entry)}>{entry.status}</small></div>
                     {entry.link && <Link className="cal-row-link" href={entry.link.href} prefetch={false} target={entry.link.external ? "_blank" : undefined}>{entry.link.label}<ArrowUpRight size={14} aria-hidden="true" /></Link>}
                   </li>
                 ))}

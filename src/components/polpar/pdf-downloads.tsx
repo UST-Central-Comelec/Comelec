@@ -1,7 +1,7 @@
 "use client";
 
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useState } from "react";
-import { Download } from "lucide-react";
 import { pdfForms, validatePdf, type PdfInput, type PdfSelection } from "@/lib/polpar/pdf-data";
 import { toast } from "@/components/portal/toast";
 
@@ -43,7 +43,7 @@ export function PdfDownloads({ getData, onValidation, portal = false }: { getDat
     <label className={portal ? "portal-field" : "pp-field"}><span>Forms to download</span><select value={selection} onChange={(event) => { setSelection(event.target.value as PdfSelection); setDone(false); }} disabled={busy}>
       <option value="all">All forms — one PDF packet</option>{pdfForms.map((form) => <option value={form.id} key={form.id}>{form.label}</option>)}
     </select></label>
-    <button type="button" className={portal ? "portal-button" : "bp-button is-primary"} disabled={busy} onClick={download}><Download size={16} aria-hidden="true" />{busy ? "Preparing your PDF…" : "Download filled PDF"}</button>
+    <button type="button" className={portal ? "portal-button" : "bp-button is-primary"} disabled={busy} onClick={download}><DownloadIcon size={16} aria-hidden="true" />{busy ? "Preparing your PDF…" : "Download filled PDF"}</button>
     {error && <p className="pp-error" role="alert">{error}</p>}
     {done && <p className="pp-note" role="status">{READY}</p>}
   </div>;

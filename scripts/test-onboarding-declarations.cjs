@@ -26,6 +26,11 @@ function load(file, mocks = {}) {
 }
 
 const documents = load("src/lib/onboarding/documents.ts");
+const { editableOnboardingBody } = load("src/lib/onboarding/body.ts");
+const { parseDocumentBody, serializeDocumentBody, documentBodyText } = load("src/lib/data/document-body.ts");
+const React = require("react");
+const { renderToStaticMarkup } = require("react-dom/server");
+const { LegalText } = load("src/components/portal/legal-text.tsx");
 const options = load("src/lib/applications/options.ts");
 
 // The text format: headings, paragraphs, bullets and numbered items.
@@ -37,6 +42,23 @@ assert.deepEqual(blocks, [
   { kind: "numbers", items: ["one", "two"] },
   { kind: "paragraph", text: "End" },
 ]);
+
+const editable = parseDocumentBody(editableOnboardingBody("Intro\n\n## Heading\n- Bullet\n1. Numbered"));
+assert.deepEqual(editable.map(block => block.type), ["text", "text", "bullets", "numbers"]);
+assert.equal(editable[1].runs[0].bold, true, "Legacy headings retain emphasis in the editor");
+assert.equal(documentBodyText(editable), "Intro\n\nHeading\n\nBullet\n\nNumbered");
+const formatted = serializeDocumentBody([
+  { type: "text", runs: [{ text: "Linked agreement", bold: true, italic: true, href: "https://ust.edu.ph/", color: "#123456", backgroundColor: "#fff2cc", fontSize: 20 }] },
+  { type: "divider" },
+]);
+assert.equal(editableOnboardingBody(formatted), formatted, "Already formatted documents are kept intact");
+const rendered = renderToStaticMarkup(React.createElement(LegalText, { body: formatted }));
+assert.match(rendered, /<em><strong>/);
+assert.match(rendered, /href="https:\/\/ust.edu.ph\/"/);
+assert.match(rendered, /color:#123456;background-color:#fff2cc;font-size:20px/);
+assert.match(rendered, /<hr class="document-divider"/);
+assert.doesNotMatch(rendered, /::document-body/);
+assert.match(renderToStaticMarkup(React.createElement(LegalText, { body: "## Existing heading\n- Existing bullet" })), /<h3>Existing heading<\/h3><ul><li>Existing bullet<\/li><\/ul>/);
 
 // Every step's document has a drafted text, and the steps run 0–12 as asked.
 assert.equal(documents.onboardingSteps.length, 13);
@@ -104,6 +126,23 @@ function form({ join, skip, version = {}, time = tickedAt } = {}) {
 const reset = () => { inserted = []; updates = []; created = []; emails = []; createFails = false; joinProfile = null; };
 
 (async () => {
+  let savedText;
+  const { updateOnboardingDocument } = load("src/lib/portal/onboarding-actions.ts", {
+    "next/cache": { revalidatePath: () => {} },
+    "next/navigation": { redirect: location => { throw new Error(location); } },
+    "@/lib/auth/session": { requireEditor: async () => ({ email: "editor@ust.edu.ph" }) },
+    "@/lib/onboarding/store": { saveOnboardingDocument: async (_key, text) => { savedText = text; return "saved"; } },
+  });
+  const documentForm = new FormData();
+  documentForm.set("title", "Agreement");
+  documentForm.set("statement", "I agree.");
+  documentForm.set("body", formatted.replace(/\n/g, "\r\n"));
+  await assert.rejects(updateOnboardingDocument("recusal", undefined, documentForm), /notice=onboarding-document-saved/);
+  assert.equal(savedText.body, formatted, "Saving preserves formatted text through multipart line endings");
+  documentForm.set("body", "::document-body:v1::\ninvalid");
+  assert.ok((await updateOnboardingDocument("recusal", undefined, documentForm)).fieldErrors.body, "Invalid formatting is rejected");
+  documentForm.set("body", serializeDocumentBody([{ type: "divider" }]));
+  assert.ok((await updateOnboardingDocument("recusal", undefined, documentForm)).fieldErrors.body, "A divider alone cannot replace a legal document");
   // Every document has to be agreed to, at a version that exists.
   reset();
   assert.match((await actions.submitAccessRequest(undefined, form({ skip: "confidentiality" }))).error, /every onboarding document/);

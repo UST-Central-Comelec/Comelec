@@ -19,6 +19,26 @@ function load(file, dependencies = {}, cache = new Map()) {
 }
 const rsvp = load('src/lib/events/rsvp.ts');
 const definition = rsvp.defaultRsvpDefinition;
+const editor = load('src/lib/events/form-editor.ts');
+const committees = definition.steps.find(step => step.id === 'rsvp_committees');
+const resources = definition.steps.find(step => step.id === 'rsvp_resources_step');
+assert.ok(committees && resources && committees !== resources, 'Committees and resources have separate steps');
+assert.deepEqual(committees.fields.map(field => field.id), ['rsvp_committees']);
+assert.deepEqual(resources.fields.map(field => field.id), ['rsvp_resources', 'rsvp_resource_other']);
+const combined = structuredClone(definition);
+combined.steps = combined.steps.filter(step => step.id !== resources.id);
+combined.steps.find(step => step.id === committees.id).fields.push(...resources.fields);
+combined.steps.find(step => step.id === committees.id).title = 'Committee Involvement & Functional Roles';
+const split = rsvp.normalizeRsvpDefinition(combined);
+assert.ok(editor.editorDefinitionSchema.safeParse(split).success, 'Saved combined forms split without breaking conditional links');
+assert.deepEqual(split.steps.find(step => step.id === resources.id).fields.map(field => field.id), resources.fields.map(field => field.id));
+assert.deepEqual(rsvp.normalizeRsvpDefinition(split), split, 'Normalizing an updated form is stable');
+const participantCount = definition.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_additional');
+assert.equal(editor.answerProblem(participantCount, '10-20'), null, 'Ranges allow a hyphen');
+assert.match(editor.answerProblem(participantCount, '10/20'), /hyphens/, 'Other special characters are rejected');
+const legacyRules = structuredClone(definition);
+legacyRules.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_additional').rules = { noSpecial: true };
+assert.equal(rsvp.normalizeRsvpDefinition(legacyRules).steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_additional').rules.hyphenOnly, true, 'Saved RSVP rules allow only hyphens as special characters');
 
 // The public form: ordinary questions; a conditional choice shows its follow-ups while it's picked.
 const React = require('react');
@@ -26,11 +46,14 @@ const uiSlots = []; let uiCursor = 0;
 const previousFrame = global.requestAnimationFrame;
 global.requestAnimationFrame = callback => callback();
 const formUi = load('src/components/events/rsvp-form.tsx', {
-  react: { ...React, useState: initial => { const slot = uiCursor++; if (!(slot in uiSlots)) uiSlots[slot] = typeof initial === 'function' ? initial() : initial; return [uiSlots[slot], next => { uiSlots[slot] = typeof next === 'function' ? next(uiSlots[slot]) : next; }]; }, useActionState: () => [{}, () => {}, false], useRef: () => ({ current: null }), useEffect: () => {} },
+  react: { ...React, useState: initial => { const slot = uiCursor++; if (!(slot in uiSlots)) uiSlots[slot] = typeof initial === 'function' ? initial() : initial; return [uiSlots[slot], next => { uiSlots[slot] = typeof next === 'function' ? next(uiSlots[slot]) : next; }]; }, useActionState: () => [{}, () => {}, false], useRef: () => ({ current: null }), useEffect: () => {}, useLayoutEffect: () => {} },
   '@/lib/events/rsvp-actions': { submitRsvp: () => {} },
   '@/lib/events/rsvp': rsvp,
   'next/link': { default: props => ({ type: 'a', props }) },
   './student-verification': { StudentVerification: props => ({ type: 'verify', props }) },
+  'motion/react': { AnimatePresence: ({ children }) => children, motion: { div: 'div' }, useReducedMotion: () => true, useIsPresent: () => true },
+  './editor-fields.css': {},
+  '@/components/portal/toast': { toast: () => {} },
 });
 function walk(node) {
   if (!node || typeof node !== 'object') return [];
@@ -66,6 +89,7 @@ choiceUi('rsvp_affiliation', 'University of Santo Tomas').props.onChange();
 renderUi().find(node => node.type === 'select' && node.props.name === 'rsvp_ust_type').props.onChange({ target: { value: 'Commission — Local Comelec' } });
 assert.ok(renderUi().some(node => node.type === 'select' && node.props.name === 'rsvp_college'), 'Local units pick their college');
 assert.ok(stepIds().includes('rsvp_committees') && !stepIds().includes('rsvp_logistics'));
+assert.ok(stepIds().includes('rsvp_resources_step'), 'UST respondents also get the separate resources step');
 openStep('rsvp_committees');
 const tick = option => renderUi().find(node => node.type === 'input' && node.props.type === 'checkbox' && node.props.value === option).props.onChange({ target: { checked: true } });
 const committee = index => definition.steps.find(step => step.id === 'rsvp_committees').fields[0].options[index];
@@ -84,6 +108,8 @@ seeAcknowledgement.props.onClick();
 const page = renderUi();
 assert.ok(page.some(node => node.type === 'h2' && node.props.children === 'Your RSVP has been recorded.'), 'Preview shows the acknowledgement page');
 assert.ok(page.some(node => node.type === 'a' && node.props.href === '/events/sample/register'), 'With the registration link button');
+assert.ok(page.some(node => node.type === 'button' && node.props['aria-label'] === 'Copy registration link'), 'The acknowledgement offers a copy button');
+assert.ok(page.some(node => node.type === 'p' && node.props.children === 'Share this link or QR code with your participants. Each participant must register individually.'), 'The acknowledgement explains participant sharing');
 if (previousFrame === undefined) delete global.requestAnimationFrame; else global.requestAnimationFrame = previousFrame;
 
 let user = { kind: 'personal', affiliation: 'local', college: 'CICS', position: 'executive-board', email: 'officer@ust.edu.ph', readOnly: false };

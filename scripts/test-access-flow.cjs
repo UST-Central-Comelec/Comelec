@@ -214,11 +214,12 @@ try {
 let pathname = "/portal/accounts/access-control";
 const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
   "next/link": { default: props => React.createElement("a", props) },
-  "next/navigation": { usePathname: () => pathname },
+  "next/navigation": { usePathname: () => pathname, useSearchParams: () => new URLSearchParams() },
   "motion/react": { LayoutGroup: props => props.children, motion: { div: ({ children, className, "aria-label": label }) => React.createElement("div", { className, "aria-label": label }, children), nav: ({ children, className, "aria-label": label }) => React.createElement("nav", { className, "aria-label": label }, children), span: ({ className }) => React.createElement("span", { className }) }, useReducedMotion: () => true },
   "./portal-nav-icons": icons,
   "./portal-tab-icons": { groupIcons: icons, tabIcons: icons },
   "@/lib/portal/access": load("src/lib/portal/access.ts"),
+  "@/lib/portal/directory-return": load("src/lib/portal/directory-return.ts"),
 });
 const allTabs = groups.flatMap(group => group.tabs.map(tab => tab.key));
 const boardNav = renderToStaticMarkup(React.createElement(PortalNav, { tabs: allTabs, collapsed: false, showAccessControl: true }));

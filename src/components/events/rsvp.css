@@ -81,6 +81,8 @@
 .ev-rsvp-committee > span { flex: 1; min-width: 0; }
 .ev-rsvp-committee strong em { font-size: .85em; font-style: normal; font-weight: 400; }
 .ev-rsvp-committee:has(input:disabled) { opacity: .6; }
+.ev .ev-rsvp-committees > .ev-rsvp-committee { margin: 0; gap: 12px; }
+.ev .ev-rsvp-committee > input { margin-top: 2px; }
 .ev .ev-rsvp-rank { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--ev-text); color: var(--ev-bg); font-size: 13px; }
 
 .ev-rsvp-need { margin-bottom: 16px; }
@@ -103,3 +105,17 @@
 .ev .ev-privacy-link a { color: var(--ev-text); text-decoration: underline; text-underline-offset: 3px; }
 .ev .ev-confirm strong { font-weight: 500; }
 .ev .ev-acknowledgement p { white-space: pre-line; }
+
+.ev .ev-registration-share { align-items: start; border-top: 1px solid var(--ev-line); display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) 160px; padding-top: 24px; width: 100%; }
+.ev .ev-registration-share-details { min-width: 0; }
+.ev .ev-registration-share h3 { color: var(--ev-text); font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+.ev .ev-registration-share-link { align-items: center; border: 1px solid var(--ev-line-strong); border-radius: var(--ui-button-radius); display: flex; gap: 8px; margin-bottom: 12px; padding: 8px 12px; }
+.ev .ev-registration-share-link a { color: var(--ev-text); flex: 1; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+.ev .ev-registration-share-link .ev-button { flex: none; margin: 0; min-height: 32px; padding: 6px; }
+.ev .ev-registration-share-qr { min-height: 160px; }
+.ev .ev-registration-share-qr img { border-radius: 6px; display: block; height: 160px; width: 160px; }
+.ev .ev-registration-share-status { color: var(--ev-muted); display: block; font-size: 13px; margin-top: 8px; }
+.portal-shell .ev-registration-share-status { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; width: 1px; }
+@media (max-width: 680px) {
+  .ev .ev-registration-share { grid-template-columns: minmax(0, 1fr); }
+}

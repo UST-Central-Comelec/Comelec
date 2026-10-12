@@ -1,6 +1,7 @@
 "use client";
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Download, FileText, QrCode, RefreshCw } from "lucide-react";
+import { Check, Copy, FileText, QrCode, RefreshCw } from "lucide-react";
 import { getFormQr, regenerateFormQr } from "@/lib/portal/qr-actions";
 import { usePortalTheme } from "./portal-theme";
 import { toast } from "./toast";
@@ -160,7 +161,7 @@ function QrPanel({ eventId, eventName, form }: { eventId: string; eventName: str
         </div>
       ) : (
         <div className="portal-qr-actions">
-          <button type="button" className="portal-button is-small" disabled={!svg || busy !== ""} onClick={downloadPng}><Download size={14} aria-hidden="true" />{busy === "png" ? "Saving…" : "PNG"}</button>
+          <button type="button" className="portal-button is-small" disabled={!svg || busy !== ""} onClick={downloadPng}><DownloadIcon size={14} aria-hidden="true" />{busy === "png" ? "Saving…" : "PNG"}</button>
           <button type="button" className="portal-button is-small is-ghost" disabled={!url || busy !== ""} onClick={downloadPdf} title="Black code on a Letter page"><FileText size={14} aria-hidden="true" />{busy === "pdf" ? "Saving…" : "PDF"}</button>
           <button type="button" className="portal-button is-small is-ghost" disabled={!url || busy !== ""} onClick={() => setConfirming(true)}><RefreshCw size={14} aria-hidden="true" />Generate new</button>
         </div>

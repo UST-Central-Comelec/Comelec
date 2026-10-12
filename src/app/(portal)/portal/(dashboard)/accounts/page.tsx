@@ -19,6 +19,7 @@ import { FULL_ACCESS } from "@/lib/portal/access";
 import { canDecideRequest, canManageAccount, canSeeUnit } from "@/lib/portal/account-scope";
 import { matchesUnit } from "@/lib/portal/unit-filter";
 import { settle } from "@/lib/portal/settle";
+import { directoryReturnHref } from "@/lib/portal/directory-return";
 
 export const metadata: Metadata = { title: "Accounts" };
 
@@ -72,7 +73,8 @@ function Standing({ account }: { account: AccountSummary }) {
 }
 
 export default async function PortalAccountsPage({ searchParams }: PageProps<"/portal/accounts">) {
-  const { notice, status: statusParam, kind: kindParam, unit: unitParam } = await searchParams;
+  const { notice, status: statusParam, kind: kindParam, unit: unitParam, returnTo: returnParam } = await searchParams;
+  const returnTo = directoryReturnHref(typeof returnParam === "string" ? returnParam : null);
   const status = isFilter(statusParam) ? statusParam : undefined;
   const category = isCategory(kindParam) ? kindParam : undefined;
   const builtIn = builtInUser();
@@ -100,7 +102,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
   const showBare = bare && matchesUnit(bare, unit) && status !== "pending" && status !== "revoked" && category !== "official";
   const empty = requests.length === 0 && accounts.length === 0 && !showBare;
   const href = (next: { status?: Filter; kind?: Category }) => {
-    const query = new URLSearchParams(Object.entries({ unit, ...next }).filter(([, value]) => value) as [string, string][]).toString();
+    const query = new URLSearchParams(Object.entries({ unit, returnTo, ...next }).filter(([, value]) => value) as [string, string][]).toString();
     return query ? `/portal/accounts?${query}` : "/portal/accounts";
   };
 

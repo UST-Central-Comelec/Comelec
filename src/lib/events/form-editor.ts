@@ -27,6 +27,7 @@ export const textRules = {
   letters: "Letters only",
   digits: "Numbers only",
   noSpecial: "No special characters",
+  hyphenOnly: "Letters, numbers, spaces and hyphens",
 } as const;
 export type TextRule = keyof typeof textRules;
 export const linkKinds = { drive: "Google Drive link", facebook: "Facebook link" } as const;
@@ -49,7 +50,7 @@ export const editorFieldSchema = z.object({
   notes: z.array(z.string().trim().max(1000)).max(30).optional(),
   /** On a conditional question: the questions each choice leads to, matched to its choices by position (form-flow.ts). Forms saved with one question per choice still read. */
   branches: z.preprocess(value => Array.isArray(value) ? value.map(entry => entry == null ? [] : typeof entry === "string" ? [entry] : entry) : value, z.array(z.array(id).max(20)).max(30)).optional(),
-  rules: z.object({ uppercase: z.boolean(), studentNumber: z.boolean(), letters: z.boolean(), digits: z.boolean(), noSpecial: z.boolean() }).partial().optional(),
+  rules: z.object({ uppercase: z.boolean(), studentNumber: z.boolean(), letters: z.boolean(), digits: z.boolean(), noSpecial: z.boolean(), hyphenOnly: z.boolean() }).partial().optional(),
   /** On an Email question: the answer must be a UST Google account the respondent signs in with. */
   verifyUst: z.boolean().optional(),
   /** On a Link question: the kinds of link accepted; none means any web link. */
@@ -184,6 +185,7 @@ export function answerProblem(field: EditorField, raw: string | string[] | undef
     if (rules.letters && !patterns.letters.test(value)) return `Use letters only in ${name}.`;
     if (rules.digits && !(field.kind === "textarea" ? patterns.digitLines : patterns.digits).test(value)) return `Use numbers only in ${name}.`;
     if (rules.noSpecial && !patterns.noSpecial.test(value)) return `Remove special characters from ${name}.`;
+    if (rules.hyphenOnly && !/^[\p{L}\p{M}\p{N}\s-]*$/u.test(value)) return `Use only letters, numbers, spaces or hyphens for ${name}.`;
   }
   return null;
 }

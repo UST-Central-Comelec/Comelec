@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type MouseEvent, type ComponentProps } from "react";
-import { Bold, Italic, Underline, List, ListOrdered, Link2, Unlink, AlignLeft, AlignCenter, AlignRight, AlignJustify, IndentIncrease, IndentDecrease, Check, ChevronDown, Minus, Plus, Table2, TableCellsMerge, TableCellsSplit, Trash2, PaintBucket } from "lucide-react";
+import { Bold, Italic, Underline, List, ListOrdered, Link2, Unlink, AlignLeft, AlignCenter, AlignRight, AlignJustify, IndentIncrease, IndentDecrease, Check, ChevronDown, Minus, Plus, Table2, TableCellsMerge, TableCellsSplit, Trash2, PaintBucket, Highlighter } from "lucide-react";
 import { DOCUMENT_DEFAULT_FONT_SIZE, documentBodyHtml, normalizeDocumentColor, normalizeDocumentFontSize, normalizeDocumentHref, parseDocumentBody, serializeDocumentBody } from "@/lib/data/document-body";
 import { readDocumentEditor } from "@/lib/data/document-editor";
 import { documentTableCells, documentTableGrid, mergeDocumentTableCells, resizeDocumentTable, splitDocumentTableCell } from "@/lib/data/document-table";
@@ -61,7 +61,7 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
 }) {
   const box = useRef<HTMLDivElement>(null);
   const ribbon = useRef<HTMLDivElement>(null);
-  const [ribbonPanel, setRibbonPanel] = useState<"color" | "cellColor" | "alignment" | null>(null);
+  const [ribbonPanel, setRibbonPanel] = useState<"color" | "highlight" | "cellColor" | "alignment" | null>(null);
   const saved = useRef<Range | null>(null);
   const selectedTable = useRef<HTMLTableElement | null>(null);
   // Keep the initialization object stable so draft/toolbar updates never overwrite the browser's edits.
@@ -72,6 +72,7 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
   const linkInput = useRef<HTMLInputElement>(null);
   const [linking, setLinking] = useState<{ href: string; error: boolean; existing: boolean } | null>(null);
   const [color, setColor] = useState("#000000");
+  const [highlight, setHighlight] = useState("");
   const [cellColor, setCellColor] = useState("");
   const [fontSize, setFontSize] = useState(DOCUMENT_DEFAULT_FONT_SIZE);
   const pendingFontSize = useRef<number | null>(null);
@@ -95,6 +96,7 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
       if (pickedCells.current[0] !== cell) selectCells(cell ? [cell] : []);
       setActive(commandState());
       setColor(normalizeDocumentColor(String(document.queryCommandValue("foreColor"))) ?? "#000000");
+      setHighlight(normalizeDocumentColor(String(document.queryCommandValue("hiliteColor"))) ?? "");
       let element = selection.anchorNode instanceof HTMLElement ? selection.anchorNode : selection.anchorNode.parentElement;
       let size: number | null = null;
       while (element && element !== root && !size) { size = normalizeDocumentFontSize(element.style.fontSize); element = element.parentElement; }
@@ -236,6 +238,15 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
     document.execCommand("foreColor", false, value);
     setColor(value);
     changed();
+  }
+
+  function changeHighlight(value: string) {
+    if (!formatCells("hiliteColor", value || "transparent")) {
+      restore();
+      document.execCommand("hiliteColor", false, value || "transparent");
+      changed();
+    }
+    setHighlight(value);
   }
 
   function changeFontSize(value: number) {
@@ -526,6 +537,10 @@ export function DocumentEditor({ initialBody, onChange, labelledBy, invalid, rea
           <div className="document-ribbon-popover">
             <RibbonButton label="Font color" aria-expanded={ribbonPanel === "color"} aria-haspopup="dialog" onClick={() => setRibbonPanel(ribbonPanel === "color" ? null : "color")}><span className="document-color-icon" aria-hidden="true" style={{ borderBottomColor: color }}>A</span></RibbonButton>
             {ribbonPanel === "color" && <ColorPalette label="Font color" color={color} onSelect={value => { changeColor(value); setRibbonPanel(null); }} />}
+          </div>
+          <div className="document-ribbon-popover">
+            <RibbonButton label="Highlight color" aria-expanded={ribbonPanel === "highlight"} aria-haspopup="dialog" onClick={() => setRibbonPanel(ribbonPanel === "highlight" ? null : "highlight")}><Highlighter size={ribbonIconSize} aria-hidden="true" /></RibbonButton>
+            {ribbonPanel === "highlight" && <ColorPalette label="Highlight color" color={highlight} clearable onSelect={value => { changeHighlight(value); setRibbonPanel(null); }} />}
           </div>
         </div>
         <div className="document-ribbon-group" role="group" aria-label="Insert">

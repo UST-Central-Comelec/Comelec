@@ -12,6 +12,12 @@ function marksOf(node: HTMLElement, marks: Marks): Marks {
   if (node.tagName === "A") next.href = normalizeDocumentHref(node.getAttribute("href") ?? "") ?? undefined;
   const color = normalizeDocumentColor(node.style.color || (node.tagName === "FONT" ? node.getAttribute("color") ?? "" : ""));
   if (color) next.color = color;
+  // Cell fills are block layout; only inline backgrounds are text highlights.
+  if (!["TD", "TH", "TABLE"].includes(node.tagName)) {
+    const backgroundColor = normalizeDocumentColor(node.style.backgroundColor);
+    if (backgroundColor) next.backgroundColor = backgroundColor;
+    else if (["transparent", "rgba(0, 0, 0, 0)"].includes(node.style.backgroundColor)) delete next.backgroundColor;
+  }
   const fontSize = normalizeDocumentFontSize(node.style.fontSize) ?? (node.tagName === "FONT" ? [10, 13, 16, 18, 24, 32, 48][Number(node.getAttribute("size")) - 1] : undefined);
   if (fontSize) next.fontSize = fontSize;
   return next;

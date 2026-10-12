@@ -135,7 +135,7 @@ export const defaultRsvpDefinition: EditorDefinition = { steps: [
   defaultPrivacyStep([privacyConsent("rsvp_consent", "event’s coordination"), { id: "rsvp_consent_share", kind: "confirm", required: true, options: [], prompt: "", label: "I understand that my RSVP details are shared with the event’s organizers and its collaborating units." }]),
   step("rsvp_profile", "Profile", [
     name("rsvp_last_name", "Last name", "lastName"), name("rsvp_first_name", "First name", "firstName"), name("rsvp_middle_name", "Middle name", "middleName"),
-    { id: "rsvp_email", label: "Email", prompt: "With a UST email, you’ll also give your student number.", kind: "email", required: true, options: [], identity: "email", branches: [["rsvp_student_number"], []] },
+    { id: "rsvp_email", label: "Email", prompt: "", kind: "email", required: true, options: [], identity: "email", branches: [["rsvp_student_number"], []] },
     text("rsvp_student_number", "Student number", { rules: { studentNumber: true }, identity: "studentNumber" }),
   ]),
   step("rsvp_affiliation", "Affiliation", [
@@ -157,17 +157,18 @@ export const defaultRsvpDefinition: EditorDefinition = { steps: [
   ], "Select your attendance response."),
   step("rsvp_delegation", "Organization Delegation", [
     choice("rsvp_delegation", "radio", "Will you or your organization send additional participants?", Object.values(delegationChoices), { branches: [["rsvp_additional"], [], ["rsvp_additional"]] }),
-    text("rsvp_additional", "Number of Additional Participants (can be a range)", { prompt: "Count only additional participants. Exclude yourself or the proxy attending in your place.", rules: { noSpecial: true } }),
-    { id: "rsvp_link_note", kind: "content", label: "Public registration link", prompt: "After submitting this RSVP, you will receive a public registration link to share with your participants. Each participant must register individually.", required: false, options: [] },
+    text("rsvp_additional", "Number of Additional Participants (can be a range)", { prompt: "Count only additional participants. Exclude yourself or the proxy attending in your place.", rules: { hyphenOnly: true } }),
   ]),
-  step("rsvp_committees", "Committee Involvement & Functional Roles", [
+  step("rsvp_committees", "Preferred committee assignments", [
     choice("rsvp_committees", "checkbox", "Preferred committee assignments", committeeAssignments.map(item => `${item.label} (${item.phase})`), { required: false, notes: committeeAssignments.map(item => item.description), min: 1, max: 2, ranked: true }),
+  ], "Select your unit’s preferred committee assignments. Responsibilities are categorized by operational phase to ensure end-to-end event success."),
+  step("rsvp_resources_step", "Logistical Support and Resources", [
     choice("rsvp_resources", "checkbox", "Logistical Support and Resources", logisticalResources.map(item => item.label), { required: false, prompt: "Which equipment, supplies, or materials can your unit lend or provide for the event? Select all that apply.", notes: logisticalResources.map(item => item.description), min: 1, max: logisticalResources.length, branches: logisticalResources.map(item => item.id === "other" ? ["rsvp_resource_other"] : []) }),
     text("rsvp_resource_other", "Other resources", { prompt: "Type the equipment, supplies, or materials." }),
-  ], "Select your unit’s preferred committee assignments. Responsibilities are categorized by operational phase to ensure end-to-end event success."),
+  ]),
   step("rsvp_logistics", "Logistical Needs", [
     choice("rsvp_logistics", "checkbox", "Logistical needs", Object.values(requestKinds).map(item => item.label), { required: false, min: 1, max: Object.keys(requestKinds).length, branches: Object.keys(requestKinds).map(kind => kind === "parking" ? ["rsvp_car_plate", "rsvp_car_model", "rsvp_car_color", "rsvp_arrival"] : kind === "dietary" ? ["rsvp_allergens"] : []) }),
-    text("rsvp_car_plate", "Car plate number", { rules: { uppercase: true, noSpecial: true } }), text("rsvp_car_model", "Car model"), text("rsvp_car_color", "Car color"),
+    text("rsvp_car_plate", "Car plate number", { rules: { uppercase: true, hyphenOnly: true } }), text("rsvp_car_model", "Car model"), text("rsvp_car_color", "Car color"),
     text("rsvp_arrival", "Expected time of arrival", { prompt: "For example, 8:30 AM" }),
     text("rsvp_allergens", "Allergens", { prompt: "For example: peanuts, shellfish; vegetarian" }),
   ], "Select the logistical assistance you need for the event. Requests are optional and subject to availability."),
@@ -186,7 +187,25 @@ export const defaultRsvpDefinition: EditorDefinition = { steps: [
 export function normalizeRsvpDefinition(definition: EditorDefinition | null | undefined): EditorDefinition {
   if (!definition) return defaultRsvpDefinition;
   const legacy = definition.steps.some(item => item.builtin !== undefined) || definition.steps.some(item => item.fields.some(field => "standard" in field)) || definition.steps[0]?.kind !== "privacy";
-  if (!legacy) return definition;
+  if (!legacy) {
+    const needsUpdate = definition.steps.some(item => item.fields.some(field => field.id.startsWith("rsvp_") && field.rules?.noSpecial) || (item.fields.some(field => field.id === "rsvp_committees") && item.fields.some(field => field.id === "rsvp_resources")));
+    if (!needsUpdate) return definition;
+    const ids = new Set(definition.steps.map(item => item.id));
+    return { ...definition, steps: definition.steps.flatMap(item => {
+      const fields = item.fields.map(field => {
+        if (!field.id.startsWith("rsvp_") || !field.rules?.noSpecial) return field;
+        const rules = { ...field.rules, hyphenOnly: true };
+        delete rules.noSpecial;
+        return { ...field, rules };
+      });
+      if (!fields.some(field => field.id === "rsvp_committees") || !fields.some(field => field.id === "rsvp_resources")) return [{ ...item, fields }];
+      const resourceIds = new Set(["rsvp_resources", "rsvp_resource_other"]);
+      let resourceStepId = "rsvp_resources_step";
+      while (ids.has(resourceStepId)) resourceStepId += "_";
+      ids.add(resourceStepId);
+      return [{ ...item, title: item.title === "Committee Involvement & Functional Roles" ? "Preferred committee assignments" : item.title, fields: fields.filter(field => !resourceIds.has(field.id)) }, step(resourceStepId, "Logistical Support and Resources", fields.filter(field => resourceIds.has(field.id)))];
+    }) };
+  }
   const added = definition.steps.flatMap(item => item.fields).filter(field => !("standard" in field) && field.id.startsWith("q_")).map(field => { const copy = { ...field }; delete copy.branches; return copy; });
   if (!added.length) return defaultRsvpDefinition;
   const steps = [...defaultRsvpDefinition.steps];

@@ -41,6 +41,13 @@
 .portal-legal-text :is(ul, ol) { margin: 0 0 12px; padding-left: 22px; }
 .portal-legal-text li { margin-bottom: 6px; padding-left: 2px; }
 .portal-legal-text ol li::marker { color: var(--p-muted); font-variant-numeric: tabular-nums; }
+.portal-legal-text ul { list-style: disc; }
+.portal-legal-text ol { list-style: decimal; }
+.portal-legal-text a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.portal-legal-text .document-divider { border: 0; border-top: 1px solid var(--p-line-strong); margin: 18px 0; }
+.portal-legal-text .document-table-wrap { overflow-x: auto; }
+.portal-legal-text .document-table { border-collapse: collapse; min-width: 100%; }
+.portal-legal-text :is(th, td) { border: 1px solid var(--p-line); padding: 8px 12px; vertical-align: top; }
 
 .onboarding-agree { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line-strong); border-radius: 14px; color: var(--p-text); cursor: pointer; display: flex; font-size: 14px; font-weight: 500; gap: 12px; line-height: 1.5; margin-top: 14px; padding: 14px 16px; }
 .onboarding-agree input { accent-color: var(--p-text); flex: none; height: 16px; margin: 3px 0 0; width: 16px; }
@@ -60,7 +67,6 @@
 .onboarding-docs td small { display: block; margin-top: 2px; }
 .onboarding-editor { border: 0; display: grid; gap: 22px; margin: 0; min-width: 0; padding: 26px; }
 .onboarding-editor[hidden], .onboarding-preview[hidden] { display: none; }
-.onboarding-editor textarea { min-height: 440px; }
 .onboarding-preview { padding: 26px; }
 .onboarding-preview h2 { font-size: 21px; margin: 0 0 16px; }
 .onboarding-preview .onboarding-agree { cursor: default; }

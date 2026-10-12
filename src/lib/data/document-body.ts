@@ -45,7 +45,7 @@ export function documentLayoutStyle(layout: DocumentLayout): CSSProperties | und
   return layout.align || layout.indent ? { ...(layout.align && { textAlign: layout.align }), ...(layout.indent && { marginLeft: `${layout.indent * 24}px` }) } : undefined;
 }
 
-const runSchema = z.object({ text: z.string(), bold: z.boolean().optional(), italic: z.boolean().optional(), underline: z.boolean().optional(), href: z.string().refine(value => normalizeDocumentHref(value) === value).optional(), color: z.string().regex(/^#[\da-f]{6}$/i).optional(), fontSize: z.number().min(8).max(96).optional() });
+const runSchema = z.object({ text: z.string(), bold: z.boolean().optional(), italic: z.boolean().optional(), underline: z.boolean().optional(), href: z.string().refine(value => normalizeDocumentHref(value) === value).optional(), color: z.string().regex(/^#[\da-f]{6}$/i).optional(), backgroundColor: z.string().regex(/^#[\da-f]{6}$/i).optional(), fontSize: z.number().min(8).max(96).optional() });
 const runsSchema = z.array(runSchema);
 const listSchema = { items: z.array(runsSchema), start: z.number().int().min(1).max(1000000).optional(), ...layoutSchema };
 const richBlockSchema = z.discriminatedUnion("type", [
@@ -150,7 +150,8 @@ function runsHtml(runs: DocumentRun[]) {
     if (run.italic) html = `<em>${html}</em>`;
     if (run.underline) html = `<u>${html}</u>`;
     const color = run.color && normalizeDocumentColor(run.color);
-    const styles = [color && `color:${color}`, run.fontSize && `font-size:${run.fontSize}px`].filter(Boolean).join(";");
+    const backgroundColor = run.backgroundColor && normalizeDocumentColor(run.backgroundColor);
+    const styles = [color && `color:${color}`, backgroundColor && `background-color:${backgroundColor}`, run.fontSize && `font-size:${run.fontSize}px`].filter(Boolean).join(";");
     if (styles) html = `<span style="${styles}">${html}</span>`;
     const href = run.href && normalizeDocumentHref(run.href);
     if (href) html = `<a href="${escapeHtml(href)}">${html}</a>`;

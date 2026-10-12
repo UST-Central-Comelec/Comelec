@@ -27,7 +27,10 @@ export { ClipboardCheck as ListChecks } from "@/components/animate-ui/icons/clip
 export { Fingerprint as Vote } from "@/components/animate-ui/icons/fingerprint";
 export { Gavel } from "@/components/animate-ui/icons/gavel";
 export { LayoutDashboard } from "@/components/animate-ui/icons/layout-dashboard";
+export { PanelLeft } from "@/components/animate-ui/icons/panel-left";
 export { List as Hash } from "@/components/animate-ui/icons/list";
+export { List } from "@/components/animate-ui/icons/list";
+export { GalleryHorizontalEnd } from "@/components/animate-ui/icons/gallery-horizontal-end";
 export { Send } from "@/components/animate-ui/icons/send";
 export { SlidersHorizontal as Settings2 } from "@/components/animate-ui/icons/sliders-horizontal";
 export { Users } from "@/components/animate-ui/icons/users";

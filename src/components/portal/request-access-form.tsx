@@ -1,8 +1,9 @@
 "use client";
 
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, Copy, Download, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Info } from "lucide-react";
 import { Combobox } from "@/components/combobox";
 import { FacebookProfileInput } from "@/components/facebook-profile-input";
 import { GoogleMark } from "@/components/portal/login-form";
@@ -120,7 +121,7 @@ function AccessReceipt({ result, onBack }: { result?: SubmittedAccessRequest; on
           </dl>
           <div className="portal-receipt-save">
             <p className="portal-muted">{saving === "failed" ? "Couldn’t create the image. Take a screenshot instead." : "Keep a copy of this receipt as an image."}</p>
-            <button className="portal-button is-ghost is-small" type="button" onClick={save} disabled={saving === "saving"}><Download size={14} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
+            <button className="portal-button is-ghost is-small" type="button" onClick={save} disabled={saving === "saving"}><DownloadIcon size={14} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
           </div>
         </>
       )}

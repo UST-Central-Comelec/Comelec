@@ -1,12 +1,60 @@
 "use client";
 import { answerHint, type EditorField, type FormAnswers } from "@/lib/events/form-editor";
 import { StudentVerification } from "./student-verification";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
+import "./editor-fields.css";
+
+const emailGuide = "With a UST email, you’ll also give your student number.";
+const registrationGuide = "After submitting this RSVP, you will receive a public registration link to share with your participants. Each participant must register individually.";
+const ustDomain = "@ust.edu.ph";
+
+function RsvpEmail({ field, value, onChange }: { field: EditorField; value: string; onChange: (value: string) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const mirror = useRef<HTMLSpanElement>(null);
+  const [focused, setFocused] = useState(false);
+  const at = value.indexOf("@");
+  const local = at < 0 ? value : value.slice(0, at);
+  const domain = at < 0 ? "" : value.slice(at);
+  const matching = at > 0 && !/\s/.test(local) && ustDomain.startsWith(domain.toLowerCase());
+  const highlighted = matching && domain.length >= 2;
+  const verified = matching && domain.toLowerCase() === ustDomain;
+  const suggestion = focused && matching && !verified ? ustDomain.slice(domain.length) : "";
+  const hintId = `${field.id}-domain-hint`;
+
+  function syncScroll() {
+    if (mirror.current && input.current) mirror.current.style.transform = `translateX(${-input.current.scrollLeft}px)`;
+  }
+  useLayoutEffect(syncScroll, [value, focused]);
+
+  return <>
+    <label className="ev-field"><span className="ev-sr-only">{field.label}</span>
+      <span className="ev-ust-email">
+        <input ref={input} name={field.id} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} maxLength={254} required={field.required} value={value}
+          aria-describedby={suggestion ? hintId : undefined}
+          onChange={event => onChange(event.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onScroll={syncScroll}
+          onKeyDown={event => {
+            if (event.key === "Tab" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && suggestion) {
+              event.preventDefault();
+              onChange(local + ustDomain);
+            }
+          }} />
+        <span className="ev-ust-email-display" aria-hidden="true"><span ref={mirror}>{local}<span className={`ev-ust-email-domain${highlighted ? " is-ust" : ""}`}>{domain}</span><span className="ev-ust-email-suggestion">{suggestion}</span></span></span>
+      </span>
+    </label>
+    {suggestion && <p className="ev-field-hint" id={hintId}>Press Tab to complete {ustDomain}.</p>}
+    <span className="ev-ust-email-status" role="status">{verified && <><CheckCircle2 size={14} aria-hidden="true" /><span>Verified <span className="ev-sr-only">UST email domain</span></span></>}</span>
+  </>;
+}
 
 type Verify = { eventId: string; target: "rsvp-form" | "evaluate"; preview?: boolean };
 
 function Required({ field }: { field: EditorField }) { return field.required ? <span className="ev-evaluation-required" aria-label="required">*</span> : null; }
 function Hint({ field }: { field: EditorField }) {
-  const text = [field.prompt, answerHint(field)].filter(Boolean).join(" ");
+  const prompt = field.prompt.trim() === emailGuide ? "" : field.prompt;
+  const rules = answerHint(field).split(" · ").filter(text => text !== "Letters only" && text !== "No special characters").join(" · ");
+  const text = [prompt, rules].filter(Boolean).join(" ");
   return text ? <p className="ev-field-hint">{text}</p> : null;
 }
 
@@ -17,9 +65,33 @@ function Hint({ field }: { field: EditorField }) {
  * With `columns`, short questions in a row share a line, as on the Apply form: two or three across,
  * a lone one full width (the classes size them on a six-column grid; rsvp.css).
  */
-export function EditorFields({ fields, values, onChange, verify, columns = false }: { fields: EditorField[]; values: FormAnswers; onChange: (id: string, value: string | string[]) => void; verify?: Verify; columns?: boolean }) {
-  const spans = columns ? lineUp(fields) : [];
-  return <>{fields.map((field, index) => <Question key={field.id} field={field} value={values[field.id]} onChange={value => onChange(field.id, value)} verify={verify} span={spans[index]} />)}</>;
+export function EditorFields({ fields, visible, values, onChange, verify, columns = false }: { fields: EditorField[]; visible?: ReadonlySet<string>; values: FormAnswers; onChange: (id: string, value: string | string[]) => void; verify?: Verify; columns?: boolean }) {
+  const reducedMotion = useReducedMotion();
+  const questions = fields.filter(field => !(field.kind === "content" && field.prompt.trim() === registrationGuide));
+  // Use the complete step to size columns; a revealed question must not rearrange earlier inputs.
+  const spans = columns ? lineUp(questions) : [];
+  return <AnimatePresence initial={false}>{questions.map((field, index) => (!visible || visible.has(field.id)) && <RevealedQuestion key={field.id} field={field} value={values[field.id]} onChange={value => onChange(field.id, value)} verify={verify} span={spans[index]} reducedMotion={Boolean(reducedMotion)} />)}</AnimatePresence>;
+}
+
+function RevealedQuestion({ reducedMotion, ...props }: Parameters<typeof Question>[0] & { reducedMotion: boolean }) {
+  const present = useIsPresent();
+  const content = useRef<HTMLFieldSetElement>(null);
+  const [height, setHeight] = useState<number>();
+  useLayoutEffect(() => {
+    const element = content.current;
+    if (!element) return;
+    // Numeric heights avoid the animation library's temporary "auto" measurement and scroll reset.
+    const measure = () => setHeight(element.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return <motion.div className={`ev-field-reveal${props.span ? ` is-span-${props.span}` : ""}`}
+    initial={{ height: 0, opacity: 0 }} animate={{ height, opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+    transition={{ duration: reducedMotion ? 0 : 0.42, ease: [0.22, 1, 0.36, 1] }} style={{ overflow: "hidden" }}>
+    <fieldset ref={content} className="ev-field-reveal-content" disabled={!present} role="presentation"><Question {...props} /></fieldset>
+  </motion.div>;
 }
 
 const isShort = (field: EditorField) => field.kind === "text" || field.kind === "link" || field.kind === "dropdown" || (field.kind === "email" && !field.verifyUst);
@@ -66,10 +138,10 @@ function Question({ field, value, onChange, verify, span }: { field: EditorField
   if (field.kind === "checkbox") {
     const max = field.max ?? field.options.length;
     return <fieldset className={fieldset}>{legend}<Hint field={field} />
-      <div className={field.ranked ? "ev-rsvp-committees" : undefined}>{field.options.map((option, index) => {
+      <div className="ev-rsvp-committees">{field.options.map((option, index) => {
         const rank = list.indexOf(option) + 1;
         const note = field.notes?.[index];
-        return <label className={`ev-evaluation-check${field.ranked ? " ev-rsvp-committee" : ""}${rank ? " is-selected" : ""}`} key={option}>
+        return <label className={`ev-evaluation-check ev-rsvp-committee${rank ? " is-selected" : ""}`} key={option}>
           <input type="checkbox" name={field.ranked ? undefined : field.id} value={option} checked={rank > 0} disabled={!rank && list.length >= max} onChange={event => onChange(event.target.checked ? [...list, option] : list.filter(item => item !== option))} />
           <span>{note ? <><strong>{option}</strong><small>{note}</small></> : option}{rank > 0 && field.ranked && <span className="ev-sr-only">Choice {rank}</span>}</span>
           {rank > 0 && field.ranked && <b className="ev-rsvp-rank" aria-hidden="true">{rank}</b>}
@@ -103,6 +175,12 @@ function Question({ field, value, onChange, verify, span }: { field: EditorField
   );
 
   const rules = field.rules ?? {};
+  if (field.kind === "email" && verify?.target === "rsvp-form") return (
+    <fieldset className={fieldset}>{legend}
+      <RsvpEmail field={field} value={text} onChange={onChange} />
+      <Hint field={field} />
+    </fieldset>
+  );
   const numeric = rules.studentNumber || rules.digits;
   const common = {
     name: field.id,

@@ -181,6 +181,10 @@
 .portal-event-editor-bar > .portal-filters { margin: 0; }
 .portal-event-editor-view { margin-left: auto; }
 .portal-event-editor-view > .portal-filters { margin: 0; }
+.form-editor-view-toggle { display: inline-flex; max-width: 100%; min-width: 0; }
+.form-editor-view-toggle .portal-filters { align-items: stretch; align-self: auto; box-sizing: border-box; flex-wrap: nowrap; height: 40px; margin: 0; }
+.form-editor-view-toggle .portal-filters button { align-items: center; display: inline-flex; gap: 8px; height: 30px; justify-content: center; padding: 0 13px; }
+.form-editor-view-icon, .form-editor-view-icon > span { align-items: center; display: inline-flex; flex: none; }
 .portal-form-links { align-items: center; display: flex; gap: 8px; min-width: 0; position: relative; }
 .portal-form-links-label { color: var(--p-muted); font-size: 13px; }
 .portal-form-links-url { color: var(--p-text); font-size: 13px; max-width: min(42vw, 420px); overflow: hidden; text-decoration: underline; text-decoration-color: var(--p-line-strong); text-overflow: ellipsis; text-underline-offset: 3px; white-space: nowrap; }
@@ -223,6 +227,10 @@
 	.form-builder-panel { padding: 20px 0 4px; }
 }
 @media (max-width: 600px) {
+	.portal-event-editor-view { margin-left: 0; width: 100%; }
+	.form-editor-view-toggle { width: 100%; }
+	.form-editor-view-toggle .portal-filters { width: 100%; }
+	.form-editor-view-toggle .portal-filters button { flex: 1; }
 	.portal-form-links { flex-wrap: wrap; width: 100%; }
 	.portal-form-links-url { max-width: calc(100vw - 120px); }
 	.portal-qr-panel { left: 0; right: auto; width: min(320px, calc(100vw - 48px)); }

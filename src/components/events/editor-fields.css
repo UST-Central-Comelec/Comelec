@@ -1,0 +1,27 @@
+/* Keep the viewport steady when conditional fields push later content down. */
+html:has(.ev-evaluation-form) { overflow-anchor: none; }
+.ev .ev-evaluation-fields { align-content: start; align-items: start; display: grid; margin-bottom: -24px; }
+.ev .ev-evaluation-fields:empty { display: none; }
+.ev .ev-evaluation-form .ev-group.ev-animated-fields { align-content: start; align-items: start; row-gap: 0; }
+.ev .ev-field-reveal { align-self: start; border: 0; margin: 0; min-width: 0; padding: 0; }
+.ev .ev-field-reveal-content { border: 0; margin: 0; min-width: 0; padding: 0 0 24px; }
+.ev .ev-field-reveal-content > * { margin: 0; min-width: 0; }
+.ev .ev-rsvp-form .ev-rsvp-group.ev-animated-fields { padding-bottom: 4px; }
+.ev .ev-animated-fields > .ev-privacy-link { padding-bottom: 24px; }
+.ev-form-preview { overflow-anchor: none; }
+
+/* Mirror the native email input so only the UST domain changes colour. */
+.ev .ev-ust-email { display: block; position: relative; }
+.ev .ev-field .ev-ust-email input { caret-color: var(--ev-text); color: transparent; -webkit-text-fill-color: transparent; }
+.ev .ev-ust-email-display { align-items: center; color: var(--ev-text); display: flex; font: inherit; font-size: 16px; inset: 1px; overflow: hidden; padding: 11px 14px; pointer-events: none; position: absolute; white-space: pre; }
+.ev .ev-ust-email-display > span { flex: none; }
+.ev .ev-ust-email-domain { transition: color .3s var(--ev-ease); }
+.ev .ev-ust-email-domain.is-ust { color: var(--ev-gold-mark); }
+.ev .ev-ust-email-suggestion { color: var(--ev-placeholder); }
+.ev .ev-ust-email-status { align-items: center; color: var(--ev-soft); display: flex; font-size: 12px; gap: 6px; }
+.ev .ev-ust-email-status:empty { display: none; }
+.ev .ev-ust-email-status svg { color: var(--ev-ok-ink); flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ev .ev-field-reveal { animation: none; transition: none; }
+  .ev .ev-ust-email-domain { transition: none; }
+}

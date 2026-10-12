@@ -46,6 +46,8 @@ const actions = load("src/lib/portal/account-actions.ts", {
   },
   "@/lib/data/accounts": accounts,
   "@/lib/data/store": { store, isMissingColumn: () => false },
+  "@/lib/data/edit-guard": { readGuard: () => ({ stamp: null, overwrite: null }), saveGuarded: async () => ({ missing: true }), conflictState: async () => ({}) },
+  "@/lib/data/queries": { getAccount: async () => null },
   "@/lib/applications/options": options,
   "@/lib/applications/admin": { getApplication: async () => application },
   "@/lib/data/types": types,

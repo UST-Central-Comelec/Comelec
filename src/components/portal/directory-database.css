@@ -1,0 +1,44 @@
+.directory-database { --directory-position-width: 180px; --directory-name-width: 240px; }
+.directory-database-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; padding: 18px 20px; }
+.directory-database-toolbar .portal-search { min-width: 0; }
+.directory-database-toolbar .portal-dropdown { flex: 0 1 320px; margin-left: auto; max-width: 100%; }
+.directory-database-toolbar :is(.portal-input, .portal-dropdown > button) { border-radius: 12px; }
+.directory-database-footer { border-top: 1px solid var(--p-line); padding: 14px 20px; }
+.directory-database-scroll { border-radius: 0; max-height: 70vh; overflow: auto; }
+.directory-database-scroll:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+.directory-database-table { border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; width: max(100%, 2400px); }
+.directory-database-position { width: var(--directory-position-width); }
+.directory-database-name { width: var(--directory-name-width); }
+.directory-database-photo { width: 72px; }
+.directory-database-email { width: 240px; }
+.directory-database-agreements { width: 340px; }
+.directory-database-table thead th { background: var(--p-surface); position: sticky; top: 0; z-index: 2; }
+.directory-database-table tr > :is(:first-child, :nth-child(2)):not([colspan]) { background: var(--p-surface); border-right: 1px solid var(--p-line-strong); position: sticky; white-space: normal; z-index: 1; }
+.directory-database-table tr > :first-child:not([colspan]) { left: 0; }
+.directory-database-table tr > :nth-child(2) { left: var(--directory-position-width); }
+.directory-database-table thead tr > :is(:first-child, :nth-child(2)):not([colspan]) { z-index: 3; }
+.directory-database-table tbody th { color: var(--p-text); font-size: 14px; font-weight: 600; padding: 15px 20px; vertical-align: middle; }
+.directory-database-table :is(th, td) { overflow-wrap: anywhere; }
+.directory-database-table tbody td > a { color: var(--p-text); }
+.directory-database-table a:is([href^="mailto:"], [href^="tel:"]) { white-space: nowrap; }
+.directory-database-table :is(.portal-avatar, img) { border-radius: 50%; height: 40px; width: 40px; }
+.directory-database-table tbody tr:hover > :is(:first-child, :nth-child(2)):not([colspan]) { background: var(--p-raised); }
+.directory-database-table tbody tr:last-child th { border-bottom: 0; }
+.directory-database-declarations { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.directory-database-declarations small { color: var(--p-muted); }
+@media (max-width: 860px) {
+  .directory-database { --directory-position-width: 110px; --directory-name-width: 160px; }
+  .directory-database-toolbar, .directory-database-footer { padding: 16px; }
+  .directory-database-toolbar .portal-search { flex-basis: 100%; max-width: none; }
+  .directory-database-table tr > :is(:first-child, :nth-child(2)):not([colspan]) { padding-left: 12px; padding-right: 12px; }
+}
+.directory-view-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
+.directory-view-toolbar .portal-filters { margin: 0; }
+.directory-view-toolbar .portal-filters a { align-items: center; display: inline-flex; gap: 8px; }
+.directory-view-icon, .directory-view-icon > span { align-items: center; display: inline-flex; }
+.directory-view-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.directory-export-menu { background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 14px; box-shadow: var(--p-shadow-pop); color: var(--p-text); inset: auto; margin: 0; overflow: auto; padding: 16px; position: fixed; width: min(260px, calc(100vw - 24px)); }
+.directory-export-menu:popover-open { animation: portal-tip-in .14s var(--p-ease); display: grid; gap: 6px; }
+.directory-export-menu p { color: var(--p-muted); font-size: 15px; font-weight: 500; margin: 0 0 6px; }
+.directory-export-menu .portal-button { justify-content: flex-start; }
+@media (prefers-reduced-motion: reduce) { .directory-export-menu:popover-open { animation: none; } }

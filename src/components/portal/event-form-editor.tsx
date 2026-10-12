@@ -3,12 +3,12 @@ import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { DndContext, KeyboardSensor, MeasuringStrategy, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, ChevronDown, Eye, GitBranch, GripVertical, Heading, ImageIcon, ListChecks, LockKeyhole, Mail, MonitorSmartphone, Plus, RotateCcw, ShieldCheck, SquareCheckBig, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Eye, GitBranch, GripVertical, Heading, ImageIcon, LockKeyhole, Mail, Plus, RotateCcw, ShieldCheck, SquareCheckBig, Trash2 } from "lucide-react";
 import { acknowledgementTags, fieldKinds, type Acknowledgement, type EditorDefinition, type EditorField, type EditorStep, type FieldKind } from "@/lib/events/form-editor";
 import { findField, insertFields, isFixedStep, keepsOrder, patchStep, placeField, placeStep, removeStep } from "@/lib/events/form-flow";
 import { FieldEditor, fieldProblem, hasChoices, IconButton, kindIcons, plural } from "./form-field-editor";
 import { formTools, MAX_STEPS, newId, StepSettings, type FormTools } from "./form-editor-tools";
-import { SlidingFilterButtons } from "./sliding-filters";
+import { FormEditorViewToggle } from "./form-editor-view-toggle";
 import { toast } from "./toast";
 import "./event-form-editor.css";
 
@@ -23,9 +23,8 @@ export function useFormEditorMode() {
   return { mode: picked ?? stored ?? "forms", pickMode };
 }
 
-export function FormEditorViewToggle({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {
-  return <SlidingFilterButtons label="Editor view" active={mode} onChange={onChange} items={[{ key: "forms", label: <><ListChecks size={14} aria-hidden="true" />Forms editor</> }, { key: "preview", label: <><MonitorSmartphone size={14} aria-hidden="true" />Preview form</> }]} />;
-}
+export { FormEditorViewToggle };
+
 const stepKey = (id: string) => `step:${id}`;
 const fieldKey = (id: string) => `field:${id}`;
 /** Steps that keep their place: the consent first, the evaluation's profile lookup, the acknowledgement last. */

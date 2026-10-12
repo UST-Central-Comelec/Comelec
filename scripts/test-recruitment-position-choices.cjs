@@ -39,6 +39,7 @@ const mocks = {
   "@/components/combobox": { Combobox: emptyComponent },
   "@/components/facebook-profile-input": { FacebookProfileInput: emptyComponent },
   "@/components/interview-picker": { InterviewPicker: emptyComponent },
+  "@/components/lucide-animated/download": { DownloadIcon: emptyComponent },
 };
 const cache = new Map();
 function load(file) {

@@ -1,8 +1,9 @@
 "use client";
 
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Copy, Download, Eye, Mail, ShieldCheck, Target, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Copy, Eye, Mail, ShieldCheck, Target, Users } from "lucide-react";
 import { submitApplication, type ApplicationState, type SubmittedApplication } from "@/lib/applications/actions";
 import { forgetApplicantVerification } from "@/lib/applications/verification-actions";
 import { digitsOnly, formatMobileNumber, formatNumericInput } from "@/lib/applications/numeric-input";
@@ -174,7 +175,7 @@ function ApplicationResult({ result, preview, onRestart }: { result?: SubmittedA
           </dl>
           <div className="apply-result-save">
             <p>{saving === "failed" ? "Couldn’t create the image. Take a screenshot of this page instead." : "Keep a copy of this receipt, with your reference code and all your answers, as an image."}</p>
-            <button type="button" onClick={save} disabled={saving === "saving"}><Download size={15} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
+            <button type="button" onClick={save} disabled={saving === "saving"}><DownloadIcon size={15} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
           </div>
         </section>
       )}

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ChamberGroup } from "@/components/portal/chamber-group";
 import { CollegeFilter } from "@/components/portal/college-filter";
 import { DirectoryCards, type DirectoryCard } from "@/components/portal/directory-cards";
+import { DirectoryDatabase } from "@/components/portal/directory-database";
+import { DirectoryWorkspace } from "@/components/portal/directory-workspace";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { allowed, canOpen, isLocal, withPortalUser } from "@/lib/auth/session";
 import { yearLevelsFor } from "@/lib/applications/options";
@@ -10,6 +12,7 @@ import { detailsFor } from "@/lib/data/accounts";
 import { getAccounts, getDirectory } from "@/lib/data/queries";
 import { describeAffiliation, directoryGroups, type AccountSummary, type DirectoryEntry } from "@/lib/data/types";
 import { canManageAccount } from "@/lib/portal/account-scope";
+import { directoryDatabaseRows } from "@/lib/portal/directory-database";
 
 export const metadata: Metadata = { title: "Directory" };
 
@@ -23,7 +26,8 @@ const groupInfo: Record<keyof typeof directoryGroups, string> = {
 };
 
 export default async function PortalMembersPage({ searchParams }: PageProps<"/portal/members">) {
-  const [user, [directory, accounts, { college: collegeParam }]] = await withPortalUser(Promise.all([getDirectory(), getAccounts(), searchParams]), allowed("members"));
+  const [user, [directory, accounts, { college: collegeParam, view: viewParam }]] = await withPortalUser(Promise.all([getDirectory(), getAccounts(), searchParams]), allowed("members"));
+  const view = viewParam === "database" ? "database" : "dashboard";
   // A Local account sees only its own college's Local Comelec.
   const local = isLocal(user);
   // Whoever has the Accounts tab and isn't there only to read.
@@ -32,6 +36,12 @@ export default async function PortalMembersPage({ searchParams }: PageProps<"/po
   const localColleges = [...new Set(directory.local.map((person) => person.college ?? ""))].sort((a, b) => a.localeCompare(b));
   const college = typeof collegeParam === "string" && localColleges.includes(collegeParam) ? collegeParam : "";
   const shownColleges = local ? localColleges.filter((unit) => unit === user.college) : college ? [college] : localColleges;
+  const viewHref = (next: string) => {
+    const params = new URLSearchParams();
+    if (college) params.set("college", college);
+    if (next === "database") params.set("view", next);
+    return `/portal/members${params.size ? `?${params}` : ""}`;
+  };
 
   // Active accounts that aren't listed because their role hasn't been picked, for whoever can pick it.
   const unlisted = manages ? accounts.filter((account) => account.active && !account.role && account.kind === "personal" && detailsFor(account.affiliation, account.position).role && (account.id === user.id || canManageAccount(user, account))) : [];
@@ -63,7 +73,7 @@ export default async function PortalMembersPage({ searchParams }: PageProps<"/po
   const automatic = <span className="portal-tag">From Accounts</span>;
 
   return (
-    <main className="portal-page">
+    <main className={`portal-page${view === "database" ? " is-wide" : ""}`}>
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Secretariat</p>
@@ -72,67 +82,78 @@ export default async function PortalMembersPage({ searchParams }: PageProps<"/po
             : "The commission, as shown in “Meet the commission” on the website’s About page. It’s filled in from Accounts: everyone with an active account and a role is listed, in order of rank. Nobody is added here by hand. To add someone, or change how they’re listed, add or edit their account."}>Directory</TitleWithInfo>
           {local && <p className="portal-muted">{user.college}</p>}
         </div>
-        {manages && <Link className="portal-button is-ghost" href="/portal/accounts">Manage accounts</Link>}
       </header>
 
-      {unlisted.length > 0 && (
-        <p className="portal-muted">
-          {unlisted.length === 1 ? "One active account isn’t listed yet, because it has no role: " : `${unlisted.length} active accounts aren’t listed yet, because they have no role: `}
-          {unlisted.map((account, index) => <span key={account.id}>{index > 0 && ", "}<Link href={`/portal/accounts/${account.id}`}>{account.name}</Link></span>)}.
-        </p>
-      )}
+      <DirectoryWorkspace view={view} manages={manages} items={[
+        { key: "dashboard", label: "Dashboard View", href: viewHref("dashboard") },
+        { key: "database", label: "Table View", href: viewHref("database") },
+      ]}>
 
-      {!local && (
-        <>
-          <section className="portal-card">
-            <div className="portal-card-head">
-              <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo.central}>{directoryGroups.central}</TitleWithInfo>
-              {automatic}
-            </div>
-            {directory.central.length ? <DirectoryCards people={cards(directory.central, (person) => person.role)} /> : empty("Nobody yet. This group is hidden on the website until a Central Comelec account has a role.")}
-          </section>
+        {unlisted.length > 0 && (
+          <p className="portal-muted">
+            {unlisted.length === 1 ? "One active account isn’t listed yet, because it has no role: " : `${unlisted.length} active accounts aren’t listed yet, because they have no role: `}
+            {unlisted.map((account, index) => <span key={account.id}>{index > 0 && ", "}<Link href={`/portal/accounts/${account.id}`}>{account.name}</Link></span>)}.
+          </p>
+        )}
 
-          <section className="portal-card">
-            <div className="portal-card-head">
-              <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo["en-banc"]}>{directoryGroups["en-banc"]}</TitleWithInfo>
-              {automatic}
-            </div>
-            {directory["en-banc"].length
-              ? <DirectoryCards people={cards(directory["en-banc"], (person) => (person.affiliation === "central" ? person.role : line(person.role, person.college)))} />
-              : empty("Nobody yet. It fills in from the Central Executive Board and each college’s Central Representative.")}
-          </section>
+        {view === "database" ? (
+          <DirectoryDatabase people={directoryDatabaseRows([...directory.central, ...directory.local], accounts, user, manages)} />
+        ) : (
+          <>
+            {!local && (
+              <>
+                <section className="portal-card">
+                  <div className="portal-card-head">
+                    <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo.central}>{directoryGroups.central}</TitleWithInfo>
+                    {automatic}
+                  </div>
+                  {directory.central.length ? <DirectoryCards people={cards(directory.central, (person) => person.role)} /> : empty("Nobody yet. This group is hidden on the website until a Central Comelec account has a role.")}
+                </section>
 
-          <section className="portal-card">
-            <div className="portal-card-head">
-              <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo.chamber}>{directoryGroups.chamber}</TitleWithInfo>
-              {automatic}
-            </div>
-            {directory.chamber.length
-              ? <ChamberGroup members={directory.chamber.map((person) => ({ id: person.id, name: person.name, college: person.college ?? "", photoUrl: person.photoUrl, role: person.chamberRole }))} editable={!user.readOnly} manageable={manages} />
-              : empty("Nobody yet. It fills in from each college’s Local Comelec Chairperson.")}
-          </section>
-        </>
-      )}
+                <section className="portal-card">
+                  <div className="portal-card-head">
+                    <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo["en-banc"]}>{directoryGroups["en-banc"]}</TitleWithInfo>
+                    {automatic}
+                  </div>
+                  {directory["en-banc"].length
+                    ? <DirectoryCards people={cards(directory["en-banc"], (person) => (person.affiliation === "central" ? person.role : line(person.role, person.college)))} />
+                    : empty("Nobody yet. It fills in from the Central Executive Board and each college’s Central Representative.")}
+                </section>
 
-      <section className="portal-card" id="local-comelec">
-        <div className="portal-card-head">
-          <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo.local}>{directoryGroups.local}</TitleWithInfo>
-          <div className="directory-head-actions">
-            {!local && localColleges.length > 1 && <CollegeFilter colleges={localColleges} value={college} />}
-            {automatic}
-          </div>
-        </div>
-        {shownColleges.length === 0
-          ? empty(local ? "Nobody yet. Your Local Comelec fills in as its accounts are given a role." : "Nobody yet. This group is hidden on the website until a Local Comelec account has a role.")
-          : shownColleges.map((unit) => (
-              <div className="directory-college" key={unit}>
-                <div className="directory-college-head">
-                  <h3>{unit}</h3>
+                <section className="portal-card">
+                  <div className="portal-card-head">
+                    <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo.chamber}>{directoryGroups.chamber}</TitleWithInfo>
+                    {automatic}
+                  </div>
+                  {directory.chamber.length
+                    ? <ChamberGroup members={directory.chamber.map((person) => ({ id: person.id, name: person.name, college: person.college ?? "", photoUrl: person.photoUrl, role: person.chamberRole }))} editable={!user.readOnly} manageable={manages} />
+                    : empty("Nobody yet. It fills in from each college’s Local Comelec Chairperson.")}
+                </section>
+              </>
+            )}
+
+            <section className="portal-card" id="local-comelec">
+              <div className="portal-card-head">
+                <TitleWithInfo as="h2" className="portal-card-title" info={groupInfo.local}>{directoryGroups.local}</TitleWithInfo>
+                <div className="directory-head-actions">
+                  {!local && localColleges.length > 1 && <CollegeFilter colleges={localColleges} value={college} />}
+                  {automatic}
                 </div>
-                <DirectoryCards people={cards(directory.local.filter((person) => (person.college ?? "") === unit), (person) => person.role)} />
               </div>
-            ))}
-      </section>
+              {shownColleges.length === 0
+                ? empty(local ? "Nobody yet. Your Local Comelec fills in as its accounts are given a role." : "Nobody yet. This group is hidden on the website until a Local Comelec account has a role.")
+                : shownColleges.map((unit) => (
+                    <div className="directory-college" key={unit}>
+                      <div className="directory-college-head">
+                        <h3>{unit}</h3>
+                      </div>
+                      <DirectoryCards people={cards(directory.local.filter((person) => (person.college ?? "") === unit), (person) => person.role)} />
+                    </div>
+                  ))}
+            </section>
+          </>
+        )}
+      </DirectoryWorkspace>
     </main>
   );
 }

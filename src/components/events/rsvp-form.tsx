@@ -5,9 +5,10 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { acknowledgementOf, identityAnswer, validateEditorAnswers, type EditorDefinition, type FormAnswers } from "@/lib/events/form-editor";
 import { resolveFlow } from "@/lib/events/form-flow";
 import { submitRsvp, type RsvpState } from "@/lib/events/rsvp-actions";
-import { defaultRsvpDefinition, rsvpAcknowledgement } from "@/lib/events/rsvp";
+import { defaultRsvpDefinition, normalizeRsvpDefinition, rsvpAcknowledgement } from "@/lib/events/rsvp";
 import { EditorFields } from "./editor-fields";
 import { FormAcknowledgement } from "./form-acknowledgement";
+import { RegistrationShare } from "./registration-share";
 
 /**
  * The collaborator RSVP, drawn from the editor's definition: every question an ordinary one, and a
@@ -18,7 +19,8 @@ import { FormAcknowledgement } from "./form-acknowledgement";
  */
 const twoDigits = (value: number) => String(value).padStart(2, "0");
 
-export function RsvpForm({ eventId, eventName, token, preview = false, definition = defaultRsvpDefinition, registrationUrl }: { eventId: string; eventName: string; token: string; preview?: boolean; definition?: EditorDefinition; registrationUrl: string }) {
+export function RsvpForm({ eventId, eventName, token, preview = false, definition: suppliedDefinition = defaultRsvpDefinition, registrationUrl }: { eventId: string; eventName: string; token: string; preview?: boolean; definition?: EditorDefinition; registrationUrl: string }) {
+  const definition = normalizeRsvpDefinition(suppliedDefinition);
   const [values, setValues] = useState<FormAnswers>({});
   const [stepId, setStepId] = useState(definition.steps[0]?.id);
   const [showAcknowledgement, setShowAcknowledgement] = useState(false);
@@ -44,7 +46,7 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
   function go(next: number) { setShowAcknowledgement(false); setStepId(steps[next].id); setCustomError(""); requestAnimationFrame(() => headingRef.current?.focus()); }
 
   if (state.success || (preview && showAcknowledgement)) return (
-    <div className="ev-rsvp-done"><FormAcknowledgement acknowledgement={acknowledgement} eventName={eventName} name={state.name ?? identityAnswer(definition, values, "firstName")} link={state.registrationUrl ?? registrationUrl} emailNote={preview ? undefined : state.emailSent === false ? "We couldn’t send the confirmation email. Keep this page’s link." : undefined}>
+    <div className="ev-rsvp-done"><FormAcknowledgement acknowledgement={acknowledgement} eventName={eventName} name={state.name ?? identityAnswer(definition, values, "firstName")} link={state.registrationUrl ?? registrationUrl} showLink={false} details={<RegistrationShare link={state.registrationUrl ?? registrationUrl} />} emailNote={preview ? undefined : state.emailSent === false ? "We couldn’t send the confirmation email. Keep this page’s link." : undefined}>
       {preview && <button type="button" className="ev-button is-ghost is-back" onClick={() => setShowAcknowledgement(false)}><ArrowLeft size={16} aria-hidden="true" />Back to the form</button>}
     </FormAcknowledgement></div>
   );
@@ -60,10 +62,10 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
     </ol></div>
     <div className="ev-form-body">
       <div className="ev-evaluation-section-head"><h2 className="ev-step-title" ref={headingRef} tabIndex={-1}><small>Step {index + 1} of {steps.length + 1}</small>{current.title}</h2>{current.description && <p>{current.description}</p>}</div>
-      <fieldset className="ev-group ev-rsvp-group" data-active="true" disabled={pending} key={current.id}>
+      <fieldset className="ev-group ev-rsvp-group ev-animated-fields" data-active="true" disabled={pending} key={current.id}>
         <legend className="ev-sr-only">{current.title}</legend>
         {current.kind === "privacy" && <p className="ev-privacy-link">Read the <Link href="/privacy" target="_blank" rel="noopener">Data Privacy Statement</Link> before you continue.</p>}
-        <EditorFields fields={current.fields.filter(field => flow.visible.has(field.id))} values={values} onChange={(id, value) => setValues(answers => ({ ...answers, [id]: value }))} verify={{ eventId, target: "rsvp-form", preview }} columns />
+        <EditorFields fields={current.fields} visible={flow.visible} values={values} onChange={(id, value) => setValues(answers => ({ ...answers, [id]: value }))} verify={{ eventId, target: "rsvp-form", preview }} columns />
       </fieldset>
       {customError && <p className="ev-field-error" role="alert">{customError}</p>}
       {state.error && <p className="ev-field-error" role="alert">{state.error} Return to earlier steps to check your answers.</p>}

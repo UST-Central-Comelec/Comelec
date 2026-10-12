@@ -1,7 +1,8 @@
 "use client";
 
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown, Download, Search, X } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Search, X } from "lucide-react";
 
 /** Each section's words, in lower case, read once. */
 const words = new WeakMap<HTMLDetailsElement, string>();
@@ -169,7 +170,7 @@ export function CodeTools({ pdf, total, name }: { pdf?: string; total: number; n
       <div className="ec-actions">
         <button type="button" className="bp-button is-ghost is-small" onClick={() => setAll(true)}><ChevronsUpDown size={15} aria-hidden="true" />Open all</button>
         <button type="button" className="bp-button is-ghost is-small" onClick={() => setAll(false)}><ChevronsDownUp size={15} aria-hidden="true" />Close all</button>
-        {pdf && <a className="bp-button is-primary is-small" href={pdf} download><Download size={15} aria-hidden="true" />Download PDF</a>}
+        {pdf && <a className="bp-button is-primary is-small" href={pdf} download><DownloadIcon size={15} aria-hidden="true" />Download PDF</a>}
       </div>
     </div>
   );

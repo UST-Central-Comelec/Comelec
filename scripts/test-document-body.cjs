@@ -62,7 +62,7 @@ class EditorElement {
   constructor(tagName, children = []) {
     this.tagName = tagName;
     this.childNodes = children;
-    this.style = { fontSize: '', color: '', fontWeight: '', fontStyle: '', textDecoration: '', textDecorationLine: '', textAlign: '', marginLeft: '' };
+    this.style = { fontSize: '', color: '', backgroundColor: '', fontWeight: '', fontStyle: '', textDecoration: '', textDecorationLine: '', textAlign: '', marginLeft: '' };
   }
   getAttribute() { return null; }
   querySelector(selector) {
@@ -84,6 +84,17 @@ try {
   const paragraph = text => new EditorElement('P', [{ nodeType: 3, textContent: text }]);
   const root = new EditorElement('DIV', [new EditorElement('DIV', [paragraph('Before the line'), new EditorElement('HR'), paragraph('After the line')])]);
   assert.deepEqual(readDocumentEditor(root), divided, 'Pasted and wrapped horizontal lines preserve surrounding text');
+  const highlight = new EditorElement('SPAN', [{ nodeType: 3, textContent: 'Highlighted' }]);
+  highlight.style.backgroundColor = 'rgb(255, 242, 204)';
+  const highlighted = readDocumentEditor(new EditorElement('DIV', [new EditorElement('P', [highlight])]));
+  assert.deepEqual(highlighted, [{ type: 'text', runs: [{ text: 'Highlighted', backgroundColor: '#fff2cc' }] }]);
+  assert.deepEqual(parseDocumentBody(serializeDocumentBody(highlighted)), highlighted, 'Highlights survive saving and reopening');
+  assert.match(documentBodyHtml(highlighted), /background-color:#fff2cc/);
+  assert.match(renderToStaticMarkup(React.createElement(DocumentBody, { blocks: highlighted })), /background-color:#fff2cc/);
+  const cleared = new EditorElement('SPAN', [{ nodeType: 3, textContent: 'Cleared' }]);
+  cleared.style.backgroundColor = 'transparent';
+  highlight.childNodes = [cleared];
+  assert.deepEqual(readDocumentEditor(new EditorElement('DIV', [new EditorElement('P', [highlight])])), [{ type: 'text', runs: [{ text: 'Cleared' }] }], 'Removing a highlight clears inherited formatting');
 } finally {
   global.HTMLElement = previousElement;
   global.Node = previousNode;

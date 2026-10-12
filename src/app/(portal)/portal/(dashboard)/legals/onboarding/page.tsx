@@ -25,7 +25,6 @@ export default async function LegalOnboardingPage({ searchParams }: PageProps<"/
         <div>
           <p className="portal-eyebrow">Legals · Documents</p>
           <TitleWithInfo info="What someone agrees to when they request portal access: the Data Privacy Notice at the start, then the onboarding forms and portal policies after their profile. Each save is a new version. Acceptances keep the version that was shown, with the date and time, on the person’s account and in the Directory.">Onboarding</TitleWithInfo>
-          <p className="portal-muted">Shown in Request access, in this order.</p>
         </div>
         {user.readOnly && <ViewOnlyTag />}
       </header>

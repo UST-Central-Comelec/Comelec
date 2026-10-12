@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Fragment, useId, useRef, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
@@ -9,6 +9,7 @@ import { Settings2, NavSymbol, type PortalIcon as Icon } from "./portal-nav-icon
 import { groupIcons, tabIcons } from "./portal-tab-icons";
 import { navigationTabKeys, tabGroups, tabHref, type TabKey } from "@/lib/portal/access";
 import type { AttentionCounts } from "@/lib/portal/attention-types";
+import { directoryReturnHref } from "@/lib/portal/directory-return";
 /** `item` is the top bar's word for one of the tab's own pages, such as an application under Applications ("Edit" if not given). */
 type Tab = { key: TabKey | "access-control"; href: string; label: string; icon: Icon; item?: string };
 /** A main tab opens its own sidebar panel. */
@@ -109,6 +110,8 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
   const countOf = (tab: Tab) => tab.key === "access-control" ? 0 : counts[tab.key] ?? 0;
   const groupCount = (group: Group) => tabPaths(group.items).reduce((total, { tab }) => total + countOf(tab), 0);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const directoryReturn = isActive("/portal/accounts", pathname) && tabs.includes("members") ? directoryReturnHref(searchParams.get("returnTo")) : null;
   const shown = openSections(tabs, showAccessControl);
   const entries = shown.flatMap((section) => section.entries);
   const activeGroups = tabPaths(entries).find(({ tab }) => isActive(tab.href, pathname))?.groups ?? [];
@@ -187,7 +190,11 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
               </>
             ) : selected ? (
               <>
-                <button type="button" className="portal-nav-back" aria-label={backGroup ? `Back to ${backGroup}` : "Back to all tabs"} title={collapsed ? (backGroup ? `Back to ${backGroup}` : "Back to all tabs") : undefined} onClick={() => openPanel(backGroup)}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">{backGroup ?? "All tabs"}</span></button>
+                {directoryReturn && selected.label === "Administrative" ? (
+                  <Link className="portal-nav-back" href={directoryReturn} aria-label="Back to Directory" title={collapsed ? "Back to Directory" : undefined}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">Directory</span></Link>
+                ) : (
+                  <button type="button" className="portal-nav-back" aria-label={backGroup ? `Back to ${backGroup}` : "Back to all tabs"} title={collapsed ? (backGroup ? `Back to ${backGroup}` : "Back to all tabs") : undefined} onClick={() => openPanel(backGroup)}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">{backGroup ?? "All tabs"}</span></button>
+                )}
                 <span className="portal-nav-section portal-nav-panel-title">{selected.label}</span>
                 {selected.items.map(entry => renderEntry(entry))}
               </>

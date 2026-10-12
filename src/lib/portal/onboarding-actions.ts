@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
 import { isOnboardingDocumentKey, TEXT_LIMITS } from "@/lib/onboarding/documents";
 import { saveOnboardingDocument } from "@/lib/onboarding/store";
+import { documentBodyText, isSerializedDocumentBody, parseDocumentBody } from "@/lib/data/document-body";
 import { text, toFormState, type FormState } from "./form";
 
 // Legals → Documents → Onboarding: saving a document adds its next version. Requesters see it from
@@ -14,7 +15,9 @@ import { text, toFormState, type FormState } from "./form";
 const schema = z.object({
   title: z.string().trim().min(1, "Enter a title.").max(TEXT_LIMITS.title, `Keep the title within ${TEXT_LIMITS.title} characters.`),
   statement: z.string().trim().min(1, "Enter what the requester agrees to.").max(TEXT_LIMITS.statement, `Keep it within ${TEXT_LIMITS.statement} characters.`),
-  body: z.string().trim().min(1, "Enter the document’s text.").max(TEXT_LIMITS.body, "This text is too long."),
+  body: z.string().trim().min(1, "Enter the document’s text.").max(TEXT_LIMITS.body, "This text is too long.")
+    .refine(value => !value.startsWith("::document-body:v1::") || isSerializedDocumentBody(value), "The formatting couldn’t be read. Edit the text and try again.")
+    .refine(value => documentBodyText(parseDocumentBody(value)).trim().length > 0, "Enter the document’s text."),
 });
 
 export async function updateOnboardingDocument(key: string, _state: FormState, formData: FormData): Promise<FormState> {

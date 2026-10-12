@@ -188,7 +188,7 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
               {!anonymous && profileResult?.error && <p className="ev-field-error ev-evaluation-error" role="alert">{profileResult.error}</p>}
               {settings.requireGoogle && !preview && <><StudentVerification eventId={eventId} target="evaluate" />{anonymous && <p className="ev-field-hint">Verify your UST account to submit anonymously. Your account will not be saved with your feedback.</p>}</>}
             </>}
-            <EditorFields fields={item.fields.filter(field => flow.visible.has(field.id))} values={answers} onChange={setAnswer} verify={{ eventId, target: "evaluate", preview }} />
+            <div className="ev-animated-fields ev-evaluation-fields"><EditorFields fields={item.fields} visible={flow.visible} values={answers} onChange={setAnswer} verify={{ eventId, target: "evaluate", preview }} /></div>
           </fieldset>
         ))}
         {customError && <p className="ev-field-error" role="alert">{customError}</p>}

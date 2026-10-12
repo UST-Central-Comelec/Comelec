@@ -17,6 +17,7 @@ const mocks = {
   "@/components/combobox": { Combobox: noop },
   "@/components/facebook-profile-input": { FacebookProfileInput: noop },
   "./dropdown": { Dropdown: noop }, "./info-tip": { InfoTip: noop }, "./photo-input": { PhotoInput: noop },
+  "./edit-guard": { EditPresence: noop, EditConflict: noop },
   "./portal-form": { Field: noop, FormFooter: noop, uppercaseInput: noop, usePortalForm: () => ({ errors: {}, onSubmit: noop, pending: false }) },
 };
 const cache = new Map();

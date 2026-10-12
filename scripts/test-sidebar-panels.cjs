@@ -10,18 +10,20 @@ function load(file, dependencies = {}) {
 }
 const access = load("src/lib/portal/access.ts");
 let pathname = "/portal";
+let searchParams = new URLSearchParams();
 let state;
 let expanded = 0;
 const Icon = () => null;
 const icons = new Proxy({}, { get: () => Icon });
 const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
   react: { ...React, useState: initial => { state ??= initial; return [state, next => { state = typeof next === "function" ? next(state) : next; }]; }, useId: () => "navigation-test", useRef: () => ({ current: null }) },
-  "next/navigation": { usePathname: () => pathname },
+  "next/navigation": { usePathname: () => pathname, useSearchParams: () => searchParams },
   "next/link": { default: "a" },
   "motion/react": { LayoutGroup: "div", motion: { nav: "nav", div: "div", span: "span" }, useReducedMotion: () => true },
   "./portal-nav-icons": icons,
   "./portal-tab-icons": { groupIcons: icons, tabIcons: icons },
   "@/lib/portal/access": access,
+  "@/lib/portal/directory-return": load("src/lib/portal/directory-return.ts"),
 });
 const props = { tabs: ["dashboard", "charters/constitution", "charters/elections-code", "documents/archive", "accounts"], collapsed: false, showAccessControl: false, onExpand: () => expanded++ };
 function walk(node) {
@@ -109,7 +111,24 @@ try {
   button("Back to all tabs").props.onClick();
   assert.ok(render().some(node => node.props?.children === "Committee"));
   assert.ok(!button("Open Publications tabs"));
-  console.log("Sidebar panel checks passed: replacement, back navigation, search, permissions, route changes, and collapsed controls.");
+  pathname = "/portal/accounts";
+  props.tabs = ["dashboard", "accounts", "members"];
+  const directoryHref = "/portal/members?view=database&unit=Central+Comelec&q=Juan";
+  searchParams = new URLSearchParams({ returnTo: directoryHref });
+  let back = render().find(node => node.props?.["aria-label"] === "Back to Directory");
+  assert.ok(back, "Accounts opened from Directory show a Directory return control");
+  assert.equal(back.props.href, directoryHref, "Return preserves the directory view and filters");
+  props.collapsed = true;
+  back = render().find(node => node.props?.["aria-label"] === "Back to Directory");
+  assert.equal(back.props.title, "Back to Directory", "Collapsed return icon identifies Directory");
+  searchParams = new URLSearchParams({ returnTo: "https://example.com" });
+  assert.ok(button("Back to all tabs"), "An external URL cannot become a return destination");
+  searchParams = new URLSearchParams({ returnTo: directoryHref });
+  props.tabs = ["dashboard", "accounts"];
+  assert.ok(button("Back to all tabs"), "Return links respect Directory permission");
+  searchParams = new URLSearchParams();
+  assert.ok(button("Back to all tabs"), "Direct Accounts visits keep normal back navigation");
+  console.log("Sidebar panel checks passed: replacement, contextual Directory return, search, permissions, route changes, and collapsed controls.");
 } finally {
   if (originalFrame === undefined) delete global.requestAnimationFrame;
   else global.requestAnimationFrame = originalFrame;

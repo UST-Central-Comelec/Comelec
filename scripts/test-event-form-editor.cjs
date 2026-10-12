@@ -10,7 +10,8 @@ function load(file, dependencies = {}, cache = new Map()) {
   const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   new Function('require', 'module', 'exports', source)(name => {
     if (name in dependencies) return dependencies[name];
-    if (name.startsWith('@/')) return load(`src/${name.slice(2)}.ts`, dependencies, cache);
+    if (name.endsWith('.css')) return {};
+    if (name.startsWith('@/')) { const target = path.resolve(`src/${name.slice(2)}.ts`); return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     if (name.startsWith('.')) { const target = path.resolve(path.dirname(file), `${name}.ts`); return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     return require(name);
   }, compiled, compiled.exports);
@@ -41,6 +42,8 @@ const builder = load('src/components/portal/event-form-editor.tsx', {
   '@dnd-kit/sortable': { SortableContext: props => ({ type: 'sortable', props }), sortableKeyboardCoordinates: () => {}, useSortable: () => sortable, verticalListSortingStrategy: {} },
   '@dnd-kit/utilities': { CSS: { Translate: { toString: () => undefined } } },
   './event-form-editor.css': {},
+  // The view toggle's icons animate; its sliding control is what's checked here.
+  './form-editor-view-toggle': { FormEditorViewToggle: ({ mode, onChange }) => ({ type: 'view-switch', props: { label: 'Editor view', active: mode, onChange, items: [{ key: 'forms', label: 'Forms editor' }, { key: 'preview', label: 'Preview form' }] } }) },
   './dropdown': { Dropdown: props => ({ type: 'dropdown', props }) },
   './multi-dropdown': { MultiDropdown: props => ({ type: 'multi', props }) },
   './sliding-filters': { SlidingFilterButtons: props => ({ type: 'view-switch', props }) },
@@ -129,7 +132,9 @@ assert.deepEqual(draft, defaultRsvpDefinition);
 editorProps = {};
 
 // Public questions: controlled, named for plain submission, and ticks in order travel as hidden inputs.
-const publicFields = load('src/components/events/editor-fields.tsx', { './student-verification': { StudentVerification: props => ({ type: 'verify', props }) } });
+// Questions are revealed with an animation; here they render straight away.
+const motionStub = { AnimatePresence: ({ children }) => ({ type: 'presence', props: { children } }), motion: { div: props => ({ type: 'div', props }) }, useIsPresent: () => true, useReducedMotion: () => false };
+const publicFields = load('src/components/events/editor-fields.tsx', { './student-verification': { StudentVerification: props => ({ type: 'verify', props }) }, 'motion/react': motionStub, react: { ...React, useState: initial => [initial, () => {}], useRef: value => ({ current: value }), useLayoutEffect: () => {} } });
 const values = { q_rank: ['Radio', 'Camera'] };
 const controls = walk(publicFields.EditorFields({ fields: [{ ...field, id: 'q_drop', kind: 'dropdown' }, { ...field, id: 'q_rank', ranked: true }, { id: 'q_mail', label: 'Email', prompt: '', kind: 'email', required: true, options: [], verifyUst: true }, { id: 'q_ok', label: 'I agree', prompt: '', kind: 'confirm', required: true, options: [] }], values, onChange: () => {}, verify: { eventId: 'sample', target: 'rsvp-form' } }));
 assert.ok(controls.some(node => node.type === 'select' && node.props.name === 'q_drop' && node.props.required));

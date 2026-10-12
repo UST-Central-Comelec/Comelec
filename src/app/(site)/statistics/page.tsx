@@ -1,5 +1,5 @@
+import { DownloadIcon } from "@/components/lucide-animated/download";
 import type { Metadata } from "next";
-import { Download } from "lucide-react";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { CopyLink } from "@/components/news/copy-link";
 import { formatShort, plural } from "@/components/news/story";
@@ -33,7 +33,7 @@ function TableCard({ table }: { table: StatisticTable }) {
           </p>
         </div>
         <div className="st-card-actions">
-          <a className="bp-button is-ghost is-small" href={`/statistics/${table.id}/csv`} download={`${table.id}.csv`}><Download size={15} aria-hidden="true" />Download CSV</a>
+          <a className="bp-button is-ghost is-small" href={`/statistics/${table.id}/csv`} download={`${table.id}.csv`}><DownloadIcon size={15} aria-hidden="true" />Download CSV</a>
           <CopyLink className="bp-button is-ghost is-small" hash={table.id} />
         </div>
       </header>

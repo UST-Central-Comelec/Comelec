@@ -9,7 +9,7 @@ function Inline({ runs }: { runs: DocumentRun[] }) {
     if (run.underline) content = <u>{content}</u>;
     const href = run.href && normalizeDocumentHref(run.href);
     if (href) content = <a href={href}>{content}</a>;
-    return <span key={index} style={{ ...(run.text.includes("\t") && { whiteSpace: "pre-wrap", tabSize: 4 }), ...(run.color && { color: run.color }), fontSize: `${run.fontSize ?? DOCUMENT_DEFAULT_FONT_SIZE}px` }}>{content}</span>;
+    return <span key={index} style={{ ...(run.text.includes("\t") && { whiteSpace: "pre-wrap", tabSize: 4 }), ...(run.color && { color: run.color }), ...(run.backgroundColor && { backgroundColor: run.backgroundColor }), fontSize: `${run.fontSize ?? DOCUMENT_DEFAULT_FONT_SIZE}px` }}>{content}</span>;
   });
 }
 
