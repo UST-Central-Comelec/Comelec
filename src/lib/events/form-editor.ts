@@ -195,30 +195,42 @@ export function answerProblem(field: EditorField, raw: string | string[] | undef
   if (field.kind === "confirm") return field.required && value !== "yes" ? `Tick to confirm: ${name}` : null;
   if (field.required && !value) return `Please answer: ${name}.`;
   if (!value) return null;
-  if (value.length > 4000) return `Keep ${name} under 4,000 characters.`;
   if ((field.kind === "dropdown" || field.kind === "radio") && !field.options.includes(value)) return `Choose a valid option for ${name}.`;
   if (field.kind === "rating" && !/^[1-5]$/.test(value)) return `Choose a rating from 1 to 5 for ${name}.`;
+  const format = answerFormatProblem(field, value);
+  return format ? `${name}: ${format}` : null;
+}
+
+/**
+ * What's wrong with a typed answer's format, said beside its box: the answer box shows it as its
+ * tooltip (src/components/form-validation.tsx), and answerProblem names the question before it.
+ * Null when it's fine or empty; whether an answer is required is checked apart.
+ */
+export function answerFormatProblem(field: EditorField, raw: string): string | null {
+  const value = normalizeAnswer(field, raw);
+  if (typeof value !== "string" || !value) return null;
+  if (value.length > 4000) return "Keep this under 4,000 characters.";
   if (field.kind === "email") {
-    if (value.length > 254 || !patterns.email.test(value)) return `Enter a valid email address for ${name}.`;
-    if (field.verifyUst && !value.endsWith("@ust.edu.ph")) return `Sign in with your UST Google account for ${name}.`;
+    if (value.length > 254 || !patterns.email.test(value)) return "Enter a valid email address, like name@example.com.";
+    if (field.verifyUst && !value.endsWith("@ust.edu.ph")) return "Sign in with your UST Google account to fill this in.";
   }
   if (field.kind === "link") {
     let url: URL;
-    try { url = new URL(value); } catch { return `Enter a full web address for ${name}, starting with https://`; }
-    if (url.protocol !== "https:" && url.protocol !== "http:") return `Enter a web address for ${name}.`;
+    try { url = new URL(value); } catch { return "Enter a full web address, starting with https://"; }
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "Enter a web address, starting with https://";
     const host = url.hostname.toLowerCase();
     const kinds = field.links ?? [];
-    if (kinds.length && !kinds.some(kind => (kind === "drive" ? driveHosts : facebookHosts).includes(host))) return `${name} needs a ${kinds.map(kind => linkKinds[kind]).join(" or ")}.`;
+    if (kinds.length && !kinds.some(kind => (kind === "drive" ? driveHosts : facebookHosts).includes(host))) return `Use a ${kinds.map(kind => linkKinds[kind]).join(" or ")} here.`;
   }
   if (field.kind === "text" || field.kind === "textarea") {
     const rules = rulesOf(field);
-    if (isNameQuestion(field) && !personNamePattern.test(value)) return `Use letters only, with single spaces between names, in ${name}.`;
-    if (rules.studentNumber && !patterns.studentNumber.test(value)) return `Enter a 10-digit student number for ${name}.`;
-    if (rules.mobile && !patterns.mobile.test(value)) return `Enter an 11-digit mobile number starting with 09 for ${name}, numbers only.`;
-    if (rules.letters && !patterns.letters.test(value)) return `Use letters only in ${name}.`;
-    if (rules.digits && !(field.kind === "textarea" ? patterns.digitLines : patterns.digits).test(value)) return `Use numbers only in ${name}.`;
-    if (rules.noSpecial && !patterns.noSpecial.test(value)) return `Remove special characters from ${name}.`;
-    if (rules.hyphenOnly && !/^[\p{L}\p{M}\p{N}\s-]*$/u.test(value)) return `Use only letters, numbers, spaces or hyphens for ${name}.`;
+    if (isNameQuestion(field) && !personNamePattern.test(value)) return "Use letters only, with single spaces between names.";
+    if (rules.studentNumber && !patterns.studentNumber.test(value)) return "Use the 10-digit student number, numbers only.";
+    if (rules.mobile && !patterns.mobile.test(value)) return "Use an 11-digit mobile number starting with 09, numbers only.";
+    if (rules.letters && !patterns.letters.test(value)) return "Use letters only.";
+    if (rules.digits && !(field.kind === "textarea" ? patterns.digitLines : patterns.digits).test(value)) return "Use numbers only.";
+    if (rules.noSpecial && !patterns.noSpecial.test(value)) return "Remove special characters.";
+    if (rules.hyphenOnly && !/^[\p{L}\p{M}\p{N}\s-]*$/u.test(value)) return "Use only letters, numbers, spaces or hyphens.";
   }
   return null;
 }

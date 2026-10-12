@@ -46,6 +46,8 @@ function messageFor(control: Control, anchor: HTMLElement): string {
   if (control instanceof HTMLInputElement && control.type === "radio") return label ? `Choose an answer for ${label}.` : "Choose one of the options.";
   if (control instanceof HTMLSelectElement || control.type === "hidden") return empty ? (label ? `Choose ${label}.` : "Choose an option.") : "Choose a valid option.";
   if (empty) return label ? `Fill in ${label}.` : "Fill in this field.";
+  // A field that says what's wrong with it (the form builder's answers, setCustomValidity).
+  if (control.validity.customError && control.validationMessage) return control.validationMessage;
   if (isStudentNumberField(name)) return "Use the 10-digit student number, numbers only.";
   if (isMobileNumberField(name)) return "Use an 11-digit mobile number starting with 09, numbers only.";
   if (control instanceof HTMLInputElement && control.type === "email") return "Enter a valid email address, like name@example.com.";

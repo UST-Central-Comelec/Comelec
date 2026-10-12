@@ -1,8 +1,8 @@
 "use client";
-import { answerHint, cleanAnswer, rulesOf, type EditorField, type FormAnswers } from "@/lib/events/form-editor";
+import { answerFormatProblem, answerHint, cleanAnswer, rulesOf, type EditorField, type FormAnswers } from "@/lib/events/form-editor";
 import { StudentVerification } from "./student-verification";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRightToLine, CheckCircle2 } from "lucide-react";
 import "./editor-fields.css";
 
@@ -13,6 +13,8 @@ const ustDomain = "@ust.edu.ph";
 function RsvpEmail({ field, value, onChange }: { field: EditorField; value: string; onChange: (value: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const mirror = useRef<HTMLSpanElement>(null);
+  // An address in the wrong format fails the step's check, and its tooltip says why (form-validation.tsx).
+  useEffect(() => { input.current?.setCustomValidity(answerFormatProblem(field, value) ?? ""); }, [field, value]);
   const [focused, setFocused] = useState(false);
   const at = value.indexOf("@");
   const local = at < 0 ? value : value.slice(0, at);
@@ -189,6 +191,8 @@ function Question({ field, value, onChange, verify, span }: { field: EditorField
     inputMode: numeric ? "numeric" as const : field.kind === "email" ? "email" as const : field.kind === "link" ? "url" as const : undefined,
     // Names, numbers and emails keep only what their rules allow, as they're typed (src/lib/forms/input.ts).
     onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(cleanAnswer(field, event.target.value)),
+    // An answer in the wrong format fails the step's check, and its tooltip says why (form-validation.tsx).
+    ref: (element: HTMLInputElement | HTMLTextAreaElement | null) => element?.setCustomValidity(answerFormatProblem(field, text) ?? ""),
   };
   return (
     <fieldset className={fieldset}>{legend}
