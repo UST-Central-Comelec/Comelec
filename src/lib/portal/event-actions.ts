@@ -51,6 +51,9 @@ function sentJson(formData: FormData, name: string) {
   }
 }
 
+/** Whether the form edited this part. A form from before the flag existed counts as having edited it. */
+const touchedOr = (formData: FormData, name: string) => !formData.has(name) || formData.get(name) === "on";
+
 /** Why saving failed, in words a commissioner can act on. */
 function saveError(error: unknown): FormState {
   const message = error instanceof Error ? error.message : String(error);
@@ -129,12 +132,14 @@ export async function updateEvent(id: string, _state: FormState, formData: FormD
     addressed = Boolean(existing.changeRequest) && formData.get("requestAddressed") === "on";
     const cleared = addressed ? { changeRequest: null, changeRequestedBy: null, changeRequestedAt: null } : {};
 
-    // The RSVP and evaluation forms are saved with the event, in tables of their own. When someone
-    // else saved since this editor opened, each is written only if this person changed it.
-    const forms = { rsvpDefinition: true, evaluation: true };
-    if (guard.stamp && !guard.overwrite && existing.updatedAt !== guard.stamp.version) {
+    // The RSVP and evaluation forms are saved with the event, in tables of their own. The form says
+    // which of them this person edited; one left untouched isn't written at all. When someone else
+    // saved since this editor opened, an edited one is compared with theirs.
+    const forms = { rsvpDefinition: touchedOr(formData, "rsvpTouched"), evaluation: touchedOr(formData, "evaluationTouched") };
+    if (guard.stamp && !guard.overwrite && existing.updatedAt !== guard.stamp.version && (forms.rsvpDefinition || forms.evaluation)) {
       const [rsvp, evaluation] = await Promise.all([getRsvpSettings(id), getEvaluationSettings(id)]);
-      const plan = mergePlan(guard.stamp.fields, { rsvpDefinition: sentJson(formData, "rsvpDefinition"), evaluation: sentJson(formData, "evaluationSettings") }, { rsvpDefinition: rsvp?.definition ?? defaultRsvpDefinition, evaluation });
+      const sent = { ...(forms.rsvpDefinition && { rsvpDefinition: sentJson(formData, "rsvpDefinition") }), ...(forms.evaluation && { evaluation: sentJson(formData, "evaluationSettings") }) };
+      const plan = mergePlan(guard.stamp.fields, sent, { rsvpDefinition: rsvp?.definition ?? defaultRsvpDefinition, evaluation });
       if (plan.clash.length) return conflictState({ by: existing.updatedBy, at: existing.updatedAt, version: existing.updatedAt, fields: plan.clash }, labels, "event", user.email);
       forms.rsvpDefinition = plan.write.includes("rsvpDefinition");
       forms.evaluation = plan.write.includes("evaluation");

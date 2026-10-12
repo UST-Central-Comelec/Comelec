@@ -16,6 +16,13 @@ const fromRow = (row: Row): Letter => {
   return { id: row.id, controlNumber: row.control_number, controlFormat: row.control_format ?? null, title: row.title, label: row.label ?? null, type: row.type, status: row.status, destinationOffice: normalizeDestinationOffice(row.destination_office), remarks: row.remarks ?? "", notifyStatusUpdates: row.notify_status_updates ?? false, remarkPresets: row.remark_presets ?? [], workingDocuments: row.working_documents?.length ? row.working_documents : legacyType ? [{ type: legacyType, url: row.working_document }] : [], college: row.college, preparedBy: row.prepared_by, preparedByEmail: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at };
 };
 
+/** Someone else saved the record after it was opened, so nothing was saved: theirs, and who saved it. */
+export class RecordConflict extends Error {
+  constructor(readonly letter: Letter, readonly by: string) {
+    super("This record was saved by someone else while you were editing.");
+  }
+}
+
 /** A preview only: the insert trigger assigns the final number when the record is saved. */
 export async function previewControlNumber(format: string): Promise<string> {
   if (!isSupabaseConfigured()) return controlNumber(format, 1);
@@ -37,7 +44,7 @@ export async function listLetters(scope: { local: boolean; college: string | nul
   }
 }
 
-type Numbered = { type: string; control_format: string | null; control_number: string };
+type Numbered = { type: string; control_format: string | null; control_number: string; updated_at?: string };
 
 /**
  * The numbering columns to write, or none to keep the record's number. A record keeps its number
@@ -55,26 +62,36 @@ function numbering(values: LetterValues, settings: SecretariatSettings, kind: Tr
   return !existing?.control_format && existing?.control_number === type.format ? {} : { control_format: null, control_number: type.format };
 }
 
-/** Scope is supplied only by the authenticated server action, never by form fields. */
-export async function writeLetter(id: string | null, values: LetterValues, actor: { email: string; name: string; local: boolean; college: string | null }, settings: SecretariatSettings, kind: TrackerKind = "letters"): Promise<Letter> {
+/**
+ * Scope is supplied only by the authenticated server action, never by form fields. `expected` is
+ * when the record the editor opened was last saved: it's saved only over that, and otherwise
+ * throws `RecordConflict` with the record as it is now.
+ */
+export async function writeLetter(id: string | null, values: LetterValues, actor: { email: string; name: string; local: boolean; college: string | null }, settings: SecretariatSettings, kind: TrackerKind = "letters", expected: string | null = null): Promise<Letter> {
   if (!isSupabaseConfigured()) throw new Error("Supabase must be configured before records can be saved.");
   if (actor.local && !actor.college) throw new Error("Your account needs a college to manage records.");
   const data = { title: values.title, label: values.label, type: values.type, status: values.status, destination_office: values.destinationOffice, working_document: values.workingDocuments[0]?.url ?? "", working_documents: values.workingDocuments, remarks: values.remarks, notify_status_updates: values.notifyStatusUpdates, remark_presets: values.remarkPresets, updated_at: new Date().toISOString(), updated_by: actor.email };
   const table = () => createAdminClient().from(tableName(kind));
   let existing: Numbered | null = null;
   if (id) {
-    let lookup = table().select("type,control_format,control_number").eq("id", id);
+    let lookup = table().select(`${fields},updated_by`).eq("id", id);
     if (actor.local) lookup = lookup.eq("college", actor.college!);
     const { data: found, error } = await lookup.maybeSingle();
     if (error) throw new Error(lettersUnavailable);
     if (!found) throw new Error("This record is unavailable or you don’t have access to it.");
-    existing = found as Numbered;
+    const current = found as Row & { updated_by: string | null };
+    // The browser sends back the timestamp exactly as it was read.
+    if (expected && current.updated_at !== expected) throw new RecordConflict(fromRow(current), current.updated_by ?? "");
+    existing = current;
   }
   const number = numbering(values, settings, kind, existing);
   let query = id ? table().update({ ...data, ...number }).eq("id", id) : table().insert({ ...data, ...number, college: actor.local ? actor.college : null, created_by: actor.email, prepared_by: actor.name || actor.email });
   if (id && actor.local) query = query.eq("college", actor.college!);
+  // Someone saving between the check above and this write: it changes nothing, and is read again below.
+  if (id && expected) query = query.eq("updated_at", existing!.updated_at);
   const { data: row, error } = await query.select(fields).maybeSingle();
   if (error) throw new Error(lettersUnavailable);
+  if (!row && id && expected) return writeLetter(id, values, actor, settings, kind, expected);
   if (!row) throw new Error("This record is unavailable or you don’t have access to it.");
   return fromRow(row as Row);
 }

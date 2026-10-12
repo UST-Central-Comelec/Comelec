@@ -42,6 +42,8 @@ export function EventForm({ action, initial, submitLabel, cancelHref, danger, ch
   const { mode, pickMode } = useFormEditorMode();
   const [evaluation, setEvaluation] = useState(initialEvaluation);
   const [rsvpDefinition, setRsvpDefinition] = useState(rsvpSettings?.definition ?? defaultRsvpDefinition);
+  // Whether each form was edited here: an untouched one isn't saved over someone else's (src/lib/portal/event-actions.ts).
+  const [touched, setTouched] = useState({ rsvp: false, evaluation: false });
   const formId = useId();
   const { state, pending, onSubmit, errors } = usePortalForm(action);
   const dateValidation = useRef<(() => boolean) | null>(null);
@@ -61,6 +63,8 @@ export function EventForm({ action, initial, submitLabel, cancelHref, danger, ch
       }} noValidate>
         <input type="hidden" name="evaluationSettings" value={JSON.stringify(evaluation)} />
         <input type="hidden" name="rsvpDefinition" value={JSON.stringify(rsvpDefinition)} />
+        <input type="hidden" name="rsvpTouched" value={touched.rsvp ? "on" : ""} />
+        <input type="hidden" name="evaluationTouched" value={touched.evaluation ? "on" : ""} />
         <EditPresence guard={guard} />
         <EditConflict guard={guard} state={state} />
         <div hidden={tab !== "details"}>
@@ -89,11 +93,11 @@ export function EventForm({ action, initial, submitLabel, cancelHref, danger, ch
         </div>
       </form>
       <div hidden={tab !== "rsvp"}>
-        <EventRsvpForm eventId={eventId} eventName={initial.name || "This event"} settings={{ enabled: rsvpSettings?.enabled ?? false, committee_limit: rsvpSettings?.committee_limit ?? 2, invitation_token: rsvpSettings?.invitation_token ?? "", definition: rsvpDefinition }} editable={!pending} onChange={setRsvpDefinition} actions={topActions} viewMode={mode} />
+        <EventRsvpForm eventId={eventId} eventName={initial.name || "This event"} settings={{ enabled: rsvpSettings?.enabled ?? false, committee_limit: rsvpSettings?.committee_limit ?? 2, invitation_token: rsvpSettings?.invitation_token ?? "", definition: rsvpDefinition }} editable={!pending} onChange={next => { setRsvpDefinition(next); setTouched(current => ({ ...current, rsvp: true })); }} actions={topActions} viewMode={mode} />
         {errors.rsvpDefinition && <p className="portal-field-error" role="alert">{errors.rsvpDefinition}</p>}
       </div>
       <div hidden={tab !== "evaluation"}>
-        <EventEvaluationEditor eventId={eventId} eventName={initial.name || "This event"} initial={evaluation} editable={!pending} embedded onChange={setEvaluation} actions={topActions} viewMode={mode} />
+        <EventEvaluationEditor eventId={eventId} eventName={initial.name || "This event"} initial={evaluation} editable={!pending} embedded onChange={next => { setEvaluation(next); setTouched(current => ({ ...current, evaluation: true })); }} actions={topActions} viewMode={mode} />
         {errors.evaluationSettings && <p className="portal-field-error" role="alert">{errors.evaluationSettings}</p>}
       </div>
       {tab === "details" && <FormFooter formId={formId} pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} danger={danger} />}

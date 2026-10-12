@@ -25,12 +25,13 @@ const actions = load('src/lib/portal/event-actions.ts', {
   'next/cache': { revalidatePath: path => refreshed.push(path) },
   'next/navigation': { redirect: path => { throw Error(`Redirect: ${path}`); } },
   '@/lib/auth/session': { requireEditor: async () => { if (user.readOnly) throw Error('Denied'); return user; }, isLocal: user => user.affiliation === 'local' },
+  '@/lib/data/edit-guard': { readGuard: () => ({ stamp: null, overwrite: null }), mergePlan: () => ({ write: [], clash: [], theirs: [] }), conflictState: async () => ({}), saveGuarded: async (_, id, row) => { calls.push(['update', id, row]); return { saved: true, merged: false }; } },
   '@/lib/data/store': { store: { create: async (_, row) => { calls.push(['create', row]); return { id: 'sample' }; }, update: async (_, id, row) => { calls.push(['update', id, row]); return true; }, remove: async (_, id) => { calls.push(['remove', id]); } } },
   '@/lib/events/queries': { getEvent: async () => ({ organizer: 'local', college: 'CICS' }) },
   '@/lib/events/registrations': {}, '@/lib/events/emails': {}, '@/lib/notifications/notify': {},
   '@/lib/events/qr-codes': { ensureQrCodes: async id => { calls.push(['qr', id]); return {}; } },
   '@/lib/events/evaluation-store': { getEvaluationSettings: async () => storedEvaluation, writeEvaluationContent: async (...args) => { calls.push(['evaluation', ...args]); }, writeEvaluationSettings: async (...args) => { calls.push(['evaluation', ...args]); } },
-  '@/lib/events/rsvp-store': { writeRsvpDefinition: async (...args) => { calls.push(['definition', ...args]); }, writeRsvpSettings: async (...args) => { calls.push(['settings', ...args]); if (failSettings) throw Error('RSVP is unavailable'); } },
+  '@/lib/events/rsvp-store': { getRsvpSettings: async () => null, writeRsvpDefinition: async (...args) => { calls.push(['definition', ...args]); }, writeRsvpSettings: async (...args) => { calls.push(['settings', ...args]); if (failSettings) throw Error('RSVP is unavailable'); } },
 });
 function form(limit = '2') {
   const data = new FormData();
@@ -51,6 +52,7 @@ const eventUi = load('src/components/portal/event-form.tsx', {
   './event-form-links': { EventFormLinks: FormLinks },
   './event-details-fields': { EventDetailsFields: Details },
   './info-tip': { InfoTip: () => null },
+  './edit-guard': { EditPresence: () => null, EditConflict: () => null },
   './portal-form': { usePortalForm: () => ({ state: undefined, pending: false, onSubmit: () => {}, errors: {} }), FormFooter: Footer },
 });
 function walk(node) { if (!node || typeof node !== 'object') return []; if (Array.isArray(node)) return node.flatMap(walk); return [node, ...walk(node.props?.children)]; }

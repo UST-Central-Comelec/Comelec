@@ -27,8 +27,8 @@ function own<Q>(query: Q, scope: CalendarScope): Q {
 }
 
 const toNote = (row: Row): CalendarNote => ({ id: row.id as string, date: row.note_date as string, body: row.body as string, author: row.author_name as string, authorEmail: row.created_by as string, createdAt: row.created_at as string, updatedAt: row.updated_at as string });
-const toTodo = (row: Row): CalendarTodo => ({ id: row.id as string, title: row.title as string, dueDate: (row.due_date as string | null) ?? null, done: row.done === true, doneAt: (row.done_at as string | null) ?? null, doneBy: (row.done_by as string | null) ?? null, author: row.author_name as string, createdAt: row.created_at as string });
-const toHighlight = (row: Row, scope: CalendarScope): CalendarHighlight => ({ id: row.id as string, start: row.start_date as string, end: row.end_date as string, kind: row.kind as CalendarHighlight["kind"], color: (row.color as CalendarHighlight["color"]) ?? null, label: (row.label as string | null) ?? "", author: row.author_name as string, shared: ((row.college as string | null) ?? null) !== scope.college });
+const toTodo = (row: Row): CalendarTodo => ({ id: row.id as string, title: row.title as string, dueDate: (row.due_date as string | null) ?? null, done: row.done === true, doneAt: (row.done_at as string | null) ?? null, doneBy: (row.done_by as string | null) ?? null, author: row.author_name as string, createdAt: row.created_at as string, updatedAt: row.updated_at as string });
+const toHighlight = (row: Row, scope: CalendarScope): CalendarHighlight => ({ id: row.id as string, start: row.start_date as string, end: row.end_date as string, kind: row.kind as CalendarHighlight["kind"], color: (row.color as CalendarHighlight["color"]) ?? null, label: (row.label as string | null) ?? "", author: row.author_name as string, shared: ((row.college as string | null) ?? null) !== scope.college, updatedAt: row.updated_at as string });
 
 type DbError = { code?: string; message: string };
 /** The tables (or a column) aren't there yet: 0069 hasn't been run. */
@@ -77,17 +77,46 @@ async function single<T>(query: PromiseLike<{ data: Row | null; error: DbError |
   return map(data);
 }
 
+/** Someone else changed the item after it was opened, so nothing was saved: theirs, and who saved it. */
+export class CalendarConflict<T> extends Error {
+  constructor(readonly latest: T, readonly by: string) {
+    super("Someone else changed this while you were editing.");
+  }
+}
+
+type Table = typeof notes;
+
+/**
+ * Saves a change to one of the unit's rows, only while `column` still holds what the editor opened
+ * (`expected`). When it doesn't, throws `CalendarConflict` with the row as it is now.
+ */
+async function guarded<T>(table: Table, actor: CalendarActor, id: string, changes: Row, map: (row: Row) => T, guard?: { column: string; expected: string }): Promise<T> {
+  let query = own(table().update({ ...changes, ...stamp(actor) }).eq("id", id), actor);
+  if (guard) query = query.eq(guard.column, guard.expected);
+  const { data, error } = await query.select("*").maybeSingle();
+  if (error) fail(error, "save");
+  if (data) return map(data);
+  if (guard) {
+    const { data: current, error: readError } = await own(table().select("*").eq("id", id), actor).maybeSingle();
+    if (readError) fail(readError, "load");
+    if (current) throw new CalendarConflict(map(current), String(current.updated_by ?? ""));
+  }
+  throw new Error(gone);
+}
+
 export const insertNote = (actor: CalendarActor, values: { date: string; body: string }) =>
   single(notes().insert({ college: actor.college, note_date: values.date, body: values.body, created_by: actor.email, author_name: actor.name, ...stamp(actor) }).select("*").maybeSingle(), toNote);
 
-export const updateNote = (actor: CalendarActor, id: string, body: string) =>
-  single(own(notes().update({ body, ...stamp(actor) }).eq("id", id), actor).select("*").maybeSingle(), toNote);
+/** `expected`: when the note was last saved, as the editor opened it. */
+export const updateNote = (actor: CalendarActor, id: string, body: string, expected?: string) =>
+  guarded(notes, actor, id, { body }, toNote, expected ? { column: "updated_at", expected } : undefined);
 
 export const insertTodo = (actor: CalendarActor, values: { title: string; dueDate: string | null }) =>
   single(todos().insert({ college: actor.college, title: values.title, due_date: values.dueDate, created_by: actor.email, author_name: actor.name, ...stamp(actor) }).select("*").maybeSingle(), toTodo);
 
-export const updateTodo = (actor: CalendarActor, id: string, values: { title: string; dueDate: string | null }) =>
-  single(own(todos().update({ title: values.title, due_date: values.dueDate, ...stamp(actor) }).eq("id", id), actor).select("*").maybeSingle(), toTodo);
+/** `expected`: the title as the editor opened it. Ticking a to-do done doesn't get in the way of renaming it. */
+export const updateTodo = (actor: CalendarActor, id: string, values: { title: string; dueDate: string | null }, expected?: string) =>
+  guarded(todos, actor, id, { title: values.title, due_date: values.dueDate }, toTodo, expected !== undefined ? { column: "title", expected } : undefined);
 
 export const markTodo = (actor: CalendarActor, id: string, done: boolean) =>
   single(own(todos().update({ done, done_at: done ? new Date().toISOString() : null, done_by: done ? actor.name : null, ...stamp(actor) }).eq("id", id), actor).select("*").maybeSingle(), toTodo);
@@ -95,8 +124,9 @@ export const markTodo = (actor: CalendarActor, id: string, done: boolean) =>
 export const insertHighlight = (actor: CalendarActor, values: HighlightValues) =>
   single(highlights().insert({ college: actor.college, start_date: values.start, end_date: values.end, kind: values.kind, color: values.color, label: values.label, created_by: actor.email, author_name: actor.name, ...stamp(actor) }).select("*").maybeSingle(), (row) => toHighlight(row, actor));
 
-export const updateHighlight = (actor: CalendarActor, id: string, values: HighlightValues) =>
-  single(own(highlights().update({ start_date: values.start, end_date: values.end, kind: values.kind, color: values.color, label: values.label, ...stamp(actor) }).eq("id", id), actor).select("*").maybeSingle(), (row) => toHighlight(row, actor));
+/** `expected`: when the highlight was last saved, as the editor opened it. */
+export const updateHighlight = (actor: CalendarActor, id: string, values: HighlightValues, expected?: string) =>
+  guarded(highlights, actor, id, { start_date: values.start, end_date: values.end, kind: values.kind, color: values.color, label: values.label }, (row) => toHighlight(row, actor), expected ? { column: "updated_at", expected } : undefined);
 
 /** Removes one of the unit's own rows. */
 export async function removeFromCalendar(actor: CalendarActor, table: "notes" | "todos" | "highlights", id: string) {

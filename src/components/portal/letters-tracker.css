@@ -137,3 +137,7 @@
 
 .portal-letters-table .portal-letter-label .portal-dropdown > button { font-size: 12px; height: auto; justify-content: flex-start; margin-inline: -6px; padding: 2px 6px; text-align: left; min-width: 0; width: auto; }
 
+
+/* Someone else saved the record while it was open (portal.css .portal-edit-conflict): between the body and the footer. */
+.portal-letter-dialog .portal-letter-conflict { flex: none; margin: 0 28px 16px; }
+@media (max-width: 700px) { .portal-letter-dialog .portal-letter-conflict { margin: 0 20px 14px; } }

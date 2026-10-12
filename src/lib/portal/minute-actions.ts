@@ -5,7 +5,8 @@ import { isLocal, requireEditor } from "@/lib/auth/session";
 import { recordSchema, type Letter, type LetterSaveResult } from "@/lib/letters/options";
 import { numberMode } from "@/lib/letters/settings";
 import { getSecretariatSettings } from "@/lib/letters/settings-store";
-import { previewControlNumber, removeLetter, writeLetter, writeLetterLabel } from "@/lib/letters/store";
+import { saverName } from "@/lib/data/edit-guard";
+import { previewControlNumber, RecordConflict, removeLetter, writeLetter, writeLetterLabel } from "@/lib/letters/store";
 import { text } from "./form";
 
 /** The next automatic number for this type, or an error when the type isn't numbered automatically. */
@@ -38,8 +39,12 @@ export async function saveMinute(id: string | null, formData: FormData): Promise
   }
   let letter;
   try {
-    letter = await writeLetter(id, result.data, { email: user.email, name: user.name, local: isLocal(user), college: user.college }, settings, "minutes");
+    letter = await writeLetter(id, result.data, { email: user.email, name: user.name, local: isLocal(user), college: user.college }, settings, "minutes", text(formData, "_expected") || null);
   } catch (error) {
+    if (error instanceof RecordConflict) {
+      const by = await saverName(error.by, user.email);
+      return { error: by === "You" ? "You saved these meeting minutes in another tab while editing here, so this wasn’t saved." : `${by} saved these meeting minutes while you were editing, so yours wasn’t saved.`, conflict: { letter: error.letter, by } };
+    }
     return { error: error instanceof Error ? error.message : "Couldn’t save these meeting minutes. Try again." };
   }
   revalidatePath("/portal/secretariat/minutes");

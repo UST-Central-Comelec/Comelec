@@ -49,7 +49,7 @@ export type CalendarEntry = {
 };
 
 export type CalendarNote = { id: string; date: string; body: string; author: string; authorEmail: string; createdAt: string; updatedAt: string };
-export type CalendarTodo = { id: string; title: string; dueDate: string | null; done: boolean; doneAt: string | null; doneBy: string | null; author: string; createdAt: string };
+export type CalendarTodo = { id: string; title: string; dueDate: string | null; done: boolean; doneAt: string | null; doneBy: string | null; author: string; createdAt: string; updatedAt: string };
 export type CalendarHighlight = {
   id: string;
   start: string;
@@ -60,6 +60,7 @@ export type CalendarHighlight = {
   author: string;
   /** Another unit's (the Central Comelec's, on a Local unit's calendar): shown, not changed. */
   shared: boolean;
+  updatedAt: string;
 };
 
 export type CalendarData = { notes: CalendarNote[]; todos: CalendarTodo[]; highlights: CalendarHighlight[] };

@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
-import { ChevronRight, Copy, Plus, Search, Trash2, X } from "lucide-react";
+import { flushSync } from "react-dom";
+import { AlertTriangle, ChevronRight, Copy, Plus, Search, Trash2, X } from "lucide-react";
 import { unstable_rethrow } from "next/navigation";
-import { documentTypeLabels, workingDocumentKind, type Letter, type LetterSaveResult, type LetterValues, type WorkingDocumentKind } from "@/lib/letters/options";
+import { documentTypeLabels, workingDocumentKind, type Letter, type LetterConflict, type LetterSaveResult, type LetterValues, type WorkingDocumentKind } from "@/lib/letters/options";
 import { numberMode, type SecretariatSettings, type ToneItem } from "@/lib/letters/settings";
 import { Combobox } from "@/components/combobox";
 import { deleteLetter, getLetterNumberPreview, saveLetter, setLetterLabel } from "@/lib/portal/letter-actions";
 import { deleteMinute, getMinuteNumberPreview, saveMinute, setMinuteLabel } from "@/lib/portal/minute-actions";
+import { compareEdits, fieldLabels, setField, valuesOf } from "@/lib/letters/conflict";
 import { LetterLabel } from "./letter-label";
 import { toast } from "./toast";
 import { Dropdown } from "./dropdown";
@@ -21,6 +23,8 @@ import "./letters-tracker.css";
 
 const PAGE_SIZE = 25;
 const emptyLetter: LetterValues = { title: "", label: null, type: "", status: "", controlNumber: "", destinationOffice: "", workingDocuments: [], remarks: "", notifyStatusUpdates: false, remarkPresets: [] };
+const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" });
+
 const documentTypeOptions = (Object.keys(documentTypeLabels) as WorkingDocumentKind[]).map(value => ({ value, label: documentTypeLabels[value] }));
 
 function LetterStatus({ status, statuses }: { status: string; statuses: ToneItem[] }) {
@@ -56,6 +60,10 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
   const [previewError, setPreviewError] = useState("");
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  /** Someone else saved this record while it was open, and changed what this person changed too. */
+  const [conflict, setConflict] = useState<(LetterConflict & { fields: string[] }) | null>(null);
+  /** The version this person chose to save over. */
+  const [saveOver, setSaveOver] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -117,7 +125,9 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
   function open(letter: Letter | null) {
     setSelected(letter);
     setDeleteArmed(false);
-    setDraft(letter ? { title: letter.title, label: letter.label, type: letter.type, status: letter.status, controlNumber: letter.controlNumber, destinationOffice: letter.destinationOffice, workingDocuments: letter.workingDocuments.map(document => ({ ...document })), remarks: letter.remarks, notifyStatusUpdates: letter.notifyStatusUpdates, remarkPresets: [...letter.remarkPresets] } : { ...blank });
+    setDraft(letter ? valuesOf(letter) : { ...blank });
+    setConflict(null);
+    setSaveOver(null);
     setDocumentKeys(letter?.workingDocuments.map(() => crypto.randomUUID()) ?? []);
     setFeedback(null);
     setView("details");
@@ -134,12 +144,37 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
     const data = new FormData(event.currentTarget);
     startTransition(async () => {
       try {
-        const result = await saveRecord(selected?.id ?? null, data);
+        let result = await saveRecord(selected?.id ?? null, data);
+        // Someone else saved it while it was open. Changes to different fields are put together and
+        // saved over theirs; the same field changed by both is this person's to decide.
+        let alsoChangedBy: string | null = null;
+        if (result.conflict && selected && !saveOver) {
+          const saved = result.conflict.letter;
+          const { theirs, clash } = compareEdits(selected, draft, saved);
+          if (!clash.length) {
+            for (const key of theirs) setField(data, key, saved[key]);
+            data.set("_expected", saved.updatedAt);
+            alsoChangedBy = result.conflict.by;
+            result = await saveRecord(selected.id, data);
+          }
+        }
+        setSaveOver(null);
         setFeedback(result);
+        if (result.conflict && selected) {
+          const saved = result.conflict.letter;
+          const { theirs, clash } = compareEdits(selected, draft, saved);
+          // Their changes to other fields are taken in now, so saving over theirs keeps them.
+          setDraft(current => ({ ...current, ...Object.fromEntries(theirs.map(key => [key, saved[key]])) }));
+          if (theirs.includes("workingDocuments")) setDocumentKeys(saved.workingDocuments.map(() => crypto.randomUUID()));
+          setConflict({ ...result.conflict, fields: [...new Set(clash.map(key => fieldLabels[key]))] });
+          toast(result.error, "error");
+          return;
+        }
         if (result.error) toast(result.error, "error");
         if (result.fieldErrors) setView(Object.keys(result.fieldErrors).some(key => key.startsWith("workingDocuments")) ? "documents" : (result.fieldErrors.remarks || Object.keys(result.fieldErrors).some(key => key.startsWith("remarkPresets"))) ? "remarks" : "details");
         if (result.letter) {
-          toast(selected ? `${minutes ? "Meeting minutes" : "Letter"} updated.` : `${minutes ? "Meeting minutes" : "Letter"} added.`);
+          const what = minutes ? "Meeting minutes" : "Letter";
+          toast(!selected ? `${what} added.` : alsoChangedBy === "You" ? `${what} updated. What you saved in another tab meanwhile was kept too.` : alsoChangedBy ? `${what} updated. ${alsoChangedBy} also changed ${minutes ? "them" : "it"} while you were editing, and those changes were kept.` : `${what} updated.`);
           dialog.current?.close();
         }
       } catch (error) {
@@ -147,6 +182,23 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
         toast(`Couldn’t save ${noun}. Try again.`, "error");
       }
     });
+  }
+
+  /** Starts again from the version someone else saved. */
+  function loadTheirs() {
+    if (!conflict) return;
+    setSelected(conflict.letter);
+    setDraft(valuesOf(conflict.letter));
+    setDocumentKeys(conflict.letter.workingDocuments.map(() => crypto.randomUUID()));
+    setConflict(null);
+    setFeedback(null);
+  }
+
+  /** Saves what's in the form over the version someone else saved. */
+  function saveMine(form: HTMLFormElement | null) {
+    if (!conflict) return;
+    flushSync(() => { setSaveOver(conflict.letter.updatedAt); setConflict(null); });
+    form?.requestSubmit();
   }
 
   function changeLabel(letter: Letter, label: Letter["label"]) {
@@ -244,6 +296,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
       <dialog ref={dialog} id={id} className="portal-registrant-dialog portal-letter-dialog" aria-labelledby={titleId} onClose={() => { setCreating(false); setModalOpen(false); }} onCancel={event => { if (pending) event.preventDefault(); }} onClick={event => { if (event.target === event.currentTarget && !pending) dialog.current?.close(); }}>
         <button type="button" className="portal-icon-button is-light portal-registrant-close" aria-label={`Close ${noun} details`} autoFocus disabled={pending} onClick={() => dialog.current?.close()}><X size={18} aria-hidden="true" /></button>
         <form className="portal-registrant-receipt" onSubmit={submit} noValidate>
+          <input type="hidden" name="_expected" value={saveOver ?? selected?.updatedAt ?? ""} />
           <header className="portal-registrant-receipt-head">
             <div className="portal-registrant-heading">
               <h2 id={titleId}>{selected ? selected.title : addLabel}</h2>
@@ -330,6 +383,17 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
               </section>
             </fieldset>
           </div>
+          {conflict && <div className="portal-edit-conflict portal-letter-conflict" role="alert">
+            <AlertTriangle size={16} aria-hidden="true" />
+            <div className="portal-edit-conflict-text">
+              <strong>{conflict.by === "You" ? "You saved this in another tab" : `${conflict.by} saved this`} at {timeOf(conflict.letter.updatedAt)}</strong>
+              <span>{conflict.fields.length ? `You both changed ${conflict.fields.length < 2 ? conflict.fields[0] : `${conflict.fields.slice(0, -1).join(", ")} and ${conflict.fields.at(-1)}`}. ` : ""}Your version is still here, with their other changes taken in. Load theirs to start again from it, or save yours over it.</span>
+            </div>
+            <div className="portal-edit-conflict-actions">
+              <button type="button" className="portal-button is-ghost is-small" disabled={pending} onClick={loadTheirs}>Load their version</button>
+              <button type="button" className="portal-button is-danger-ghost is-small" disabled={pending} onClick={event => saveMine(event.currentTarget.form)}>Save mine over theirs</button>
+            </div>
+          </div>}
           <footer className="portal-registrant-receipt-foot">
             {readOnly ? <ViewOnlyTag /> : deleteArmed ? <div className="portal-letter-delete-confirm">
               <span className="portal-muted">Delete permanently?</span>

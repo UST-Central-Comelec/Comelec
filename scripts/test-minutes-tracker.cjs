@@ -59,6 +59,7 @@ const actions = load("src/lib/portal/minute-actions.ts", {
   "next/cache": { revalidatePath: route => assert.ok(["/portal/secretariat/minutes", "/portal"].includes(route)) },
   "@/lib/auth/session": { isLocal: account => account.affiliation === "local", requireEditor: async tab => { assert.equal(tab, "secretariat/minutes"); if (user.readOnly) throw new Error("view only"); return user; } },
   "@/lib/letters/options": options, "@/lib/letters/store": store, "@/lib/letters/settings": settings,
+  "@/lib/data/edit-guard": { saverName: async email => email },
   "@/lib/letters/settings-store": { getSecretariatSettings: async () => ({ settings: defaults, updatedAt: null, updatedBy: null }) },
   "./form": { text: (form, key) => typeof form.get(key) === "string" ? form.get(key) : "" },
 });

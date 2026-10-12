@@ -113,7 +113,8 @@ function layoutWeek(week: string[], entries: CalendarEntry[]) {
 const kept = new WeakMap<CalendarData, CalendarData>();
 
 type Selection = { anchor: string; start: string; end: string };
-type HighlightDraft = { id: string | null; start: string; end: string; kind: HighlightKind; color: HighlightColor; label: string };
+/** `updatedAt`: when the highlight being edited was last saved, so a save doesn’t silently replace someone else’s. */
+type HighlightDraft = { id: string | null; start: string; end: string; kind: HighlightKind; color: HighlightColor; label: string; updatedAt?: string };
 type UnitFilter = "all" | "central" | "local" | "own";
 
 export function SecretariatCalendar({ today, entries, data, unitName, local, readOnly, canAddEvent, loadError }: {
@@ -239,10 +240,12 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
 
   // Saving --------------------------------------------------------------------------------------
 
-  async function run<T>(key: string, change: () => Promise<{ value?: T; error?: string }>, apply: (value: T) => void) {
+  async function run<T>(key: string, change: () => Promise<{ value?: T; error?: string; latest?: T }>, apply: (value: T) => void) {
     setBusy(key);
     try {
       const result = await change();
+      // Someone else changed it meanwhile: show theirs, and leave the editor open with this person's text.
+      if (result.latest !== undefined) apply(result.latest);
       if (result.error !== undefined) toast(result.error, "error");
       else apply(result.value as T);
       return result.error === undefined;
@@ -262,7 +265,7 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
   };
 
   const openHighlight = (highlight?: CalendarHighlight) => {
-    setDraft(highlight ? { id: highlight.id, start: highlight.start, end: highlight.end, kind: highlight.kind, color: highlight.color ?? "gold", label: highlight.label } : { id: null, start, end, kind: "moratorium", color: "gold", label: "" });
+    setDraft(highlight ? { id: highlight.id, start: highlight.start, end: highlight.end, kind: highlight.kind, color: highlight.color ?? "gold", label: highlight.label, updatedAt: highlight.updatedAt } : { id: null, start, end, kind: "moratorium", color: "gold", label: "" });
   };
 
   // The selected days -------------------------------------------------------------------------
@@ -429,7 +432,11 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
             {!readOnly && single && <p className="cal-tip is-pointer">Drag across days, or Shift-click, to pick several.</p>}
 
             {draft && <HighlightForm draft={draft} setDraft={setDraft} busy={busy === "highlight"} onSave={async () => {
-              const saved = await run("highlight", () => saveCalendarHighlight(draft.id, { start: draft.start, end: draft.end, kind: draft.kind, color: draft.kind === "custom" ? draft.color : null, label: draft.label }), (value: CalendarHighlight) => setHighlights((list) => [...list.filter((item) => item.id !== value.id), value]));
+              const saved = await run("highlight", () => saveCalendarHighlight(draft.id, { start: draft.start, end: draft.end, kind: draft.kind, color: draft.kind === "custom" ? draft.color : null, label: draft.label }, draft.updatedAt), (value: CalendarHighlight) => {
+                setHighlights((list) => [...list.filter((item) => item.id !== value.id), value]);
+                // After a conflict, saving again replaces theirs.
+                setDraft((current) => (current && current.id === value.id ? { ...current, updatedAt: value.updatedAt } : current));
+              });
               if (saved) setDraft(null);
             }} />}
 
@@ -466,7 +473,7 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
 
             {panel === "notes" && <>
             <DaySection count={daysNotes.length} empty={single ? "No notes for this day." : "No notes for these days."} hideEmpty={!readOnly && single}>
-              {daysNotes.map((note) => <NoteItem key={note.id} note={note} showDate={!single} readOnly={readOnly} busy={busy} onSave={(body) => run(`note-${note.id}`, () => editCalendarNote(note.id, body), (value: CalendarNote) => setNotes((list) => list.map((item) => (item.id === value.id ? value : item))))} onRemove={() => run(`remove-${note.id}`, () => deleteFromCalendar("notes", note.id), () => setNotes((list) => list.filter((item) => item.id !== note.id)))} />)}
+              {daysNotes.map((note) => <NoteItem key={note.id} note={note} showDate={!single} readOnly={readOnly} busy={busy} onSave={(body) => run(`note-${note.id}`, () => editCalendarNote(note.id, body, note.updatedAt), (value: CalendarNote) => setNotes((list) => list.map((item) => (item.id === value.id ? value : item))))} onRemove={() => run(`remove-${note.id}`, () => deleteFromCalendar("notes", note.id), () => setNotes((list) => list.filter((item) => item.id !== note.id)))} />)}
             </DaySection>
             {!readOnly && (single
               ? <Composer key={`note-${start}`} multiline placeholder={`Add a note for ${dayShort.format(new Date(timeOf(start)))}…`} submitLabel="Add note" busy={busy === "note"} onSubmit={(body) => run("note", () => addCalendarNote(start, body), (value: CalendarNote) => setNotes((list) => [...list, value]))} />
@@ -477,7 +484,7 @@ export function SecretariatCalendar({ today, entries, data, unitName, local, rea
             <TodoStack todos={todos} today={today} readOnly={readOnly} busy={busy}
               onPickDay={(day) => select(day)}
               onToggle={toggleTodo}
-              onSave={(todo, title) => run(`todo-${todo.id}`, () => editCalendarTodo(todo.id, title, todo.dueDate), (value: CalendarTodo) => setTodos((list) => list.map((item) => (item.id === value.id ? value : item))))}
+              onSave={(todo, title) => run(`todo-${todo.id}`, () => editCalendarTodo(todo.id, title, todo.dueDate, todo.title), (value: CalendarTodo) => setTodos((list) => list.map((item) => (item.id === value.id ? value : item))))}
               onRemove={(todo) => run(`remove-${todo.id}`, () => deleteFromCalendar("todos", todo.id), () => setTodos((list) => list.filter((item) => item.id !== todo.id)))} />
             {!readOnly && (single
               ? <TodoAdder key={`todo-${start}`} due={dayShort.format(new Date(timeOf(start)))} busy={busy === "todo"} onAdd={(title) => run("todo", () => addCalendarTodo(title, start), (value: CalendarTodo) => setTodos((list) => [...list, value]))} />

@@ -166,6 +166,8 @@ Nobody edits live together; each browser saves its whole form. So an edit form f
 - **The form** renders `<EditPresence guard={guard} />` at its top and `<EditConflict guard={guard} state={state} />` above its footer.
 - **The action** saves with `saveGuarded(collection, id, data, email, readGuard(formData), { load })`, where `load` reads the record the same way the page did. It returns `{ saved, merged }`, `{ conflict }` (return `conflictState(…)` with the form's field labels) or `{ missing }`. Pass `merge: false` when fields are only valid together (accounts), `groups` for fields that change as one (a table's columns and rows), `check` to re-validate a merge (event times).
 - Edits to different fields merge, and the notice says so (`…-merged`). The same field changed by both asks the second person to load the other version or save over it.
+- **Records edited in a dialog or in place** (letters, minutes, calendar notes and highlights) send the `updatedAt` they opened. The store saves only over that and otherwise throws a conflict with the latest record (`RecordConflict`, `CalendarConflict`), which the action returns. The letters dialog merges different fields itself (`src/lib/letters/conflict.ts`). The calendar shows theirs and keeps the editor open, so saving again replaces it. A to-do rename checks the title instead, so ticking it done never blocks a rename.
+- **Saves that set one value** (featured, registration open or closed, revoke or restore access, ticking a to-do) don't need the guard: they set what was clicked, so the last click wins.
 
 ## Action messages are header pop-ups
 

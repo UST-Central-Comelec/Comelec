@@ -132,22 +132,28 @@ export async function saveGuarded<C extends Collection>(collection: C, id: strin
   return { conflict: last! };
 }
 
+/** Who saved, as a conflict names them: "You" for this person's own other tab, else their name, else their email. */
+export async function saverName(email: string, you: string) {
+  const address = email.trim().toLowerCase();
+  if (address === you.trim().toLowerCase()) return "You";
+  if (!address) return "Someone";
+  try {
+    const account = (await store.list("accounts")).find((row) => row.email.trim().toLowerCase() === address);
+    if (account) return toSummary(account).name || email;
+  } catch {
+    // Shown by email instead.
+  }
+  return email;
+}
+
 /**
  * The form's answer to a conflict: a pop-up, and the choice beside the form. `labels` names fields
  * as the form shows them; `what` is the record, as in "saved this event".
  */
 export async function conflictState(conflict: Conflict, labels: Record<string, string>, what: string, you: string): Promise<FormState> {
   const fields = [...new Set(conflict.fields.map((key) => labels[key]).filter(Boolean))];
-  const mine = conflict.by.trim().toLowerCase() === you.trim().toLowerCase();
-  let by = mine ? "You" : conflict.by || "Someone";
-  if (!mine && conflict.by) {
-    try {
-      const account = (await store.list("accounts")).find((row) => row.email.trim().toLowerCase() === conflict.by.trim().toLowerCase());
-      if (account) by = toSummary(account).name || by;
-    } catch {
-      // Shown by email instead.
-    }
-  }
+  const by = await saverName(conflict.by, you);
+  const mine = by === "You";
   const error = mine
     ? `You saved this ${what} in another tab while editing here, so this wasn’t saved. Choose which version to keep.`
     : `${by} saved this ${what} while you were editing, so yours wasn’t saved. Choose which version to keep.`;
