@@ -113,6 +113,13 @@ When building a form:
 - Don't build another validation tooltip, and don't turn the check off, except on a preview that only moves between steps (`data-validation="off"` on the form). A submit button that saves a draft can skip it with `formNoValidate`.
 - Server-side errors still show under their fields as before (`Field`'s `error`).
 
+## Scrolling when content changes
+
+A press that swaps content (a form's Next, a tab, a filter) must never leave the view on the footer. `ScrollKeeper` (`src/components/scroll-keeper.tsx`, mounted in each root layout) handles this for every page. When a press changes the part of the page it's in, and that part now starts above the screen and ends in the upper part of it, the part's top is brought back under the header.
+
+- Scroll from code only through `src/lib/scroll.ts`: `scrollToTop`, `scrollToElement` (with `smooth` or `center`) and `headerOffset`. Never use `window.scrollTo` or `scrollIntoView` for the page. The site glides with Lenis, which undoes a plain scroll while it's moving, and `scrollIntoView` lands content under the fixed header. (Scrolling inside a list or a panel, like a dropdown's options, is fine with `scrollIntoView({ block: "nearest" })`.)
+- A step or tab change that should open at its top calls `scrollToElement(container)` itself. ScrollKeeper is the safety net, not the plan.
+
 ## Names, numbers and emails (strict)
 
 These hold on every form, on the site and in the portal, with no exceptions. Each is enforced twice: as people type, by `FormInputGuard` (`src/components/form-input-guard.tsx`, which reads the field's `name`) and the form builder's `cleanAnswer`; and again on the server. Never write a new regex or zod rule for these fields: build schemas from `src/lib/forms/fields.ts` (`personName`, `studentNumber`, `mobileNumber`, `optionalMobileNumber`, `email`), and the patterns and cleaners in `src/lib/forms/input.ts`.

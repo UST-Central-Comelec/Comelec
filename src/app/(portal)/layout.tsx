@@ -3,6 +3,7 @@ import { Geist, Instrument_Serif } from "next/font/google";
 import "./portal.css";
 import { FormInputGuard } from "@/components/form-input-guard";
 import { FormValidation } from "@/components/form-validation";
+import { ScrollKeeper } from "@/components/scroll-keeper";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 // The home page's gold italic, for accent words in headings.
@@ -21,7 +22,7 @@ export const viewport: Viewport = { themeColor: "#030305", colorScheme: "dark" }
 export default function PortalRootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geist.variable} ${instrumentSerif.variable}`}>
-      <body className="portal"><FormInputGuard /><FormValidation />{children}</body>
+      <body className="portal"><FormInputGuard /><FormValidation /><ScrollKeeper />{children}</body>
     </html>
   );
 }

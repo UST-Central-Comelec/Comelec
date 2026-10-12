@@ -1,5 +1,6 @@
 "use client";
 
+import { headerOffset, scrollToElement } from "@/lib/scroll";
 import Link from "next/link";
 import { Popover } from "@base-ui/react/popover";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -111,7 +112,7 @@ export function EventsBoard({ events, today }: { events: EventView[]; today: str
 
   const pickDay = (date: string) => {
     setDay(day === date ? null : date); setOpenId(null);
-    if (listRef.current && listRef.current.getBoundingClientRect().top < 0) listRef.current.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    if (listRef.current && listRef.current.getBoundingClientRect().top < headerOffset()) scrollToElement(listRef.current, { smooth: true });
   };
   const showEvent = (event: EventView) => {
     setDay(null); setTab(event.ended ? "past" : "upcoming"); setOpenId(event.id); setArrivedAt({ id: event.id });

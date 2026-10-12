@@ -2,6 +2,7 @@
 
 import Lenis from "lenis";
 import { useEffect } from "react";
+import { setGlide } from "@/lib/scroll";
 
 /**
  * Holds the page still while something covers it (the navbar's search and its phone menu), or lets
@@ -23,6 +24,8 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
       smoothWheel: true,
       syncTouch: false,
     });
+    // Scrolls from code go through it, so a glide in progress doesn't undo them (src/lib/scroll.ts).
+    setGlide(lenis);
 
     // Scrolling waits for the first-load screen, and for anything that locks it (lockScroll, above).
     let loading = Boolean(document.querySelector(".site-loader:not(.is-leaving)"));
@@ -52,6 +55,7 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("site-loader-done", handleLoaderDone);
       window.removeEventListener("scroll-lock", handleLock);
+      setGlide(null);
       lenis.destroy();
     };
   }, []);

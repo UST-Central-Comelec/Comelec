@@ -1,5 +1,6 @@
 "use client";
 
+import { scrollToElement } from "@/lib/scroll";
 import { cleanMobileNumber, cleanStudentNumber, tidyPersonName } from "@/lib/forms/input";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
@@ -239,7 +240,8 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
       return;
     }
     headingRef.current?.focus({ preventScroll: true });
-    headingRef.current?.closest(".portal-login-card")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    const card = headingRef.current?.closest(".portal-login-card");
+    if (card) scrollToElement(card, { smooth: true });
   }, [step]);
 
   // Join the Commission: once the account is verified, its accepted application fills in the profile.

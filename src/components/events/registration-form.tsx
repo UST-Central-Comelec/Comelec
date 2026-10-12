@@ -1,5 +1,6 @@
 "use client";
 
+import { scrollToElement, scrollToTop } from "@/lib/scroll";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Hourglass, Lock, ShieldCheck } from "lucide-react";
@@ -112,7 +113,7 @@ function Saved({ event, kind, name, email, referenceCode, acknowledgement }: { e
 
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToTop(0, { smooth: true });
   }, []);
 
   return (
@@ -224,7 +225,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
   useEffect(() => {
     if (!moved.current) return;
     headingRef.current?.focus({ preventScroll: true });
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (formRef.current) scrollToElement(formRef.current, { smooth: true });
   }, [step]);
 
   const set = <K extends keyof RegistrationValues>(field: K, value: RegistrationValues[K]) => {

@@ -56,6 +56,8 @@
 * { box-sizing: border-box; }
 /* No rubber-band bounce past any edge (a sideways swipe would drag the page off the white canvas behind it), and nothing scrolls the page sideways. */
 html { overscroll-behavior: none; scroll-behavior: smooth; }
+/* While Lenis glides the page (smooth-scroll.tsx), it does the smoothing: the browser's own would fight it. */
+html.lenis { scroll-behavior: auto; }
 body { margin: 0; overflow-x: clip; overscroll-behavior: none; background: var(--paper); color: var(--ink); }
 html, body { scrollbar-width: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }

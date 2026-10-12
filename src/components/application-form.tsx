@@ -1,5 +1,6 @@
 "use client";
 
+import { scrollToTop } from "@/lib/scroll";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
@@ -126,7 +127,7 @@ function ApplicationResult({ result, preview, onRestart }: { result?: SubmittedA
 
   useLayoutEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: "instant" });
+    scrollToTop(0);
   }, []);
 
   const copy = async () => {
@@ -366,7 +367,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   useLayoutEffect(() => {
     if (!moved) return;
     headingRef.current?.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: "instant" });
+    scrollToTop(0);
   }, [step, moved]);
 
   const read = () => readApplication(new FormData(formRef.current ?? undefined));

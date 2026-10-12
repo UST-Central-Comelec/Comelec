@@ -1,5 +1,6 @@
 "use client";
 
+import { headerOffset, scrollToElement } from "@/lib/scroll";
 import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { motion, MotionConfig } from "motion/react";
@@ -81,7 +82,7 @@ export function NewsDesk({ stories, initialCategory, initialQuery }: Props) {
     setCategory(next);
     // Scrolled down the list? Come back up to the top of the new one.
     const desk = deskRef.current;
-    if (desk && desk.getBoundingClientRect().top < 0) desk.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (desk && desk.getBoundingClientRect().top < headerOffset()) scrollToElement(desk, { smooth: true });
   };
 
   const clearSearch = () => {

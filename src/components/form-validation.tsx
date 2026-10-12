@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { isMobileNumberField, isStudentNumberField } from "@/lib/forms/input";
+import { scrollToElement } from "@/lib/scroll";
 import "./form-validation.css";
 
 // Every form's check before it's sent, on the site and in the portal: a required field left empty
@@ -174,7 +175,8 @@ function report(problems: Problem[]) {
   if (!first) return hideTip();
   // A picker isn't focused: focus would open its list over the tooltip.
   if (first.control.type !== "hidden") first.control.focus({ preventScroll: true });
-  first.anchor.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  // Through the page's scroller, so a glide still running from the wheel doesn't carry it off (src/lib/scroll.ts).
+  scrollToElement(first.anchor, { smooth: true, center: true });
   showTip(first);
   // A smooth scroll moves the field after the tooltip is placed.
   setTimeout(place, 350);

@@ -7,6 +7,7 @@ import "./cookie-notice.css";
 import { CookieNotice } from "@/components/cookie-notice";
 import { FormInputGuard } from "@/components/form-input-guard";
 import { FormValidation } from "@/components/form-validation";
+import { ScrollKeeper } from "@/components/scroll-keeper";
 import { SiteFooter } from "@/components/site-footer";
 import type { Featured } from "@/components/featured-carousel";
 import type { NavStatus, PeriodReading } from "@/components/nav/nav-data";
@@ -95,7 +96,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     // The theme toggle restores the visitor's preference on <html> during hydration.
     <html lang="en" className={cn("font-sans", geist.variable, serif.variable)} suppressHydrationWarning>
       <body>
-        <FormInputGuard /><FormValidation />
+        <FormInputGuard /><FormValidation /><ScrollKeeper />
         <SiteLoader />
         <SmoothScroll>
           <SiteHeader featured={featured} status={status} />
