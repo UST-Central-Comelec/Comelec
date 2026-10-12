@@ -6,6 +6,7 @@ import { StatisticForm } from "@/components/portal/statistic-form";
 import { ViewOnly } from "@/components/portal/view-only";
 import { formatClosing } from "@/lib/applications/period";
 import { allowed, withPortalUser } from "@/lib/auth/session";
+import { stampFor } from "@/lib/data/edit-guard";
 import { deleteStatistic, updateStatistic } from "@/lib/portal/statistic-actions";
 import { getStatistics } from "@/lib/statistics/queries";
 import { byPeriod } from "@/lib/statistics/table";
@@ -33,6 +34,7 @@ export default async function EditStatisticPage({ params }: PageProps<"/portal/s
             submitLabel="Save changes"
             periods={byPeriod(tables).map((group) => group.period)}
             initial={table}
+            guard={readOnly ? undefined : { stamp: stampFor(table.updatedAt, table), record: `statistics/${table.id}` }}
             danger={<DeleteButton action={deleteStatistic.bind(null, table.id)} label="Delete table" />}
           />
         </ViewOnly>

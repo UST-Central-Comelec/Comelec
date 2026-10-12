@@ -7,6 +7,7 @@ import { ViewOnly } from "@/components/portal/view-only";
 import { formatClosing } from "@/lib/applications/period";
 import { allowed, withPortalUser } from "@/lib/auth/session";
 import { postHref } from "@/components/news/story";
+import { stampFor } from "@/lib/data/edit-guard";
 import { getNewsPost } from "@/lib/data/queries";
 import { deleteNews, updateNews } from "@/lib/portal/news-actions";
 
@@ -27,7 +28,7 @@ export default async function EditNewsPage({ params }: PageProps<"/portal/news/[
       </header>
       <section className="portal-card">
         <ViewOnly when={readOnly}>
-          <NewsForm action={updateNews.bind(null, post.id)} submitLabel="Save changes" initial={post} danger={<DeleteButton action={deleteNews.bind(null, post.id)} label="Delete post" tone="black" />} />
+          <NewsForm action={updateNews.bind(null, post.id)} submitLabel="Save changes" initial={post} guard={readOnly ? undefined : { stamp: stampFor(post.updatedAt, post), record: `news/${post.id}` }} danger={<DeleteButton action={deleteNews.bind(null, post.id)} label="Delete post" tone="black" />} />
         </ViewOnly>
       </section>
     </main>

@@ -159,6 +159,14 @@ In each, one solid ink "thumb" (`.portal-filters-thumb`) slides to the picked it
 - **Say what happened and what follows**, not just "Success": "Account added, and they’ve been emailed. They can now sign in…".
 - **Errors say what to do:** "Couldn’t save the settings. Try again."
 
+## Two people editing the same record
+
+Nobody edits live together; each browser saves its whole form. So an edit form for an existing record is guarded (`src/lib/data/edit-guard.ts`, `src/components/portal/edit-guard.tsx`):
+- **The page** passes `guard={{ stamp: stampFor(item.updatedAt, item), record: "<collection>/<id>" }}` (leave it out for view-only readers). Stamp the record exactly as the page loaded it.
+- **The form** renders `<EditPresence guard={guard} />` at its top and `<EditConflict guard={guard} state={state} />` above its footer.
+- **The action** saves with `saveGuarded(collection, id, data, email, readGuard(formData), { load })`, where `load` reads the record the same way the page did. It returns `{ saved, merged }`, `{ conflict }` (return `conflictState(…)` with the form's field labels) or `{ missing }`. Pass `merge: false` when fields are only valid together (accounts), `groups` for fields that change as one (a table's columns and rows), `check` to re-validate a merge (event times).
+- Edits to different fields merge, and the notice says so (`…-merged`). The same field changed by both asks the second person to load the other version or save over it.
+
 ## Action messages are header pop-ups
 
 Every message that reports the outcome of something the user just did in the portal must be shown as the shared pop-up, centred on the portal header. Don't print it as a line in the page, a dialog, a card or a button label, and don't put it at the bottom of the screen. This covers success ("Saved.", "Email copied to clipboard.", "Announcement sent."), warnings (it worked, but the email didn't send) and failures ("Couldn't save. Try again.").

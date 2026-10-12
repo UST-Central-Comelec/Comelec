@@ -2,7 +2,9 @@
 
 import { useState, type ReactNode } from "react";
 import { StatTable } from "@/components/statistics/stat-table";
+import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";
+import { EditConflict, EditPresence } from "./edit-guard";
 import { barColumns, columnKinds, parseTable, sizeLabel, toPasteText, type StatisticTable } from "@/lib/statistics/table";
 import { DatePicker } from "./date-picker";
 import { Dropdown } from "./dropdown";
@@ -17,14 +19,15 @@ type Values = Pick<StatisticTable, "title" | "period" | "asOf" | "summary" | "co
  * what's saved is what was seen. `periods` are the groups already in use, offered as suggestions so
  * tables for the same election end up together.
  */
-export function StatisticForm({ action, initial, periods, submitLabel, danger }: {
+export function StatisticForm({ action, initial, periods, submitLabel, danger, guard }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   initial: Values;
   periods: string[];
   submitLabel: string;
   danger?: ReactNode;
+  guard?: EditGuardInfo;
 }) {
-  const { pending, onSubmit, errors } = usePortalForm(action);
+  const { state, pending, onSubmit, errors } = usePortalForm(action);
   const [data, setData] = useState(() => (initial.columns.length ? toPasteText(initial) : ""));
   const [bar, setBar] = useState(initial.barColumn === null ? "" : String(initial.barColumn));
   const [showTotal, setShowTotal] = useState(initial.showTotal);
@@ -39,6 +42,7 @@ export function StatisticForm({ action, initial, periods, submitLabel, danger }:
 
   return (
     <form className="portal-form" onSubmit={onSubmit} noValidate>
+      <EditPresence guard={guard} />
       <fieldset className="portal-form-section">
         <legend>The table</legend>
         <div className="portal-form-grid">
@@ -107,6 +111,7 @@ export function StatisticForm({ action, initial, periods, submitLabel, danger }:
         )}
       </fieldset>
 
+      <EditConflict guard={guard} state={state} />
       <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/statistics" danger={danger} />
     </form>
   );

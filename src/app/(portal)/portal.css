@@ -2822,3 +2822,12 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
   [aria-label^="Close" i], [aria-label^="Dismiss" i], [aria-label^="Delete" i], [title^="Delete" i],
   :has(svg.lucide-x), :has(svg.lucide-trash), :has(svg.lucide-trash-2), :has(svg.lucide-circle-x)
 ):not(.portal-letter-copy-link) svg { color: inherit; }
+
+/* Two people editing the same record (edit-guard.tsx): who else has it open, and the choice after a conflicting save. */
+.portal-edit-presence { align-items: center; display: flex; gap: 6px; margin: 0 0 14px; }
+.portal-edit-conflict { align-items: flex-start; animation: portal-help-in .22s var(--p-ease) both; background: var(--p-surface-2); border: 1px solid var(--p-line-strong); border-radius: 14px; display: flex; flex-wrap: wrap; font-size: 13px; gap: 10px 12px; margin: 0 0 16px; padding: 13px 15px; }
+.portal-edit-conflict > svg { color: var(--p-warn-ink); flex: none; margin-top: 2px; }
+.portal-edit-conflict-text { color: var(--p-muted); display: flex; flex: 1 1 260px; flex-direction: column; gap: 3px; line-height: 1.5; }
+.portal-edit-conflict-text strong { color: var(--p-bright); font-weight: 600; }
+.portal-edit-conflict-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .portal-edit-conflict { animation: none; } }

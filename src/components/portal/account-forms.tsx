@@ -12,7 +12,9 @@ import { comelecUnits, yearLevelsFor } from "@/lib/applications/options";
 import { detailsFor, officialName, positionsFor, programsOf } from "@/lib/data/accounts";
 import { accountAffiliations, accountKinds, accountPositions, type AccountAffiliation, type AccountKind, type AccountPosition, type AccountSummary } from "@/lib/data/types";
 import { canManageAccount, grantablePositions, type Manager } from "@/lib/portal/account-scope";
+import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";
+import { EditConflict, EditPresence } from "./edit-guard";
 import { Dropdown } from "./dropdown";
 import { InfoTip } from "./info-tip";
 import { PhotoInput } from "./photo-input";
@@ -64,8 +66,8 @@ function NotApplicable({ label, hint }: { label: string; hint: string }) {
  * manager can only add to their own college's Local Comelec. The server checks all of this again.
  * `danger` is what sits at the footer's left: revoking, restoring and deleting.
  */
-export function AccountForm({ action, initial = emptyAccount, manager, askEmail, email, fixedUnit, submitLabel, cancelHref, danger }: { action: FormAction; initial?: AccountValues; manager: Manager; askEmail?: boolean; email?: string; fixedUnit?: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode }) {
-  const { pending, onSubmit, errors } = usePortalForm(action);
+export function AccountForm({ action, initial = emptyAccount, manager, askEmail, email, fixedUnit, submitLabel, cancelHref, danger, guard }: { action: FormAction; initial?: AccountValues; manager: Manager; askEmail?: boolean; email?: string; fixedUnit?: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; guard?: EditGuardInfo }) {
+  const { state, pending, onSubmit, errors } = usePortalForm(action);
   const localManager = manager.affiliation === "local";
   // Official accounts are the Central Executive Board's to add.
   const canAddOfficial = canManageAccount(manager, { kind: "official", affiliation: "central", position: "executive-board", college: null });
@@ -132,6 +134,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
 
   return (
     <form className="portal-form" onSubmit={onSubmit} noValidate>
+      <EditPresence guard={guard} />
       <input type="hidden" name="kind" value={kind} />
       {canAddOfficial && !fixedUnit && (
         <fieldset className="portal-form-section">
@@ -291,6 +294,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
         </fieldset>
       )}
 
+      <EditConflict guard={guard} state={state} />
       <FormFooter pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} danger={danger} />
     </form>
   );

@@ -3,7 +3,9 @@
 import { useId, useState, type ReactNode } from "react";
 import { Eye } from "lucide-react";
 import { archiveKinds, documentKinds, type OfficialDocument } from "@/lib/data/types";
+import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";
+import { EditConflict, EditPresence } from "./edit-guard";
 import { DatePicker } from "./date-picker";
 import { Dropdown } from "./dropdown";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
@@ -14,14 +16,15 @@ import { SignatoriesField } from "./signatories-field";
 
 type Values = Pick<OfficialDocument, "kind" | "title" | "reference" | "date" | "summary" | "body" | "signatories" | "fileUrl" | "fileName">;
 
-export function DocumentForm({ action, initial, submitLabel, danger, canUpload, readOnly = false }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode; canUpload: boolean; readOnly?: boolean }) {
-  const { pending, onSubmit, errors } = usePortalForm(action);
+export function DocumentForm({ action, initial, submitLabel, danger, canUpload, readOnly = false, guard }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode; canUpload: boolean; readOnly?: boolean; guard?: EditGuardInfo }) {
+  const { state, pending, onSubmit, errors } = usePortalForm(action);
   const [body, setBody] = useState(initial.body);
   const [preview, setPreview] = useState(false);
   const bodyErrorId = useId();
 
   return (
     <form className="portal-form" onSubmit={onSubmit} noValidate>
+      <EditPresence guard={guard} />
       <div className="portal-form-grid">
         <Field label="Document type" error={errors.kind}>
           <Dropdown name="kind" defaultValue={initial.kind} options={archiveKinds.map(value => ({ value, label: documentKinds[value] }))} />
@@ -46,6 +49,7 @@ export function DocumentForm({ action, initial, submitLabel, danger, canUpload, 
         <SignatoriesField initial={initial.signatories} error={errors.signatories} />
         <DriveFileField initialLink={initial.fileUrl} error={errors.driveLink} canUpload={canUpload} />
       </div>
+      <EditConflict guard={guard} state={state} />
       <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/documents/archive" danger={danger} beforeActions={<button type="button" className="portal-button is-ghost" onClick={() => setPreview(true)} aria-haspopup="dialog"><Eye size={16} aria-hidden="true" /> Preview</button>} />
       {preview && <DocumentBodyPreview value={body} onClose={() => setPreview(false)} />}
     </form>

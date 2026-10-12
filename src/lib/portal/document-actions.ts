@@ -5,6 +5,8 @@ import { refreshSiteContent } from "@/lib/data/queries";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
+import { conflictState, readGuard, saveGuarded } from "@/lib/data/edit-guard";
+import { getDocument } from "@/lib/data/queries";
 import { store } from "@/lib/data/store";
 import { archiveKinds } from "@/lib/data/types";
 import { checkDriveSharing, normalizeDriveLink } from "@/lib/data/drive";
@@ -27,6 +29,9 @@ const documentSchema = z.object({
     )
     .max(30, "Up to 30 signatories."),
 });
+
+/** The form's fields, as a conflict names them. */
+const labels: Record<string, string> = { kind: "Document type", title: "Title", reference: "Reference number", date: "Date issued", summary: "Summary", body: "Main text", signatories: "Signatories", fileUrl: "Google Drive link" };
 
 function readSignatories(formData: FormData) {
   try {
@@ -92,11 +97,13 @@ export async function updateDocument(id: string, _state: FormState, formData: Fo
   const existing = await store.get("documents", id);
   if (!existing) return { error: "This document no longer exists." };
 
-  await store.update("documents", id, { ...parsed.data, fileUrl: drive.link, fileName: null }, email);
+  const result = await saveGuarded("documents", id, { ...parsed.data, fileUrl: drive.link, fileName: null }, email, readGuard(formData), { load: () => getDocument(id) });
+  if ("missing" in result) return { error: "This document no longer exists." };
+  if ("conflict" in result) return conflictState(result.conflict, labels, "document", email);
   // Documents uploaded before the switch to Drive links: remove the old file from Storage.
-  if (existing.fileUrl !== drive.link) await deleteUpload(existing.fileUrl);
+  if (existing.fileUrl !== result.saved.fileUrl) await deleteUpload(existing.fileUrl);
   refresh();
-  redirect("/portal/documents/archive?notice=updated");
+  redirect(`/portal/documents/archive?notice=${result.merged ? "updated-merged" : "updated"}`);
 }
 
 export async function deleteDocument(id: string) {

@@ -2,7 +2,9 @@
 
 import { useState, type ReactNode } from "react";
 import { newsCategories, type NewsCategory, type NewsPost } from "@/lib/data/types";
+import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";
+import { EditConflict, EditPresence } from "./edit-guard";
 import { Dropdown, type DropdownOption } from "./dropdown";
 import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
@@ -14,8 +16,8 @@ type Values = Pick<NewsPost, "title" | "category" | "date" | "excerpt" | "body" 
 /** The categories under the page each is shown on. */
 const categoryOptions: DropdownOption[] = Object.entries(newsCategories).map(([value, label]) => ({ value, label, group: value === "explainer" ? "Election Explainer page" : "News page" }));
 
-export function NewsForm({ action, initial, submitLabel, danger }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode }) {
-  const { pending, onSubmit, errors } = usePortalForm(action);
+export function NewsForm({ action, initial, submitLabel, danger, guard }: { action: (state: FormState, formData: FormData) => Promise<FormState>; initial: Values; submitLabel: string; danger?: ReactNode; guard?: EditGuardInfo }) {
+  const { state, pending, onSubmit, errors } = usePortalForm(action);
   const [category, setCategory] = useState<NewsCategory>(initial.category);
   const [summary, setSummary] = useState(initial.excerpt);
   const [body, setBody] = useState(initial.body);
@@ -24,6 +26,7 @@ export function NewsForm({ action, initial, submitLabel, danger }: { action: (st
 
   return (
     <form className="portal-form" onSubmit={onSubmit} noValidate>
+      <EditPresence guard={guard} />
       <div className="portal-form-grid">
         <Field label="Title" error={errors.title} wide>
           <input name="title" defaultValue={initial.title} maxLength={160} required />
@@ -51,6 +54,7 @@ export function NewsForm({ action, initial, submitLabel, danger }: { action: (st
           </label>
         )}
       </div>
+      <EditConflict guard={guard} state={state} />
       <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/news" danger={danger} />
     </form>
   );

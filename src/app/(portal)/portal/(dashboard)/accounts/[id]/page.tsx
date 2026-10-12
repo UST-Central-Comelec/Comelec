@@ -9,6 +9,7 @@ import { InfoTip, TitleWithInfo } from "@/components/portal/info-tip";
 import { ViewOnly, ViewOnlyTag } from "@/components/portal/view-only";
 import { allowed, isBuiltInEmail, withPortalUser } from "@/lib/auth/session";
 import { accountStatusOf, detailsFor } from "@/lib/data/accounts";
+import { stampFor } from "@/lib/data/edit-guard";
 import { getAccount } from "@/lib/data/queries";
 import { formatAccepted } from "@/lib/onboarding/documents";
 import "@/components/portal/onboarding.css";
@@ -88,6 +89,7 @@ export default async function ManageAccountPage({ params, searchParams }: PagePr
             initial={{ ...shown, firstName: account.lastName || official ? account.firstName : account.name }}
             submitLabel="Save changes"
             cancelHref="/portal/accounts"
+            guard={viewer ? undefined : { stamp: stampFor(account.updatedAt, account), record: `accounts/${account.id}` }}
             danger={
               // Nobody revokes or deletes their own account, or the built-in executive's.
               own || builtIn || viewer ? undefined : (

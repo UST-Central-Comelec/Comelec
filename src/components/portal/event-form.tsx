@@ -8,7 +8,9 @@ import { SlidingFilterButtons } from "./sliding-filters";
 import { EventRsvpForm } from "./event-rsvp-form";
 import { EventEvaluationEditor } from "./event-evaluation-editor";
 import { EventFormLinks } from "./event-form-links";
+import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";
+import { EditConflict, EditPresence } from "./edit-guard";
 import { FormEditorViewToggle, useFormEditorMode } from "./event-form-editor";
 import { EventDetailsFields } from "./event-details-fields";
 import type { CalendarHighlight } from "@/lib/calendar/options";
@@ -22,7 +24,7 @@ type Values = EventDetails & { registrationStatus: RegistrationStatus; requireGo
  * the account that adds the event. With `changeRequest` (an edit by a unit the Central Comelec asked
  * for changes), the request is shown at the top with a box to mark it addressed on save.
  */
-export function EventForm({ action, initial, submitLabel, cancelHref, danger, changeRequest, rsvpSettings, evaluationSettings: initialEvaluation = defaultEvaluation, eventId, baseUrl, calendarHighlights = [] }: {
+export function EventForm({ action, initial, submitLabel, cancelHref, danger, changeRequest, rsvpSettings, evaluationSettings: initialEvaluation = defaultEvaluation, eventId, baseUrl, calendarHighlights = [], guard }: {
   calendarHighlights?: CalendarHighlight[];
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   initial: Values;
@@ -34,13 +36,14 @@ export function EventForm({ action, initial, submitLabel, cancelHref, danger, ch
   evaluationSettings?: EvaluationSettings;
   eventId?: string;
   baseUrl?: string;
+  guard?: EditGuardInfo;
 }) {
   const [tab, setTab] = useState<"details" | "rsvp" | "evaluation">("details");
   const { mode, pickMode } = useFormEditorMode();
   const [evaluation, setEvaluation] = useState(initialEvaluation);
   const [rsvpDefinition, setRsvpDefinition] = useState(rsvpSettings?.definition ?? defaultRsvpDefinition);
   const formId = useId();
-  const { pending, onSubmit, errors } = usePortalForm(action);
+  const { state, pending, onSubmit, errors } = usePortalForm(action);
   const dateValidation = useRef<(() => boolean) | null>(null);
   // On the two form editors, Cancel and Save sit at the top beside Reset; the Details tab keeps its footer and its Delete.
   const topActions = <FormActions formId={formId} pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} small />;
@@ -58,6 +61,8 @@ export function EventForm({ action, initial, submitLabel, cancelHref, danger, ch
       }} noValidate>
         <input type="hidden" name="evaluationSettings" value={JSON.stringify(evaluation)} />
         <input type="hidden" name="rsvpDefinition" value={JSON.stringify(rsvpDefinition)} />
+        <EditPresence guard={guard} />
+        <EditConflict guard={guard} state={state} />
         <div hidden={tab !== "details"}>
         {changeRequest && (
           <div className="portal-event-request is-pending portal-card">

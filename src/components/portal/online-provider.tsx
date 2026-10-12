@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CHECK_IN_MS, isPortalPath, type PresencePerson, type RealtimeInfo, type RelayEvent, type RelayKind } from "@/lib/portal/presence";
@@ -105,6 +105,10 @@ type OnlineContext = {
   accept: (accountId: string) => void;
   decline: (accountId: string) => void;
   removeFollower: (accountId: string) => void;
+  /** Who else has this record open in an editor right now (src/components/portal/edit-guard.tsx). */
+  editorsOf: (record: string) => Contact[];
+  /** Tells the others which record this tab is editing, or that it's editing none. */
+  announceEditing: (record: string | null) => void;
 };
 
 const Context = createContext<OnlineContext | null>(null);
@@ -113,6 +117,11 @@ export function useOnline() {
   const context = useContext(Context);
   if (!context) throw new Error("useOnline needs the OnlineProvider.");
   return context;
+}
+
+/** The same, or null outside the portal's dashboard, where nobody is listed. */
+export function useOnlineIfAny() {
+  return useContext(Context);
 }
 
 /** Reports the page and its query, inside Suspense since reading the query needs it. */
@@ -133,6 +142,8 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
   const [down, setDown] = useState(false);
   const [session, setSession] = useState<Session>(emptySession);
   const [notices, setNotices] = useState<Notice[]>([]);
+  /** The records each person here has open in an editor, by their presence key. */
+  const [editing, setEditing] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [view, setView] = useState<string | null>(null);
   const [route, setRoute] = useState<string | null>(null);
@@ -145,6 +156,9 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
   const lastChecked = useRef(0);
   /** This person's sign-in token from the latest check-in: Realtime asks for it to let them into their channels. */
   const token = useRef<string | null>(null);
+  /** The record this tab is editing, the lobby, and when this tab joined it: what it tracks there. */
+  const editingRef = useRef<string | null>(null);
+  const lobbyRef = useRef<{ channel: RealtimeChannel; since: number; joined: boolean } | null>(null);
   useEffect(() => { sessionRef.current = session; routeRef.current = route; viewRef.current = { drawerOpen, view }; });
 
   const notify = useCallback((text: string) => {
@@ -302,9 +316,16 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
     // check-in's fresh one keeps the connection open, and losing access closes it.
     const client = createClient(supabaseUrl, supabasePublishableKey, { accessToken: async () => token.current });
     const lobby = client.channel(realtime.lobby, { config: { private: true, presence: { key: realtime.me } } });
-    lobby.on("presence", { event: "sync" }, () => setPresent(new Set(Object.keys(lobby.presenceState()))))
+    const joined = { channel: lobby, since: Date.now(), joined: false };
+    lobbyRef.current = joined;
+    lobby.on("presence", { event: "sync" }, () => {
+      const state = lobby.presenceState<{ editing?: unknown }>();
+      setPresent(new Set(Object.keys(state)));
+      setEditing(Object.fromEntries(Object.entries(state).map(([id, metas]) => [id, metas.flatMap((meta) => typeof meta.editing === "string" ? [meta.editing] : [])])));
+    })
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") void lobby.track({ since: Date.now() });
+        joined.joined = status === "SUBSCRIBED";
+        if (status === "SUBSCRIBED") void lobby.track({ since: joined.since, editing: editingRef.current });
         setLive(status === "SUBSCRIBED");
         if (status === "SUBSCRIBED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") setDown(status !== "SUBSCRIBED");
       });
@@ -313,6 +334,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       .subscribe();
     return () => {
       setLive(false);
+      if (lobbyRef.current === joined) lobbyRef.current = null;
       void client.removeChannel(lobby);
       void client.removeChannel(inbox);
     };
@@ -436,6 +458,13 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
     opener.current?.focus();
   }, []);
 
+  const announceEditing = useCallback((record: string | null) => {
+    if (editingRef.current === record) return;
+    editingRef.current = record;
+    const lobby = lobbyRef.current;
+    if (lobby?.joined) void lobby.channel.track({ since: lobby.since, editing: record });
+  }, []);
+
   const value = useMemo<OnlineContext>(() => ({
     people,
     unit: realtime?.unit ?? null,
@@ -459,7 +488,13 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
     accept,
     decline,
     removeFollower,
-  }), [people, checkedAt, live, down, present, realtime, session, notices, dismissNotice, drawerOpen, view, show, openDrawer, send, requestFollow, cancelRequest, stopFollowing, accept, decline, removeFollower]);
+    editorsOf: (record) => Object.entries(editing).flatMap(([id, records]) => {
+      if (id === realtime?.me || !records.includes(record)) return [];
+      const person = people?.find((item) => item.id === id);
+      return person ? [contactOf(person)] : [];
+    }),
+    announceEditing,
+  }), [people, checkedAt, live, down, present, realtime, session, notices, dismissNotice, drawerOpen, view, show, openDrawer, send, requestFollow, cancelRequest, stopFollowing, accept, decline, removeFollower, editing, announceEditing]);
 
   return <Context value={value}>
     {children}

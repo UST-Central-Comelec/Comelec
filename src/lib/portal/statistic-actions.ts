@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
+import { conflictState, readGuard, saveGuarded } from "@/lib/data/edit-guard";
 import { store } from "@/lib/data/store";
+import { getStatistic } from "@/lib/statistics/queries";
 import { barColumns, columnKinds, parseTable } from "@/lib/statistics/table";
 import { text, toFormState, type FormState } from "./form";
 
@@ -59,6 +61,10 @@ function saveError(error: unknown): FormState {
   return { error: "Something went wrong saving the table. Please try again." };
 }
 
+/** The form's fields, as a conflict names them. The figures are one field: columns and rows only make sense together. */
+const labels: Record<string, string> = { title: "Title", period: "Election or period", asOf: "Figures as of", summary: "Short description", columns: "Figures", rows: "Figures", barColumn: "Draw bars for", showTotal: "Add a row of totals", note: "Note or source" };
+const figures = [["columns", "rows", "barColumn", "showTotal"]] as const;
+
 function refresh() {
   revalidatePath("/statistics");
   revalidatePath("/portal/statistics");
@@ -84,15 +90,16 @@ export async function updateStatistic(id: string, _state: FormState, formData: F
   const { fields, state } = read(formData);
   if (!fields) return state;
 
-  let saved;
+  let result;
   try {
-    saved = await store.update("statistics", id, fields, email);
+    result = await saveGuarded("statistics", id, fields, email, readGuard(formData), { load: () => getStatistic(id), groups: figures });
   } catch (error) {
     return saveError(error);
   }
-  if (!saved) return { error: "This table no longer exists." };
+  if ("missing" in result) return { error: "This table no longer exists." };
+  if ("conflict" in result) return conflictState(result.conflict, labels, "table", email);
   refresh();
-  redirect("/portal/statistics?notice=statistic-updated");
+  redirect(`/portal/statistics?notice=${result.merged ? "statistic-updated-merged" : "statistic-updated"}`);
 }
 
 export async function deleteStatistic(id: string) {

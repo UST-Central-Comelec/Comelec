@@ -84,6 +84,13 @@ export const store = {
     return row ? fromRow<Item<C>>(row) : null;
   },
 
+  /** Saves only over the version last saved at `expected`. Null when someone else saved since, or it's gone. */
+  async updateIf<C extends Collection>(collection: C, id: string, data: Partial<NewItem<C>>, author: string, expected: string): Promise<Item<C> | null> {
+    const { data: row, error } = await db().from(tables[collection]).update(toRow({ ...data, updatedAt: new Date().toISOString(), updatedBy: author })).eq("id", id).eq("updated_at", expected).select().maybeSingle();
+    if (error) fail("save", collection, error);
+    return row ? fromRow<Item<C>>(row) : null;
+  },
+
   async remove<C extends Collection>(collection: C, id: string): Promise<Item<C> | null> {
     const { data: row, error } = await db().from(tables[collection]).delete().eq("id", id).select().maybeSingle();
     if (error) fail("delete", collection, error);

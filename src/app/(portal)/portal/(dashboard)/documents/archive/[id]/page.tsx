@@ -8,6 +8,7 @@ import { ViewOnly } from "@/components/portal/view-only";
 import { formatClosing } from "@/lib/applications/period";
 import { allowed, withPortalUser } from "@/lib/auth/session";
 import { archiveKinds } from "@/lib/data/types";
+import { stampFor } from "@/lib/data/edit-guard";
 import { getDocument } from "@/lib/data/queries";
 import { deleteDocument, updateDocument } from "@/lib/portal/document-actions";
 
@@ -28,7 +29,7 @@ export default async function EditDocumentPage({ params }: PageProps<"/portal/do
       </header>
       <section className="portal-card">
         <ViewOnly when={readOnly}>
-          <DocumentForm readOnly={readOnly} canUpload={isDriveUploadConfigured()} action={updateDocument.bind(null, doc.id)} submitLabel="Save changes" initial={doc} danger={<DeleteButton action={deleteDocument.bind(null, doc.id)} label="Delete document" />} />
+          <DocumentForm readOnly={readOnly} canUpload={isDriveUploadConfigured()} action={updateDocument.bind(null, doc.id)} submitLabel="Save changes" initial={doc} guard={readOnly ? undefined : { stamp: stampFor(doc.updatedAt, doc), record: `documents/${doc.id}` }} danger={<DeleteButton action={deleteDocument.bind(null, doc.id)} label="Delete document" />} />
         </ViewOnly>
       </section>
     </main>

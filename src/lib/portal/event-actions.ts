@@ -4,17 +4,18 @@ import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { isLocal, requireEditor, type PortalUser } from "@/lib/auth/session";
+import { conflictState, mergePlan, readGuard, saveGuarded } from "@/lib/data/edit-guard";
 import { store } from "@/lib/data/store";
 import { sendAutomatic } from "@/lib/notifications/notify";
 import { canManageEvent, canRequestChanges, unitOfAccount } from "@/lib/events/access";
-import { checkDetails, detailFields, readDetails, toDetails } from "@/lib/events/details";
+import { checkDetails, detailFields, detailsSchema, readDetails, toDetails } from "@/lib/events/details";
 import { changeRequestEmail, registrationEmail, requestDecisionsEmail } from "@/lib/events/emails";
 import { formatTime } from "@/lib/events/format";
 import { requestDecisionStatus, isRequestKind, registrationStatuses, type DecisionsResult, type RegistrationStatus, type RequestKind } from "@/lib/events/options";
-import { rsvpDefinitionSchema, committeeLimitSchema, rsvpFormPath } from "@/lib/events/rsvp";
+import { defaultRsvpDefinition, rsvpDefinitionSchema, committeeLimitSchema, rsvpFormPath } from "@/lib/events/rsvp";
 import { evaluationSettingsSchema } from "@/lib/events/evaluation";
 import { getEvaluationSettings, writeEvaluationContent, writeEvaluationSettings } from "@/lib/events/evaluation-store";
-import { writeRsvpDefinition, writeRsvpSettings } from "@/lib/events/rsvp-store";
+import { getRsvpSettings, writeRsvpDefinition, writeRsvpSettings } from "@/lib/events/rsvp-store";
 import { getEvent, setChangeRequest } from "@/lib/events/queries";
 import { ensureQrCodes } from "@/lib/events/qr-codes";
 import { deleteRegistration, getRegistration, setRequestStatuses } from "@/lib/events/registrations";
@@ -28,6 +29,27 @@ const jsonDefinition = z.string().max(100000).transform((value, context) => { tr
 const eventSchema = z.object({ ...detailFields, rsvpDefinition: jsonDefinition.optional(), evaluationSettings: z.string().max(64000).transform((value, context) => { try { return JSON.parse(value) as unknown; } catch { context.addIssue({ code: "custom", message: "Check the evaluation form settings." }); return z.NEVER; } }).pipe(evaluationSettingsSchema).optional(), rsvpEnabled: z.boolean(), rsvpCommitteeLimit: committeeLimitSchema.optional(), requireGoogle: z.boolean().optional(), registrationStatus: z.enum(Object.keys(registrationStatuses) as [RegistrationStatus, ...RegistrationStatus[]], "Pick a registration status.").optional() }).superRefine(checkDetails);
 
 const parse = (formData: FormData) => eventSchema.safeParse({ ...readDetails(formData), rsvpDefinition: formData.get("rsvpDefinition") ?? undefined, evaluationSettings: formData.get("evaluationSettings") ?? undefined, rsvpEnabled: formData.get("rsvpEnabled") === "on", rsvpCommitteeLimit: formData.has("rsvpCommitteeLimit") ? formData.get("rsvpCommitteeLimit") : undefined, requireGoogle: formData.has("requireGoogle") ? formData.get("requireGoogle") === "on" : undefined, registrationStatus: formData.has("registrationStatus") ? text(formData, "registrationStatus") : undefined });
+
+/** The form's fields, as a conflict names them. */
+const labels: Record<string, string> = {
+  name: "Name", summary: "Short description", background: "Background", eventDate: "Start date", endDate: "End date",
+  ingressTime: "Ingress", startsTime: "Start time", endsTime: "End time", egressTime: "Egress", venueMode: "How it’s held", venueDetails: "Venue",
+  openToStudents: "Who can take part", openToExternals: "Who can take part", openToAdmins: "Who can take part", openToInternal: "Who can take part",
+  collaborators: "Collaborators", otherCollaborators: "Collaborators", registrationStatus: "Registration", requireGoogle: "Google verification",
+  changeRequest: "Requested changes", rsvpDefinition: "RSVP form", evaluation: "Evaluation form",
+};
+
+/** A merge of two people's edits still has to hold together: times in order, someone to take part. */
+const holdsTogether = (event: Record<string, unknown>) => detailsSchema.safeParse({ ...event, ingressTime: event.ingressTime ?? "", egressTime: event.egressTime ?? "" }).success;
+
+/** A JSON field as the browser sent it, before any defaults are filled in: to compare with what was opened. */
+function sentJson(formData: FormData, name: string) {
+  try {
+    return JSON.parse(String(formData.get(name) ?? "null")) as unknown;
+  } catch {
+    return null;
+  }
+}
 
 /** Why saving failed, in words a commissioner can act on. */
 function saveError(error: unknown): FormState {
@@ -97,21 +119,40 @@ export async function updateEvent(id: string, _state: FormState, formData: FormD
 
   // Ticked on the form: this edit makes the changes the Central Comelec asked for.
   let addressed = false;
+  // Someone else saved while this person was editing, and their changes were kept alongside.
+  let merged = false;
+  const guard = readGuard(formData);
   try {
     const existing = await getEvent(id);
     if (!existing) return { error: "This event no longer exists." };
     if (!canManageEvent(user, existing)) return notYours(user);
     addressed = Boolean(existing.changeRequest) && formData.get("requestAddressed") === "on";
     const cleared = addressed ? { changeRequest: null, changeRequestedBy: null, changeRequestedAt: null } : {};
-    if (!(await store.update("events", id, { ...toDetails(eventDetails), ...(registrationStatus ? { registrationStatus } : {}), ...(requireGoogle !== undefined ? { requireGoogle } : {}), ...cleared }, user.email))) return { error: "This event no longer exists." };
+
+    // The RSVP and evaluation forms are saved with the event, in tables of their own. When someone
+    // else saved since this editor opened, each is written only if this person changed it.
+    const forms = { rsvpDefinition: true, evaluation: true };
+    if (guard.stamp && !guard.overwrite && existing.updatedAt !== guard.stamp.version) {
+      const [rsvp, evaluation] = await Promise.all([getRsvpSettings(id), getEvaluationSettings(id)]);
+      const plan = mergePlan(guard.stamp.fields, { rsvpDefinition: sentJson(formData, "rsvpDefinition"), evaluation: sentJson(formData, "evaluationSettings") }, { rsvpDefinition: rsvp?.definition ?? defaultRsvpDefinition, evaluation });
+      if (plan.clash.length) return conflictState({ by: existing.updatedBy, at: existing.updatedAt, version: existing.updatedAt, fields: plan.clash }, labels, "event", user.email);
+      forms.rsvpDefinition = plan.write.includes("rsvpDefinition");
+      forms.evaluation = plan.write.includes("evaluation");
+      merged = plan.theirs.length > 0;
+    }
+
+    const result = await saveGuarded("events", id, { ...toDetails(eventDetails), ...(registrationStatus ? { registrationStatus } : {}), ...(requireGoogle !== undefined ? { requireGoogle } : {}), ...cleared }, user.email, guard, { load: () => getEvent(id), check: holdsTogether });
+    if ("missing" in result) return { error: "This event no longer exists." };
+    if ("conflict" in result) return conflictState(result.conflict, labels, "event", user.email);
+    merged ||= result.merged;
     if (rsvpCommitteeLimit !== undefined && formData.has("rsvpEnabled")) await writeRsvpSettings(id, rsvpEnabled, rsvpCommitteeLimit);
-    if (rsvpDefinition) await writeRsvpDefinition(id, rsvpDefinition, rsvpCommitteeLimit);
-    if (evaluationSettings) await writeEvaluationContent(id, evaluationSettings);
+    if (rsvpDefinition && forms.rsvpDefinition) await writeRsvpDefinition(id, rsvpDefinition, rsvpCommitteeLimit);
+    if (evaluationSettings && forms.evaluation) await writeEvaluationContent(id, evaluationSettings);
   } catch (error) {
     return saveError(error);
   }
   refresh(id);
-  redirect(`/portal/events/${id}?notice=${addressed ? "event-updated-addressed" : "event-updated"}`);
+  redirect(`/portal/events/${id}?notice=${addressed ? "event-updated-addressed" : merged ? "event-updated-merged" : "event-updated"}`);
 }
 
 /** Deletes the event and, with it, everyone's registration for it. */

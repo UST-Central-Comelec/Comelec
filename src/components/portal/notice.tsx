@@ -3,6 +3,7 @@ import { Toast } from "./toast";
 const messages: Record<string, string> = {
   created: "Saved. It’s now live on the website.",
   updated: "Changes saved and published.",
+  "updated-merged": "Changes saved and published. Someone else saved this while you were editing, and their changes were kept too.",
   deleted: "Deleted. It’s been removed from the website.",
   "code-settings-saved": "Document settings saved.",
   "account-updated": "Account details saved. The Directory shows them now, and the account’s owner is emailed what changed.",
@@ -49,6 +50,7 @@ const messages: Record<string, string> = {
   "details-saved": "Saved. It stays closed: choose Scheduled to open it on its dates.",
   "event-created": "Event added. It’s now on the website’s Events page.",
   "event-updated": "Changes saved. The website shows them now.",
+  "event-updated-merged": "Changes saved, and the website shows them now. Someone else saved this event while you were editing, and their changes were kept too.",
   "event-updated-addressed": "Changes saved, and the Central Comelec’s request is marked as addressed.",
   "event-deleted": "Event deleted. It’s off the website, and its registrations were deleted with it.",
   "event-changes-requested": "Request sent. The unit sees it on this event, and its commissioners have been emailed.",
@@ -57,6 +59,7 @@ const messages: Record<string, string> = {
   "registration-removed": "Registration removed.",
   "statistic-created": "Table added. It’s now on the website’s Statistics page.",
   "statistic-updated": "Changes saved. The Statistics page shows them now.",
+  "statistic-updated-merged": "Changes saved, and the Statistics page shows them now. Someone else saved this table while you were editing, and their changes were kept too.",
   "statistic-deleted": "Table deleted. It’s off the Statistics page.",
   "email-sending": "On its way. Each recipient gets their own copy; this page shows how far it’s got.",
   "email-scheduled": "Scheduled. It goes out at the time you set, to whoever matches the recipients then. You can cancel it until it starts sending.",

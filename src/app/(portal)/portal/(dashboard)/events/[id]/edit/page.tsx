@@ -9,7 +9,9 @@ import { listCalendarHighlights } from "@/lib/calendar/store";
 import { settle } from "@/lib/portal/settle";
 import { canManageEvent, isOwn } from "@/lib/events/access";
 import { getEvaluationSettings } from "@/lib/events/evaluation-store";
+import { stampFor } from "@/lib/data/edit-guard";
 import { siteUrl } from "@/lib/email/template";
+import { defaultRsvpDefinition } from "@/lib/events/rsvp";
 import { getRsvpSettings } from "@/lib/events/rsvp-store";
 import { ensureQrCodes } from "@/lib/events/qr-codes";
 import { getEvent } from "@/lib/events/queries";
@@ -52,6 +54,7 @@ export default async function EditEventPage({ params }: PageProps<"/portal/event
           evaluationSettings={evaluationSettings}
           rsvpSettings={rsvpSettings}
           changeRequest={event.changeRequest}
+          guard={{ stamp: stampFor(event.updatedAt, { ...event, rsvpDefinition: rsvpSettings?.definition ?? defaultRsvpDefinition, evaluation: evaluationSettings }), record: `events/${event.id}` }}
           danger={
             <DeleteButton
               key="delete-event"

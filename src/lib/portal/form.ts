@@ -1,7 +1,8 @@
 import type { ZodError } from "zod";
 import { withoutEmoji } from "@/lib/forms/input";
+import type { EditConflict } from "./edit-conflict";
 
-export type FormState = { error?: string; fieldErrors?: Record<string, string> } | undefined;
+export type FormState = { error?: string; fieldErrors?: Record<string, string>; conflict?: EditConflict } | undefined;
 
 export function toFormState(error: ZodError): FormState {
   const fieldErrors: Record<string, string> = {};

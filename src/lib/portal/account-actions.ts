@@ -6,6 +6,8 @@ import { z } from "zod";
 import { personNamePattern } from "@/lib/forms/input";
 import { canSeeCollege, isBuiltInEmail, requireEditor, type PortalUser } from "@/lib/auth/session";
 import { sameAccountUnit, detailsFor, facebookHref, fullName, isCentralRepresentative, isLocalChairperson, isRoleFor, officialName, positionsFor, programsOf, toSummary, upperName } from "@/lib/data/accounts";
+import { conflictState, readGuard, saveGuarded } from "@/lib/data/edit-guard";
+import { getAccount } from "@/lib/data/queries";
 import { isMissingColumn, store } from "@/lib/data/store";
 import { comelecUnits, positionsForUnit, isYearLevelFor, yearLevelsFor } from "@/lib/applications/options";
 import { getApplication } from "@/lib/applications/admin";
@@ -138,6 +140,12 @@ function parseAccount(formData: FormData, fixed: Partial<{ kind: AccountKind; af
   const parsed = personalSchema.safeParse(input);
   return parsed.success ? { fields: personalFields(parsed.data), errors: null } : { fields: null, errors: toFormState(parsed.error) };
 }
+
+/** The form's fields, as a conflict names them. */
+const labels: Record<string, string> = {
+  kind: "Account type", name: "Name", lastName: "Last name", firstName: "First name", middleName: "Middle name", yearLevel: "Year level", studentNumber: "Student number",
+  affiliation: "Affiliation", position: "Position", role: "Role", college: "College", program: "Program", facebookUrl: "Facebook profile", photoUrl: "Photo", chamberRole: "Chamber role",
+};
 
 function refresh() {
   // The Directory's public half: "Meet the commission", and the home page's count of members.
@@ -286,11 +294,14 @@ export async function updateAccountDetails(id: string, _state: FormState, formDa
   // A Primus or Vicar who is no longer a Local Chairperson leaves that role.
   const leavesChamber = existing.chamberRole && !(fields.kind === "personal" && isLocalChairperson(fields));
 
-  const { saved: updated, failed } = await save(() => store.update("accounts", id, { ...fields, photoUrl, ...(leavesChamber ? { chamberRole: null } : {}) }, manager.email));
-  if (failed) {
+  // An account's fields are checked together, so a save over someone else's is never merged: it's a conflict.
+  const { saved: result, failed } = await save(() => saveGuarded("accounts", id, { ...fields, photoUrl, ...(leavesChamber ? { chamberRole: null } : {}) }, manager.email, readGuard(formData), { load: () => getAccount(id), merge: false }));
+  if (failed || !result || !("saved" in result)) {
     await deleteUpload(photo.upload?.url ?? null);
-    return failed;
+    if (failed || !result) return failed ?? { error: "Couldn’t save the account. Try again." };
+    return "conflict" in result ? conflictState(result.conflict, labels, "account", manager.email) : { error: "This account no longer exists." };
   }
+  const updated = result.saved;
   if (photoUrl !== existing.photoUrl) await deleteUpload(existing.photoUrl);
   // The owner is told what changed, whoever changed it. Nothing is sent when the save changed nothing.
   if (updated) {

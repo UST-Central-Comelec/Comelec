@@ -6,6 +6,8 @@ import { refreshSiteMenu } from "@/lib/site-menu";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireEditor } from "@/lib/auth/session";
+import { conflictState, readGuard, saveGuarded } from "@/lib/data/edit-guard";
+import { getNewsPost } from "@/lib/data/queries";
 import { store } from "@/lib/data/store";
 import { newsCategories, type NewsCategory } from "@/lib/data/types";
 import { newsArticleSchema, newsSummarySchema } from "@/lib/data/news-content";
@@ -19,6 +21,9 @@ const newsSchema = z.object({
   body: newsArticleSchema,
   featured: z.boolean(),
 });
+
+/** The form's fields, as a conflict names them. */
+const labels: Record<string, string> = { title: "Title", category: "Category", date: "Publish date", excerpt: "Summary", body: "Article", featured: "Feature this post" };
 
 function parse(formData: FormData) {
   const category = text(formData, "category");
@@ -75,15 +80,17 @@ export async function updateNews(id: string, _state: FormState, formData: FormDa
   const parsed = parse(formData);
   if (!parsed.success) return toFormState(parsed.error);
 
-  let post;
+  let result;
   try {
-    post = await store.update("news", id, parsed.data, email);
+    result = await saveGuarded("news", id, parsed.data, email, readGuard(formData), { load: () => getNewsPost(id) });
   } catch (error) {
     return saveError(error);
   }
-  if (!post) return { error: "This post no longer exists." };
+  if ("missing" in result) return { error: "This post no longer exists." };
+  if ("conflict" in result) return conflictState(result.conflict, labels, "post", email);
+  const post = result.saved;
   await refresh(post.featured ? post.id : null, email);
-  redirect("/portal/news?notice=updated");
+  redirect(`/portal/news?notice=${result.merged ? "updated-merged" : "updated"}`);
 }
 
 export async function deleteNews(id: string) {
