@@ -1,10 +1,10 @@
 // Reference codes look like CC-7K3M-9QXA: eight characters from an alphabet without look-alikes
 // (no 0/O or 1/I), so they're easy to read back and type. 32^8 is about a trillion codes. The
-// prefix says what it's for: CC for commissioner applications, PA for portal access requests.
+// prefix says what it's for: CC for commissioner applications, PA for portal access requests, RS for collaborator RSVPs.
 
 const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-export type ReferencePrefix = "CC" | "PA";
+export type ReferencePrefix = "CC" | "PA" | "RS";
 
 export function newReferenceCode(prefix: ReferencePrefix = "CC") {
   const bytes = crypto.getRandomValues(new Uint8Array(8));
@@ -14,13 +14,13 @@ export function newReferenceCode(prefix: ReferencePrefix = "CC") {
 }
 
 /**
- * Turns whatever was typed ("cc 7k3m9qxa", "PA-7K3M-9QXA") into a code and what it's for, or null
+ * Turns whatever was typed ("cc 7k3m9qxa", "PA-7K3M-9QXA", "RS-7K3M-9QXA") into a code and what it's for, or null
  * if it can't be one. Eight characters with no prefix are taken as an application's.
  */
 export function parseReferenceCode(input: string): { prefix: ReferencePrefix; code: string } | null {
   let chars = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
   let prefix: ReferencePrefix = "CC";
-  if (chars.length === 10 && (chars.startsWith("CC") || chars.startsWith("PA"))) {
+  if (chars.length === 10 && (chars.startsWith("CC") || chars.startsWith("PA") || chars.startsWith("RS"))) {
     prefix = chars.slice(0, 2) as ReferencePrefix;
     chars = chars.slice(2);
   }

@@ -5,6 +5,7 @@ import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
+import { useIconCycle } from "@/components/use-icon-cycle";
 import { cn } from "@/lib/utils";
 
 export interface GripIconHandle {
@@ -46,6 +47,8 @@ const VARIANTS: Variants = {
 const GripIcon = forwardRef<GripIconHandle, GripProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
+    const cycleElement = useRef<HTMLDivElement>(null);
+    useIconCycle(cycleElement, controls, { normal: "normal", enabled: !ref });
     const isControlledRef = useRef(false);
     const isAnimatingRef = useRef(false);
 
@@ -91,10 +94,10 @@ const GripIcon = forwardRef<GripIconHandle, GripProps>(
     );
 
     return (
-      <div
+      <div ref={cycleElement} data-icon-motion=""
         className={cn("inline-flex items-center justify-center", className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={ref ? handleMouseEnter : onMouseEnter}
+        onMouseLeave={ref ? handleMouseLeave : onMouseLeave}
         {...props}
       >
         <svg

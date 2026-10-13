@@ -1,8 +1,10 @@
 "use client";
 
+import { DeleteIcon as ActionDeleteIcon } from "@/components/action-icons";
 import { useId, useRef, useState, useTransition } from "react";
 import { unstable_rethrow } from "next/navigation";
-import { Check, ExternalLink, X } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import { Notice, noticeToast } from "@/components/portal/notice";
 import { toast } from "./toast";
 import type { ApplicationRecord } from "@/lib/applications/admin";
@@ -196,7 +198,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
             <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("accepted")} disabled={full}><Check size={15} /> Accept</button>
             <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("declined")}><X size={15} /> Reject</button>
           </div>}
-          <button type="button" className="portal-registrant-action-button" disabled={deleting || onboarding} onClick={() => confirmationDialog.current?.showModal()}>Delete application</button>
+          <button type="button" className="portal-registrant-action-button" disabled={deleting || onboarding} onClick={() => confirmationDialog.current?.showModal()}><ActionDeleteIcon size={15} aria-hidden="true" />Delete application</button>
           {application.status === "accepted" && <button type="button" className="portal-registrant-action-button portal-application-onboard" disabled={!canOnboard || onboarding || onboarded || deleting} title={!canOnboard ? "Account management access is required to onboard applicants." : undefined} onClick={onboard}>{onboarding ? "Onboarding…" : onboarded ? "Onboarded" : "Onboard"}</button>}
         </> : undefined} />
       <div className="portal-registrant-receipt-body">
@@ -266,7 +268,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
         <p id={confirmationDescriptionId}>This will permanently delete <strong>{applicantDisplayName(application)}</strong>’s application. This can’t be undone.{application.status === "accepted" && " Their slot stays taken."}</p>
         <div className="portal-registrant-confirmation-actions">
           <button type="button" className="portal-registrant-action-button" disabled={deleting} autoFocus onClick={() => confirmationDialog.current?.close()}>Cancel</button>
-          <button type="button" className="portal-registrant-action-button" disabled={deleting} onClick={confirmDeletion}>{deleting ? "Deleting…" : "Delete application"}</button>
+          <button type="button" className="portal-registrant-action-button" disabled={deleting} onClick={confirmDeletion}><ActionDeleteIcon size={15} aria-hidden="true" />{deleting ? "Deleting…" : "Delete application"}</button>
         </div>
       </dialog>}
     </article>

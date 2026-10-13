@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Check, Copy, MessageSquare, Monitor, X } from "lucide-react";
+import { Check, MessageSquare, Monitor } from "lucide-react";
+import { CopyIcon as Copy, CloseIcon as X } from "@/components/action-icons";
 import type { PresenceProfile } from "@/lib/portal/presence";
 import { useOnline } from "./online-provider";
 import { toast } from "./toast";

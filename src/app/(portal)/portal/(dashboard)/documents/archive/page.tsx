@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { Notice } from "@/components/portal/notice";
 import { allowed, withPortalUser } from "@/lib/auth/session";
 import { ViewOnlyTag } from "@/components/portal/view-only";

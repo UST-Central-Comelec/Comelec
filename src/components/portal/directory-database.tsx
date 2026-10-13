@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useContext, useState } from "react";
 import { DirectoryFiltersContext } from "./directory-workspace";
-import { Search } from "lucide-react";
+import { SearchIcon as Search } from "@/components/action-icons";
 import { filterDirectoryDatabase } from "@/lib/portal/directory-database";
 import { comelecUnits } from "@/lib/applications/options";
 import { accountPositions, chamberRoles, describeAffiliation, type AccountPosition, type ChamberRole } from "@/lib/data/types";

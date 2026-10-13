@@ -1,5 +1,6 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { useState } from "react";
 import type { FormState } from "@/lib/portal/form";
 import { DatePicker } from "./date-picker";
@@ -29,7 +30,7 @@ export function ExpiryForm({ action, expiresOn: saved, today }: { action: (state
         <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
         <div className="portal-form-actions">
           {!unchanged && <button type="button" className="portal-button is-ghost" onClick={() => setDate(saved)} disabled={pending}>Discard</button>}
-          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}>{pending ? "Saving…" : unchanged ? "Saved" : "Save date"}</button>
+          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : unchanged ? "Saved" : "Save date"}</button>
         </div>
       </footer>
     </form>

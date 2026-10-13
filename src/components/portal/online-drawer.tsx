@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
-import { ArrowUp, ChevronLeft, ChevronRight, Search, MessageSquare, Pin, Users, X } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, MessageSquare, Pin, Users } from "lucide-react";
+import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { matchesPresenceSearch, MESSAGE_MAX, type PresencePerson } from "@/lib/portal/presence";
 import { useOnline, type Contact } from "./online-provider";
 import { OnlineProfile } from "./online-profile";

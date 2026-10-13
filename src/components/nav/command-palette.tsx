@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CornerDownLeft, Newspaper, Search, TrendingUp, X, type LucideIcon } from "lucide-react";
+import { CornerDownLeft, Newspaper, TrendingUp, type LucideIcon } from "lucide-react";
+import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { isNavItemAvailable, readings, readingText, searchLinks, searchPrompts, topSearches, type NavStatus } from "@/components/nav/nav-data";
 

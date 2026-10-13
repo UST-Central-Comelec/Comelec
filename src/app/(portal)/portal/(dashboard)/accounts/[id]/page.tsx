@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Ban, CalendarClock, RotateCcw, Trash2 } from "lucide-react";
+import { BadgeCheck, Ban, CalendarClock, RotateCcw } from "lucide-react";
+import { DeleteIcon as Trash2 } from "@/components/action-icons";
 import { AccountForm } from "@/components/portal/account-forms";
 import { ActionButton, DeleteButton } from "@/components/portal/delete-button";
 import { Notice } from "@/components/portal/notice";

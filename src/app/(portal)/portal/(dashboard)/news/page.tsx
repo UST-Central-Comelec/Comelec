@@ -1,6 +1,8 @@
+import { EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Star } from "lucide-react";
+import { Star } from "lucide-react";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { Notice } from "@/components/portal/notice";
 import { ViewOnlyTag } from "@/components/portal/view-only";
 import { allowed, withPortalUser } from "@/lib/auth/session";
@@ -15,7 +17,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
   const [{ readOnly }, [news, { notice }]] = await withPortalUser(Promise.all([getPosts(), searchParams]), allowed("news"));
 
   return (
-    <main className="portal-page">
+    <main className="portal-page portal-publications">
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Secretariat</p>
@@ -31,7 +33,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
         ) : (
           <div className="portal-table-wrap">
             <table className="portal-table">
-              <thead><tr><th>Title</th><th>Category</th><th>Shown on</th><th>Date</th><th /></tr></thead>
+              <thead><tr><th>Title</th><th>Category</th><th>Shown on</th><th>Date Published</th><th /></tr></thead>
               <tbody>
                 {news.map((post) => (
                   <PortalTableRow key={post.id} href={`/portal/news/${post.id}`}>
@@ -42,7 +44,7 @@ export default async function PortalNewsPage({ searchParams }: PageProps<"/porta
                     <td><span className="portal-tag">{newsCategories[post.category]}</span></td>
                     <td className="portal-muted">{post.category === "explainer" ? "Election Explainer" : "News"}</td>
                     <td className="portal-muted">{formatDate(post.date)}</td>
-                    <td className="portal-row-actions"><Link href={`/portal/news/${post.id}`}>{readOnly ? "View" : "Edit"}</Link></td>
+                    <td className="portal-row-actions"><Link className="portal-button is-small is-ghost" href={`/portal/news/${post.id}`} aria-label={`${readOnly ? "View" : "Edit"} ${post.title}`}>{readOnly ? <ActionViewIcon size={15} aria-hidden="true" /> : <ActionEditIcon size={15} aria-hidden="true" />}<span>{readOnly ? "View" : "Edit"}</span></Link></td>
                   </PortalTableRow>
                 ))}
               </tbody>

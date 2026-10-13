@@ -1,5 +1,6 @@
 "use client";
 
+import { AddIcon as ActionAddIcon, SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { useState } from "react";
 import { acceptanceEmail, joinCommissionUrl, type OnboardingSettings } from "@/lib/applications/onboarding";
 import { concernOf } from "@/lib/notifications/concern";
@@ -54,7 +55,7 @@ export function RecruitmentOnboarding({ settings, unit, readOnly }: { settings: 
               <DeleteButton label="Delete button" prompt="Remove this button?" confirmLabel="Delete button" action={async () => setDraft(current => ({ ...current, buttons: current.buttons.filter(item => item.id !== button.id) }))} />
             </section>)}
             {errors.buttons && <span className="portal-field-error">{errors.buttons}</span>}
-            {!readOnly && <button type="button" className="portal-button is-ghost" disabled={draft.buttons.length >= 10} onClick={() => setDraft(current => ({ ...current, buttons: [...current.buttons, { id: crypto.randomUUID(), title: "", url: "" }] }))}>Add button</button>}
+            {!readOnly && <button type="button" className="portal-button is-ghost" disabled={draft.buttons.length >= 10} onClick={() => setDraft(current => ({ ...current, buttons: [...current.buttons, { id: crypto.randomUUID(), title: "", url: "" }] }))}><ActionAddIcon size={15} aria-hidden="true" />Add button</button>}
           </fieldset>
         </ViewOnly>
       </div>
@@ -65,7 +66,7 @@ export function RecruitmentOnboarding({ settings, unit, readOnly }: { settings: 
         <span className="portal-settings-dirty" aria-live="polite">{dirty ? "Unsaved changes" : "Saved"}</span>
         <div className="portal-form-actions">
           <button type="button" className="portal-button is-ghost" disabled={pending || !dirty} onClick={() => setDraft(editable(settings))}>Discard</button>
-          <button type="submit" className="portal-button" disabled={pending || !dirty || !hydrated}>{pending ? "Saving…" : dirty ? "Save settings" : "Saved"}</button>
+          <button type="submit" className="portal-button" disabled={pending || !dirty || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty ? "Save settings" : "Saved"}</button>
         </div>
       </footer>}
     </form>

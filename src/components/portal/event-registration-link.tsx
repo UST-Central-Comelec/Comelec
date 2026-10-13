@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check } from "lucide-react";
+import { CopyIcon as Copy } from "@/components/action-icons";
 import { toast } from "./toast";
 
 export function EventRegistrationLink({ href, label = "Registration" }: { href: string; label?: string }) {

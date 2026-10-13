@@ -1,0 +1,92 @@
+/* Reuse the commissioner application's structure with event and preview theme tokens. */
+.ev .ev-application-form {
+  --paper: var(--ev-bg); --cream: rgba(var(--ev-ink), .04); --ink: var(--ev-text);
+  --muted: var(--ev-muted); --line: var(--ev-line); --gold: var(--ev-gold);
+  --ap-surface: var(--ev-surface); --ap-solid: var(--ev-text); --ap-on-solid: var(--ev-on-bright);
+  --ap-ink-rgb: var(--ev-ink); --event-field-size: 14px;
+  --radius-sm: 8px; --radius-md: 14px; --radius-lg: 22px;
+  background: none; border: 0; border-radius: 0; box-shadow: none; color: var(--ev-text); font-family: var(--ev-sans);
+}
+.ev-application-page { background: var(--ev-bg); display: flex; flex-direction: column; min-height: calc(100vh - 78px); }
+.ev-application-page .apply-top-title { align-items: baseline; flex-wrap: wrap; gap: 6px 16px; }
+.ev-application-back { align-items: center; color: var(--ui-text-on-dark); display: inline-flex; flex: none; font-size: 13px; gap: 6px; }
+.ev .ev-application-form .apply-tracker { background: var(--ev-surface); border-bottom: 1px solid var(--ev-line); }
+.ev .ev-application-form .apply-tracker-inner { max-width: var(--site-max); }
+.ev .ev-application-form .apply-steps button { color: var(--ev-muted); transition: color .15s ease; }
+.ev .ev-application-form .apply-steps .is-current button, .ev .ev-application-form .apply-steps button:not(:disabled):hover { color: var(--ev-text); }
+.ev .ev-application-form .apply-step-index { background: rgba(var(--ev-ink), .1); color: var(--ev-muted); box-shadow: none; }
+.ev .ev-application-form .is-done .apply-step-index { background: var(--ev-text); color: var(--ev-on-bright); }
+.ev .ev-application-form .is-current .apply-step-index { background: var(--ev-gold); color: var(--ev-on-action); }
+.ev .ev-application-form .apply-step-rail::after { animation: none; background: var(--ev-gold); box-shadow: none; transition: transform .32s var(--ev-ease), opacity .15s ease; }
+.ev .ev-application-form .apply-step-rail::before { transition: transform .32s var(--ev-ease); }
+.ev .ev-application-form .apply-tracker-readout-title { animation: none; }
+.ev .ev-application-form .apply-body.ev-form-body { gap: 32px; margin: 0 auto; max-width: var(--site-max); padding: 44px clamp(16px, 5vw, 96px) 72px; width: 100%; }
+.ev .ev-application-form .apply-body-head { border: 0; padding: 0; }
+.ev .ev-application-form .apply-body-head h2 { color: var(--ev-text); }
+.ev .ev-application-form .apply-group.ev-group { border: 1px solid var(--ev-line); border-radius: 22px; display: grid; gap: 24px; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 26px clamp(18px, 3vw, 32px) 28px; }
+.ev .ev-application-form .apply-group.ev-group[hidden] { display: none; }
+.ev .ev-application-form .apply-group.ev-animated-fields { padding-bottom: 4px; row-gap: 0; }
+.ev .ev-application-form .ev-rsvp-group > .ev-form-section-divider { border: 0; border-top: 1px solid var(--ev-line); grid-column: 1 / -1; height: 0; margin: 12px 0 36px; width: 100%; }
+.ev .ev-application-form .ev-evaluation-fields { gap: 0 24px; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: -24px; }
+.ev .ev-application-form :is(.ev-rsvp-group, .ev-evaluation-fields) > * { grid-column: 1 / -1; min-width: 0; }
+.ev .ev-application-form :is(.ev-rsvp-group, .ev-evaluation-fields) > .is-span-3 { grid-column: span 3; }
+.ev .ev-application-form :is(.ev-rsvp-group, .ev-evaluation-fields) > .is-span-2 { grid-column: span 2; }
+.ev .ev-application-form .ev-custom-field { border: 0; display: flex; flex-direction: column; gap: 7px; margin: 0; padding: 0; }
+.ev .ev-application-form .apply-body .apply-group .ev-custom-field > legend { background: none; border: 0; border-radius: 0; color: var(--ev-text); float: left; font-size: 13px; font-weight: 500; line-height: 1.5; margin: 0; padding: 0; text-transform: none; width: 100%; }
+.ev .ev-application-form .ev-custom-field > :is(.ev-field, .ev-field-hint, .ev-evaluation-check, .ev-rsvp-committees) { margin: 0; }
+.ev .ev-application-form .ev-field { gap: 7px; }
+.ev .ev-application-form .ev-field :is(input:not([type="radio"], [type="checkbox"], [type="hidden"]), select, textarea) { border-radius: 8px; font-size: var(--event-field-size); min-height: 46px; }
+.ev .ev-application-form .ev-field textarea { line-height: 1.55; min-height: 144px; }
+.ev .ev-application-form .ev-field textarea::placeholder { color: var(--ev-placeholder); opacity: 1; }
+.ev .ev-application-form .ev-evaluation-check { border-radius: 14px; }
+.ev .ev-application-form .ev-event-choices { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ev .ev-application-form .ev-event-choices > .ev-evaluation-check { margin: 0; }
+.ev .ev-application-form .ev-consent-statement { border-bottom: 1px solid var(--ev-line); margin: 0 0 24px; padding: 0 0 24px; }
+.ev .ev-application-form .apply-privacy-head { margin-bottom: 18px; }
+.ev .ev-application-form .ev-privacy-clause > summary { align-items: center; cursor: pointer; display: flex; gap: 12px; list-style: none; padding: 16px 18px; }
+.ev .ev-application-form .ev-privacy-clause > summary::-webkit-details-marker { display: none; }
+.ev .ev-application-form .ev-privacy-clause > summary:focus-visible { border-radius: 14px; outline: 2px solid var(--ev-gold-edge); outline-offset: 3px; }
+.ev .ev-application-form .ev-privacy-clause > summary h4 { flex: 1; margin: 0; min-width: 0; }
+.ev .ev-application-form .ev-consent-chevron { color: var(--ev-muted); flex: none; transition: transform .2s var(--ev-ease); }
+.ev .ev-application-form .ev-privacy-clause[open] .ev-consent-chevron { transform: rotate(180deg); }
+.ev .ev-application-form .ev-privacy-clause-body { padding: 0 18px 18px; }
+.ev .ev-application-form .apply-privacy-icon { background: rgba(var(--ev-ink), .04); border: 1px solid var(--ev-line); color: var(--ev-gold-mark); box-shadow: none; }
+.ev .ev-application-form .apply-privacy-law { color: var(--ev-muted); }
+.ev .ev-application-form .ev-privacy-clauses { align-items: start; gap: 12px; grid-template-columns: 1fr; }
+.ev .ev-application-form .ev-privacy-clause { background: rgba(var(--ev-ink), .025); border-color: var(--ev-line); display: block; padding: 0; }
+.ev .ev-application-form .apply-privacy-item-icon { background: var(--ev-surface); border-color: var(--ev-line); color: var(--ev-soft); }
+.ev .ev-application-form .ev-privacy-clause > div { min-width: 0; }
+.ev .ev-application-form .ev-privacy-clause p { font-size: 13.5px; line-height: 1.65; }
+.ev .ev-application-form .apply-nav.ev-form-foot { background: none; border-radius: 0; border-top: 1px solid var(--ev-line); justify-content: space-between; margin: auto 0 0; padding: 24px 0 0; }
+.ev .ev-application-form .apply-nav > button:last-child { margin-left: auto; }
+.ev .ev-application-form .apply-nav .ev-button { border-radius: var(--ui-button-radius); box-shadow: none; flex: 0 0 auto; min-height: 46px; }
+.ev .ev-application-form .apply-nav .ev-button.is-ghost { background: none; padding: 10px 0; }
+.ev .ev-application-form .ev-button.is-primary { box-shadow: none; }
+.ev .ev-application-form .ev-button.is-primary:hover { box-shadow: none; filter: brightness(.94); transform: none; }
+.ev .ev-application-form .ev-button.is-primary:active { transform: translateY(1px); }
+.ev .ev-application-form .ev-button.is-primary::after { display: none; }
+.ev .ev-application-form .apply-result { background: var(--ev-surface); border-color: var(--ev-line); }
+.ev-form-preview .ev-application-form { background: var(--ev-surface); border: 1px solid var(--ev-line); border-radius: 22px; overflow: clip; }
+.ev-form-preview .ev-application-form:has(.combobox.is-open) { overflow: visible; }
+.ev-form-preview .ev-application-form > .apply-tracker { border-radius: 22px 22px 0 0; }
+.ev-form-preview .ev-application-form .apply-body.ev-form-body { padding: 32px clamp(18px, 3vw, 36px) 36px; }
+.ev-form-preview .ev-application-form .apply-tracker-inner { padding: 22px clamp(18px, 3vw, 36px) 20px; }
+.ev-form-preview .ev-application-form .apply-step-text { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.ev-form-preview .ev-application-form .apply-tracker-readout { display: flex; }
+.ev-application-page > :is(.ev-done, .ev-notice) { margin: 0 auto; max-width: var(--site-max); padding: 44px clamp(16px, 5vw, 96px) 72px; width: 100%; }
+:where([data-theme="light"]) .ev .ev-application-form .apply-group.ev-group { background: var(--ui-panel); border-color: var(--ui-border); box-shadow: var(--ui-card-shadow); }
+:where([data-theme="light"]) .ev .ev-application-form .ev-field :is(input:not([type="radio"], [type="checkbox"], [type="hidden"]), select, textarea) { background: var(--ui-panel-tint); border-color: var(--ui-border-strong); border-radius: var(--ui-control-radius); }
+:where([data-theme="light"]) .ev .ev-application-form .ev-field :is(input, select, textarea):focus { background: var(--ui-panel); border-color: var(--ev-text); box-shadow: var(--field-lift); }
+@media (max-width: 680px) {
+  .ev .ev-application-form { --event-field-size: 16px; }
+  .ev .ev-application-form :is(.ev-rsvp-group, .ev-evaluation-fields) > :is(.is-span-2, .is-span-3) { grid-column: 1 / -1; }
+  .ev .ev-application-form .apply-privacy-grid { grid-template-columns: 1fr; }
+  .ev .ev-application-form .ev-event-choices { grid-template-columns: 1fr; }
+  .ev .ev-application-form .ev-privacy-clause > summary { padding: 14px; }
+  .ev .ev-application-form .apply-group.ev-group { padding: 20px 18px 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ev .ev-application-form .apply-step-rail::before, .ev .ev-application-form .apply-step-rail::after { transition: none; }
+  .ev .ev-application-form .ev-button, .ev .ev-application-form .ev-button svg { transition: none; }
+  .ev .ev-application-form .ev-consent-chevron { transition: none; }
+}

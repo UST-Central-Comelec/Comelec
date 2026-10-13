@@ -1,6 +1,7 @@
+import { AddIcon as ActionAddIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { EventStatusTag, OrganizerTag } from "@/components/portal/event-tags";
 import { EventTableRow } from "@/components/portal/event-table-row";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -91,7 +92,7 @@ export default async function PortalEventsPage({ searchParams }: PageProps<"/por
             <p className="portal-empty">
               {filters.kind !== "activities"
                 ? `No unit${filters.unit === "central" ? " of the Central Comelec" : filters.unit === "local" ? " among the Local units" : ""} has ${kinds[filters.kind]} open right now. It’s listed here while it is, and set under its Settings.`
-                : filters.unit === "local" ? "No Local unit has added an activity yet." : user.readOnly || (filters.unit === "central" && local) ? "No activities yet." : <>No activities yet. <Link href="/portal/events/new">Add the first one.</Link></>}
+                : filters.unit === "local" ? "No Local unit has added an activity yet." : user.readOnly || (filters.unit === "central" && local) ? "No activities yet." : <>No activities yet. <Link href="/portal/events/new"><ActionAddIcon size={15} aria-hidden="true" />Add the first one.</Link></>}
             </p>
           ) : (
             <div className="portal-table-wrap">

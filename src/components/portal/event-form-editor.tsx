@@ -1,9 +1,11 @@
 "use client";
+import { AddIcon as ActionAddIcon } from "@/components/action-icons";
 import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { DndContext, KeyboardSensor, MeasuringStrategy, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, ChevronDown, Eye, GitBranch, GripVertical, Heading, ImageIcon, LockKeyhole, Mail, Plus, RotateCcw, ShieldCheck, SquareCheckBig, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, GitBranch, GripVertical, LockKeyhole, Mail, RotateCcw, ShieldCheck } from "lucide-react";
+import { ViewIcon as Eye, AddIcon as Plus, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { acknowledgementTags, fieldKinds, type Acknowledgement, type EditorDefinition, type EditorField, type EditorStep, type FieldKind } from "@/lib/events/form-editor";
 import { findField, insertFields, isFixedStep, keepsOrder, patchStep, placeField, placeStep, removeStep } from "@/lib/events/form-flow";
 import { FieldEditor, fieldProblem, hasChoices, IconButton, kindIcons, plural } from "./form-field-editor";
@@ -37,8 +39,9 @@ const pinned = (step: EditorStep) => isFixedStep(step) || step.builtin === 0;
  * question dropped on a step in the list moves there. Every form starts with the Data Privacy
  * Consent and ends with the Acknowledgement (what respondents see, and are emailed, after).
  */
-export function EventFormEditor({ title, value, onChange, disabled = false, allowRating = true, defaultValue, onReset, actions, renderPreview, viewMode }: {
+export function EventFormEditor({ title, value, onChange, disabled = false, allowRating = true, defaultValue, onReset, actions, renderPreview, viewMode, acknowledgementDelivery = "page-and-email" }: {
   title: string;
+  acknowledgementDelivery?: "page" | "page-and-email";
   value: EditorDefinition;
   onChange: (value: EditorDefinition) => void;
   disabled?: boolean;
@@ -93,13 +96,13 @@ export function EventFormEditor({ title, value, onChange, disabled = false, allo
           <p className="form-preview-note"><Eye size={14} aria-hidden="true" />A preview of the unsaved form. Answers here aren’t sent, and every step can be visited.</p>
           <div className="form-preview-frame">{renderPreview(value)}</div>
         </div>
-      ) : <FormsView key={resets} title={title} value={value} onChange={onChange} disabled={disabled} allowRating={allowRating} />}
+      ) : <FormsView acknowledgementDelivery={acknowledgementDelivery} key={resets} title={title} value={value} onChange={onChange} disabled={disabled} allowRating={allowRating} />}
     </section>
   );
 }
 
 /** The Forms editor: steps down the left, the open step's questions on the right. */
-function FormsView({ title, value, onChange, disabled, allowRating }: { title: string; value: EditorDefinition; onChange: (value: EditorDefinition) => void; disabled: boolean; allowRating: boolean }) {
+function FormsView({ title, value, onChange, disabled, allowRating, acknowledgementDelivery }: { acknowledgementDelivery: "page" | "page-and-email"; title: string; value: EditorDefinition; onChange: (value: EditorDefinition) => void; disabled: boolean; allowRating: boolean }) {
   const dndId = useId();
   const [selected, setSelected] = useState(value.steps[1]?.id ?? value.steps[0].id);
   const [open, setOpen] = useState<string | null>(null);
@@ -186,7 +189,7 @@ function FormsView({ title, value, onChange, disabled, allowRating }: { title: s
             )}
           </div>
 
-          {step.kind === "acknowledgement" ? <AcknowledgementEditor value={step.acknowledgement!} title={step.title} onTitle={title => onChange(patchStep(value, step.id, { title }))} onChange={acknowledgement => onChange(patchStep(value, step.id, { acknowledgement }))} /> : <>
+          {step.kind === "acknowledgement" ? <AcknowledgementEditor pageOnly={acknowledgementDelivery === "page"} value={step.acknowledgement!} title={step.title} onTitle={title => onChange(patchStep(value, step.id, { title }))} onChange={acknowledgement => onChange(patchStep(value, step.id, { acknowledgement }))} /> : <>
             <StepSettings step={step} onUpdate={patch => onChange(patchStep(value, step.id, patch))} />
             <div className="form-builder-list-head">
               <h3>{step.kind === "privacy" ? "Consent boxes" : step.builtin !== undefined ? "Your questions" : "Questions"}</h3>
@@ -200,10 +203,10 @@ function FormsView({ title, value, onChange, disabled, allowRating }: { title: s
               </SortableContext>
             ) : <p className="form-builder-empty">{step.builtin !== undefined ? "No extra questions. This step shows only its standard ones." : "No questions in this step yet."}</p>}
             <div className="form-builder-add">
-              {step.kind === "privacy" ? <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField("confirm")}><SquareCheckBig size={15} aria-hidden="true" />Add consent box</button> : <>
+              {step.kind === "privacy" ? <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField("confirm")}><ActionAddIcon size={15} aria-hidden="true" />Add consent box</button> : <>
                 <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField(allowRating && step.fields.at(-1)?.kind === "rating" ? "rating" : "text")}><Plus size={15} aria-hidden="true" />Add question</button>
-                <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField("content")}><Heading size={15} aria-hidden="true" />Add Text</button>
-                <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField("image")}><ImageIcon size={15} aria-hidden="true" />Add Image</button>
+                <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField("content")}><ActionAddIcon size={15} aria-hidden="true" />Add Text</button>
+                <button className="portal-button is-ghost" type="button" disabled={!tools.roomIn(step)} onClick={() => addField("image")}><ActionAddIcon size={15} aria-hidden="true" />Add Image</button>
               </>}
             </div>
           </>}
@@ -275,20 +278,20 @@ function FieldCard({ item, open, tools, fixedKind, onToggle }: { item: EditorFie
 }
 
 /** The last step: the page respondents see after submitting, and the email they're sent. */
-function AcknowledgementEditor({ value, title, onTitle, onChange }: { value: Acknowledgement; title: string; onTitle: (title: string) => void; onChange: (value: Acknowledgement) => void }) {
+function AcknowledgementEditor({ value, title, onTitle, onChange, pageOnly = false }: { pageOnly?: boolean; value: Acknowledgement; title: string; onTitle: (title: string) => void; onChange: (value: Acknowledgement) => void }) {
   const set = (patch: Partial<Acknowledgement>) => onChange({ ...value, ...patch });
-  const tags = <p className="form-builder-tags">Fill-ins: {Object.entries(acknowledgementTags).map(([tag, meaning]) => <code key={tag} title={meaning}>{tag}</code>)}</p>;
+  const tags = <p className="form-builder-tags">Fill-ins: {Object.entries(acknowledgementTags).filter(([tag]) => !pageOnly || tag !== "{link}").map(([tag, meaning]) => <code key={tag} title={meaning}>{tag}</code>)}</p>;
   return <>
     <label className="portal-field form-builder-step-title"><span>Step name <em>In this editor</em></span><input className="portal-input" value={title} maxLength={200} onChange={event => onTitle(event.target.value)} /></label>
-    <div className="form-builder-standard"><Mail size={16} aria-hidden="true" /><p><strong>Always the last step</strong>Respondents see this page once their answers are saved, and are sent the email if it’s on.</p></div>
+    <div className="form-builder-standard"><Mail size={16} aria-hidden="true" /><p><strong>Always the last step</strong>{pageOnly ? "Respondents see this page once their answers are saved." : "Respondents see this page once their answers are saved, and are sent the email if it’s on."}</p></div>
 
     <div className="form-builder-list-head"><h3>Acknowledgement page</h3></div>
     <label className="portal-field"><span>Heading</span><input className="portal-input" value={value.title} maxLength={200} onChange={event => set({ title: event.target.value })} /></label>
     <label className="portal-field"><span>Message</span><textarea className="portal-input" rows={3} value={value.message} maxLength={2000} onChange={event => set({ message: event.target.value })} /></label>
-    <label className="form-builder-tick"><input type="checkbox" checked={value.link} onChange={event => set({ link: event.target.checked })} /><span><strong>Show the event’s public registration link</strong><small>A button to the registration form, for sharing with participants</small></span></label>
+    {!pageOnly && <label className="form-builder-tick"><input type="checkbox" checked={value.link} onChange={event => set({ link: event.target.checked })} /><span><strong>Show the event’s public registration link</strong><small>A button to the registration form, for sharing with participants</small></span></label>}
     {tags}
 
-    <div className="form-builder-list-head"><h3>Acknowledgement email</h3></div>
+    {!pageOnly && <><div className="form-builder-list-head"><h3>Acknowledgement email</h3></div>
     <label className="form-builder-required">
       <span className="portal-switch"><input type="checkbox" role="switch" checked={value.email} onChange={event => set({ email: event.target.checked })} /><i aria-hidden="true" /></span>
       {value.email ? "On: sent to the respondent’s email" : "Off: no email is sent"}
@@ -298,6 +301,6 @@ function AcknowledgementEditor({ value, title, onTitle, onChange }: { value: Ack
       <label className="portal-field"><span>Message</span><textarea className="portal-input" rows={6} value={value.body} maxLength={4000} onChange={event => set({ body: event.target.value })} /></label>
       {tags}
       <p className="form-builder-note">It goes to the first email the form asks for. A form without an Email question sends none.</p>
-    </>}
+    </>}</>}
   </>;
 }

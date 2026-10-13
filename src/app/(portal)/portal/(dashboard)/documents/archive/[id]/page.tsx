@@ -1,3 +1,4 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,7 +25,7 @@ export default async function EditDocumentPage({ params }: PageProps<"/portal/do
         <div>
           <Link className="portal-back" href="/portal/documents/archive">← Archive</Link>
           <h1>{readOnly ? "Document" : "Edit document"}</h1>
-          <p className="portal-muted">Last updated {formatClosing(doc.updatedAt)} by {doc.updatedBy}. <a href={`/archive/${doc.id}`} target="_blank" rel="noreferrer">View on website ↗</a></p>
+          <p className="portal-muted">Last updated {formatClosing(doc.updatedAt)} by {doc.updatedBy}. <a href={`/archive/${doc.id}`} target="_blank" rel="noreferrer"><ActionViewIcon size={15} aria-hidden="true" />View on website ↗</a></p>
         </div>
       </header>
       <section className="portal-card">

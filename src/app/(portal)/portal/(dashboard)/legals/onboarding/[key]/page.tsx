@@ -5,8 +5,8 @@ import { TitleWithInfo } from "@/components/portal/info-tip";
 import { OnboardingDocumentEditor } from "@/components/portal/onboarding-document-editor";
 import { ViewOnlyTag } from "@/components/portal/view-only";
 import { requireAccess } from "@/lib/auth/session";
-import { formatAccepted, isOnboardingDocumentKey, stepOf } from "@/lib/onboarding/documents";
-import { getOnboardingDocument } from "@/lib/onboarding/store";
+import { formatAccepted, isOnboardingDocumentKey } from "@/lib/onboarding/documents";
+import { getOnboardingDocument, getOnboardingDocuments } from "@/lib/onboarding/store";
 
 export const metadata: Metadata = { title: "Onboarding document" };
 
@@ -14,13 +14,16 @@ export default async function OnboardingDocumentPage({ params }: PageProps<"/por
   const [user, { key }] = await Promise.all([requireAccess("legals/onboarding"), params]);
   if (!isOnboardingDocumentKey(key)) notFound();
   const document = await getOnboardingDocument(key);
+  if (!document) notFound();
+  const steps = await getOnboardingDocuments(true);
+  const position = key === "privacy-notice" ? 0 : steps.findIndex(item => item.key === key) + 1;
 
   return (
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
           <Link className="portal-back" href="/portal/legals/onboarding">← Onboarding</Link>
-          <p className="portal-eyebrow">Legals · Documents · Step {stepOf(key)}</p>
+          <p className="portal-eyebrow">Legals · Documents · Step {position}</p>
           <TitleWithInfo info="Saving adds a new version, and Request access shows it from then on. Anyone who already accepted keeps the version they were shown, with the date and time they accepted it.">{document.title}</TitleWithInfo>
           <p className="portal-muted">Version {document.version}{document.savedAt ? ` · saved ${formatAccepted(document.savedAt)} by ${document.savedBy}` : " · original draft"}</p>
         </div>

@@ -4,7 +4,8 @@ import { SlidingSegments } from "./sliding-filters";
 
 import { useId, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Eye, EyeOff, Radio, RotateCcw, Wrench } from "lucide-react";
+import { Radio, RotateCcw, Wrench } from "lucide-react";
+import { SaveIcon, ViewIcon as Eye, HideIcon as EyeOff } from "@/components/action-icons";
 import type { FormState } from "@/lib/portal/form";
 import { InfoTip } from "./info-tip";
 import { useHydrated, usePortalForm } from "./portal-form";
@@ -19,7 +20,7 @@ function SettingsFoot({ unchanged, pending, onDiscard, submitLabel, danger }: { 
       <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
       <div className="portal-form-actions">
         {!unchanged && <button type="button" className="portal-button is-ghost" onClick={onDiscard} disabled={pending}>Discard</button>}
-        <button className={`portal-button${danger ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated || unchanged}>{pending ? "Saving…" : unchanged ? "Saved" : submitLabel}</button>
+        <button className={`portal-button${danger ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated || unchanged}><SaveIcon size={15} />{pending ? "Saving…" : unchanged ? "Saved" : submitLabel}</button>
       </div>
     </footer>
   );

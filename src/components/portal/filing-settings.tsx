@@ -1,5 +1,6 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { canOpen, isLocal, requireAccess } from "@/lib/auth/session";
 import { filingKinds, type FilingKind } from "@/lib/filings/kinds";
@@ -22,7 +23,7 @@ export async function FilingSubmissions({ kind }: { kind: FilingKind }) {
           <TitleWithInfo info={local ? `${Noun} from ${user.college ?? "your college"} submitted through the ${title} page will show up here.` : `${Noun} submitted through the ${title} page will show up here.`}>{Noun}</TitleWithInfo>
           {local && <p className="portal-muted">{user.college}</p>}
         </div>
-        <Link className="portal-button is-ghost" href={href} target="_blank">View Mode <ArrowUpRight size={15} /></Link>
+        <Link className="portal-button is-ghost" href={href} target="_blank">View Mode <ActionViewIcon size={15} /></Link>
       </header>
 
       <section className="portal-card">

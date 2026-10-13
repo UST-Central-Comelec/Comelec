@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, ChevronDown, Search } from "lucide-react";
+import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { SearchIcon as Search } from "@/components/action-icons";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import type { Featured } from "@/components/featured-carousel";
 import { CommandPalette } from "@/components/nav/command-palette";

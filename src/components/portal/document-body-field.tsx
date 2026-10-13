@@ -2,9 +2,10 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, X } from "lucide-react";
+import { Maximize2 } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import { DocumentBody } from "@/components/document-body";
-import { parseDocumentBody } from "@/lib/data/document-body";
+import { documentBodyText, parseDocumentBody } from "@/lib/data/document-body";
 import { DocumentEditor } from "./document-editor";
 
 function BodyWindow({ title, children, onClose, editing = false }: { title: string; children: ReactNode; onClose: () => void; editing?: boolean }) {
@@ -34,7 +35,7 @@ function BodyWindow({ title, children, onClose, editing = false }: { title: stri
 }
 
 /** The inline and expanded editors share the form's draft; only one editor is mounted at a time. */
-export function DocumentBodyField({ value, onChange, name = "body", readOnly = false, invalid, label = "Main text editor", windowTitle = "Edit main text" }: { value: string; onChange: (body: string) => void; name?: string; readOnly?: boolean; invalid?: boolean; label?: string; windowTitle?: string }) {
+export function DocumentBodyField({ value, onChange, name = "body", readOnly = false, required = false, invalid, label = "Main text editor", windowTitle = "Edit main text" }: { value: string; onChange: (body: string) => void; name?: string; readOnly?: boolean; required?: boolean; invalid?: boolean; label?: string; windowTitle?: string }) {
   const [expanded, setExpanded] = useState(false);
   const labelId = useId();
   const blocks = parseDocumentBody(value);
@@ -42,7 +43,7 @@ export function DocumentBodyField({ value, onChange, name = "body", readOnly = f
 
   return (
     <>
-      <input type="hidden" name={name} value={value} />
+      <input type="hidden" name={name} value={required && !documentBodyText(blocks).trim() ? "" : value} data-required={required || undefined} />
       <span id={labelId} className="document-editor-label">{label}</span>
       {!expanded && <DocumentEditor initialBody={value} onChange={onChange} labelledBy={labelId} invalid={invalid} readOnly={readOnly} />}
       <div className="portal-body-tools">

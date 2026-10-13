@@ -1,9 +1,11 @@
 "use client";
 
+import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import { isStudentNumberField } from "@/lib/forms/input";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileText, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileText } from "lucide-react";
+import { AddIcon as Plus, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { communicationDeclaration, conformeDeclarations, MAX_FILE_BYTES, MAX_TOTAL_BYTES, petitionDeclaration, requirements, rosterSections, templateHref, uploadTypes, type RosterId } from "@/lib/polpar/content";
 import { fieldErrors, partyRegistrationSchema, type Conforme, type PartyRegistration, type PartyResponse } from "@/lib/polpar/schema";
 import { DatePicker } from "@/components/portal/date-picker";
@@ -161,7 +163,7 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
       <ol className="pp-steps">{steps.map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined} className={step === index ? "is-current" : step > index ? "is-done" : ""}>
         <span>{step > index ? <Check size={14} aria-hidden="true" /> : String(index + 1).padStart(2, "0")}</span><button type="button" disabled={index > step || pending} onClick={() => { setStep(index); setResult({}); }}>{label}</button>
       </li>)}</ol>
-      <div className="pp-sidebar-note"><FileText size={19} aria-hidden="true" /><p>Fill in your details here, download the completed PDFs, then sign and upload your copies. Your roster entries carry into the forms automatically.</p><a href={templateHref("Form 07 - Requirement Checklist.docx")} download>View the original checklist <DownloadIcon size={14} aria-hidden="true" /></a></div>
+      <div className="pp-sidebar-note"><FileText size={19} aria-hidden="true" /><p>Fill in your details here, download the completed PDFs, then sign and upload your copies. Your roster entries carry into the forms automatically.</p><a href={templateHref("Form 07 - Requirement Checklist.docx")} download>View the original checklist <ActionViewIcon size={14} aria-hidden="true" /></a></div>
     </aside>
 
     <form ref={form} onSubmit={submit} noValidate method="post" className="pp-form">
@@ -209,7 +211,7 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
         <section data-step="6" hidden={step !== 6}>
           <p className="pp-source">Form 06 · Membership conforme</p>
           <p className="pp-note">Your officers and members are added once per student number. Confirm each applicant’s name, academic unit and student number, then enter the signing date and both witnesses’ names and dates. The PDF includes a separate conforme for each applicant, with blank signature lines.</p>
-          <button type="button" className="bp-button is-ghost is-small" onClick={importConformes}>Add missing officers and members</button>
+          <button type="button" className="bp-button is-ghost is-small" onClick={importConformes}><ActionAddIcon size={15} aria-hidden="true" />Add missing officers and members</button>
           {conformes.map((entry, index) => <fieldset className="pp-person" key={entry.id}><legend>Applicant member {index + 1}</legend><button type="button" className="pp-remove" aria-label={`Remove conforme ${index + 1}`} onClick={() => setConformes((current) => current.filter((item) => item.id !== entry.id))}><Trash2 size={15} aria-hidden="true" />Remove</button><div className="pp-grid">
             {([
               ["fullName", "Full name · first name, middle initial, surname", "text"], ["college", "Academic unit", "text"], ["studentNumber", "Student number", "text"], ["signedOn", "Applicant’s signing date", "date"],
@@ -249,7 +251,7 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
 
         <section data-step="9" hidden={step !== 9}>
           {review && <><div className="pp-review"><h3>{review.partyName}</h3><dl><div><dt>Commission unit</dt><dd>{chosenUnit?.label}</dd></div><div><dt>Established</dt><dd>{review.establishedAt}</dd></div>{review.headquarters && <div><dt>Headquarters</dt><dd>{review.headquarters}</dd></div>}<div><dt>Contact person</dt><dd>{review.contactPerson}</dd></div><div><dt>Contact details</dt><dd>{review.email}<br />{review.contactNumber}</dd></div><div><dt>Petition representative</dt><dd>{review.petitionSignatory.fullName} · {review.petitionSignatory.position}</dd></div><div><dt>Petition date</dt><dd>{review.petitionDate}</dd></div></dl></div>
-            {rosterSections.map((section) => <details className="pp-review-details" key={section.id}><summary>{section.title} <span>{rows[section.id].length} listed</span></summary>{review[section.id].map((row, index) => <dl key={index}>{section.fields.map((field) => <div key={field.key}><dt>{field.label}</dt><dd>{(row as Record<string, string>)[field.key]}</dd></div>)}</dl>)}<p>Certified by {review.certifications[section.id].fullName}, {review.certifications[section.id].position}</p><button type="button" className="pp-text-button" onClick={() => setStep(rosterSections.indexOf(section) + 2)}>Edit this section</button></details>)}
+            {rosterSections.map((section) => <details className="pp-review-details" key={section.id}><summary>{section.title} <span>{rows[section.id].length} listed</span></summary>{review[section.id].map((row, index) => <dl key={index}>{section.fields.map((field) => <div key={field.key}><dt>{field.label}</dt><dd>{(row as Record<string, string>)[field.key]}</dd></div>)}</dl>)}<p>Certified by {review.certifications[section.id].fullName}, {review.certifications[section.id].position}</p><button type="button" className="pp-text-button" onClick={() => setStep(rosterSections.indexOf(section) + 2)}><ActionEditIcon size={15} aria-hidden="true" />Edit this section</button></details>)}
           </>}
           <details className="pp-review-details"><summary>Attached documents <span>{Object.values(uploads).reduce((sum, files) => sum + files.length, 0)} files</span></summary>{requirements.map((requirement) => <p key={requirement.id}><strong>{requirement.label}</strong><br />{uploads[requirement.id]?.map((file) => file.name).join(", ") || "No alumni IDs — no active alumni listed"}</p>)}</details>
           <details className="pp-review-details"><summary>Membership conformes <span>{review?.conformes.length ?? 0} applicants</span></summary>{review?.conformes.map((member, index) => <p key={index}><strong>{member.fullName}</strong> · {member.studentNumber}<br />{member.college} · {member.signedOn}<br />Witnesses: {member.witness1Name} ({member.witness1Date}), {member.witness2Name} ({member.witness2Date})</p>)}</details>

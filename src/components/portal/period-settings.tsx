@@ -1,3 +1,4 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ActingAs } from "@/components/portal/event-tags";
@@ -58,7 +59,7 @@ export async function PeriodSettings({ kind, notice, unit: asked }: { kind: Peri
       </div>
       <div className="portal-head-actions">
         {user.affiliation !== "local" && <UnitSwitcher units={comelecUnits} value={unit ? unitKey(unit) : ""} />}
-        <Link className="portal-button is-ghost" href={preview} target="_blank">View Mode <ArrowUpRight size={15} /></Link>
+        <Link className="portal-button is-ghost" href={preview} target="_blank">View Mode <ActionViewIcon size={15} /></Link>
       </div>
     </header>
   );

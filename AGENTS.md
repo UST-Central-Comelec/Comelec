@@ -191,6 +191,16 @@ In each, one solid ink "thumb" (`.portal-filters-thumb`) slides to the picked it
 
 `lucide-react`, 14–16px in buttons and 13–15px inline, `aria-hidden="true"` with the words beside them carrying the meaning. Animated nav icons come from `src/components/animate-ui/icons` through `portal-nav-icons.tsx`. Status uses `CheckCircle2` / `AlertTriangle` / `Info`; don't mix in other icon sets.
 
+### Button and toggle icon standard (site and portal)
+
+- Every button icon loops while its **whole control** is hovered or keyboard focused. Every active toggle’s icon loops while selected, even without hover. Start immediately and replay every **1,400 ms, start to start**; this is not an extra 1.4-second pause after an animation.
+- Use `src/components/action-icons.tsx` for action icons: **Edit / rename / modify → `EditIcon` (Square Pen); Delete / remove → `DeleteIcon` (lifting trash lid); Add / create → `AddIcon` (rotating Plus); Save / update → `SaveIcon` (Animate UI Circle Check Big); View / show / preview → `ViewIcon` (blinking Eye); Hide → `HideIcon` (Eye Off); Search → `SearchIcon`; Copy / autocopy → `CopyIcon`; Close / dismiss → `CloseIcon` (X).** The last three use their Animate UI designs. Keep action meaning consistent across the site and portal.
+- Share playback through `useIconCycle` in `src/components/use-icon-cycle.ts`; both icon libraries use it. Do not add local timers or different loop delays. `src/app/icon-motion.css` supplies the subtle fallback for other button icons; mark bespoke animated wrappers with `data-icon-motion` to prevent double animation.
+- Search icons respond to hover/focus across their field. Mark toggle state with `aria-pressed`, `aria-selected`, or `aria-checked` (and route selection with `aria-current`); do not rely on hover to indicate selection.
+- Working-document links in the letters tracker animate only on hover. Their `.is-active` class means the document is available, not a selected toggle; never use it to start continuous icon playback.
+- Stop and reset when idle, disabled, unmounted, or the document is hidden. Respect `prefers-reduced-motion`: keep icons visible and static. Decorative icons use `aria-hidden="true"`; icon-only controls keep an accessible label.
+- Keep the existing 14–16px button sizing and inherited token colour. Preserve the black/red dismiss styling and two-step destructive confirmation. The specified Plus rotation and supplied icon motions are exceptions to the general no-spin rule; do not animate the button itself.
+
 ## Writing
 
 - **Plain words a visitor or commissioner would use, in sentence case.** Curly apostrophes and quotes (’ “ ”), and "…" for an ellipsis.

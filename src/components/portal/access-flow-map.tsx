@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowRightLeft, LocateFixed, Pause, Play, Plus, X } from "lucide-react";
+import { ArrowRightLeft, LocateFixed, Pause, Play } from "lucide-react";
+import { AddIcon as Plus, CloseIcon as X } from "@/components/action-icons";
 import { ShieldCheck } from "./portal-nav-icons";
 import { groupIcons, tabIcons } from "./portal-tab-icons";
 import type { TabKey } from "@/lib/portal/access";

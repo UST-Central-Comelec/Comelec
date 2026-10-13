@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Eye, Stamp } from "lucide-react";
+import { Stamp } from "lucide-react";
+import { ViewIcon as Eye } from "@/components/action-icons";
 import { Signers, formatWhen } from "@/components/portal/code-revision";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";

@@ -1,5 +1,6 @@
 "use client";
 
+import { AddIcon as ActionAddIcon } from "@/components/action-icons";
 import type { FormState } from "@/lib/portal/form";
 import { DatePicker, formatPortalDate } from "./date-picker";
 import { Dropdown } from "./dropdown";
@@ -67,7 +68,7 @@ export function InterviewSlotForm({ action, dates = [], layout, unit = "", unitO
       </div>
       {layout === "side" ? (
         <div className="portal-side-footer">
-          <button className="portal-button is-block" type="submit" disabled={pending}>{pending ? "Adding…" : dates.length > 1 ? `Add a slot to ${dates.length} days` : "Add slot"}</button>
+          <button className="portal-button is-block" type="submit" disabled={pending}><ActionAddIcon size={15} aria-hidden="true" />{pending ? "Adding…" : dates.length > 1 ? `Add a slot to ${dates.length} days` : "Add slot"}</button>
         </div>
       ) : (
         <FormFooter pending={pending} submitLabel="Add slots" cancelHref="/portal" />

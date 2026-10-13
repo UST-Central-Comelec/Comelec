@@ -1,5 +1,6 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -78,7 +79,7 @@ export function EditConflict({ guard, state }: { guard?: EditGuardInfo; state: F
           </div>
           <div className="portal-edit-conflict-actions">
             <button type="button" className="portal-button is-ghost is-small" onClick={() => window.location.reload()}>Load their version</button>
-            <button type="button" className="portal-button is-danger-ghost is-small" onClick={saveMine}>Save mine over theirs</button>
+            <button type="button" className="portal-button is-danger-ghost is-small" onClick={saveMine}><ActionSaveIcon size={15} aria-hidden="true" />Save mine over theirs</button>
           </div>
         </div>
       )}

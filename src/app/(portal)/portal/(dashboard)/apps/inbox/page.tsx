@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { requireAccess } from "@/lib/auth/session";
 import { canAnnounce } from "@/lib/notifications/inbox-rules";
 import { getInbox } from "@/lib/notifications/inbox-store";

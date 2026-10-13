@@ -7,7 +7,7 @@ import { newReferenceCode } from "@/lib/applications/reference";
 import { checkAccess } from "@/lib/auth/session";
 import { facebookHref, fullName } from "@/lib/data/accounts";
 import { accountPositions, describeAffiliation, type AccountPosition, type Affiliation } from "@/lib/data/types";
-import { onboardingDocumentKeys, type Declaration } from "@/lib/onboarding/documents";
+import { type Declaration } from "@/lib/onboarding/documents";
 import { getOnboardingDocuments } from "@/lib/onboarding/store";
 import { concernOf } from "@/lib/notifications/concern";
 import { emailUnit, sendAutomatic } from "@/lib/notifications/notify";
@@ -45,9 +45,9 @@ async function readDeclarations(formData: FormData): Promise<Declaration[] | nul
   const documents = await getOnboardingDocuments();
   const now = Date.now();
   const declarations: Declaration[] = [];
-  for (const key of onboardingDocumentKeys) {
+  for (const document of documents) {
+    const key = document.key;
     const [versionText = "", time = ""] = text(formData, `declaration.${key}`).split("|");
-    const document = documents.find((item) => item.key === key)!;
     const version = Number(versionText);
     if (!Number.isInteger(version) || version < 1 || version > document.version) return null;
     const at = Date.parse(time);

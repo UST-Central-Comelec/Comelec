@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import { Eye } from "lucide-react";
+import { ViewIcon as Eye } from "@/components/action-icons";
 import { archiveKinds, documentKinds, type OfficialDocument } from "@/lib/data/types";
 import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";

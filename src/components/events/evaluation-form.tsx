@@ -11,6 +11,7 @@ import { FormAcknowledgement } from "./form-acknowledgement";
 import { resolveFlow } from "@/lib/events/form-flow";
 import { evaluationAcknowledgement, evaluationDefinition, type EvaluationSettings } from "@/lib/events/evaluation";
 import { checkEvaluationProfile, submitEvaluation, type EvaluationProfileState } from "@/lib/events/evaluation-actions";
+import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
 
 function Requirement({ required }: { required: boolean }) { return required ? <span className="ev-evaluation-required" aria-label="required">*</span> : <span className="ev-evaluation-optional">Optional</span>; }
 
@@ -105,9 +106,12 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
   }
 
   if (state.success || (preview && showAcknowledgement)) return (
-    <FormAcknowledgement acknowledgement={acknowledgement} eventName={eventName} name={state.name} link={`/events/${eventId}/register`}>
+    <div className="apply-form ev-application-form">
+      <EventFormTracker steps={steps} current={steps.length} acknowledgement={definition.steps.at(-1)?.title ?? "Acknowledgement"} label="Evaluation steps" preview={preview} busy onStep={go} onAcknowledgement={() => setShowAcknowledgement(true)} />
+      <div className="apply-body ev-form-body"><FormAcknowledgement acknowledgement={acknowledgement} eventName={eventName} name={state.name} link={`/events/${eventId}/register`}>
       {preview ? <button type="button" className="ev-button is-ghost is-back" onClick={() => setShowAcknowledgement(false)}><ArrowLeft size={16} aria-hidden="true" />Back to the form</button> : <Link className="ev-button is-ghost is-back" href={`/events/${eventId}`}><ArrowLeft size={16} aria-hidden="true" />Back to event</Link>}
-    </FormAcknowledgement>
+      </FormAcknowledgement></div>
+    </div>
   );
 
   if (state.alreadySubmitted) return (
@@ -129,32 +133,19 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
   );
 
   return (
-    <form ref={formRef} action={action} onSubmit={onSubmit} className="ev-form ev-steps-form ev-evaluation-form" noValidate aria-busy={busy}>
-      <div className="ev-form-head">
-        <ol className="ev-steps" aria-label="Evaluation steps">
-          {steps.map(({ title: label, id }, index) => (
-            <li key={id} className={index === step ? "is-current" : index < step ? "is-done" : "is-upcoming"} aria-current={index === step ? "step" : undefined}>
-              <button type="button" disabled={(!preview && index > step) || busy} onClick={() => go(index)} aria-label={`Step ${index + 1}: ${label}`}>
-                <span className="ev-step-rail" aria-hidden="true" />
-                <span className="ev-step-label"><b aria-hidden="true">{index < step ? <Check size={12} strokeWidth={3} /> : index + 1}</b><span>{label}</span></span>
-              </button>
-            </li>
-          ))}
-          <li className="is-upcoming"><button type="button" disabled={!preview} onClick={() => setShowAcknowledgement(true)}><span className="ev-step-rail" aria-hidden="true" /><span className="ev-step-label"><b aria-hidden="true">{steps.length + 1}</b><span>{definition.steps.at(-1)?.title ?? "Acknowledgement"}</span></span></button></li>
-        </ol>
-      </div>
-
-      <div className="ev-form-body">
-        <div className="ev-evaluation-section-head">
-          <h2 className="ev-step-title" ref={headingRef} tabIndex={-1}><small>Step {step + 1} of {steps.length}</small>{current.title}</h2>
-          <p className="ev-step-intro">{current.description}</p>
+    <form ref={formRef} action={action} onSubmit={onSubmit} className="apply-form ev-form ev-steps-form ev-evaluation-form ev-application-form" noValidate aria-busy={busy}>
+      <EventFormTracker steps={steps} current={step} acknowledgement={definition.steps.at(-1)?.title ?? "Acknowledgement"} label="Evaluation steps" preview={preview} busy={busy} onStep={go} onAcknowledgement={() => setShowAcknowledgement(true)} />
+      <div className="apply-body ev-form-body">
+        <div className="apply-body-head" key={`heading-${current.id}`}>
+          <span>Step {step + 1} of {steps.length + 1}</span><h2 ref={headingRef} tabIndex={-1}>{current.title}</h2>
+          {current.description && <p>{current.description}</p>}
           <p className="ev-evaluation-required-note"><><span aria-hidden="true">*</span> Required fields</></p>
         </div>
 
         {definition.steps.filter(item => item.kind !== "acknowledgement").map(item => (
-          <fieldset className="ev-group" data-step={item.id} key={item.id} hidden={current.id !== item.id} disabled={busy} onChange={item.builtin === 0 ? () => setProfileResult(null) : undefined}>
-            <legend className="visually-hidden">{item.title}</legend>
-            {item.kind === "privacy" && <p className="ev-privacy-link">Read the <Link href="/privacy" target="_blank" rel="noopener">Data Privacy Statement</Link> before you continue.</p>}
+          <fieldset className="apply-group ev-group ev-rsvp-group" data-step={item.id} key={item.id} hidden={current.id !== item.id} disabled={busy} onChange={item.builtin === 0 ? () => setProfileResult(null) : undefined}>
+            <legend className="ev-sr-only">{item.title}</legend>
+            {item.kind === "privacy" && <EventConsentStatement id="evaluation-privacy" />}
             {item.builtin === 0 && <>
               {settings.allowAnonymous && (
                 <label className="ev-evaluation-check">
@@ -166,16 +157,16 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
               {anonymous ? <p className="ev-evaluation-profile-note">Your response will not contain your name or be linked to your registration.</p> : (
                 <>
                   <div className="ev-grid">
-                    {[["lastName", "Last name", "family-name"], ["firstName", "First name", "given-name"], ["middleName", "Middle name", "additional-name"]].map(([key, label, auto]) => (
+                    {[["lastName", "Last name", "family-name", "e.g. DELA CRUZ"], ["firstName", "First name", "given-name", "e.g. JUAN"], ["middleName", "Middle name", "additional-name", "e.g. SANTOS"]].map(([key, label, auto, placeholder]) => (
                       <label className="ev-field" key={key}>
                         <span className="ev-field-label">{label}<Requirement required={needsName} /></span>
-                        <input name={key} required={needsName && !preview} maxLength={80} autoComplete={auto} />
+                        <input name={key} required={needsName && !preview} maxLength={80} autoComplete={auto} placeholder={placeholder} />
                       </label>
                     ))}
                   </div>
                   <label className="ev-field ev-evaluation-reference">
                     <span className="ev-field-label">Reference code<Requirement required={false} /></span>
-                    <input name="referenceCode" value={referenceCode} onChange={event => setReferenceCode(event.target.value)} pattern="[A-Za-z0-9]{5}" maxLength={5} autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+                    <input name="referenceCode" value={referenceCode} onChange={event => setReferenceCode(event.target.value)} pattern="[A-Za-z0-9]{5}" maxLength={5} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="e.g. A1B2C" />
                   </label>
                 </>
               )}
@@ -188,16 +179,15 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
               {!anonymous && profileResult?.error && <p className="ev-field-error ev-evaluation-error" role="alert">{profileResult.error}</p>}
               {settings.requireGoogle && !preview && <><StudentVerification eventId={eventId} target="evaluate" />{anonymous && <p className="ev-field-hint">Verify your UST account to submit anonymously. Your account will not be saved with your feedback.</p>}</>}
             </>}
-            <div className="ev-animated-fields ev-evaluation-fields"><EditorFields fields={item.fields} visible={flow.visible} values={answers} onChange={setAnswer} verify={{ eventId, target: "evaluate", preview }} /></div>
+            <div className="ev-animated-fields ev-evaluation-fields"><EditorFields fields={item.fields} visible={flow.visible} values={answers} onChange={setAnswer} verify={{ eventId, target: "evaluate", preview }} columns /></div>
           </fieldset>
         ))}
         {customError && <p className="ev-field-error" role="alert">{customError}</p>}
         {state.error && <p className="ev-field-error ev-evaluation-error" role="alert">{state.error} You can return to earlier steps to correct your answers.</p>}
-      </div>
-
-      <div className="ev-form-foot ev-evaluation-nav">
-        {step > 0 ? <button type="button" className="ev-button is-ghost is-back" disabled={busy} onClick={() => go(step - 1)}><ArrowLeft size={16} aria-hidden="true" />Back</button> : <span className="ev-evaluation-nav-note">Your feedback makes a difference.</span>}
+      <div className="apply-nav ev-form-foot ev-evaluation-nav">
+        {step > 0 && <button type="button" className="ev-button is-ghost is-back" disabled={busy} onClick={() => go(step - 1)}><ArrowLeft size={16} aria-hidden="true" />Back</button>}
         {step < lastStep ? <button type="submit" className="ev-button is-primary" disabled={busy}>{checkingProfile ? "Checking…" : "Continue"}{!checkingProfile && <ArrowRight size={16} aria-hidden="true" />}</button> : preview ? <button className="ev-button is-primary" type="button" onClick={() => setShowAcknowledgement(true)}>See the acknowledgement<ArrowRight size={16} aria-hidden="true" /></button> : <button className="ev-button is-primary" disabled={busy} type="submit">{pending ? "Submitting…" : "Submit evaluation"}{!pending && <Check size={16} aria-hidden="true" />}</button>}
+      </div>
       </div>
     </form>
   );

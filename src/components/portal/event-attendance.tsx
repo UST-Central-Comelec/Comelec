@@ -1,8 +1,10 @@
 "use client";
 
+import { CloseIcon as ActionCloseIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, useTransition, type ChangeEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, Hash, Info, LoaderCircle, Maximize2, Minimize2, RotateCcw, Search, ShieldCheck, Ticket, UserRound, UserRoundPlus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, Hash, LoaderCircle, Maximize2, Minimize2, RotateCcw, ShieldCheck, Ticket, UserRound, UserRoundPlus } from "lucide-react";
+import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { confirmAttendance, lookupAttendance, type AttendancePerson } from "@/lib/events/evaluation-actions";
 import type { RegistrationDetailGroup } from "@/lib/events/registration-details";
@@ -47,7 +49,7 @@ function AttendanceDetails({ person }: { person: AttendancePerson }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
   return <>
-    <button className="portal-button is-ghost" type="button" aria-haspopup="dialog" aria-controls={id} onClick={() => dialog.current?.showModal()}><Info size={15} aria-hidden="true" />Show details</button>
+    <button className="portal-button is-ghost" type="button" aria-haspopup="dialog" aria-controls={id} onClick={() => dialog.current?.showModal()}><ActionViewIcon size={15} aria-hidden="true" />Show details</button>
     <dialog ref={dialog} id={id} className="event-attendance-details-modal" aria-labelledby={`${id}-title`} onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
       <div className="event-attendance-details-shell">
         <header><div><p className="portal-eyebrow">Registration details</p><h3 id={`${id}-title`}>{person.name}</h3></div><button className="portal-button is-ghost" type="button" aria-label="Close details" autoFocus onClick={() => dialog.current?.close()}><X size={18} aria-hidden="true" /></button></header>
@@ -57,7 +59,7 @@ function AttendanceDetails({ person }: { person: AttendancePerson }) {
           <Details title="Participation" group={person.participation} />
           {person.confirmedAt && <p className="event-previous-checkin"><Check size={14} aria-hidden="true" />Attendance was recorded on {when(person.confirmedAt)}.</p>}
         </div>
-        <footer><button className="portal-button portal-dismiss-button" type="button" onClick={() => dialog.current?.close()}>Close</button></footer>
+        <footer><button className="portal-button portal-dismiss-button" type="button" onClick={() => dialog.current?.close()}><ActionCloseIcon size={15} aria-hidden="true" />Close</button></footer>
       </div>
     </dialog>
   </>;

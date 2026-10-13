@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type MouseEvent, type ComponentProps } from "react";
-import { Bold, Italic, Underline, List, ListOrdered, Link2, Unlink, AlignLeft, AlignCenter, AlignRight, AlignJustify, IndentIncrease, IndentDecrease, Check, ChevronDown, Minus, Plus, Table2, TableCellsMerge, TableCellsSplit, Trash2, PaintBucket, Highlighter } from "lucide-react";
+import { Bold, Italic, Underline, List, ListOrdered, Link2, Unlink, AlignLeft, AlignCenter, AlignRight, AlignJustify, IndentIncrease, IndentDecrease, Check, ChevronDown, Minus, Table2, TableCellsMerge, TableCellsSplit, PaintBucket, Highlighter } from "lucide-react";
+import { AddIcon as Plus, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { DOCUMENT_DEFAULT_FONT_SIZE, documentBodyHtml, normalizeDocumentColor, normalizeDocumentFontSize, normalizeDocumentHref, parseDocumentBody, serializeDocumentBody } from "@/lib/data/document-body";
 import { readDocumentEditor } from "@/lib/data/document-editor";
 import { documentTableCells, documentTableGrid, mergeDocumentTableCells, resizeDocumentTable, splitDocumentTableCell } from "@/lib/data/document-table";

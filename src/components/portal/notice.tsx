@@ -17,6 +17,8 @@ const messages: Record<string, string> = {
   "access-declined": "Request declined, and they’ve been emailed. They see the decision when they track their request.",
   "slots-saved": "Slots saved. The Apply page now shows the new counts.",
   "onboarding-saved": "Onboarding settings saved. Future acceptance emails will use these links.",
+  "onboarding-step-added": "Step added. Request access shows it now.",
+  "onboarding-step-deleted": "Step deleted. Past acceptances and document versions have been kept.",
   "onboarding-document-saved": "Document saved as a new version. Request access shows it from now on; anyone who already accepted keeps the version they were shown.",
   "onboarding-document-unchanged": "Nothing to save: the document wasn’t changed.",
   "slots-unchanged": "Nothing to save: no counts were changed.",

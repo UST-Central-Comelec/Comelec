@@ -4,6 +4,10 @@ import { headers } from "next/headers";
 import { personNamePattern } from "@/lib/forms/input";
 import { after } from "next/server";
 import { getEvent } from "@/lib/events/queries";
+import { pendingSubmissionEditRequest, type SubmissionEditRequest } from "./edit-requests";
+import { pendingEventEditRequest, type EventEditRequest } from "@/lib/events/edit-requests";
+import { findRsvpByReference } from "@/lib/events/rsvp-store";
+import { isLegacyRsvp, rsvpRespondent } from "@/lib/events/rsvp";
 import { findRegistrationByReference } from "@/lib/events/registrations";
 import { formatEventDates } from "@/lib/events/format";
 import { requestKinds, requestStatuses, type RegistrationKind } from "@/lib/events/options";
@@ -41,6 +45,7 @@ const closedMessage = "Applications are closed, so this application wasn’t sub
 const allFields = Object.keys(applicationFields.shape) as ApplicationField[];
 
 type TrackedApplicationRow = {
+  id: string;
   reference_code: string;
   first_name: string;
   middle_name?: string | null;
@@ -192,6 +197,7 @@ export type ApplicationStatus = "pending" | "reviewing" | "accepted" | "declined
 
 /** What an applicant sees when they track their application. Contact details and links stay private. */
 export type TrackedApplication = {
+  editRequest?: SubmissionEditRequest | null;
   referenceCode: string;
   name: string;
   status: ApplicationStatus;
@@ -207,6 +213,7 @@ export type TrackedApplication = {
 
 /** A portal access request (PA- code), as its requester sees it when tracking. */
 export type TrackedAccessRequest = {
+  editRequest?: SubmissionEditRequest | null;
   referenceCode: string;
   name: string;
   email: string;
@@ -220,6 +227,7 @@ export type TrackedAccessRequest = {
 
 /** `entered` is what the applicant typed, so a failed lookup doesn't clear the form. */
 export type TrackedRegistration = {
+  editRequest?: EventEditRequest | null;
   referenceCode: string;
   name: string;
   status: RegistrationKind;
@@ -230,7 +238,13 @@ export type TrackedRegistration = {
   requests: Array<{ label: string; status: string }>;
 };
 
-export type TrackState = { registration?: TrackedRegistration; error?: string; fieldErrors?: Record<string, string>; application?: TrackedApplication; accessRequest?: TrackedAccessRequest; entered?: { reference: string; identity: string } } | undefined;
+export type TrackedRsvp = {
+  editRequest?: EventEditRequest | null;
+  referenceCode: string; name: string; submittedAt: string;
+  eventId: string; eventName: string; eventDate: string;
+  requests: string[];
+};
+export type TrackState = { lookupStamp?: string; rsvp?: TrackedRsvp; registration?: TrackedRegistration; error?: string; fieldErrors?: Record<string, string>; application?: TrackedApplication; accessRequest?: TrackedAccessRequest; entered?: { reference: string; identity: string } } | undefined;
 
 export async function trackApplication(_state: TrackState, formData: FormData): Promise<TrackState> {
   const entered = { reference: text(formData, "reference").toUpperCase(), identity: text(formData, "identity").toUpperCase() };
@@ -241,8 +255,9 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
   const isStudentNumber = /^\d{10}$/.test(studentNumber);
   const isLastName = identity.length > 0 && identity.length <= 80 && personNamePattern.test(identity);
   const fieldErrors: Record<string, string> = {};
-  if (!parsed && !registrationCode) fieldErrors.reference = "Use your five-character registration code, CC- application code, or PA- access request code.";
-  if (registrationCode ? !isLastName : !isStudentNumber && !isLastName) fieldErrors.identity = registrationCode ? "Enter the last name you registered with." : "Enter your 10-digit student number or last name.";
+  if (!parsed && !registrationCode) fieldErrors.reference = "Use your registration code, RS- RSVP code, CC- application code, or PA- access request code.";
+  const needsSurname = Boolean(registrationCode || parsed?.prefix === "RS");
+  if (needsSurname ? !isLastName : !isStudentNumber && !isLastName) fieldErrors.identity = needsSurname ? "Enter the last name you registered with." : "Enter your 10-digit student number or last name.";
   if (Object.keys(fieldErrors).length) return { error: "Check the highlighted fields.", fieldErrors, entered };
   const referenceCode = registrationCode ?? parsed!.code;
   // Escape SQL pattern characters so surnames are matched exactly.
@@ -259,7 +274,8 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
       const registration = await findRegistrationByReference(registrationCode, lastNamePattern);
       const event = registration ? await getEvent(registration.eventId) : null;
       if (!registration || !event) return { error: "We couldn’t find a registration with that reference code and last name. Check both and try again.", entered };
-      return { entered, registration: {
+      return { entered, lookupStamp: crypto.randomUUID(), registration: {
+        editRequest: await pendingEventEditRequest("registration", registration.id).catch(() => null),
         referenceCode: registration.referenceCode,
         name: registration.name,
         status: registration.status,
@@ -278,6 +294,26 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
     }
   }
 
+  if (parsed!.prefix === "RS") {
+    try {
+      const response = await findRsvpByReference(referenceCode, identity);
+      const event = response ? await getEvent(response.event_id) : null;
+      if (!response || !event) return { error: "We couldn’t find an RSVP with that reference code and last name. Check both and try again.", entered };
+      const person = rsvpRespondent(response.answers);
+      const requests = isLegacyRsvp(response.answers)
+        ? (response.answers.logisticalNeeds?.requests ?? []).map(kind => requestKinds[kind].short)
+        : Array.isArray(response.answers.values.rsvp_logistics) ? response.answers.values.rsvp_logistics : [];
+      return { entered, lookupStamp: crypto.randomUUID(), rsvp: {
+        editRequest: await pendingEventEditRequest("rsvp", response.id).catch(() => null),
+        referenceCode: response.reference_code, name: person.name, submittedAt: response.created_at,
+        eventId: event.id, eventName: event.name, eventDate: formatEventDates(event), requests,
+      } };
+    } catch (error) {
+      console.error("Couldn’t track RSVP:", error);
+      return { error: "Something went wrong looking up your RSVP. Please try again.", entered };
+    }
+  }
+
   if (parsed!.prefix === "PA") {
     const request = await findAccessRequest(referenceCode, isStudentNumber ? studentNumber : identity, isStudentNumber).catch((lookupError: Error) => {
       console.error("Couldn’t look up access request:", lookupError.message);
@@ -286,11 +322,11 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
     if (request === undefined) return { error: "Something went wrong looking up your request. Please try again.", entered };
     if (!request) return { error: "We couldn’t find a request with that reference code and student number or last name. Check both and try again.", entered };
     const { referenceCode: code, name, email, status, submittedAt, role, college, program, yearLevel } = request;
-    return { entered, accessRequest: { referenceCode: code, name, email, status, submittedAt, role, college, program, yearLevel } };
+    return { entered, lookupStamp: crypto.randomUUID(), accessRequest: { editRequest: await pendingSubmissionEditRequest("access", request.id).catch(() => null), referenceCode: code, name, email, status, submittedAt, role, college, program, yearLevel } };
   }
 
   const readTrackedApplication = (withMiddleName: boolean) => {
-    const columns = "reference_code, first_name, middle_initial, last_name, status, created_at, preferred_body, division, position, college, program, year_level, interview_slots(starts_at, duration_minutes, mode, location)";
+    const columns = "id, reference_code, first_name, middle_initial, last_name, status, created_at, preferred_body, division, position, college, program, year_level, interview_slots(starts_at, duration_minutes, mode, location)";
     const query = createAdminClient()
       .from("applications")
       .select<string>(withMiddleName ? `middle_name, ${columns}` : columns)
@@ -311,7 +347,9 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
 
   return {
     entered,
+    lookupStamp: crypto.randomUUID(),
     application: {
+      editRequest: await pendingSubmissionEditRequest("application", data.id).catch(() => null),
       referenceCode: data.reference_code,
       name: applicantName(data),
       status: data.status as ApplicationStatus,

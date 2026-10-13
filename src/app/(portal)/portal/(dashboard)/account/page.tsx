@@ -1,3 +1,4 @@
+import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -32,8 +33,8 @@ export default async function MyAccountPage() {
           <h1>{me.name}</h1>
           <p className="portal-muted">{me.email} · {describeAffiliation(me.affiliation, me.college)} · {describeRole(me)}</p>
         </div>
-        {manages && account && <Link className="portal-button is-ghost" href={`/portal/accounts/${account.id}`}>Edit my details</Link>}
-        {manages && !account && me.builtIn && <Link className="portal-button is-ghost" href="/portal/accounts/new?for=built-in">Add my details</Link>}
+        {manages && account && <Link className="portal-button is-ghost" href={`/portal/accounts/${account.id}`}><ActionEditIcon size={15} aria-hidden="true" />Edit my details</Link>}
+        {manages && !account && me.builtIn && <Link className="portal-button is-ghost" href="/portal/accounts/new?for=built-in"><ActionAddIcon size={15} aria-hidden="true" />Add my details</Link>}
       </header>
 
       <section className="portal-card">

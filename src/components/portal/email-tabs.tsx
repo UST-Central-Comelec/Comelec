@@ -1,5 +1,6 @@
 import { SlidingSubtabs } from "./sliding-subtabs";
-import { Inbox, PenLine, Zap } from "lucide-react";
+import { Inbox, Zap } from "lucide-react";
+import { EditIcon as PenLine } from "@/components/action-icons";
 
 /**
  * The Email Sender's own subtabs: writing an email, the Outbox of what's scheduled and what was

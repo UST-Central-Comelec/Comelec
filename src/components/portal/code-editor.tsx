@@ -1,11 +1,13 @@
 "use client";
 
+import { AddIcon as ActionAddIcon, SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { useDeferredValue, useEffect, useId, useMemo, useReducer, useRef, useState, useTransition, type Dispatch, type RefObject } from "react";
 import { DndContext, KeyboardSensor, MeasuringStrategy, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, GripVertical, ListOrdered, Plus, Send, Trash2, Undo2 } from "lucide-react";
+import { ChevronDown, GripVertical, ListOrdered, Send, Undo2 } from "lucide-react";
+import { AddIcon as Plus, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { describeStats, diffArticles, totalChanges, type SectionChange } from "@/lib/codes/diff";
 import { newKey, reduce, toEditable, fromEditable, type Edit, type EditArticle, type EditSection, type EditState } from "@/lib/codes/editing";
 import { codes, type CodeKey } from "@/lib/codes/options";
@@ -325,7 +327,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
 
         <div className="code-edit-main">
           {!active ? (
-            <section className="portal-card is-flush"><p className="portal-empty">{code === "magna-carta" ? "No document parts yet." : "There are no articles."} <button type="button" className="code-edit-link" onClick={addArticle}>Add the first one.</button></p></section>
+            <section className="portal-card is-flush"><p className="portal-empty">{code === "magna-carta" ? "No document parts yet." : "There are no articles."} <button type="button" className="code-edit-link" onClick={addArticle}><ActionAddIcon size={15} aria-hidden="true" />Add the first one.</button></p></section>
           ) : (
             // Keyed on the article, so its fields and open sections are its own.
             <div className="code-edit-pane" key={active.id}>
@@ -399,7 +401,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
           </p>
           <div className="portal-form-actions">
             {draft && <DeleteButton tone="quiet" action={() => discard(draft.id)} label="Discard draft" prompt={`Discard this draft? ${the[0].toUpperCase()}${the.slice(1)} stays as published.`} confirmLabel="Yes, discard" pendingLabel="Discarding…" />}
-            <button type="button" className="portal-button is-ghost" disabled={pending || !hydrated || !dirty} onClick={() => send("save")}>{pending ? "Saving…" : dirty || !draft ? "Save draft" : "Saved"}</button>
+            <button type="button" className="portal-button is-ghost" disabled={pending || !hydrated || !dirty} onClick={() => send("save")}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty || !draft ? "Save draft" : "Saved"}</button>
             <button type="button" className="portal-button" disabled={pending || !hydrated || changes === 0} onClick={() => send("submit")}><Send size={15} aria-hidden="true" /> Send for approval</button>
           </div>
         </div>

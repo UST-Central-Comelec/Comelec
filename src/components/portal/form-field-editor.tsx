@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, AtSign, CircleDot, Copy, Eye, Heading, ImageIcon, Link2, Minus, Plus, SquareCheck, SquareCheckBig, SquareChevronDown, Star, TextAlignStart, Trash2, Type, Upload, X, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, AtSign, CircleDot, Heading, ImageIcon, Link2, Minus, SquareCheck, SquareCheckBig, SquareChevronDown, Star, TextAlignStart, Type, Upload, type LucideIcon } from "lucide-react";
+import { CopyIcon as Copy, ViewIcon as Eye, AddIcon as Plus, DeleteIcon as Trash2, CloseIcon as X } from "@/components/action-icons";
 import { ratingLabels } from "@/lib/events/evaluation";
 import { answerHint, choiceKinds, fieldKinds, isBlock, linkKinds, textRules, type EditorField, type FieldKind, type LinkKind, type TextRule } from "@/lib/events/form-editor";
 import { branchChoices } from "@/lib/events/form-flow";

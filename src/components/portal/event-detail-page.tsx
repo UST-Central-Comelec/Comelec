@@ -1,3 +1,7 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
+import { updateRsvpResponse, removeRsvpResponse, resendRsvpAcknowledgement, saveRsvpRequestDecisions } from "@/lib/events/rsvp-response-actions";
+import { listEventEditRequests } from "@/lib/events/edit-requests";
+import { addressResponseEdit } from "@/lib/events/edit-request-actions";
 import { mergeParticipantRows } from "@/lib/events/participant-rows";
 import Link from "next/link";
 import { SlidingSubtabs } from "./sliding-subtabs";
@@ -5,7 +9,8 @@ import { EventAttendance } from "@/components/portal/event-attendance";
 import { getRsvpSettings, listRsvpResponses } from "@/lib/events/rsvp-store";
 import { getEvaluationSettings, listEvaluationResponses } from "@/lib/events/evaluation-store";
 import { notFound, redirect } from "next/navigation";
-import { ArrowUpRight, Check, Pencil } from "lucide-react";
+import { Check } from "lucide-react";
+import { EditIcon as Pencil } from "@/components/action-icons";
 import { ChangeRequestForm } from "@/components/portal/change-request-form";
 import { EventAnalyticsView } from "@/components/portal/event-analytics";
 import { EventStatusTag } from "@/components/portal/event-tags";
@@ -65,6 +70,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
     seesInside && (tab === "registrants" || tab === "deployment") ? settle(getRsvpSettings(id)) : null,
     seesInside && tab === "registrants" ? settle(listRsvpResponses(id)) : null,
   ]);
+  const editRequests = seesInside && tab === "registrants" ? await settle(listEventEditRequests(id)) : null;
   const responses = evaluation.value ?? [];
   const responseByRegistrant = new Map(responses.filter(r => r.registration_id && !r.anonymous).map(r => [r.registration_id, r]));
   const rows: RegistrantRow[] = (tab === "registrants" ? people : []).map((person) => ({
@@ -108,7 +114,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
 
         </div>
         <div className="portal-head-actions">
-          <a className="portal-button is-ghost" href={`/events/${event.id}`} target="_blank" rel="noreferrer">View on website <ArrowUpRight size={15} aria-hidden="true" /></a>
+          <a className="portal-button is-ghost" href={`/events/${event.id}`} target="_blank" rel="noreferrer">View on website <ActionViewIcon size={15} aria-hidden="true" /></a>
           {manages && <Link className="portal-button" href={`/portal/events/${event.id}/edit`}><Pencil size={15} aria-hidden="true" /> Edit event</Link>}
         </div>
       </header>
@@ -198,11 +204,12 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
       {tab === "registrants" && (
           <section className="portal-card is-flush portal-event-section" id="registrants" aria-labelledby="registrants-title">
             <h2 id="registrants-title" className="portal-visually-hidden">Event participants and responses</h2>
+            {editRequests?.error && <p className="portal-form-error" role="alert">{editRequests.error}</p>}
             {rsvpResponses?.error && <p className="portal-form-error" role="alert">{rsvpResponses.error}</p>}
             {registrations.error ? (
               <p className="portal-form-error" role="alert">Couldn’t load the registrations. ({registrations.error})</p>
             ) : (
-              <RegistrantsTable rows={mergeParticipantRows(rows, rsvpResponses?.value ?? [], responses)} evaluationQuestions={evaluationSettings?.value?.questions} resend={manages ? resendAcknowledgement.bind(null, event.id) : undefined} remove={manages ? removeRegistration.bind(null, event.id) : undefined} save={manages ? saveRequestDecisions.bind(null, event.id) : undefined} />
+              <RegistrantsTable rsvpActions={manages ? { update: updateRsvpResponse.bind(null, event.id), logistics: saveRsvpRequestDecisions.bind(null, event.id), remove: removeRsvpResponse.bind(null, event.id), resend: resendRsvpAcknowledgement.bind(null, event.id) } : undefined} rows={mergeParticipantRows(rows, rsvpResponses?.value ?? [], responses, editRequests?.value ?? [])} addressEdit={manages ? addressResponseEdit.bind(null, event.id) : undefined} evaluationQuestions={evaluationSettings?.value?.questions} resend={manages ? resendAcknowledgement.bind(null, event.id) : undefined} remove={manages ? removeRegistration.bind(null, event.id) : undefined} save={manages ? saveRequestDecisions.bind(null, event.id) : undefined} />
             )}
           </section>
 

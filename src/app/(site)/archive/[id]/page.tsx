@@ -1,8 +1,9 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { NightSky } from "@/components/night-sky";
 import { DocumentBody } from "@/components/document-body";
@@ -67,7 +68,7 @@ export default async function ArchiveDocumentPage({ params }: PageProps<"/archiv
               <div><dt>Dated</dt><dd><time dateTime={doc.date}>{formatDate(doc.date)}</time></dd></div>
             </dl>
             <div className="nr-story-actions">
-              {doc.fileUrl && <a className="bp-button is-primary is-small" href={doc.fileUrl} target="_blank" rel="noreferrer">View original <ArrowUpRight size={15} aria-hidden="true" /></a>}
+              {doc.fileUrl && <a className="bp-button is-primary is-small" href={doc.fileUrl} target="_blank" rel="noreferrer">View original <ActionViewIcon size={15} aria-hidden="true" /></a>}
               <Link href={back.href} className="nr-back"><ArrowLeft size={14} aria-hidden="true" />{back.label}</Link>
             </div>
           </aside>

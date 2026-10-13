@@ -24,9 +24,10 @@ export const onboardingDocumentKeys = [
   "officer-acceptance",
 ] as const;
 
-export type OnboardingDocumentKey = (typeof onboardingDocumentKeys)[number];
+export type DefaultOnboardingDocumentKey = (typeof onboardingDocumentKeys)[number];
+export type OnboardingDocumentKey = DefaultOnboardingDocumentKey | `custom-${string}`;
 
-export const isOnboardingDocumentKey = (value: unknown): value is OnboardingDocumentKey => typeof value === "string" && (onboardingDocumentKeys as readonly string[]).includes(value);
+export const isOnboardingDocumentKey = (value: unknown): value is OnboardingDocumentKey => typeof value === "string" && ((onboardingDocumentKeys as readonly string[]).includes(value) || /^custom-[0-9a-f-]{36}$/.test(value));
 
 /** The editable parts of a document. `statement` is what the requester ticks to agree. */
 export type OnboardingText = { title: string; statement: string; body: string };
@@ -64,12 +65,23 @@ export const onboardingSteps = [
   { id: "submit", label: "Submit", group: "Taking office" },
 ] as const satisfies ReadonlyArray<{ id: OnboardingDocumentKey | "profile" | "submit"; label: string; group: string }>;
 
-export type OnboardingStepId = (typeof onboardingSteps)[number]["id"];
+export type OnboardingStepId = OnboardingDocumentKey | "profile" | "submit";
+
+export type OnboardingStep = { key: OnboardingDocumentKey | "profile"; hidden: boolean; deleted: boolean };
+export const defaultOnboardingLayout = (): OnboardingStep[] => onboardingSteps.filter(step => step.id !== "submit").map(step => ({ key: step.id as OnboardingDocumentKey | "profile", hidden: false, deleted: false }));
+
+/** Build the live request flow from the visible documents, keeping privacy and profile fixed. */
+export function requestOnboardingSteps(documents: OnboardingDocument[]) {
+  const privacy = documents.find(document => document.key === "privacy-notice");
+  if (!privacy) throw new Error("The privacy notice is missing.");
+  const documentStep = (document: OnboardingDocument) => ({ id: document.key as OnboardingStepId, label: document.title, group: document.key === "privacy-notice" ? "Before you start" : "Onboarding forms" });
+  return [documentStep(privacy), { id: "profile" as OnboardingStepId, label: "Profile", group: "Before you start" }, ...documents.filter(document => document.key !== "privacy-notice").map(documentStep), { id: "submit" as OnboardingStepId, label: "Submit", group: "Review" }];
+}
 
 /** "Step 3", as the editor and the form name a document's place. */
 export const stepOf = (key: OnboardingDocumentKey) => onboardingSteps.findIndex((step) => step.id === key);
 
-export const defaultDocuments: Record<OnboardingDocumentKey, OnboardingText> = {
+export const defaultDocuments: Record<DefaultOnboardingDocumentKey, OnboardingText> = {
   "privacy-notice": {
     title: "Data Privacy Notice and Consent Form",
     statement: "I have read this notice, and I freely consent to the UST Central Comelec collecting and processing my personal data as it describes.",
@@ -390,7 +402,7 @@ I remain answerable for what I did in office after my term ends, including under
 };
 
 /** A document as version 1, before anyone edits it. */
-export const defaultDocument = (key: OnboardingDocumentKey): OnboardingDocument => ({ key, ...defaultDocuments[key], version: 1, savedAt: null, savedBy: null });
+export const defaultDocument = (key: DefaultOnboardingDocumentKey): OnboardingDocument => ({ key, ...defaultDocuments[key], version: 1, savedAt: null, savedBy: null });
 
 export type TextBlock = { kind: "heading"; text: string } | { kind: "paragraph"; text: string } | { kind: "bullets"; items: string[] } | { kind: "numbers"; items: string[] };
 
@@ -435,6 +447,6 @@ export function readDeclarations(value: unknown): Declaration[] {
     if (!item || typeof item !== "object") return [];
     const { key, title, version, acceptedAt } = item as Record<string, unknown>;
     if (!isOnboardingDocumentKey(key) || typeof acceptedAt !== "string" || Number.isNaN(Date.parse(acceptedAt))) return [];
-    return [{ key, title: typeof title === "string" && title ? title : defaultDocuments[key].title, version: typeof version === "number" ? version : 1, acceptedAt }];
+    return [{ key, title: typeof title === "string" && title ? title : defaultDocuments[key as DefaultOnboardingDocumentKey]?.title ?? "Onboarding document", version: typeof version === "number" ? version : 1, acceptedAt }];
   });
 }

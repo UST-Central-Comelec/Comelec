@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Search } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { SearchIcon as Search } from "@/components/action-icons";
 import { useState, type CSSProperties } from "react";
 import { FeaturedCarousel, type Featured } from "@/components/featured-carousel";
 import { isNavItemAvailable, isCurrent, sectionFor, sections, two, type NavStatus } from "@/components/nav/nav-data";

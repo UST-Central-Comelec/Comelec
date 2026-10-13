@@ -79,7 +79,7 @@ export function DirectoryWorkspace({ view, items, manages, children }: { view: s
       <SlidingFilters active={view} label="Directory views" items={items.map(item => {
         const Icon = item.key === "dashboard" ? LayoutDashboard : PanelLeft;
         const active = view === item.key && !reducedMotion;
-        return { ...item, label: <><span className="directory-view-icon" aria-hidden="true"><Icon size={16} animation="default-loop" animate={active} loop={active} loopDelay={1200} /></span>{item.label}</> };
+        return { ...item, label: <><span className="directory-view-icon" aria-hidden="true"><Icon size={16} animation="default-loop" animate={active} /></span>{item.label}</> };
       })} />
       <div className="directory-view-actions">
         <button ref={button} type="button" className="portal-button is-ghost" disabled={pending} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => {

@@ -1,7 +1,9 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, BookOpenText, History, ListChecks, PencilLine, Settings2 } from "lucide-react";
+import { BookOpenText, History, ListChecks, Settings2 } from "lucide-react";
+import { EditIcon as PencilLine } from "@/components/action-icons";
 import { CodeSettingsForm } from "@/components/portal/code-settings-form";
 import { getCodeSettings } from "@/lib/codes/settings";
 import { CodeEditor } from "@/components/portal/code-editor";
@@ -70,7 +72,7 @@ export default async function PortalCodePage({ params, searchParams }: PageProps
       <section className="portal-card code-status" aria-label="Where it stands">
         <div>
           <p className="portal-index">On the website <InfoTip label="About the website version">
-            {published.publishedAt ? `Published ${formatClosing(published.publishedAt)}.` : "No revision has been approved in the portal yet."} {numbered} {numbered === 1 ? "article" : "articles"}, {countSections(published.articles)} sections. {visible && <a href={path} target="_blank" rel="noreferrer">View on website <ArrowUpRight size={13} aria-hidden="true" /></a>}
+            {published.publishedAt ? `Published ${formatClosing(published.publishedAt)}.` : "No revision has been approved in the portal yet."} {numbered} {numbered === 1 ? "article" : "articles"}, {countSections(published.articles)} sections. {visible && <a href={path} target="_blank" rel="noreferrer">View on website <ActionViewIcon size={13} aria-hidden="true" /></a>}
           </InfoTip></p>
           <strong className="code-publication-status">{settings.error ? "Visibility unavailable" : visible ? "Published" : "Hidden"} · {published.articles.length ? versionName(published.version) : "Empty document"}</strong>
           <p className="portal-muted">Last published: {published.publishedAt ? <time dateTime={published.publishedAt}>{formatClosing(published.publishedAt)}</time> : "Not recorded"}</p>
@@ -127,7 +129,7 @@ export default async function PortalCodePage({ params, searchParams }: PageProps
                   <small>Approved {formatWhen(revision.decidedAt ?? revision.updatedAt)} · Written by {revision.author.name}{revision.author.role && `, ${revision.author.role}`}</small>
                   <small>{describeStats(revision.stats)}</small>
                   {revision.summary && <blockquote>{revision.summary}</blockquote>}
-                  <Link href={`${home}/revisions/${revision.id}`}>View changes</Link>
+                  <Link href={`${home}/revisions/${revision.id}`}><ActionViewIcon size={15} aria-hidden="true" />View changes</Link>
                 </li>
               ))}
             </ol>

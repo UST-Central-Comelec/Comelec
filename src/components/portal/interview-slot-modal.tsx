@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { DeleteIcon as Trash2 } from "@/components/action-icons";
 import type { AdminInterviewSlot } from "@/lib/applications/interviews";
 import { interviewModes, slotDate, slotDay, slotTimeRange } from "@/lib/applications/interview-format";
 import { applicantDisplayName } from "@/lib/applications/name";

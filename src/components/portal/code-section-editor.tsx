@@ -1,7 +1,9 @@
 "use client";
 
+import { AddIcon as ActionAddIcon } from "@/components/action-icons";
 import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type Dispatch, type KeyboardEvent, type RefObject } from "react";
-import { ArrowDown, ArrowUp, Bold, IndentDecrease, IndentIncrease, Italic, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Bold, IndentDecrease, IndentIncrease, Italic } from "lucide-react";
+import { AddIcon as Plus, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { newKey, type Edit, type EditBlock, type EditSection } from "@/lib/codes/editing";
 import { MAX_LEVEL, fromPastedLine, joinRuns, nextMarker } from "@/lib/codes/text";
 import { blockText, type CodeRun } from "@/lib/elections-code/usec-2011";
@@ -306,7 +308,7 @@ export function SectionBlocks({ section, dispatch, focusRef }: { section: EditSe
         <button type="button" className="code-edit-add" onMouseDown={(event) => event.preventDefault()} onClick={add}><Plus size={14} aria-hidden="true" /> Paragraph</button>
       </div>
       {blocks.length === 0 ? (
-        <p className="code-edit-none">This section has no text yet. <button type="button" onClick={add}>Add its first paragraph.</button></p>
+        <p className="code-edit-none">This section has no text yet. <button type="button" onClick={add}><ActionAddIcon size={15} aria-hidden="true" />Add its first paragraph.</button></p>
       ) : (
         <div className="code-edit-blocks">
           {blocks.map((block) => (

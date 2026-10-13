@@ -1,3 +1,4 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,12 +24,12 @@ export default async function EditNewsPage({ params }: PageProps<"/portal/news/[
         <div>
           <Link className="portal-back" href="/portal/news">← News</Link>
           <h1>{readOnly ? "Post" : "Edit post"}</h1>
-          <p className="portal-muted">Last updated {formatClosing(post.updatedAt)} by {post.updatedBy}. <a href={postHref(post)} target="_blank" rel="noreferrer">View on website ↗</a></p>
+          <p className="portal-muted">Last updated {formatClosing(post.updatedAt)} by {post.updatedBy}. <a href={postHref(post)} target="_blank" rel="noreferrer"><ActionViewIcon size={15} aria-hidden="true" />View on website ↗</a></p>
         </div>
       </header>
       <section className="portal-card">
         <ViewOnly when={readOnly}>
-          <NewsForm action={updateNews.bind(null, post.id)} submitLabel="Save changes" initial={post} guard={readOnly ? undefined : { stamp: stampFor(post.updatedAt, post), record: `news/${post.id}` }} danger={<DeleteButton action={deleteNews.bind(null, post.id)} label="Delete post" tone="black" />} />
+          <NewsForm action={updateNews.bind(null, post.id)} submitLabel="Save changes" initial={post} guard={readOnly ? undefined : { stamp: stampFor(post.updatedAt, post), record: `news/${post.id}` }} danger={<DeleteButton action={deleteNews.bind(null, post.id)} label="Delete" animatedIcon tone="black" />} />
         </ViewOnly>
       </section>
     </main>

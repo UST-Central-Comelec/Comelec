@@ -1,7 +1,8 @@
 "use client";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, FileText, QrCode, RefreshCw } from "lucide-react";
+import { Check, FileText, QrCode, RefreshCw } from "lucide-react";
+import { CopyIcon as Copy } from "@/components/action-icons";
 import { getFormQr, regenerateFormQr } from "@/lib/portal/qr-actions";
 import { usePortalTheme } from "./portal-theme";
 import { toast } from "./toast";

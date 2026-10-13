@@ -1,10 +1,11 @@
 "use client";
 
+import { SearchIcon as ActionSearchIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import { headerOffset, scrollToElement } from "@/lib/scroll";
 import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { motion, MotionConfig } from "motion/react";
-import { Search, X } from "lucide-react";
+import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { newsCategories, newsroomCategories, newsroomLabels, type NewsroomCategory } from "@/lib/data/types";
 import { categoryIcons, PostRow } from "./post-row";
 import { byMonth, plural, type Story } from "./story";
@@ -108,7 +109,7 @@ export function NewsDesk({ stories, initialCategory, initialQuery }: Props) {
     feed = (
       <Empty title="No matches." copy={`Nothing here matches “${query.trim()}”${label ? ` in ${label}` : ""}.`}>
         <button type="button" className="bp-button is-primary is-small" onClick={clearSearch}>Clear the search</button>
-        {category && <Link href={hrefFor(null, query)} className="bp-button is-ghost is-small" onClick={(event) => pick(event, null)} prefetch={false}>Search all news</Link>}
+        {category && <Link href={hrefFor(null, query)} className="bp-button is-ghost is-small" onClick={(event) => pick(event, null)} prefetch={false}><ActionSearchIcon size={15} aria-hidden="true" />Search all news</Link>}
       </Empty>
     );
   } else if (inCategory.length) {
@@ -130,7 +131,7 @@ export function NewsDesk({ stories, initialCategory, initialQuery }: Props) {
   } else {
     feed = (
       <Empty title="Nothing here yet." copy={label ? `No ${label.toLowerCase()} have been posted yet. Check back soon.` : "Nothing has been posted yet. Check back soon."}>
-        {category && <Link href="/news" className="bp-button is-primary is-small" onClick={(event) => pick(event, null)} prefetch={false}>Show all news</Link>}
+        {category && <Link href="/news" className="bp-button is-primary is-small" onClick={(event) => pick(event, null)} prefetch={false}><ActionViewIcon size={15} aria-hidden="true" />Show all news</Link>}
       </Empty>
     );
   }

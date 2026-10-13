@@ -13,6 +13,7 @@ import {
 } from 'motion/react';
 
 import { cn } from '@/lib/utils';
+import { useIconCycle } from '@/components/use-icon-cycle';
 import { useIsInView } from '@/hooks/use-is-in-view';
 import { Slot, type WithAsChild } from '@/components/animate-ui/primitives/animate/slot';
 
@@ -544,35 +545,21 @@ function IconWrapper<T extends string>({
     );
   }
 
-  if (
-    animate !== undefined ||
-    animateOnHover !== undefined ||
-    animateOnTap !== undefined ||
-    animateOnView !== undefined ||
-    animationProp !== undefined
-  ) {
-    return (
-      <AnimateIcon animate={animate} animateOnHover={animateOnHover} animateOnTap={animateOnTap} animateOnView={animateOnView} animateOnViewMargin={animateOnViewMargin} animateOnViewOnce={animateOnViewOnce} animation={animationProp} loop={loop} loopDelay={loopDelay} delay={delay} completeOnStop={completeOnStop}>
-        <IconComponent size={size} className={cn(
-                    className,
-                    (animationProp === 'path' || animationProp === 'path-loop') &&
-                      pathClassName,
-                  )} {...props} />
-      </AnimateIcon>
-    );
-  }
-
   return (
-    <IconComponent
-      size={size}
-      className={cn(
-        className,
-        (animationProp === 'path' || animationProp === 'path-loop') &&
-          pathClassName,
-      )}
-      {...props}
-    />
+    <AutomaticIcon animation={animationProp} active={Boolean(animate)}>
+      <IconComponent size={size} className={cn(className, (animationProp === 'path' || animationProp === 'path-loop') && pathClassName)} {...props} />
+    </AutomaticIcon>
   );
+}
+
+/** Automatic whole-control hover/focus and selected-state playback. */
+function AutomaticIcon({ children, animation = 'default', active = false }: { children: React.ReactNode; animation?: string; active?: boolean }) {
+  const element = React.useRef<HTMLSpanElement>(null);
+  const controls = useAnimation();
+  useIconCycle(element, controls, { active });
+  return <AnimateIconContext.Provider value={{ controls, animation, active, loop: true, loopDelay: 0 }}>
+    <span ref={element} data-icon-motion="" style={{ display: 'contents' }}>{children}</span>
+  </AnimateIconContext.Provider>;
 }
 
 function getVariants<

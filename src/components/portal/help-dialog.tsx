@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { CircleQuestionMark, X } from "lucide-react";
+import { CircleQuestionMark } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 
 /**
  * A "?" button with a label that opens a help modal. For pages whose guide text is too long for an

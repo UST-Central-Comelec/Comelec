@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, X } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import { useOnline } from "./online-provider";
 import { dismissToast, toastDuration, useToasts, type ToastItem } from "./toast";
 

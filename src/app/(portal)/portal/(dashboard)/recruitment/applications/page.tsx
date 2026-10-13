@@ -1,3 +1,4 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -9,6 +10,9 @@ import { settle } from "@/lib/portal/settle";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { ApplicantsTable } from "@/components/portal/applicants-table";
 import { ApplicantsTabs } from "@/components/portal/applicants-tabs";
+import { listSubmissionEditReviews } from "@/lib/applications/edit-requests";
+import { canSeeCollege } from "@/lib/auth/session";
+import { SubmissionEditRequests } from "@/components/portal/submission-edit-requests";
 import { Notice } from "@/components/portal/notice";
 
 export const metadata: Metadata = { title: "Applications" };
@@ -18,10 +22,11 @@ export default async function PortalApplicationsPage({ searchParams }: PageProps
   // Local accounts see only their college's applicants, whichever body they applied to.
   const local = isLocal(user);
 
-  const [{ value: applications, error: loadError }, slots] = await Promise.all([
+  const [{ value: applications, error: loadError }, slots, edits] = await Promise.all([
     // Load the authorized rows once; the table filters them without a server round trip.
     settle(listApplications(local ? { college: user.college ?? "" } : {})),
     getUnitSlots().catch(() => null),
+    settle(listSubmissionEditReviews("application")),
   ]);
 
   return (
@@ -35,12 +40,14 @@ export default async function PortalApplicationsPage({ searchParams }: PageProps
           {local && <p className="portal-muted">{user.college}</p>}
         </div>
         <div className="portal-head-actions">
-          <Link className="portal-button is-ghost" href="/apply/preview" target="_blank" rel="noopener noreferrer">View Mode <ArrowUpRight size={15} aria-hidden="true" /></Link>
+          <Link className="portal-button is-ghost" href="/apply/preview" target="_blank" rel="noopener noreferrer">View Mode <ActionViewIcon size={15} aria-hidden="true" /></Link>
           <Link className="portal-button is-ghost" href="/apply" target="_blank" rel="noopener noreferrer">Application form <ArrowUpRight size={15} aria-hidden="true" /></Link>
         </div>
       </header>
       <ApplicantsTabs current="applicants" />
       <Notice notice={notice} />
+      {edits.error && <p className="portal-form-error" role="alert">{edits.error}</p>}
+      <SubmissionEditRequests kind="application" requests={(edits.value ?? []).filter(request => canSeeCollege(user, request.subject.college))} readOnly={user.readOnly} />
 
       {loadError ? (
         <p className="portal-form-error" role="alert">

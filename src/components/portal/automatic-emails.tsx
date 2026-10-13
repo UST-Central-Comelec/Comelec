@@ -1,5 +1,6 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
@@ -74,7 +75,7 @@ export function AutomaticEmails({ action, groups, current, local, updated, child
                 ) : (
                   <>
                     <button type="button" className="portal-button is-ghost is-small" onClick={() => setOn(saved)} disabled={pending}>Discard</button>
-                    <button className="portal-button is-small" type="submit" disabled={pending || !hydrated}>{pending ? "Saving…" : "Save"}</button>
+                    <button className="portal-button is-small" type="submit" disabled={pending || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save"}</button>
                   </>
                 )}
               </div>

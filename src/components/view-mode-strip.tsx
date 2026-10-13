@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, X } from "lucide-react";
+import { ViewIcon as Eye, CloseIcon as X } from "@/components/action-icons";
 
 /**
  * Stands in for the site header in view mode. Exiting closes the tab the portal opened it in, or,

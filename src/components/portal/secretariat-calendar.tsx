@@ -1,9 +1,11 @@
 "use client";
 
+import { AddIcon as ActionAddIcon, DeleteIcon as ActionDeleteIcon, SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { Popover } from "@base-ui/react/popover";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { ArrowUpRight, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, Highlighter, ListTodo, Pencil, Plus, StickyNote, Trash2, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Highlighter, ListTodo, StickyNote } from "lucide-react";
+import { EditIcon as Pencil, AddIcon as Plus, DeleteIcon as Trash2, CloseIcon as X } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
 import { SlidingFilterButtons } from "./sliding-filters";
 import { DatePicker } from "@/components/portal/date-picker";
@@ -435,7 +437,7 @@ export function SecretariatCalendar({ today, entries, data, readOnly, canAddEven
             {panel === "details" && <>
             <div className="cal-day-actions">
               {!readOnly && <button type="button" className="cal-action" onClick={() => openHighlight()} aria-expanded={draft !== null && draft.id === null}><Highlighter size={15} aria-hidden="true" /> Highlight {single ? "day" : "days"}</button>}
-              {canAddEvent && <Link className="cal-action" href={addEventHref} prefetch={false}><CalendarPlus size={15} aria-hidden="true" /> Add event</Link>}
+              {canAddEvent && <Link className="cal-action" href={addEventHref} prefetch={false}><ActionAddIcon size={15} aria-hidden="true" /> Add event</Link>}
             </div>
 
             {draft && <HighlightForm draft={draft} setDraft={setDraft} busy={busy === "highlight"} onSave={async () => {
@@ -567,7 +569,7 @@ function ConfirmRemove({ label, busy, onConfirm }: { label: string; busy: boolea
   if (!armed) return <button type="button" onClick={() => setArmed(true)} aria-label={label}><Trash2 size={14} aria-hidden="true" /></button>;
   return (
     <span className="cal-confirm">
-      <button type="button" className="is-danger" disabled={busy} onClick={async () => { await onConfirm(); setArmed(false); }}>{busy ? "Removing…" : "Remove"}</button>
+      <button type="button" className="is-danger" disabled={busy} onClick={async () => { await onConfirm(); setArmed(false); }}><ActionDeleteIcon size={15} aria-hidden="true" />{busy ? "Removing…" : "Remove"}</button>
       <button type="button" disabled={busy} onClick={() => setArmed(false)} aria-label="Keep it"><X size={14} aria-hidden="true" /></button>
     </span>
   );
@@ -699,7 +701,7 @@ function HighlightForm({ draft, setDraft, busy, onSave }: { draft: HighlightDraf
       </div>
       <div className="cal-composer-actions">
         <button type="button" className="cal-text-button" onClick={() => setDraft(null)}>Cancel</button>
-        <button type="button" className="cal-submit" disabled={busy} onClick={onSave}>{busy ? "Saving…" : draft.id ? "Save highlight" : "Highlight"}</button>
+        <button type="button" className="cal-submit" disabled={busy} onClick={onSave}><ActionSaveIcon size={15} aria-hidden="true" />{busy ? "Saving…" : draft.id ? "Save highlight" : "Highlight"}</button>
       </div>
     </div>
   );

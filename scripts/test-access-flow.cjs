@@ -166,6 +166,7 @@ const React = require("react");
 const Icon = () => null;
 const icons = new Proxy({}, { get: () => Icon });
 const { AccessFlowMap } = load("src/components/portal/access-flow-map.tsx", {
+  "@/components/action-icons": icons,
   react: { ...React, useId: () => "test-center-panel", useEffect: () => {}, useMemo: callback => callback(), useRef: () => ({ current: null }), useState: initial => [initial, () => {}] },
   "./portal-nav-icons": { ShieldCheck: Icon }, "./portal-tab-icons": { groupIcons: icons, tabIcons: icons },
   "./access-flow-layout": geometry, "./use-canvas-zoom": { useCanvasZoom: () => ({ zoomTo: () => {}, cancel: () => {} }) }, "./use-canvas-pan": { useCanvasPan: () => ({ panning: false, getOffset: () => ({ x: 0, y: 0 }), resetPan: () => {}, handlers: {} }) },
@@ -213,6 +214,7 @@ try {
 }
 let pathname = "/portal/accounts/access-control";
 const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
+  "@/components/action-icons": icons,
   "next/link": { default: props => React.createElement("a", props) },
   "next/navigation": { usePathname: () => pathname, useSearchParams: () => new URLSearchParams() },
   "motion/react": { LayoutGroup: props => props.children, motion: { div: ({ children, className, "aria-label": label }) => React.createElement("div", { className, "aria-label": label }, children), nav: ({ children, className, "aria-label": label }) => React.createElement("nav", { className, "aria-label": label }, children), span: ({ className }) => React.createElement("span", { className }) }, useReducedMotion: () => true },

@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, EyeOff, Hourglass, LogIn } from "lucide-react";
+import { ArrowUpRight, Hourglass, LogIn } from "lucide-react";
+import { HideIcon as EyeOff } from "@/components/action-icons";
 import { RevealOnScroll } from "@/components/home/reveal-on-scroll";
 import { NightSky } from "@/components/night-sky";
 import { COOKIE_NOTICE_KEY, COOKIE_POLICY_UPDATED } from "@/lib/cookie-notice";

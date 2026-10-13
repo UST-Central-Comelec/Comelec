@@ -103,8 +103,20 @@
 .ev .ev-form-image figcaption { color: var(--ev-muted); font-size: 13px; line-height: 1.55; margin-top: 10px; text-align: center; }
 .ev .ev-privacy-link { color: var(--ev-soft); font-size: 14px; margin: 0 0 4px; }
 .ev .ev-privacy-link a { color: var(--ev-text); text-decoration: underline; text-underline-offset: 3px; }
+.ev .ev-rsvp-form .ev-consent-statement { border-bottom: 1px solid var(--ev-line); padding-bottom: 24px; margin-bottom: 24px; }
+.ev .ev-consent-statement > header { margin-bottom: 24px; }
+.ev .ev-consent-statement h3 { color: var(--ev-text); font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0 0 6px; }
+.ev .ev-consent-statement > header > p { margin: 0; }
+.ev .ev-privacy-clauses { display: grid; gap: 24px; }
+.ev .ev-privacy-clause h4 { color: var(--ev-text); font-size: 14px; font-weight: 600; line-height: 1.5; margin: 0 0 8px; }
+.ev .ev-privacy-clause p { color: var(--ev-soft); font-size: 14px; line-height: 1.75; margin: 0; overflow-wrap: anywhere; }
+.ev .ev-privacy-clause p + p { margin-top: 10px; }
+.ev .ev-privacy-clause strong { color: var(--ev-text); font-weight: 600; }
+.ev .ev-privacy-clause a { color: var(--ev-text); text-decoration: underline; text-underline-offset: 3px; }
+.ev .ev-consent-statement > .ev-privacy-link { margin-top: 24px; }
 .ev .ev-confirm strong { font-weight: 500; }
-.ev .ev-acknowledgement p { white-space: pre-line; }
+.ev .ev-acknowledgement :is(h2, p) { max-width: none; text-wrap: wrap; width: 100%; }
+.ev .ev-acknowledgement p { white-space: pre-line; overflow-wrap: anywhere; }
 
 .ev .ev-registration-share { align-items: start; border-top: 1px solid var(--ev-line); display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) 160px; padding-top: 24px; width: 100%; }
 .ev .ev-registration-share-details { min-width: 0; }
@@ -119,3 +131,29 @@
 @media (max-width: 680px) {
   .ev .ev-registration-share { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Public QR downloads use the Events palette in both themes. */
+.ev .ev-registration-qr-button { background: none; border: 0; border-radius: 6px; color: var(--ev-soft); cursor: pointer; display: grid; font: inherit; gap: 8px; padding: 0; text-align: center; }
+.ev .ev-registration-qr-button span { font-size: 12px; }
+.ev .ev-share-dialog { background: var(--ev-surface); border: 1px solid var(--ev-line-strong); border-radius: 14px; box-shadow: var(--ev-shadow-pop); color: var(--ev-text); font-family: var(--ev-sans); margin: auto; max-height: calc(100dvh - 32px); padding: 28px; width: min(560px, calc(100% - 32px)); }
+.ev .ev-share-dialog[open] { animation: ev-share-dialog-in .22s var(--ev-ease); }
+.ev .ev-share-dialog::backdrop { background: rgba(var(--ev-base), .75); backdrop-filter: blur(12px); }
+html:has(.ev-share-dialog[open]) { overflow: hidden; }
+.ev .ev-share-dialog header { align-items: center; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 24px; }
+.ev .ev-share-dialog h2 { font-size: 21px; letter-spacing: -.02em; line-height: 1.3; margin: 0; }
+.ev .ev-share-dialog header .ev-button { flex: none; margin: 0; padding: 10px; }
+.ev .ev-share-qr-preview { background: rgba(var(--ev-ink), .06); border: 1px solid var(--ev-line); border-radius: 14px; display: grid; margin-bottom: 24px; padding: 16px; place-items: center; }
+.ev .ev-share-qr-preview.is-ink-white { background: var(--ui-on-accent); }
+.ev .ev-share-qr-preview.is-ink-black { background: var(--ui-text-on-dark); }
+.ev .ev-share-qr-preview img { display: block; height: auto; max-width: 100%; width: 280px; }
+.ev .ev-share-presets { border: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; }
+.ev .ev-share-presets legend { color: var(--ev-soft); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+.ev .ev-share-presets label { align-items: center; background: rgba(var(--ev-ink), .04); border: 1px solid var(--ev-line-strong); border-radius: var(--ui-button-radius); cursor: pointer; display: inline-flex; font-size: 14px; gap: 8px; padding: 9px 12px; }
+.ev .ev-share-presets label:has(:checked) { background: var(--ev-text); border-color: var(--ev-text); color: var(--ev-on-bright); }
+.ev .ev-share-presets input { accent-color: var(--ev-on-bright); }
+.ev .ev-share-dialog .ev-share-pdf-note { font-size: 13px; margin: 0 0 20px; }
+.ev .ev-share-dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.ev .ev-share-dialog-actions .ev-button { font-size: 13px; margin: 0; padding: 12px 14px; }
+@keyframes ev-share-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ev .ev-share-dialog[open] { animation: none; } }
+@media (max-width: 480px) { .ev .ev-share-dialog { padding: 20px; } .ev .ev-share-dialog-actions .ev-button { flex: 1 1 auto; } }

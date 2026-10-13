@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useState, useTransition } from "react";
-import { Check, CheckCheck, Inbox, Search, Trash2, Users, X } from "lucide-react";
+import { Check, CheckCheck, Inbox, Users } from "lucide-react";
+import { SearchIcon as Search, DeleteIcon as Trash2, CloseIcon as X } from "@/components/action-icons";
 import { DocumentBody } from "@/components/document-body";
 import { documentBodyText, parseDocumentBody } from "@/lib/data/document-body";
 import { recipientMention, senderLabel } from "@/lib/notifications/inbox-presentation";

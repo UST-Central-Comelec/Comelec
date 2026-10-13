@@ -1,0 +1,14 @@
+.portal-survey-fields { border: 0; display: grid; gap: 28px; margin: 0; min-width: 0; padding: 0; }
+.portal-survey-answer .portal-form-actions { justify-content: flex-end; margin-top: 24px; }
+.portal-survey-answer .ev-rsvp-group > h2 { color: var(--p-bright); font-size: 21px; margin: 0 0 14px; }
+.portal-survey-details { display: grid; gap: 20px; }
+.portal-survey-details .portal-settings-foot { flex-wrap: wrap; }
+.portal-survey-details .portal-form-actions { flex-wrap: wrap; justify-content: flex-end; }
+.portal-survey-responses details { border-bottom: 1px solid var(--p-line); padding: 18px 0; }
+.portal-survey-responses summary { color: var(--p-text); cursor: pointer; }
+.portal-survey-responses dl { display: grid; gap: 16px; margin: 20px 0 0; }
+.portal-survey-responses dt { color: var(--p-muted); font-size: 13px; }
+.portal-survey-responses dd { color: var(--p-text); margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.portal-surveys .portal-row-actions > a.portal-list-review { background: transparent; border: 0; border-radius: 0; color: var(--p-soft); display: inline-flex; padding: 0; }
+.portal-surveys a.portal-row-title:hover { text-decoration: none !important; }

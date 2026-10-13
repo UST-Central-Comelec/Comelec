@@ -2,7 +2,8 @@
 
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown, Search, X } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 
 /** Each section's words, in lower case, read once. */
 const words = new WeakMap<HTMLDetailsElement, string>();

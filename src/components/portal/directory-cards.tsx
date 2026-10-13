@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { Mail, X } from "lucide-react";
+import { Mail } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import type { DirectoryEntry } from "@/lib/data/types";
 import { formatAccepted, type Declaration } from "@/lib/onboarding/documents";
 import { MemberAvatar } from "./member-avatar";

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/portal/coming-soon";
+import { SurveysTable } from "@/components/portal/surveys-table";
 import { requireAccess } from "@/lib/auth/session";
+import { listSurveys } from "@/lib/surveys/store";
+import { settle } from "@/lib/portal/settle";
 
 export const metadata: Metadata = { title: "Surveys" };
 
 export default async function PortalSurveysPage() {
-  await requireAccess("secretariat/surveys");
-  return <ComingSoon section="Secretariat" title="Surveys">No surveys have been added yet.</ComingSoon>;
+  const user = await requireAccess("secretariat/surveys");
+  const records = await settle(listSurveys(user));
+  return <SurveysTable rows={records.value ?? []} readOnly={user.readOnly} loadError={records.error} />;
 }

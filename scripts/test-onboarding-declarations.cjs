@@ -96,13 +96,14 @@ const db = {
     update: (fields) => ({ eq: async () => { updates.push(fields); return { error: null }; } }),
   }),
 };
+let requestDocuments = documents.onboardingDocumentKeys.map((key) => ({ ...documents.defaultDocument(key), version: key === "recusal" ? 3 : 1 }));
 const actions = load("src/lib/access-requests/actions.ts", {
   "next/cache": { revalidatePath: () => {} },
   "next/headers": { headers: async () => new Headers() },
   "next/server": { after: (task) => task() },
   "@/lib/applications/reference": { newReferenceCode: () => "PA-ABCD-2345" },
   "@/lib/auth/session": { checkAccess: async () => ({ denied: "not-registered" }) },
-  "@/lib/onboarding/store": { getOnboardingDocuments: async () => documents.onboardingDocumentKeys.map((key) => ({ ...documents.defaultDocument(key), version: key === "recusal" ? 3 : 1 })) },
+  "@/lib/onboarding/store": { getOnboardingDocuments: async () => requestDocuments },
   "@/lib/notifications/concern": { concernOf: (affiliation, unit) => ({ unit: affiliation === "local" ? "local" : "central", college: unit }) },
   "@/lib/notifications/notify": { sendAutomatic: async (id) => { emails.push(id); }, emailUnit: async (id) => { emails.push(id); } },
   "@/lib/security/rate-limit": { clientIp: () => "1.1.1.1", limits: { apply: { limit: 99, windowMs: 1000 } }, rateLimit: () => ({ ok: true }) },
@@ -131,6 +132,7 @@ const reset = () => { inserted = []; updates = []; created = []; emails = []; cr
     "next/cache": { revalidatePath: () => {} },
     "next/navigation": { redirect: location => { throw new Error(location); } },
     "@/lib/auth/session": { requireEditor: async () => ({ email: "editor@ust.edu.ph" }) },
+    "@/lib/supabase/server": { createAdminClient: () => ({}) },
     "@/lib/onboarding/store": { saveOnboardingDocument: async (_key, text) => { savedText = text; return "saved"; } },
   });
   const documentForm = new FormData();
@@ -214,6 +216,17 @@ const reset = () => { inserted = []; updates = []; created = []; emails = []; cr
   assert.ok(!state.result.approved);
   assert.deepEqual(updates, [{ status: "pending", decided_at: null, decided_by: null }]);
   assert.deepEqual(emails.sort(), ["access-notice", "access-received"]);
+
+  reset();
+  const customKey = "custom-12345678-1234-1234-1234-123456789abc";
+  requestDocuments = [...requestDocuments.filter(document => document.key !== "recusal"), { key: customKey, title: "Custom agreement", statement: "I agree", body: "Text", version: 2 }];
+  const changedFlow = form({ skip: "recusal" });
+  assert.match((await actions.submitAccessRequest(undefined, changedFlow)).error, /every onboarding document/, "Custom steps must be accepted");
+  changedFlow.set(`declaration.${customKey}`, `2|${new Date().toISOString()}`);
+  state = await actions.submitAccessRequest(undefined, changedFlow);
+  assert.ok(state.submitted, "Hidden steps are not required");
+  assert.equal(inserted[0].declarations.some(item => item.key === "recusal"), false);
+  assert.equal(inserted[0].declarations.at(-1).key, customKey);
 
   console.log("Onboarding declarations passed: text format, drafts for every step, stored declarations, join link, required acceptances, versions and times, manual review, Join the Commission auto-approval and its fallback.");
 })().catch((error) => {

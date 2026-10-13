@@ -1,6 +1,7 @@
+import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
 import { ViewOnlyTag } from "@/components/portal/view-only";
@@ -35,7 +36,7 @@ export default async function PortalStatisticsPage({ searchParams }: PageProps<"
       ) : (
         <section className="portal-card is-flush">
           {tables.length === 0 ? (
-            <p className="portal-empty">No tables yet.{!readOnly && <> <Link href="/portal/statistics/new">Add the first one.</Link></>}</p>
+            <p className="portal-empty">No tables yet.{!readOnly && <> <Link href="/portal/statistics/new"><ActionAddIcon size={15} aria-hidden="true" />Add the first one.</Link></>}</p>
           ) : (
             <div className="portal-table-wrap">
               <table className="portal-table portal-stat-list">
@@ -47,7 +48,7 @@ export default async function PortalStatisticsPage({ searchParams }: PageProps<"
                       <td><span className="portal-tag">{table.period}</span></td>
                       <td className="portal-muted">{formatDate(table.asOf)}</td>
                       <td className="portal-muted">{sizeLabel(table)}</td>
-                      <td className="portal-row-actions"><Link href={`/portal/statistics/${table.id}`}>{readOnly ? "View" : "Edit"}</Link></td>
+                      <td className="portal-row-actions"><Link href={`/portal/statistics/${table.id}`}><>{readOnly ? <ActionViewIcon size={15} /> : <ActionEditIcon size={15} />}</>{readOnly ? "View" : "Edit"}</Link></td>
                     </tr>
                   ))}
                 </tbody>

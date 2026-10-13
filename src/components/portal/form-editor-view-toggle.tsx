@@ -14,7 +14,7 @@ export function FormEditorViewToggle({ mode, onChange }: { mode: Mode; onChange:
       { key: "preview", label: "Preview form", icon: GalleryHorizontalEnd },
     ] as const).map(({ key, label, icon: Icon }) => {
       const active = mode === key && !reducedMotion;
-      return { key, label: <><span className="form-editor-view-icon" aria-hidden="true"><Icon size={16} animate={active} loop={active} loopDelay={1400} /></span>{label}</> };
+      return { key, label: <><span className="form-editor-view-icon" aria-hidden="true"><Icon size={16} animate={active} /></span>{label}</> };
     })} />
   </div>;
 }

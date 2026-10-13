@@ -404,7 +404,7 @@ body:has(.site-header.is-visible) .ev-side { top: calc(var(--ev-header) + 24px);
 .ev-evaluation-check small { color: var(--ev-muted); display: block; font-size: 12px; line-height: 1.6; margin-top: 3px; }
 .ev-evaluation-check > svg { color: var(--ev-muted); flex: none; }
 .ev-evaluation-check input, .ev-rating-options input { accent-color: var(--ev-gold-edge); flex: none; height: 18px; margin: 0; width: 18px; }
-.ev-evaluation-check:has(input:checked) { background: rgba(var(--ev-gold-rgb),.06); border-color: var(--ev-gold-edge); }
+.ev-evaluation-check:has(input:checked) { background: rgba(var(--ev-ink),.04); border-color: var(--ev-gold-edge); }
 .ev-evaluation-check:has(input:focus-visible) { outline: 2px solid var(--ev-text); outline-offset: 3px; }
 .ev-evaluation-question { border: 0; border-bottom: 1px solid var(--ev-line); margin: 0; min-width: 0; padding: 0 0 28px; }
 .ev-evaluation-question:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -416,8 +416,8 @@ body:has(.site-header.is-visible) .ev-side { top: calc(var(--ev-header) + 24px);
 .ev-rating-options input { align-self: center; grid-column: 2; grid-row: 1; }
 .ev-rating-options b { color: var(--ev-text); font-size: 22px; font-variant-numeric: tabular-nums; font-weight: 600; grid-column: 1; grid-row: 1; letter-spacing: -.04em; line-height: 1; }
 .ev-rating-options label > span { font-size: 12px; font-weight: 500; grid-column: 1 / -1; line-height: 1.5; min-height: 3em; }
-.ev-rating-options label:hover { background: rgba(var(--ev-gold-rgb),.04); border-color: var(--ev-gold-edge); }
-.ev-rating-options label:has(input:checked) { background: rgba(var(--ev-gold-rgb),.09); border-color: var(--ev-gold-edge); box-shadow: inset 0 0 0 1px var(--ev-gold-edge); color: var(--ev-text); }
+.ev-rating-options label:hover { background: rgba(var(--ev-ink),.04); border-color: var(--ev-gold-edge); }
+.ev-rating-options label:has(input:checked) { background: rgba(var(--ev-ink),.04); border-color: var(--ev-gold-edge); box-shadow: inset 0 0 0 1px var(--ev-gold-edge); color: var(--ev-text); }
 .ev-rating-options label:has(input:checked) b { color: var(--ev-gold-mark); }
 .ev-rating-options label:has(input:focus-visible) { outline: 2px solid var(--ev-text); outline-offset: 3px; }
 .ev-evaluation-form .ev-field textarea { background: rgba(var(--ev-ink),.025); border: 1px solid var(--ev-line-strong); border-radius: 12px; color: var(--ev-text); display: block; font: 400 16px/1.65 var(--ev-sans); min-height: 144px; padding: 14px 16px; resize: vertical; transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease; width: 100%; }

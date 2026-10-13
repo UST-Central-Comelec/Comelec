@@ -1,7 +1,11 @@
+import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, CircleDashed, Plus } from "lucide-react";
+import { BadgeCheck, CircleDashed } from "lucide-react";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { AccountKindLabel, AccountStatusLabel } from "@/components/portal/account-badges";
+import { listSubmissionEditReviews } from "@/lib/applications/edit-requests";
+import { SubmissionEditRequests } from "@/components/portal/submission-edit-requests";
 import { AccessRequestRow } from "@/components/portal/access-requests";
 import { AccountsUnitFilter } from "@/components/portal/accounts-unit-filter";
 import { AccountsTabs } from "@/components/portal/accounts-tabs";
@@ -82,6 +86,8 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
 
   // A Local account sees its own college's Local Comelec; anyone else, everybody. An Adviser or
   // Admin reads the list; nothing on it is theirs to change.
+  const edits = await settle(listSubmissionEditReviews("access"));
+  const visibleEdits = (edits.value ?? []).filter(request => request.subject.affiliation && (me.readOnly ? canSeeUnit(me, { affiliation: request.subject.affiliation, college: request.subject.college }) : canDecideRequest(me, { affiliation: request.subject.affiliation, college: request.subject.college })));
   const local = isLocal(me);
   const viewer = me.readOnly;
   const visibleAccounts = everyAccount.filter(account => canSeeUnit(me, account));
@@ -141,6 +147,8 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
         />
       </div>
 
+      {edits.error && <p className="portal-form-error" role="alert">{edits.error}</p>}
+      <SubmissionEditRequests kind="access" requests={visibleEdits} readOnly={viewer} />
       {requestsError && (
         <p className="portal-form-error" role="alert">
           Couldn’t load pending access requests. Run <code>supabase/migrations/0016_access_requests.sql</code> in the Supabase SQL Editor, then reload. ({requestsError})
@@ -149,7 +157,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
 
       <section className="portal-card is-flush">
         {empty ? (
-          <p className="portal-empty">{status ? emptyText[status] : category === "official" ? "No official accounts." : viewer ? "No accounts yet." : <>No accounts yet. <Link href="/portal/accounts/new">Add the first one.</Link></>}</p>
+          <p className="portal-empty">{status ? emptyText[status] : category === "official" ? "No official accounts." : viewer ? "No accounts yet." : <>No accounts yet. <Link href="/portal/accounts/new"><ActionAddIcon size={15} aria-hidden="true" />Add the first one.</Link></>}</p>
         ) : (
           <div className="portal-table-wrap">
             <table className="portal-table portal-accounts">
@@ -170,7 +178,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                       <small className="portal-muted">Not in the Directory yet</small>
                     </td>
                     <td><AccountStatusLabel status="active" /><span className="portal-tag">Built-in</span></td>
-                    <td className="portal-row-actions">{!viewer && <Link href="/portal/accounts/new?for=built-in">Add details</Link>}</td>
+                    <td className="portal-row-actions">{!viewer && <Link href="/portal/accounts/new?for=built-in"><ActionAddIcon size={15} aria-hidden="true" />Add details</Link>}</td>
                   </tr>
                 )}
                 {accounts.map((account) => {
@@ -203,7 +211,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                         <AccountStatusLabel status={accountStatus} title={accountStatus === "pending" ? "Awaiting their first Google sign-in to verify the email." : undefined} />
                         {account.builtIn && <span className="portal-tag">Built-in</span>}
                       </td>
-                      <td className="portal-row-actions">{manageable ? <Link href={`/portal/accounts/${account.id}`}>{own ? "Edit" : "Manage"}</Link> : viewer && <Link href={`/portal/accounts/${account.id}`}>View</Link>}</td>
+                      <td className="portal-row-actions">{manageable ? <Link href={`/portal/accounts/${account.id}`}><ActionEditIcon size={15} aria-hidden="true" />{own ? "Edit" : "Manage"}</Link> : viewer && <Link href={`/portal/accounts/${account.id}`}><ActionViewIcon size={15} aria-hidden="true" />View</Link>}</td>
                     </tr>
                   );
                 })}

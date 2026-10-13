@@ -123,16 +123,121 @@ const r = rsvp.defaultRsvpDefinition;
 assert.ok(ok(r));
 const rsvpShows = answers => flow.resolveFlow(r, answers);
 const steps = answers => rsvpShows(answers).steps.map(step => step.id);
-const ust = { rsvp_email: 'ana@ust.edu.ph', rsvp_affiliation: 'University of Santo Tomas', rsvp_ust_type: 'Council — Local' };
+const oldLayout = structuredClone(r);
+const profile = oldLayout.steps.find(step => step.id === 'rsvp_profile');
+const affiliationFields = profile.fields.filter(field => !['rsvp_last_name', 'rsvp_first_name', 'rsvp_middle_name', 'rsvp_email', 'rsvp_student_number'].includes(field.id));
+profile.fields = profile.fields.filter(field => !affiliationFields.includes(field));
+oldLayout.steps.splice(2, 0, { id: 'rsvp_affiliation', title: 'Affiliation', description: '', fields: affiliationFields });
+const attendanceStep = oldLayout.steps.find(step => step.id === 'rsvp_attendance');
+const roleFields = attendanceStep.fields.filter(field => ['rsvp_role', 'rsvp_role_other'].includes(field.id));
+const delegationFields = attendanceStep.fields.filter(field => ['rsvp_delegation', 'rsvp_additional'].includes(field.id));
+attendanceStep.fields = attendanceStep.fields.filter(field => !roleFields.includes(field) && !delegationFields.includes(field));
+const attendanceIndex = oldLayout.steps.indexOf(attendanceStep);
+oldLayout.steps.splice(attendanceIndex + 1, 0, { id: 'rsvp_delegation', title: 'Organization Delegation', description: '', fields: delegationFields });
+oldLayout.steps.splice(attendanceIndex, 0, { id: 'rsvp_role', title: 'Attending as', description: '', fields: roleFields });
+oldLayout.steps.find(step => step.id === 'rsvp_profile').title = 'Profile';
+oldLayout.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_affiliation').branches[1].push('rsvp_logistics');
+const combinedLayout = rsvp.normalizeRsvpDefinition(oldLayout);
+assert.ok(ok(combinedLayout), 'Combining saved steps keeps every conditional link valid');
+assert.deepEqual(combinedLayout.steps.map(step => step.id), r.steps.map(step => step.id));
+assert.deepEqual(combinedLayout.steps.flatMap(step => step.fields).map(field => field.id), r.steps.flatMap(step => step.fields).map(field => field.id));
+assert.equal(rsvp.normalizeRsvpDefinition(combinedLayout), combinedLayout);
+assert.equal(r.steps.at(-3).id, 'rsvp_logistics', 'Logistical requests come immediately before Conforme');
+const ust = { rsvp_email: 'ana@ust.edu.ph', rsvp_affiliation: 'University of Santo Tomas', rsvp_ust_type: 'Council', rsvp_council_scope: 'Local' };
 assert.equal(rsvpShows(ust).visible.has('rsvp_student_number'), true, 'A UST email asks for a student number');
 assert.equal(rsvpShows({ rsvp_email: 'a@gmail.com' }).visible.has('rsvp_student_number'), false);
 assert.equal(rsvpShows(ust).visible.has('rsvp_college'), true, 'Local councils pick their college');
 assert.equal(rsvpShows(ust).visible.has('rsvp_org_name'), false);
-assert.deepEqual(steps(ust), ['privacy', 'rsvp_profile', 'rsvp_affiliation', 'rsvp_role', 'rsvp_attendance', 'rsvp_delegation', 'rsvp_committees', 'rsvp_resources_step', 'rsvp_conforme']);
+const affiliation = choice => ({ rsvp_last_name: 'CRUZ', rsvp_first_name: 'ANA', rsvp_middle_name: 'MARIA', rsvp_email: 'ana@example.com', rsvp_affiliation: 'University of Santo Tomas', rsvp_ust_type: choice });
+for (const scope of ['University-wide', 'College-based']) {
+  const shown = rsvpShows({ ...affiliation('Organization'), rsvp_org_scope: scope }).visible;
+  assert.ok(shown.has('rsvp_org_name'), 'Both organization types ask for their name');
+  assert.equal(shown.has('rsvp_college') || shown.has('rsvp_admin_office'), false);
+}
+for (const type of ['Council', 'Commission']) {
+  const key = type === 'Council' ? 'rsvp_council_scope' : 'rsvp_commission_scope';
+  assert.ok(rsvpShows(affiliation(type)).visible.has(key));
+  assert.equal(rsvpShows(affiliation(type)).visible.has('rsvp_college'), false, 'Choose the scope before asking for a college');
+  assert.equal(rsvpShows({ ...affiliation(type), [key]: 'Local' }).visible.has('rsvp_college'), true);
+  assert.equal(rsvpShows({ ...affiliation(type), [key]: 'Central' }).visible.has('rsvp_college'), false);
+}
+assert.ok(rsvpShows(affiliation('Admin, Adviser')).visible.has('rsvp_admin_office'));
+assert.match(editor.validateEditorAnswers(r, affiliation('Admin, Adviser'), { scope: ['rsvp_profile'] }), /Office name/, 'Admin and advisers must specify their office');
+assert.match(editor.validateEditorAnswers(r, { ...affiliation('Organization'), rsvp_org_scope: 'University-wide' }, { scope: ['rsvp_profile'] }), /Organization name/);
+assert.match(editor.validateEditorAnswers(r, { ...affiliation('Council'), rsvp_council_scope: 'Local' }, { scope: ['rsvp_profile'] }), /College/, 'Local councils must specify their college or faculty');
+assert.ok(rsvpShows(affiliation('Other UST affiliation')).visible.has('rsvp_other_affiliation'));
+assert.equal(rsvpShows({ ...affiliation('Admin, Adviser'), rsvp_org_scope: 'College-based' }).visible.has('rsvp_org_name'), false, 'Stale subtype answers do not show another affiliation’s inputs');
+
+// Existing standard dropdown forms gain the same branching, keeping customized follow-ups.
+const dropdownForm = structuredClone(r);
+const oldStep = dropdownForm.steps.find(step => step.id === 'rsvp_profile');
+oldStep.fields = oldStep.fields.filter(field => !['rsvp_org_scope', 'rsvp_council_scope', 'rsvp_commission_scope', 'rsvp_admin_office'].includes(field.id));
+Object.assign(oldStep.fields.find(field => field.id === 'rsvp_ust_type'), {
+  kind: 'dropdown', options: ['Organization — College-based', 'Organization — University-wide', 'Council — Central Student Council', 'Council — Local', 'Commission — Central Comelec', 'Commission — Local Comelec', 'Admin', 'Other UST Affiliation'],
+  branches: [['rsvp_org_name', 'rsvp_role'], ['rsvp_org_name', 'q_custom'], ['rsvp_role'], ['rsvp_college', 'rsvp_role'], ['rsvp_role'], ['rsvp_college', 'rsvp_role'], ['rsvp_role'], ['rsvp_other_affiliation', 'rsvp_role']],
+});
+Object.assign(oldStep.fields.find(field => field.id === 'rsvp_college'), { kind: 'dropdown', options: ['College A', 'College B'], prompt: 'Your college or faculty' });
+oldStep.fields.push({ id: 'q_custom', label: 'Custom follow-up', prompt: '', kind: 'text', required: false, options: [] });
+const upgradedAffiliation = rsvp.normalizeRsvpDefinition(dropdownForm);
+assert.ok(ok(upgradedAffiliation), 'Upgrading a saved dropdown preserves a valid forward-only form');
+assert.equal(rsvp.normalizeRsvpDefinition(upgradedAffiliation), upgradedAffiliation, 'Affiliation upgrades are stable');
+const upgradedFields = upgradedAffiliation.steps.flatMap(step => step.fields);
+assert.equal(upgradedFields.find(field => field.id === 'rsvp_ust_type').kind, 'radio');
+assert.equal(upgradedFields.find(field => field.id === 'rsvp_college').kind, 'dropdown');
+assert.deepEqual(upgradedFields.find(field => field.id === 'rsvp_college').options, load('src/lib/applications/options.ts').colleges);
+const textCollegeForm = structuredClone(r);
+Object.assign(textCollegeForm.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_college'), { kind: 'text', options: [] });
+const upgradedTextCollege = rsvp.normalizeRsvpDefinition(textCollegeForm);
+assert.ok(ok(upgradedTextCollege));
+assert.deepEqual(upgradedTextCollege.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_college').options, load('src/lib/applications/options.ts').colleges, 'Saved text fields upgrade to the full shared list');
+assert.match(editor.validateEditorAnswers(r, { ...affiliation('Commission'), rsvp_commission_scope: 'Local', rsvp_college: 'Unknown college' }, { scope: ['rsvp_profile'] }), /College/, 'Only a listed college is accepted');
+assert.equal(upgradedFields.find(field => field.id === 'rsvp_college').prompt, 'Your college or faculty');
+assert.ok(flow.resolveFlow(upgradedAffiliation, { ...affiliation('Organization'), rsvp_org_scope: 'University-wide' }).visible.has('q_custom'), 'A customized university-wide follow-up stays on that branch');
+assert.equal(flow.resolveFlow(upgradedAffiliation, { ...affiliation('Organization'), rsvp_org_scope: 'College-based' }).visible.has('q_custom'), false);
+const missingRole = flow.removeField(dropdownForm, 'rsvp_role');
+assert.ok(ok(rsvp.normalizeRsvpDefinition(missingRole)), 'Upgrades keep deleted questions deleted');
+const newRoles = ['Invited Guest', 'Invited Resource Person', 'Invited Observer, Witness', 'Others'];
+const roleField = r.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_role');
+for (const role of newRoles) assert.equal(editor.answerProblem(roleField, role), null, 'Each added role is a valid answer');
+assert.equal(roleField.options.includes('Guardian'), false);
+assert.equal(flow.resolveFlow(r, { ...ust, rsvp_role: 'Others' }).visible.has('rsvp_role_other'), true);
+assert.equal(flow.resolveFlow(r, { ...ust, rsvp_role: 'Invited Observer, Witness' }).visible.has('rsvp_role_other'), false);
+const otherRole = r.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_role_other');
+assert.ok(editor.answerProblem(otherRole, ''), 'Others requires a description');
+assert.equal(editor.answerProblem(otherRole, 'Event photographer'), null);
+const previousRoles = structuredClone(r);
+previousRoles.steps.forEach(step => { step.fields = step.fields.filter(field => field.id !== 'rsvp_role_other'); });
+previousRoles.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_ust_type').options[3] = 'Admin';
+const roleStep = previousRoles.steps.find(step => step.id === 'rsvp_attendance');
+Object.assign(roleStep.fields.find(field => field.id === 'rsvp_role'), { options: [rsvp.eventRoles.head, rsvp.eventRoles.representative, 'Participant'], branches: [['q_role_detail'], [], []], notes: ['Head note', 'Representative note', 'Participant note'] });
+roleStep.fields.push({ id: 'q_role_detail', label: 'Role detail', prompt: '', kind: 'text', required: false, options: [] });
+const rolesUpgrade = rsvp.normalizeRsvpDefinition(previousRoles);
+assert.ok(ok(rolesUpgrade), 'Role additions preserve valid customized branching');
+const upgradedRole = rolesUpgrade.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_role');
+assert.deepEqual(upgradedRole.options, [rsvp.eventRoles.head, rsvp.eventRoles.representative, 'Participant', ...newRoles]);
+assert.deepEqual(upgradedRole.branches[0], ['q_role_detail']);
+assert.equal(upgradedRole.notes[2], 'Participant note');
+assert.ok(rolesUpgrade.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_ust_type').options.includes('Admin, Adviser'));
+assert.equal(rsvp.normalizeRsvpDefinition(rolesUpgrade), rolesUpgrade, 'Repeated loads do not duplicate role choices');
+const oldObserverRoles = structuredClone(previousRoles);
+Object.assign(oldObserverRoles.steps.find(step => step.id === 'rsvp_attendance').fields.find(field => field.id === 'rsvp_role'), {
+  options: [rsvp.eventRoles.head, rsvp.eventRoles.representative, 'Invited Observer', 'Witness', 'Guardian'],
+  branches: [[], [], ['q_role_detail'], [], []], notes: ['', '', 'Observer note', '', ''],
+});
+const mergedRoles = rsvp.normalizeRsvpDefinition(oldObserverRoles);
+assert.ok(ok(mergedRoles));
+const mergedRole = mergedRoles.steps.flatMap(step => step.fields).find(field => field.id === 'rsvp_role');
+assert.equal(mergedRole.options.includes('Guardian'), false);
+assert.equal(mergedRole.options.includes('Witness'), false);
+assert.equal(mergedRole.options.filter(role => role === 'Invited Observer, Witness').length, 1);
+assert.deepEqual(mergedRole.branches[mergedRole.options.indexOf('Invited Observer, Witness')], ['q_role_detail']);
+assert.equal(flow.resolveFlow(mergedRoles, { ...ust, rsvp_role: 'Others' }).visible.has('rsvp_role_other'), true);
+assert.equal(rsvp.normalizeRsvpDefinition(mergedRoles), mergedRoles);
+assert.deepEqual(steps(ust), ['privacy', 'rsvp_profile', 'rsvp_attendance', 'rsvp_committees', 'rsvp_resources_step', 'rsvp_logistics', 'rsvp_conforme']);
 const guest = { rsvp_affiliation: 'External', rsvp_external_type: 'Invited Guest (Delegates)' };
-assert.deepEqual(steps(guest), ['privacy', 'rsvp_profile', 'rsvp_affiliation', 'rsvp_attendance', 'rsvp_delegation', 'rsvp_logistics', 'rsvp_conforme'], 'Guests skip Attending as and committees, and see logistical needs');
+assert.deepEqual(steps(guest), ['privacy', 'rsvp_profile', 'rsvp_attendance', 'rsvp_logistics', 'rsvp_conforme'], 'Guests skip Attending as and committees, and see logistical needs');
 const rep = { rsvp_affiliation: 'External', rsvp_external_type: 'Organization / Institution Representative' };
-assert.ok(steps(rep).includes('rsvp_role'), 'External representatives say how they attend');
+assert.ok(rsvpShows(rep).visible.has('rsvp_role'), 'External representatives say how they attend');
 assert.ok(['rsvp_external_org', 'rsvp_external_school'].every(id => rsvpShows(rep).visible.has(id)));
 assert.ok(['rsvp_proxy_last_name', 'rsvp_proxy_email'].every(id => rsvpShows({ rsvp_attendance: 'Sending a Proxy' }).visible.has(id)), 'A proxy gets a profile of their own');
 assert.equal(rsvpShows({ rsvp_delegation: 'To be confirmed' }).visible.has('rsvp_additional'), true);

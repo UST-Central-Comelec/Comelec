@@ -1,0 +1,22 @@
+/* Both themes and both applications share the same button-icon cadence.
+   Bespoke Motion icons opt out of this fallback through data-icon-motion. */
+[data-icon-motion] > svg { flex-shrink: 0; }
+
+@keyframes ui-button-icon-cycle {
+  0%, 55%, 100% { translate: 0 0; }
+  22% { translate: 0 -1px; }
+  38% { translate: 0 1px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], label):where(:hover, :focus-visible, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"]), [data-state="on"], [data-state="checked"], .is-active, .is-selected):not(:disabled, [aria-disabled="true"], [aria-busy="true"])
+  svg:not(:where([data-icon-motion] svg, [data-icon-motion], .portal-document-icon svg, .event-icon-spin, .lucide-loader-circle, .lucide-loader, .lucide-loader-2)) {
+    animation: ui-button-icon-cycle 1.4s cubic-bezier(.22, 1, .36, 1) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], label) svg {
+    animation: none !important;
+  }
+}

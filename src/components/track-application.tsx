@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useId, useState } from "react";
+import { requestResponseEdit } from "@/lib/events/edit-request-actions";
 import { ArrowRight, Check, SquareCheck } from "lucide-react";
-import { trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication, type TrackedRegistration } from "@/lib/applications/actions";
+import { trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication, type TrackedRegistration, type TrackedRsvp } from "@/lib/applications/actions";
 
 const statusLabels: Record<ApplicationStatus, string> = {
   pending: "Pending review",
@@ -49,7 +50,7 @@ function StatusTimeline({ result }: { result: string | null }) {
   );
 }
 
-function TrackedResult({ application }: { application: TrackedApplication }) {
+function TrackedResult({ application, identity }: { application: TrackedApplication; identity: string }) {
   return (
     <section className="track-result" aria-live="polite" aria-label="Your application">
       <header>
@@ -72,11 +73,12 @@ function TrackedResult({ application }: { application: TrackedApplication }) {
         <div><dt>Year level</dt><dd>{application.yearLevel}</dd></div>
         {application.interview && <div className="is-wide"><dt>Interview</dt><dd>{application.interview}</dd></div>}
       </dl>
+      <ResponseEditRequest reference={application.referenceCode} identity={identity} existing={application.editRequest} />
     </section>
   );
 }
 
-function TrackedAccess({ request }: { request: TrackedAccessRequest }) {
+function TrackedAccess({ request, identity }: { request: TrackedAccessRequest; identity: string }) {
   return (
     <section className="track-result" aria-live="polite" aria-label="Your portal access request">
       <header>
@@ -98,12 +100,13 @@ function TrackedAccess({ request }: { request: TrackedAccessRequest }) {
         <div><dt>Program</dt><dd>{request.program}</dd></div>
         <div><dt>Year level</dt><dd>{request.yearLevel}</dd></div>
       </dl>
+      <ResponseEditRequest reference={request.referenceCode} identity={identity} existing={request.editRequest} />
       {request.status === "approved" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
     </section>
   );
 }
 
-function TrackedEvent({ registration }: { registration: TrackedRegistration }) {
+function TrackedEvent({ registration, identity }: { registration: TrackedRegistration; identity: string }) {
   return (
     <section className="track-result" aria-live="polite" aria-label="Your event registration">
       <header>
@@ -116,12 +119,54 @@ function TrackedEvent({ registration }: { registration: TrackedRegistration }) {
         <div><dt>Event</dt><dd><Link href={`/events/${registration.eventId}`}>{registration.eventName}</Link></dd></div>
         <div><dt>Date</dt><dd>{registration.eventDate}</dd></div>
       </dl>
+      <ResponseEditRequest reference={registration.referenceCode} identity={identity} existing={registration.editRequest} />
       <h3>Logistics requests</h3>
       <dl className="apply-result-details">
         {registration.requests.map((request) => <div key={request.label}><dt>{request.label}</dt><dd>{request.status}</dd></div>)}
       </dl>
     </section>
   );
+}
+
+function TrackedCollaborator({ rsvp, identity }: { rsvp: TrackedRsvp; identity: string }) {
+  return <section className="track-result" aria-live="polite" aria-label="Your collaborator RSVP">
+    <header><div><span>RSVP reference</span><strong>{rsvp.referenceCode}</strong></div><span className="track-status is-accepted">Recorded</span></header>
+    <p className="track-note">Your collaborator RSVP has been recorded. To ask for a change to your response, choose Request edit. Logistical requests are subject to availability.</p>
+    <dl className="apply-result-details">
+      <div><dt>Name</dt><dd>{rsvp.name}</dd></div>
+      <div><dt>Submitted</dt><dd>{formatSubmitted(rsvp.submittedAt)}</dd></div>
+      <div><dt>Event</dt><dd><Link href={`/events/${rsvp.eventId}`}>{rsvp.eventName}</Link></dd></div>
+      <div><dt>Date</dt><dd>{rsvp.eventDate}</dd></div>
+    </dl>
+    <ResponseEditRequest reference={rsvp.referenceCode} identity={identity} existing={rsvp.editRequest} />
+    <h3>Logistical requests</h3>
+    {rsvp.requests.length ? <ul>{rsvp.requests.map(request => <li key={request}>{request}</li>)}</ul> : <p>No logistical requests.</p>}
+  </section>;
+}
+
+function ResponseEditRequest({ reference, identity, existing }: { reference: string; identity: string; existing?: { requested_changes: string } | null }) {
+  const [open, setOpen] = useState(false);
+  const [changes, setChanges] = useState("");
+  const [state, action, pending] = useActionState(requestResponseEdit, {});
+  const id = useId();
+  const request = state.request ?? existing;
+  if (request) return <section className="track-edit-request" aria-label="Your edit request" role="status">
+    <h3>Edit requested</h3>
+    <p className="track-note">Your edit request has been sent. The team handling your submission will review the changes below.</p>
+    <p className="track-edit-changes">{request.requested_changes}</p>
+  </section>;
+  return <section className="track-edit-request" aria-label="Request changes to your response">
+    {!open ? <button type="button" className="button-primary" onClick={() => setOpen(true)}>Request edit</button> : <form action={action}>
+      <input type="hidden" name="reference" value={reference} />
+      <input type="hidden" name="identity" value={identity} />
+      <label className="apply-field" htmlFor={id}><span className="apply-field-label">What would you like to change?</span>
+        <textarea id={id} name="changes" value={changes} onChange={event => setChanges(event.target.value)} rows={4} required maxLength={4000} disabled={pending} aria-invalid={!!state.fieldErrors?.changes} aria-describedby={state.fieldErrors?.changes ? `${id}-error` : undefined} placeholder="Describe the answer to change and the correct information." />
+        {state.fieldErrors?.changes && <span className="apply-field-error" id={`${id}-error`}>{state.fieldErrors.changes}</span>}
+      </label>
+      {state.error && <p className="apply-form-error" role="alert">{state.error}</p>}
+      <div className="track-edit-actions"><button type="button" className="track-edit-cancel" disabled={pending} onClick={() => setOpen(false)}>Cancel</button><button type="submit" className="button-primary" disabled={pending}>{pending ? "Sending…" : "Send edit request"}</button></div>
+    </form>}
+  </section>;
 }
 
 export function TrackApplication({ initialReference }: { initialReference: string }) {
@@ -133,7 +178,7 @@ export function TrackApplication({ initialReference }: { initialReference: strin
       <div className="apply-body-head">
         <h2>Track your submission</h2>
         <ul className="track-types" aria-label="Supported submission types">
-          {["Event registrations", "Commissioner applications", "Portal access requests", "Political Party Registration", "Filing of Candidacy"].map((type) => (
+          {["Event registrations", "Collaborator RSVPs", "Commissioner applications", "Portal access requests"].map((type) => (
             <li key={type}><SquareCheck size={16} aria-hidden="true" />{type}</li>
           ))}
         </ul>
@@ -144,21 +189,22 @@ export function TrackApplication({ initialReference }: { initialReference: strin
       <form className="track-form" action={formAction} noValidate>
         <label className={`apply-field${errors.reference ? " has-error" : ""}`}>
           <span className="apply-field-label">Reference code</span>
-          <input name="reference" key={`reference-${state?.entered?.reference}`} defaultValue={(state?.entered?.reference ?? initialReference).toUpperCase()} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="7K3MX or CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
+          <input name="reference" required key={`reference-${state?.entered?.reference}`} defaultValue={(state?.entered?.reference ?? initialReference).toUpperCase()} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="7K3MX or CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
           {errors.reference && <span className="apply-field-error">{errors.reference}</span>}
         </label>
         <label className={`apply-field${errors.identity ? " has-error" : ""}`}>
           <span className="apply-field-label">Student number or last name</span>
-          <input name="identity" key={`identity-${state?.entered?.identity}`} defaultValue={state?.entered?.identity} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="2023123456 or DELA CRUZ" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={80} />
+          <input name="identity" required key={`identity-${state?.entered?.identity}`} defaultValue={state?.entered?.identity} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="2023123456 or DELA CRUZ" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={80} />
           {errors.identity && <span className="apply-field-error">{errors.identity}</span>}
         </label>
         <button className="button-primary" type="submit" disabled={pending}>{pending ? "Looking up…" : <>Track <ArrowRight size={15} /></>}</button>
       </form>
 
-      {state?.error && !state.application && !state.accessRequest && !state.registration && <p className="apply-form-error" role="alert">{state.error}</p>}
-      {state?.registration && <TrackedEvent registration={state.registration} />}
-      {state?.application && <TrackedResult application={state.application} />}
-      {state?.accessRequest && <TrackedAccess request={state.accessRequest} />}
+      {state?.error && !state.application && !state.accessRequest && !state.registration && !state.rsvp && <p className="apply-form-error" role="alert">{state.error}</p>}
+      {state?.rsvp && <TrackedCollaborator key={`${state.rsvp.referenceCode}:${state.lookupStamp ?? ""}`} rsvp={state.rsvp} identity={state.entered?.identity ?? ""} />}
+      {state?.registration && <TrackedEvent key={`${state.registration.referenceCode}:${state.lookupStamp ?? ""}`} registration={state.registration} identity={state.entered?.identity ?? ""} />}
+      {state?.application && <TrackedResult key={`${state.application.referenceCode}:${state.lookupStamp ?? ""}`} application={state.application} identity={state.entered?.identity ?? ""} />}
+      {state?.accessRequest && <TrackedAccess key={`${state.accessRequest.referenceCode}:${state.lookupStamp ?? ""}`} request={state.accessRequest} identity={state.entered?.identity ?? ""} />}
 
       <p className="track-help">Lost your code? Email <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link> from your UST email.</p>
     </div>

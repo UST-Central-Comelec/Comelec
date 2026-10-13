@@ -1,5 +1,6 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { SlidingSegments } from "./sliding-filters";
 
 import { useState } from "react";
@@ -64,7 +65,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
       <div className="portal-form-footer">
         <span />
         <div className="portal-form-actions">
-          <button className={`portal-button${closing ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated}>
+          <button className={`portal-button${closing ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />
             {pending ? "Saving…" : closing ? `Close in ${CLOSE_GRACE_MINUTES} minutes` : mode === "scheduled" ? "Save and schedule" : "Save"}
           </button>
         </div>

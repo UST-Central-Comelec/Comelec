@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { APPLICATION_RETENTION_DAYS } from "@/lib/applications/options";
+import { ChevronDown, ClipboardList, Clock, Cloud, LockKeyhole, Mail, ShieldCheck, Target, UserRound, Users } from "lucide-react";
 
 export const PRIVACY_UPDATED = "2026-10-06";
 export const PRIVACY_CONTACT = "comelec@ust.edu.ph";
@@ -15,8 +16,8 @@ export const privacySections = [
   { id: "contact", label: "Contact and updates" },
 ] as const;
 
-/** One statement for the public website and the authenticated portal. */
-export function PrivacyStatement({ portal = false }: { portal?: boolean }) {
+/** One statement for the public website, authenticated portal and event consent form. */
+export function PrivacyStatement({ portal = false, eventForm = false, idPrefix }: { portal?: boolean; eventForm?: boolean; idPrefix?: string }) {
   const contents = [
     <>
       <p>The UST Central Commission on Elections (Central Comelec) operates this website and its Commission Portal. This statement explains how information is handled when you browse public pages, submit a form, verify an account, or use the portal. Local Comelec units handle matters assigned to their own units through the same system.</p>
@@ -69,11 +70,20 @@ export function PrivacyStatement({ portal = false }: { portal?: boolean }) {
     </>,
   ];
 
-  return <div className={portal ? "portal-privacy-content" : "ck-body"}>
-    {privacySections.map((section, index) => <section key={section.id} id={section.id} className={portal ? "portal-card portal-privacy-section" : "ck-section"} aria-labelledby={`privacy-${section.id}-title`}>
-      <p className={portal ? "portal-eyebrow" : "ck-serial"}>{String(index + 1).padStart(2, "0")}</p>
-      <h2 id={`privacy-${section.id}-title`}>{section.label}</h2>
-      {contents[index]}
-    </section>)}
+  const prefix = idPrefix ?? (eventForm ? "rsvp-privacy" : "privacy");
+  const icons = [ShieldCheck, ClipboardList, Target, Users, Cloud, Clock, LockKeyhole, UserRound, Mail];
+  return <div className={eventForm ? "apply-privacy-grid ev-privacy-clauses" : portal ? "portal-privacy-content" : "ck-body"}>
+    {privacySections.map((section, index) => {
+      const Icon = icons[index];
+      if (eventForm) return <details key={section.id} id={`${prefix}-${section.id}`} className="apply-privacy-item ev-privacy-clause" aria-labelledby={`${prefix}-${section.id}-title`}>
+        <summary><span className="apply-privacy-item-icon" aria-hidden="true"><Icon size={17} /></span><h4 id={`${prefix}-${section.id}-title`}>{index + 1}. {section.label}</h4><ChevronDown className="ev-consent-chevron" size={16} aria-hidden="true" /></summary>
+        <div className="ev-privacy-clause-body">{contents[index]}</div>
+      </details>;
+      return <section key={section.id} id={section.id} className={portal ? "portal-card portal-privacy-section" : "ck-section"} aria-labelledby={`${prefix}-${section.id}-title`}>
+        <p className={portal ? "portal-eyebrow" : "ck-serial"}>{String(index + 1).padStart(2, "0")}</p>
+        <h2 id={`${prefix}-${section.id}-title`}>{section.label}</h2>
+        {contents[index]}
+      </section>;
+    })}
   </div>;
 }

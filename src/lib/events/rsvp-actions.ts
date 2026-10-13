@@ -9,15 +9,16 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { sendAutomatic } from "@/lib/notifications/notify";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { siteUrl } from "@/lib/email/template";
+import { email as emailField } from "@/lib/forms/fields";
 import { emailDomainProblem } from "@/lib/forms/email-domain";
 import { canManageEvent } from "./access";
 import { getEvent } from "./queries";
 import { getRsvpSettings, validRsvpToken } from "./rsvp-store";
-import { normalizeRsvpDefinition, rsvpFormPath, committeeLimitSchema, type RsvpAnswers } from "./rsvp";
+import { formFacts, normalizeRsvpDefinition, rsvpFormPath, committeeLimitSchema, type RsvpAnswers } from "./rsvp";
 import { acknowledgementEmail } from "./rsvp-emails";
 import { containsEmoji } from "@/lib/forms/input";
 import { z } from "zod";
-export type RsvpState = { error?: string; success?: boolean; registrationUrl?: string; emailSent?: boolean; name?: string; fieldErrors?: Record<string, string> };
+export type RsvpState = { error?: string; success?: boolean; registrationUrl?: string; emailSent?: boolean; name?: string; referenceCode?: string; duplicateEmail?: string; fieldErrors?: Record<string, string> };
 
 export async function saveRsvpSettings(eventId: string, _state: RsvpState, form: FormData): Promise<RsvpState> {
   const user = await requireEditor("events");
@@ -45,6 +46,25 @@ export async function saveRsvpSettings(eventId: string, _state: RsvpState, form:
   revalidatePath(`/portal/events/${eventId}/rsvp`);
   revalidatePath(rsvpFormPath(eventId));
   return { success: true };
+}
+
+/** Checks only whether this invitation’s respondent email has already submitted; no response data leaves the server. */
+export async function checkRsvpEmail(eventId: string, token: string, value: string): Promise<{ available?: boolean; error?: string }> {
+  const parsed = emailField().safeParse(value);
+  if (!parsed.success) return { error: "Enter a valid email address." };
+  if (!validRsvpToken(token)) return { error: "This collaborator RSVP link is invalid." };
+  if (!rateLimit(`event-rsvp-email:${clientIp(await headers())}`, limits.eventRegister.limit, limits.eventRegister.windowMs).ok) return { error: "Too many email checks. Please try again shortly." };
+  try {
+    const settings = await getRsvpSettings(eventId);
+    if (!settings || settings.invitation_token !== token) return { error: "This collaborator RSVP link is invalid." };
+    if (!settings.enabled) return { error: "This RSVP form is closed." };
+    const { data, error } = await createAdminClient().from("event_rsvp_responses").select("id").eq("event_id", eventId).eq("email", parsed.data).limit(1);
+    if (error) return { error: "Couldn’t check this email. Try again." };
+    return { available: !data?.length };
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: "Couldn’t check this email. Try again." };
+  }
 }
 
 const answersSchema = z.record(z.string().max(80), z.union([z.string().max(4000), z.array(z.string().max(200)).max(30)]));
@@ -91,13 +111,14 @@ export async function submitRsvp(eventId: string, token: string, _state: RsvpSta
     const name = identityAnswer(definition, values, "firstName");
     const answers: RsvpAnswers = { version: 2, values, definition };
     // The table keeps one RSVP per email; a form that asks for none can't tell respondents apart.
-    const { error } = await createAdminClient().from("event_rsvp_responses").insert({ event_id: eventId, email: email || `response:${crypto.randomUUID()}`, answers });
-    if (error?.code === "23505") return { error: "An RSVP has already been submitted with this email. Contact the event organizers to change your response." };
-    if (error) return { error: "Couldn’t save your RSVP. Please try again." };
+    const { data: saved, error } = await createAdminClient().from("event_rsvp_responses").insert({ event_id: eventId, email: email || `response:${crypto.randomUUID()}`, answers }).select("reference_code").single();
+    if (error?.code === "23505") return { duplicateEmail: email, error: "This email already has an RSVP submission." };
+    if (error || !saved?.reference_code) return { error: "Couldn’t save your RSVP. Please try again." };
+    const referenceCode = saved.reference_code as string;
     revalidatePath(`/portal/events/${eventId}/rsvp`);
     const acknowledgement = acknowledgementOf(definition);
-    const delivery = acknowledgement?.email && email ? await sendAutomatic("event-rsvp", () => acknowledgementEmail(email, acknowledgement, event, name, "Collaborator RSVP")) : undefined;
-    return { success: true, registrationUrl: `${siteUrl()}/events/${eventId}/register`, emailSent: delivery === undefined ? undefined : delivery === "sent", name };
+    const delivery = acknowledgement?.email && email ? await sendAutomatic("event-rsvp", () => acknowledgementEmail(email, acknowledgement, event, name, "Collaborator RSVP", referenceCode, formFacts(definition, values))) : undefined;
+    return { success: true, referenceCode, registrationUrl: `${siteUrl()}/events/${eventId}/register`, emailSent: delivery === undefined ? undefined : delivery === "sent", name };
   } catch (error) {
     unstable_rethrow(error);
     return { error: "RSVP is unavailable right now. Please try again later." };

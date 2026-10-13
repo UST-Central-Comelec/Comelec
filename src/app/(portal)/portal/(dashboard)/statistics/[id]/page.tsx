@@ -1,3 +1,4 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,7 +25,7 @@ export default async function EditStatisticPage({ params }: PageProps<"/portal/s
         <div>
           <Link className="portal-back" href="/portal/statistics">← Statistics</Link>
           <h1>{readOnly ? "Table" : "Edit table"}</h1>
-          <p className="portal-muted">Last updated {formatClosing(table.updatedAt)} by {table.updatedBy}. <a href={`/statistics#${table.id}`} target="_blank" rel="noreferrer">View on website ↗</a></p>
+          <p className="portal-muted">Last updated {formatClosing(table.updatedAt)} by {table.updatedBy}. <a href={`/statistics#${table.id}`} target="_blank" rel="noreferrer"><ActionViewIcon size={15} aria-hidden="true" />View on website ↗</a></p>
         </div>
       </header>
       <section className="portal-card">

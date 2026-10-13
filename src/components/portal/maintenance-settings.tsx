@@ -1,3 +1,4 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { InfoTip, TitleWithInfo } from "@/components/portal/info-tip";
@@ -28,7 +29,7 @@ export function MaintenanceSettings({ settings, loadError, notice, readOnly }: {
           <p className="portal-eyebrow">Administrative</p>
           <TitleWithInfo info="Settings for the website as a whole: take it offline while it’s being worked on, control its cookie notice, and check the screens visitors see when something goes wrong.">Maintenance</TitleWithInfo>
         </div>
-        <Link className="portal-button is-ghost" href="/" target="_blank">View website <ArrowUpRight size={15} /></Link>
+        <Link className="portal-button is-ghost" href="/" target="_blank">View website <ActionViewIcon size={15} /></Link>
       </header>
       <Notice notice={notice} />
 

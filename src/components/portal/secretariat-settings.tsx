@@ -1,7 +1,9 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { useId, useRef, useState, useTransition, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Lock, LockOpen, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Lock, LockOpen } from "lucide-react";
+import { AddIcon as Plus, SearchIcon as Search, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { tones, toneLabels, type NamedItem, type RecordType, type SecretariatSettings, type ToneItem, type TrackerKind, type TrackerSettings } from "@/lib/letters/settings";
 import { saveSecretariatSettings } from "@/lib/portal/secretariat-settings-actions";
@@ -166,29 +168,27 @@ function TrackerPanel({ kind, tracker, errors, unlocked, onChange, onLock }: { k
 }
 
 /** Labels, statuses, remark presets and offices: named items, some with a colour and an order. */
-function ListPanel<Item extends NamedItem | ToneItem>({ title, description, items, path, errors, noun, max, maxLength = 100, ordered, searchable, preview, onChange, create }: {
-  title: string; description: ReactNode; items: Item[]; path: string; errors: Record<string, string>; noun: string; max: number; maxLength?: number;
-  ordered?: boolean; searchable?: boolean; preview?: (item: ToneItem) => ReactNode; onChange: (items: Item[]) => void; create: () => Item;
+function ListPanel<Item extends NamedItem | ToneItem>({ title, items, path, errors, noun, maxLength = 100, ordered, searchable, query = "", onQueryChange, onAdd, addDisabled, preview, onChange }: {
+  title: string; items: Item[]; path: string; errors: Record<string, string>; noun: string; maxLength?: number;
+  ordered?: boolean; searchable?: boolean; query?: string; onQueryChange?: (query: string) => void; onAdd?: () => void; addDisabled?: boolean; preview?: (item: ToneItem) => ReactNode; onChange: (items: Item[]) => void;
 }) {
   const id = useId();
-  const [query, setQuery] = useState("");
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const shown = items.map((item, index) => ({ item, index })).filter(({ item }) => terms.every(term => item.name.toLowerCase().includes(term)));
   const listError = errors[path];
   return <div className="portal-setting">
     <div className="portal-setting-label"><span>{title}</span></div>
     <div className="portal-setting-control">
-      <p className="portal-muted">{description}</p>
       {listError && <p className="portal-field-error">{listError}</p>}
-      <div className="sec-list-tools">
-        <button type="button" className="portal-button is-small is-ghost" disabled={items.length >= max} onClick={() => { setQuery(""); onChange(searchable ? [create(), ...items] : [...items, create()]); }}><Plus size={14} aria-hidden="true" />Add {noun}</button>
-        {searchable && <label className="portal-search sec-list-search">
+      {searchable && <div className="sec-list-tools">
+        <span className="portal-setting-count" role="status">{terms.length ? `${shown.length} of ${items.length}` : `${items.length} ${items.length === 1 ? noun : `${noun}s`}`}</span>
+        <label className="portal-search sec-list-search">
           <span className="portal-visually-hidden">Search {title.toLowerCase()}</span>
           <Search size={15} aria-hidden="true" />
-          <input className="portal-input" type="search" value={query} placeholder={`Search ${title.toLowerCase()}`} onChange={event => setQuery(event.target.value)} />
-        </label>}
-        {searchable && <span className="portal-setting-count" role="status">{terms.length ? `${shown.length} of ${items.length}` : `${items.length} ${items.length === 1 ? noun : `${noun}s`}`}</span>}
-      </div>
+          <input className="portal-input" type="search" value={query} placeholder={`Search ${title.toLowerCase()}`} onChange={event => onQueryChange?.(event.target.value)} />
+        </label>
+        {onAdd && <div className="sec-row-actions"><button type="button" className="portal-icon-button" aria-label="Add office" title="Add office" disabled={addDisabled} onClick={onAdd}><Plus size={15} aria-hidden="true" /></button></div>}
+      </div>}
       {items.length === 0 && <p className="portal-empty">No {noun}s yet.</p>}
       <ol className="sec-list">
         {shown.map(({ item, index }) => {
@@ -219,6 +219,7 @@ export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, 
   const [draft, setDraft] = useState(initial);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [tab, setTab] = useState<Tab>("letters");
+  const [officeQuery, setOfficeQuery] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [unlocked, setUnlocked] = useState<Set<string>>(() => new Set());
   const [pending, startTransition] = useTransition();
@@ -266,6 +267,16 @@ export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, 
   const statusPreview = (item: ToneItem) => <span className={`portal-letter-status is-tone-${item.tone}`}><span className="portal-letter-status-dot" />{item.name || "Status"}</span>;
   const labelPreview = (item: ToneItem) => <span className={`sec-label-preview is-tone-${item.tone}`}>{item.name || "Label"}</span>;
   const tabErrors = new Set(Object.keys(errors).map(tabOf));
+  const addItem = {
+    labels: { label: "Add label", full: draft.labels.length >= 20, add: () => edit("labels", [...draft.labels, { id: newId(), name: "", tone: "blue" }]) },
+    statuses: { label: "Add status", full: draft.statuses.length >= 20, add: () => edit("statuses", [...draft.statuses, { id: newId(), name: "", tone: "grey" }]) },
+    remarks: { label: "Add remark", full: draft.remarkPresets.length >= 30, add: () => edit("remarkPresets", [...draft.remarkPresets, { id: newId(), name: "" }]) },
+    offices: { label: "Add office", full: draft.offices.length >= 500, add: () => {
+      setOfficeQuery("");
+      edit("offices", [{ id: newId(), name: "" }, ...draft.offices]);
+    } },
+  };
+  const activeAdd = tab === "letters" || tab === "minutes" ? null : addItem[tab];
 
   return <>
     <SlidingFilterButtons items={tabItems.map(item => ({ key: item.key, label: tabErrors.has(item.key) ? <>{item.label}<span className="sec-tab-error" aria-hidden="true" /><span className="portal-visually-hidden"> (needs attention)</span></> : item.label }))} active={tab} label="Settings section" onChange={setTab} />
@@ -274,24 +285,21 @@ export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, 
         <fieldset className="sec-settings-fields" disabled={readOnly || pending}>
           {tab === "letters" && <TrackerPanel kind="letters" tracker={draft.letters} errors={errors} unlocked={unlocked} onLock={lock} onChange={tracker => edit("letters", tracker)} />}
           {tab === "minutes" && <TrackerPanel kind="minutes" tracker={draft.minutes} errors={errors} unlocked={unlocked} onLock={lock} onChange={tracker => edit("minutes", tracker)} />}
-          {tab === "labels" && <ListPanel title="Labels" noun="label" path="labels" max={20} items={draft.labels} errors={errors} ordered preview={labelPreview}
-            description="The labels a letter or meeting minutes can carry, in the order they’re listed. Renaming one renames it everywhere. Deleting one takes it off every record that has it."
-            onChange={items => edit("labels", items)} create={() => ({ id: newId(), name: "", tone: "blue" })} />}
-          {tab === "statuses" && <ListPanel title="Statuses" noun="status" path="statuses" max={20} items={draft.statuses} errors={errors} ordered preview={statusPreview}
-            description="The first status is the one a new record starts with. Renaming a status renames it on every record, without sending status notifications. A status still in use can’t be deleted."
-            onChange={items => edit("statuses", items)} create={() => ({ id: newId(), name: "", tone: "grey" })} />}
-          {tab === "remarks" && <ListPanel title="Remark presets" noun="remark" path="remarkPresets" max={30} items={draft.remarkPresets} errors={errors} ordered
-            description="The checkboxes above the Remarks box. Renaming one renames it everywhere. Deleting one unticks it on every record."
-            onChange={items => edit("remarkPresets", items)} create={() => ({ id: newId(), name: "" })} />}
-          {tab === "offices" && <ListPanel title="Destination offices" noun="office" path="offices" max={500} maxLength={300} items={draft.offices} errors={errors} searchable
-            description="Suggestions in the Destination Office field. Any office can still be typed there, even one not on this list. Renaming an office here renames it on records that use it."
-            onChange={items => edit("offices", items)} create={() => ({ id: newId(), name: "" })} />}
+          {tab === "labels" && <ListPanel title="Labels" noun="label" path="labels" items={draft.labels} errors={errors} ordered preview={labelPreview}
+            onChange={items => edit("labels", items)} />}
+          {tab === "statuses" && <ListPanel title="Statuses" noun="status" path="statuses" items={draft.statuses} errors={errors} ordered preview={statusPreview}
+            onChange={items => edit("statuses", items)} />}
+          {tab === "remarks" && <ListPanel title="Remark presets" noun="remark" path="remarkPresets" items={draft.remarkPresets} errors={errors} ordered
+            onChange={items => edit("remarkPresets", items)} />}
+          {tab === "offices" && <ListPanel title="Destination offices" noun="office" path="offices" maxLength={300} items={draft.offices} errors={errors} searchable query={officeQuery} onQueryChange={setOfficeQuery} onAdd={readOnly ? undefined : addItem.offices.add} addDisabled={pending || !hydrated || addItem.offices.full}
+            onChange={items => edit("offices", items)} />}
         </fieldset>
         {!readOnly && <footer className={`portal-settings-foot${dirty ? " is-dirty" : ""}`}>
           <span className="portal-settings-dirty" aria-live="polite">{dirty ? "Unsaved changes" : ""}</span>
           <div className="portal-form-actions">
             {dirty && <button className="portal-button is-ghost" type="button" onClick={discard} disabled={pending}>Discard</button>}
-            <button className="portal-button" type="submit" disabled={pending || !hydrated || !dirty}>{pending ? "Saving…" : dirty ? "Save settings" : "Saved"}</button>
+            {activeAdd && <button className="portal-button is-ghost" type="button" disabled={pending || !hydrated || activeAdd.full} onClick={activeAdd.add}><Plus size={15} aria-hidden="true" />{activeAdd.label}</button>}
+            <button className="portal-button" type="submit" disabled={pending || !hydrated || !dirty}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty ? "Save settings" : "Saved"}</button>
           </div>
         </footer>}
       </form>

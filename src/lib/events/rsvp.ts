@@ -2,7 +2,7 @@ import { z } from "zod";
 import { colleges } from "@/lib/applications/options";
 import { acknowledgementOf, defaultAcknowledgementStep, defaultPrivacyStep, editorDefinitionSchema, identityAnswer, isBlock, privacyConsent, respondentEmail, type EditorDefinition, type EditorField, type EditorStep, type FormAnswers } from "./form-editor";
 import { resolveFlow } from "./form-flow";
-import { requestKinds, type RequestKind } from "./options";
+import { requestKinds, type RequestKind, type RequestStatus } from "./options";
 
 export const rsvpFormPath = (eventId: string) => `/events/${eventId}/rsvp-form`;
 
@@ -13,14 +13,22 @@ export const affiliationKinds = {
   "council-local": "Council — Local",
   "commission-central": "Commission — Central Comelec",
   "commission-local": "Commission — Local Comelec",
-  admin: "Admin",
+  admin: "Admin, Adviser",
   "ust-other": "Other UST Affiliation",
   "external-representative": "Organization / Institution Representative",
   "invited-guest": "Invited Guest (Delegates)",
   "resource-person": "Resource Person (Speakers, Facilitators, Panelists)",
 } as const;
 export type RsvpAffiliation = keyof typeof affiliationKinds;
-export const eventRoles = { head: "President, Chairperson, Organization Head", representative: "Officer, Official Representative" } as const;
+export const eventRoles = {
+  head: "President, Chairperson, Organization Head",
+  representative: "Officer, Official Representative",
+  guest: "Invited Guest",
+  resource: "Invited Resource Person",
+  observer: "Invited Observer, Witness",
+  other: "Others",
+} as const;
+const legacyEventRoles = { ...eventRoles, observer: "Invited Observer", witness: "Witness", guardian: "Guardian" } as const;
 export const attendanceChoices = {
   confirmed: "Confirmed Attendance",
   proxy: "Sending a Proxy",
@@ -68,12 +76,12 @@ export const committeeLimitSchema = z.coerce.number().int().min(1).max(committee
 type LegacyProfile = { lastName: string; firstName: string; middleName: string; email: string; studentNumber: string };
 export type LegacyRsvpAnswers = {
   profile: LegacyProfile; affiliation: "ust" | "external"; affiliationKind: RsvpAffiliation; organization: string; college: string; school: string;
-  role: "" | keyof typeof eventRoles; attendance: keyof typeof attendanceChoices; proxy?: LegacyProfile; delegation: keyof typeof delegationChoices; additionalParticipants: string;
+  role: "" | keyof typeof legacyEventRoles; attendance: keyof typeof attendanceChoices; proxy?: LegacyProfile; delegation: keyof typeof delegationChoices; additionalParticipants: string;
   committees?: CommitteeAssignment[]; resources?: LogisticalResource[]; resourceOther?: string; logisticalNeeds?: ReturnType<typeof emptyLogisticalNeeds>;
   customAnswers?: Record<string, string | string[]>; customDefinition?: { steps: Array<{ fields: Array<{ id: string; label: string; kind: string }> }> }; accurate: boolean; authorized: boolean;
 };
 export type RsvpAnswers = { version: 2; values: FormAnswers; definition: EditorDefinition };
-export type RsvpResponse = { id: string; answers: LegacyRsvpAnswers | RsvpAnswers; created_at: string };
+export type RsvpResponse = { id: string; reference_code?: string; answers: LegacyRsvpAnswers | RsvpAnswers; created_at: string; updated_at?: string; logistics_decisions?: Partial<Record<RequestKind, RequestStatus>> };
 export type RsvpSettings = { require_google?: boolean; enabled: boolean; invitation_token: string; committee_limit: number; definition?: EditorDefinition | null };
 export const isLegacyRsvp = (answers: RsvpResponse["answers"]): answers is LegacyRsvpAnswers => "profile" in answers;
 const legacyName = (answers: LegacyRsvpAnswers) => [answers.profile.firstName, answers.profile.middleName, answers.profile.lastName].filter(Boolean).join(" ");
@@ -105,7 +113,7 @@ export function formFacts(definition: EditorDefinition, values: FormAnswers): Ar
 
 /** An RSVP saved before its questions became editable: its answers sit in fixed places. */
 function legacyFacts(answers: LegacyRsvpAnswers): Array<[string, string]> {
-  const rows: Array<[string, string]> = [["Name", legacyName(answers)], ["Email", answers.profile.email], ["Student number", answers.profile.studentNumber], ["Affiliation", answers.affiliation === "ust" ? "University of Santo Tomas" : "External"], ["Affiliation type", affiliationKinds[answers.affiliationKind]], ["Organization / affiliation", answers.organization], ["College / faculty", answers.college], ["School / university", answers.school], ["Attending as", answers.role ? eventRoles[answers.role] : affiliationKinds[answers.affiliationKind]], ["Attendance", attendanceChoices[answers.attendance]], ["Additional participants", delegationChoices[answers.delegation]], ["Additional participant count / range", answers.additionalParticipants], ["Committee preferences", (answers.committees ?? []).map((id, index) => `${index + 1}. ${committeeAssignments.find(item => item.id === id)?.label ?? id}`).join("\n")], ["Logistical support and resources", (answers.resources ?? []).map(id => logisticalResources.find(item => item.id === id)?.label ?? id).join("\n")], ["Other resources", answers.resourceOther ?? ""], ["Information confirmed accurate", answers.accurate ? "Yes" : "No"], ["Authorized to coordinate", answers.authorized ? "Yes" : "No"]];
+  const rows: Array<[string, string]> = [["Name", legacyName(answers)], ["Email", answers.profile.email], ["Student number", answers.profile.studentNumber], ["Affiliation", answers.affiliation === "ust" ? "University of Santo Tomas" : "External"], ["Affiliation type", affiliationKinds[answers.affiliationKind]], ["Organization / affiliation", answers.organization], ["College / faculty", answers.college], ["School / university", answers.school], ["Attending as", answers.role ? legacyEventRoles[answers.role] : affiliationKinds[answers.affiliationKind]], ["Attendance", attendanceChoices[answers.attendance]], ["Additional participants", delegationChoices[answers.delegation]], ["Additional participant count / range", answers.additionalParticipants], ["Committee preferences", (answers.committees ?? []).map((id, index) => `${index + 1}. ${committeeAssignments.find(item => item.id === id)?.label ?? id}`).join("\n")], ["Logistical support and resources", (answers.resources ?? []).map(id => logisticalResources.find(item => item.id === id)?.label ?? id).join("\n")], ["Other resources", answers.resourceOther ?? ""], ["Information confirmed accurate", answers.accurate ? "Yes" : "No"], ["Authorized to coordinate", answers.authorized ? "Yes" : "No"]];
   if (needsLogistics(answers.affiliationKind)) {
     for (let index = rows.length - 1; index >= 0; index--) if (["Committee preferences", "Logistical support and resources", "Other resources"].includes(rows[index][0])) rows.splice(index, 1);
     const needs = answers.logisticalNeeds ?? emptyLogisticalNeeds();
@@ -125,13 +133,23 @@ function legacyFacts(answers: LegacyRsvpAnswers): Array<[string, string]> {
 const text = (id: string, label: string, extra: Partial<EditorField> = {}): EditorField => ({ id, label, prompt: "", kind: "text", required: true, options: [], ...extra });
 const name = (id: string, label: string, identity?: EditorField["identity"]) => text(id, label, { rules: { uppercase: true, letters: true }, ...(identity ? { identity } : {}) });
 const choice = (id: string, kind: "radio" | "dropdown" | "checkbox", label: string, options: string[], extra: Partial<EditorField> = {}): EditorField => ({ id, label, prompt: "", kind, required: true, options, ...extra });
-const ustTypes = ["Organization — College-based", "Organization — University-wide", "Council — Central Student Council", "Council — Local", "Commission — Central Comelec", "Commission — Local Comelec", "Admin", "Other UST Affiliation"];
+const legacyUstTypes = ["Organization — College-based", "Organization — University-wide", "Council — Central Student Council", "Council — Local", "Commission — Central Comelec", "Commission — Local Comelec", "Admin", "Other UST Affiliation"];
+const ustAffiliationFields: EditorField[] = [
+  choice("rsvp_ust_type", "radio", "UST affiliation", ["Organization", "Council", "Commission", "Admin, Adviser", "Other UST affiliation"], { branches: [["rsvp_org_scope"], ["rsvp_council_scope"], ["rsvp_commission_scope"], ["rsvp_admin_office", "rsvp_role"], ["rsvp_other_affiliation", "rsvp_role"]] }),
+  choice("rsvp_org_scope", "radio", "Organization type", ["University-wide", "College-based"], { branches: [["rsvp_org_name", "rsvp_role"], ["rsvp_org_name", "rsvp_role"]] }),
+  text("rsvp_org_name", "Organization name", { identity: "organization" }),
+  choice("rsvp_council_scope", "radio", "Council type", ["Local", "Central"], { branches: [["rsvp_college", "rsvp_role"], ["rsvp_role"]] }),
+  choice("rsvp_commission_scope", "radio", "Commission type", ["Local", "Central"], { branches: [["rsvp_college", "rsvp_role"], ["rsvp_role"]] }),
+  choice("rsvp_college", "dropdown", "College / faculty", [...colleges]),
+  text("rsvp_admin_office", "Office name"),
+  text("rsvp_other_affiliation", "Specify your affiliation"),
+];
 const externalTypes = ["Organization / Institution Representative", "Invited Guest (Delegates)", "Resource Person (Speakers, Facilitators, Panelists)"];
 const step = (id: string, title: string, fields: EditorField[], description = ""): EditorStep => ({ id, title, description, fields });
 
 export const rsvpAcknowledgement = { title: "Your RSVP has been recorded.", message: "Share the public registration link with your additional participants. Each participant must register individually.", link: true, email: true, subject: "RSVP received — {event}", body: "Hi {name},\n\nYour collaborator RSVP for {event} has been recorded.\n\nShare this public registration link with your additional participants. Each participant must register individually. Your RSVP doesn’t register them.\n{link}" };
 
-export const defaultRsvpDefinition: EditorDefinition = { steps: [
+const startingRsvpDefinition: EditorDefinition = { steps: [
   defaultPrivacyStep([privacyConsent("rsvp_consent", "event’s coordination"), { id: "rsvp_consent_share", kind: "confirm", required: true, options: [], prompt: "", label: "I understand that my RSVP details are shared with the event’s organizers and its collaborating units." }]),
   step("rsvp_profile", "Profile", [
     name("rsvp_last_name", "Last name", "lastName"), name("rsvp_first_name", "First name", "firstName"), name("rsvp_middle_name", "Middle name", "middleName"),
@@ -139,16 +157,16 @@ export const defaultRsvpDefinition: EditorDefinition = { steps: [
     text("rsvp_student_number", "Student number", { rules: { studentNumber: true }, identity: "studentNumber" }),
   ]),
   step("rsvp_affiliation", "Affiliation", [
-    choice("rsvp_affiliation", "radio", "Affiliation", ["University of Santo Tomas", "External"], { identity: "affiliation", branches: [["rsvp_ust_type", "rsvp_committees", "rsvp_resources"], ["rsvp_external_type", "rsvp_logistics"]] }),
-    choice("rsvp_ust_type", "dropdown", "UST affiliation", ustTypes, { branches: [["rsvp_org_name", "rsvp_role"], ["rsvp_org_name", "rsvp_role"], ["rsvp_role"], ["rsvp_college", "rsvp_role"], ["rsvp_role"], ["rsvp_college", "rsvp_role"], ["rsvp_role"], ["rsvp_other_affiliation", "rsvp_role"]] }),
-    text("rsvp_org_name", "Organization name", { identity: "organization" }),
-    choice("rsvp_college", "dropdown", "College / Faculty", [...colleges]),
-    text("rsvp_other_affiliation", "Specify your affiliation"),
+    choice("rsvp_affiliation", "radio", "Affiliation", ["University of Santo Tomas", "External"], { identity: "affiliation", branches: [["rsvp_ust_type", "rsvp_committees", "rsvp_resources"], ["rsvp_external_type"]] }),
+    ...ustAffiliationFields,
     choice("rsvp_external_type", "radio", "External affiliation", externalTypes, { branches: [["rsvp_external_org", "rsvp_external_school", "rsvp_role"], [], []] }),
     text("rsvp_external_org", "Organization / Affiliation"),
     text("rsvp_external_school", "School / University", { required: false }),
   ]),
-  step("rsvp_role", "Attending as", [choice("rsvp_role", "radio", "Attending as", Object.values(eventRoles))]),
+  step("rsvp_role", "Attending as", [
+    choice("rsvp_role", "radio", "Attending as", Object.values(eventRoles), { branches: Object.values(eventRoles).map(role => role === eventRoles.other ? ["rsvp_role_other"] : []) }),
+    text("rsvp_role_other", "Please specify how you are attending"),
+  ]),
   step("rsvp_attendance", "Attendance Confirmation", [
     choice("rsvp_attendance", "radio", "Attendance response", Object.values(attendanceChoices), { notes: Object.values(attendanceNotes), branches: [[], ["rsvp_proxy_last_name", "rsvp_proxy_first_name", "rsvp_proxy_middle_name", "rsvp_proxy_email"], []] }),
     name("rsvp_proxy_last_name", "Proxy’s last name"), name("rsvp_proxy_first_name", "Proxy’s first name"), name("rsvp_proxy_middle_name", "Proxy’s middle name"),
@@ -179,6 +197,56 @@ export const defaultRsvpDefinition: EditorDefinition = { steps: [
   defaultAcknowledgementStep(rsvpAcknowledgement),
 ] };
 
+/** Keep standard RSVP questions together without changing their IDs or answers. */
+function arrangeRsvpSteps(definition: EditorDefinition): EditorDefinition {
+  let steps = definition.steps;
+  let changed = false;
+  for (const [ids, id, title] of [
+    [["rsvp_profile", "rsvp_affiliation"], "rsvp_profile", "Profile and affiliation"],
+    [["rsvp_role", "rsvp_attendance", "rsvp_delegation"], "rsvp_attendance", "Attendance and delegation"],
+  ] as const) {
+    const grouped = steps.filter(item => (ids as readonly string[]).includes(item.id));
+    if (!grouped.length || (grouped.length === 1 && grouped[0].id === id && grouped[0].title === title)) continue;
+    const first = grouped[0];
+    const combined = { ...first, id, title, description: "", fields: grouped.flatMap(item => item.fields) };
+    steps = steps.flatMap(item => item === first ? [combined] : (ids as readonly string[]).includes(item.id) ? [] : [item]);
+    changed = true;
+  }
+  const hasStandardFields = steps.some(item => item.fields.some(field => field.id === "rsvp_affiliation"));
+  if (hasStandardFields) {
+    if (!steps.some(item => item.fields.some(field => field.id === "rsvp_logistics"))) {
+      const logistics = startingRsvpDefinition.steps.find(item => item.id === "rsvp_logistics")!;
+      const index = steps.findIndex(item => item.id === "rsvp_conforme");
+      steps = [...steps];
+      steps.splice(index < 0 ? steps.length - 1 : index, 0, logistics);
+      changed = true;
+    }
+    steps = steps.map(item => {
+      const fields = item.fields.map(field => {
+        if (field.id !== "rsvp_affiliation" || !field.branches?.some(targets => targets.includes("rsvp_logistics"))) return field;
+        changed = true;
+        return { ...field, branches: field.branches.map(targets => targets.filter(id => id !== "rsvp_logistics")) };
+      });
+      if (item.id === "rsvp_logistics" && (item.title !== "Logistical Requests" || fields.find(field => field.id === "rsvp_logistics")?.label !== "Logistical requests")) {
+        changed = true;
+        return { ...item, title: "Logistical Requests", fields: fields.map(field => field.id === "rsvp_logistics" ? { ...field, label: "Logistical requests" } : field) };
+      }
+      return fields.some((field, index) => field !== item.fields[index]) ? { ...item, fields } : item;
+    });
+    const logisticsIndex = steps.findIndex(item => item.id === "rsvp_logistics");
+    const conformeIndex = steps.findIndex(item => item.id === "rsvp_conforme");
+    if (logisticsIndex >= 0 && conformeIndex >= 0 && logisticsIndex !== conformeIndex - 1) {
+      const logistics = steps[logisticsIndex];
+      steps = steps.filter(item => item !== logistics);
+      steps.splice(steps.findIndex(item => item.id === "rsvp_conforme"), 0, logistics);
+      changed = true;
+    }
+  }
+  return changed ? { ...definition, steps } : definition;
+}
+
+export const defaultRsvpDefinition = arrangeRsvpSteps(startingRsvpDefinition);
+
 /**
  * Forms saved before every question became editable (locked `builtin` steps, or `standard` questions
  * answered in fixed places) open as the editable default; questions someone added are kept, in a
@@ -188,15 +256,53 @@ export function normalizeRsvpDefinition(definition: EditorDefinition | null | un
   if (!definition) return defaultRsvpDefinition;
   const legacy = definition.steps.some(item => item.builtin !== undefined) || definition.steps.some(item => item.fields.some(field => "standard" in field)) || definition.steps[0]?.kind !== "privacy";
   if (!legacy) {
-    const needsUpdate = definition.steps.some(item => item.fields.some(field => field.id.startsWith("rsvp_") && field.rules?.noSpecial) || (item.fields.some(field => field.id === "rsvp_committees") && item.fields.some(field => field.id === "rsvp_resources")));
-    if (!needsUpdate) return definition;
+    const newRoles = [eventRoles.guest, eventRoles.resource, eventRoles.observer, eventRoles.other];
+    const hasRoleOther = definition.steps.some(item => item.fields.some(field => field.id === "rsvp_role_other"));
+    const needsRoles = (field: EditorField) => field.id === "rsvp_role" && (field.kind === "radio" || field.kind === "dropdown") && field.options.includes(eventRoles.head) && field.options.includes(eventRoles.representative) && (newRoles.some(role => !field.options.includes(role)) || field.options.some(role => ["Invited Observer", "Witness", "Guardian"].includes(role)) || !hasRoleOther || !field.branches?.[field.options.indexOf(eventRoles.other)]?.includes("rsvp_role_other"));
+    const needsAdminLabel = (field: EditorField) => field.id === "rsvp_ust_type" && field.options.includes("Admin");
+    const needsCollegePicker = (field: EditorField) => field.id === "rsvp_college" && (field.kind === "text" || (field.kind === "dropdown" && (field.options.length !== colleges.length || field.options.some((option, index) => option !== colleges[index]))));
+    const affiliation = definition.steps.flatMap(item => item.fields).find(field => field.id === "rsvp_ust_type");
+    const addedIds = new Set(["rsvp_org_scope", "rsvp_council_scope", "rsvp_commission_scope", "rsvp_admin_office"]);
+    const fieldIds = new Set([...definition.steps.flatMap(item => item.fields.map(field => field.id)), ...addedIds]);
+    const keptTargets = (targets: string[]) => targets.filter(id => fieldIds.has(id));
+    const upgradeAffiliation = affiliation?.kind === "dropdown" && affiliation.options.length === legacyUstTypes.length && affiliation.options.every((value, index) => value === legacyUstTypes[index]) && !definition.steps.some(item => item.fields.some(field => addedIds.has(field.id)));
+    const needsUpdate = upgradeAffiliation || definition.steps.some(item => item.fields.some(field => needsRoles(field) || needsAdminLabel(field) || needsCollegePicker(field) || (field.id.startsWith("rsvp_") && field.rules?.noSpecial)) || (item.fields.some(field => field.id === "rsvp_committees") && item.fields.some(field => field.id === "rsvp_resources")));
+    if (!needsUpdate) return arrangeRsvpSteps(definition);
     const ids = new Set(definition.steps.map(item => item.id));
-    return { ...definition, steps: definition.steps.flatMap(item => {
-      const fields = item.fields.map(field => {
-        if (!field.id.startsWith("rsvp_") || !field.rules?.noSpecial) return field;
+    return arrangeRsvpSteps({ ...definition, steps: definition.steps.flatMap(item => {
+      const fields = item.fields.flatMap(field => {
+        if (needsRoles(field)) {
+          const renamed = field.options.map(role => ["Invited Observer", "Witness"].includes(role) ? eventRoles.observer : role);
+          const options = [...new Set([...renamed.filter(role => role !== "Guardian"), ...newRoles])];
+          const branches = options.map(role => {
+            const targets = field.options.flatMap((_, index) => renamed[index] === role ? field.branches?.[index] ?? [] : []);
+            return [...new Set([...targets, ...(role === eventRoles.other ? ["rsvp_role_other"] : [])])];
+          });
+          const notes = field.notes ? options.map(role => field.notes?.[renamed.indexOf(role)] ?? "") : undefined;
+          field = { ...field, options, branches, ...(notes ? { notes } : {}) };
+          if (!hasRoleOther) return [field, text("rsvp_role_other", "Please specify how you are attending")];
+        }
+        if (upgradeAffiliation && field.id === "rsvp_ust_type") {
+          const root = { ...field, kind: "radio" as const, options: ustAffiliationFields[0].options, branches: ustAffiliationFields[0].branches };
+          if (field.notes) root.notes = ["", "", "", field.notes[6] ?? "", field.notes[7] ?? ""];
+          // Keep customized follow-ups on the matching subtype, in their original forward order.
+          root.branches = root.branches?.map((targets, index) => index === 3 ? ["rsvp_admin_office", ...(field.branches?.[6] ?? ["rsvp_role"])] : index === 4 ? field.branches?.[7] ?? targets : targets);
+          root.branches = root.branches?.map(keptTargets);
+          const subtypes = ustAffiliationFields.filter(item => addedIds.has(item.id)).map(item => {
+            const previous = item.id === "rsvp_org_scope" ? [1, 0] : item.id === "rsvp_council_scope" ? [3, 2] : item.id === "rsvp_commission_scope" ? [5, 4] : undefined;
+            return previous ? { ...item, branches: previous.map((index, choice) => keptTargets(field.branches?.[index] ?? item.branches?.[choice] ?? [])), ...(field.notes ? { notes: previous.map(index => field.notes?.[index] ?? "") } : {}) } : item;
+          });
+          return [root, ...subtypes];
+        }
+        if (needsAdminLabel(field)) field = { ...field, options: field.options.map(option => option === "Admin" ? "Admin, Adviser" : option) };
+        if (needsCollegePicker(field)) return [{ ...field, kind: "dropdown" as const, options: [...colleges], rules: undefined,
+          ...(field.branches ? { branches: colleges.map(college => field.branches?.[field.options.indexOf(college)] ?? []) } : {}),
+          ...(field.notes ? { notes: colleges.map(college => field.notes?.[field.options.indexOf(college)] ?? "") } : {}),
+        }];
+        if (!field.id.startsWith("rsvp_") || !field.rules?.noSpecial) return [field];
         const rules = { ...field.rules, hyphenOnly: true };
         delete rules.noSpecial;
-        return { ...field, rules };
+        return [{ ...field, rules }];
       });
       if (!fields.some(field => field.id === "rsvp_committees") || !fields.some(field => field.id === "rsvp_resources")) return [{ ...item, fields }];
       const resourceIds = new Set(["rsvp_resources", "rsvp_resource_other"]);
@@ -204,7 +310,7 @@ export function normalizeRsvpDefinition(definition: EditorDefinition | null | un
       while (ids.has(resourceStepId)) resourceStepId += "_";
       ids.add(resourceStepId);
       return [{ ...item, title: item.title === "Committee Involvement & Functional Roles" ? "Preferred committee assignments" : item.title, fields: fields.filter(field => !resourceIds.has(field.id)) }, step(resourceStepId, "Logistical Support and Resources", fields.filter(field => resourceIds.has(field.id)))];
-    }) };
+    }) });
   }
   const added = definition.steps.flatMap(item => item.fields).filter(field => !("standard" in field) && field.id.startsWith("q_")).map(field => { const copy = { ...field }; delete copy.branches; return copy; });
   if (!added.length) return defaultRsvpDefinition;

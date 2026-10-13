@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType, type HTMLAttributes, type RefAttributes } from "react";
-import { useReducedMotion } from "motion/react";
+import { useMemo, useRef, type ComponentType, type HTMLAttributes, type RefAttributes } from "react";
+import { useIconCycle } from "@/components/use-icon-cycle";
 import { BookTextIcon } from "@/components/lucide-animated/book-text";
 import { BriefcaseBusinessIcon } from "@/components/lucide-animated/briefcase-business";
 import { CalendarDaysIcon } from "@/components/lucide-animated/calendar-days";
@@ -45,12 +45,15 @@ type ControlledIcon = ComponentType<HTMLAttributes<HTMLDivElement> & { size?: nu
 function controlledIcon(Source: ControlledIcon): PortalIcon {
   function Icon({ animate = false, size, "aria-hidden": ariaHidden }: PortalIconProps) {
     const ref = useRef<AnimationHandle>(null);
-    useEffect(() => {
-      const handle = ref.current;
-      if (animate) handle?.startAnimation();
-      else handle?.stopAnimation();
-    }, [animate]);
-    return <Source ref={ref} size={size} aria-hidden={ariaHidden} />;
+    const element = useRef<HTMLSpanElement>(null);
+    const controls = useMemo(() => ({
+      // The child Motion component cancels its animations on unmount.
+      stop: () => {},
+      set: () => ref.current?.stopAnimation(),
+      start: (variant: string) => variant === "animate" ? ref.current?.startAnimation() : ref.current?.stopAnimation(),
+    }), []);
+    useIconCycle(element, controls, { active: animate, normal: "normal" });
+    return <span ref={element} data-icon-motion="" style={{ display: "inline-flex", flexShrink: 0 }}><Source ref={ref} size={size} aria-hidden={ariaHidden} /></span>;
   }
   return Icon;
 }
@@ -74,15 +77,5 @@ export const ScanText = controlledIcon(ScanTextIcon);
 export const UserRoundPlus = controlledIcon(UserRoundPlusIcon);
 
 export function NavSymbol({ icon: Icon, active, engaged = false }: { icon: PortalIcon; active: boolean; engaged?: boolean }) {
-  const reducedMotion = useReducedMotion();
-  const [replay, setReplay] = useState(0);
-
-  useEffect(() => {
-    if (!active || reducedMotion) return;
-    // Restart either library's original animation on the same three-second cadence.
-    const interval = window.setInterval(() => setReplay((value) => value + 1), 3000);
-    return () => window.clearInterval(interval);
-  }, [active, reducedMotion]);
-
-  return <span className="portal-nav-symbol" aria-hidden="true"><Icon key={active && !reducedMotion ? replay : "idle"} size={17} strokeWidth={1.7} animate={(active || engaged) && !reducedMotion} /></span>;
+  return <span className="portal-nav-symbol" data-icon-motion="" aria-hidden="true"><Icon size={17} strokeWidth={1.7} animate={active || engaged} /></span>;
 }

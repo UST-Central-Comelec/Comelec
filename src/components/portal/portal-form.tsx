@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AddIcon, SaveIcon } from "@/components/action-icons";
 import { startTransition, useActionState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import type { FormState } from "@/lib/portal/form";
 import { InfoTip } from "./info-tip";
@@ -57,27 +58,27 @@ export function Field({ label, hint, error, children, wide }: { label: string; h
 }
 
 /** `danger` is the destructive action (a delete button), kept at the far left, away from Cancel and Save. */
-export function FormFooter({ pending, submitLabel, cancelHref, danger, beforeActions, formId }: { pending: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; beforeActions?: ReactNode; formId?: string }) {
+export function FormFooter({ pending, submitLabel, submitIcon, cancelHref, danger, beforeActions, formId }: { pending: boolean; submitLabel: string; submitIcon?: ReactNode; cancelHref: string; danger?: ReactNode; beforeActions?: ReactNode; formId?: string }) {
   const hydrated = useHydrated();
 
   return (
     <div className={`portal-form-footer${danger ? " has-danger" : ""}`}>
       {!danger && <span />}
       {danger}
-      <FormActions pending={pending} submitLabel={submitLabel} cancelHref={cancelHref} formId={formId} hydrated={hydrated}>{beforeActions}</FormActions>
+      <FormActions pending={pending} submitLabel={submitLabel} submitIcon={submitIcon} cancelHref={cancelHref} formId={formId} hydrated={hydrated}>{beforeActions}</FormActions>
     </div>
   );
 }
 
 /** Cancel and Save on their own, for a form that keeps them somewhere other than its footer. */
-export function FormActions({ pending, submitLabel, cancelHref, formId, hydrated, children, small }: { pending: boolean; submitLabel: string; cancelHref: string; formId?: string; hydrated?: boolean; children?: ReactNode; small?: boolean }) {
+export function FormActions({ pending, submitLabel, submitIcon, cancelHref, formId, hydrated, children, small }: { pending: boolean; submitLabel: string; submitIcon?: ReactNode; cancelHref: string; formId?: string; hydrated?: boolean; children?: ReactNode; small?: boolean }) {
   const ready = useHydrated();
   const size = small ? " is-small" : "";
   return (
     <div className="portal-form-actions">
       {children}
       <Link className={`portal-button is-ghost${size}`} href={cancelHref}>Cancel</Link>
-      <button className={`portal-button${size}`} type="submit" form={formId} disabled={pending || !(hydrated ?? ready)}>{pending ? "Saving…" : submitLabel}</button>
+      <button className={`portal-button${size}`} type="submit" form={formId} disabled={pending || !(hydrated ?? ready)}>{submitIcon ?? (/^(add|create)\b/i.test(submitLabel) ? <AddIcon size={15} /> : <SaveIcon size={15} />)}{pending ? "Saving…" : submitLabel}</button>
     </div>
   );
 }

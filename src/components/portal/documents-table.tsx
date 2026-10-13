@@ -1,5 +1,6 @@
 "use client";
 
+import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { archiveKinds, documentKinds, formatDate, isDocumentKind, type OfficialDocument } from "@/lib/data/types";
@@ -32,7 +33,7 @@ export function DocumentsTable({ documents, readOnly }: { documents: DocumentRow
       <SlidingFilterButtons items={filters} active={active} label="Filter by type" onChange={filter} />
       <section className="portal-card is-flush">
         {visible.length === 0 ? (
-          <p className="portal-empty">No documents here yet.{!readOnly && <> <Link href="/portal/documents/archive/new">Add one.</Link></>}</p>
+          <p className="portal-empty">No documents here yet.{!readOnly && <> <Link href="/portal/documents/archive/new"><ActionAddIcon size={15} aria-hidden="true" />Add one.</Link></>}</p>
         ) : (
           <div className="portal-table-wrap">
             <table className="portal-table">
@@ -47,7 +48,7 @@ export function DocumentsTable({ documents, readOnly }: { documents: DocumentRow
                     <td><span className="portal-tag">{documentKinds[doc.kind]}</span></td>
                     <td className="portal-muted">{formatDate(doc.date)}</td>
                     <td>{doc.fileUrl ? <a href={doc.fileUrl} target="_blank" rel="noreferrer">Open ↗</a> : <span className="portal-tag is-warn">No link</span>}</td>
-                    <td className="portal-row-actions"><Link href={`/portal/documents/archive/${doc.id}`}>{readOnly ? "View" : "Edit"}</Link></td>
+                    <td className="portal-row-actions"><Link href={`/portal/documents/archive/${doc.id}`}><>{readOnly ? <ActionViewIcon size={15} /> : <ActionEditIcon size={15} />}</>{readOnly ? "View" : "Edit"}</Link></td>
                   </tr>
                 ))}
               </tbody>

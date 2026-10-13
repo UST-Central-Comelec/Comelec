@@ -1,10 +1,12 @@
 "use client";
 
+import { EditIcon as ActionEditIcon } from "@/components/action-icons";
 import { scrollToTop } from "@/lib/scroll";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Copy, Eye, Mail, ShieldCheck, Target, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Mail, ShieldCheck, Target, Users } from "lucide-react";
+import { CopyIcon as Copy, ViewIcon as Eye } from "@/components/action-icons";
 import { submitApplication, type ApplicationState, type SubmittedApplication } from "@/lib/applications/actions";
 import { forgetApplicantVerification } from "@/lib/applications/verification-actions";
 import { digitsOnly, formatMobileNumber, formatNumericInput } from "@/lib/applications/numeric-input";
@@ -215,7 +217,7 @@ const sectionSteps: Record<AnswerSectionId, number> = { qualifications: 1, about
 function ReviewSection({ title, onEdit, rows }: { title: string; onEdit?: () => void; rows: Array<[string, string]> }) {
   return (
     <section className="apply-review-section">
-      <header><h3>{title}</h3>{onEdit && <button type="button" onClick={onEdit}>Edit</button>}</header>
+      <header><h3>{title}</h3>{onEdit && <button type="button" onClick={onEdit}><ActionEditIcon size={15} aria-hidden="true" />Edit</button>}</header>
       <dl>
         {rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || <span className="is-empty">Not provided</span>}</dd></div>)}
       </dl>

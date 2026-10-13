@@ -5,7 +5,8 @@ import { cleanMobileNumber, cleanStudentNumber, tidyPersonName } from "@/lib/for
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, Copy, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Info } from "lucide-react";
+import { CopyIcon as Copy } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
 import { FacebookProfileInput } from "@/components/facebook-profile-input";
 import { GoogleMark } from "@/components/portal/login-form";
@@ -18,7 +19,7 @@ import { checkAccessRequest, readAccessRequest } from "@/lib/access-requests/sch
 import { colleges, programsByCollege, programLocked, yearLevelsFor, type College } from "@/lib/applications/options";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
 import { accountPositions, affiliations, commissionerPositions, describeAffiliation, type AccountPosition, type Affiliation } from "@/lib/data/types";
-import { formatAccepted, onboardingSteps, type OnboardingDocument, type OnboardingDocumentKey } from "@/lib/onboarding/documents";
+import { formatAccepted, requestOnboardingSteps, type OnboardingDocument, type OnboardingDocumentKey } from "@/lib/onboarding/documents";
 import { LegalText } from "./legal-text";
 import "./onboarding.css";
 
@@ -26,8 +27,7 @@ const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { date
 
 const receiptLabels = { kind: "Portal access request", heading: "Access request received", subject: "request" };
 
-const PROFILE = onboardingSteps.findIndex((step) => step.id === "profile");
-const LAST = onboardingSteps.length - 1;
+const PROFILE = 1;
 
 /** Uppercases a name as it's typed, keeping the cursor where it was. */
 function uppercase(event: FormEvent<HTMLInputElement>) {
@@ -187,6 +187,8 @@ function DocumentStep({ document, acceptedAt, read, onRead, onAccept }: { docume
  * Executive Board under Accounts.
  */
 export function RequestAccessForm({ profile, onProfileChange, initialStatus, onBack, join, documents }: { profile: AccessProfile | null; onProfileChange: (profile: AccessProfile | null) => void; initialStatus?: string; onBack: () => void; join: string | null; documents: OnboardingDocument[] }) {
+  const onboardingSteps = requestOnboardingSteps(documents);
+  const LAST = onboardingSteps.length - 1;
   const [state, formAction, pending] = useActionState(submitAccessRequest, undefined);
   const hydrated = useHydrated();
   const [step, setStep] = useState(0);

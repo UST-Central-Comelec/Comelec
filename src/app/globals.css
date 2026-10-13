@@ -1,4 +1,6 @@
+@import "./icon-motion.css";
 @import "./theme-palette.css";
+@import "../components/application-form-ui.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -235,7 +237,6 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 
 /* Commissioner application form (/apply): full-width, progress tracker across the top */
 .apply-page { background: var(--paper); display: flex; flex-direction: column; min-height: calc(100vh - 78px); }
-.apply-form { display: flex; flex: 1; flex-direction: column; }
 
 .apply-top { background: #000; border-bottom: 1px solid rgba(255,255,255,.08); color: #fff; }
 .apply-top-inner { align-items: center; display: flex; gap: 24px; justify-content: space-between; margin: auto; max-width: var(--site-max); padding: 12px clamp(16px, 5vw, 96px); }
@@ -258,7 +259,6 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 }
 
 /* Step 6, Result */
-.apply-result { background: var(--ap-surface, #fff); border: 1px solid var(--line); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 18px; padding: 24px; }
 .apply-result-code { align-items: center; background: var(--ap-solid, var(--ink)); border-radius: var(--radius-md); color: var(--ap-on-solid, #fff); display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; padding: 18px 20px; }
 .apply-result-code span { color: rgba(255,255,255,.6); display: block; font-size: 12px; font-weight: 500; }
 .apply-result-code strong { display: block; font-size: clamp(22px, 3vw, 28px); font-variant-numeric: tabular-nums; font-weight: 600; margin-top: 4px; }
@@ -357,23 +357,10 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .apply-countdown.is-open { color: #fff; gap: 8px; }
 .apply-countdown.is-open i { background: #3ecf8e; border-radius: 50%; box-shadow: 0 0 0 4px rgba(62,207,142,.18); height: 7px; width: 7px; }
 .apply-closed .apply-nav { border-top: 0; margin-top: 8px; }
-.apply-tracker { background: var(--ap-surface, #fff); border-bottom: 1px solid var(--line); }
-.apply-tracker-inner { margin: auto; max-width: var(--site-max); padding: 22px clamp(16px, 5vw, 96px) 20px; }
-.apply-steps { display: flex; gap: clamp(12px, 1.8vw, 28px); list-style: none; margin: 0; padding: 0; }
-.apply-steps li { flex: 1; min-width: 0; }
-.apply-steps button { background: none; border: 0; border-radius: 6px; color: #9a9a9a; cursor: pointer; display: flex; flex-direction: column; font: inherit; gap: 12px; padding: 4px 0; text-align: left; transition: color .4s ease; width: 100%; }
-.apply-steps button:disabled { cursor: default; }
-.apply-steps button:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
-.apply-steps .is-current button { color: var(--ink); }
-.apply-steps button:not(:disabled):hover { color: var(--ink); }
 
 /* Each step is a rail. Black fills in as a step is finished and drains when the applicant goes back
    past it. Gold fills into the current step, fades to black when they move on, and drains when they
    go back. */
-.apply-step-rail { background: rgba(var(--ap-ink-rgb, 0,0,0),.08); border-radius: 99px; display: block; height: 4px; position: relative; transition: background .3s ease; }
-.apply-step-rail::before, .apply-step-rail::after { border-radius: inherit; content: ""; inset: 0; position: absolute; transform: scaleX(0); transform-origin: left; }
-.apply-step-rail::before { background: var(--ap-solid, var(--ink)); transition: transform .6s cubic-bezier(.65,0,.35,1); }
-.apply-steps .is-done .apply-step-rail::before { transform: scaleX(1); }
 .apply-step-rail::after { background: linear-gradient(90deg, var(--gold) 0%, var(--ui-accent-soft, #ffe27a) 45%, var(--gold) 60%, var(--gold) 100%); background-size: 250% 100%; box-shadow: 0 0 14px rgba(var(--ui-accent-rgb, 254,195,12),.55), 0 0 3px rgba(var(--ui-accent-rgb, 254,195,12),.9); transition: transform .6s cubic-bezier(.65,0,.35,1), opacity 0s linear .6s; }
 .apply-steps .is-current .apply-step-rail::after { animation: apply-rail-flow 2.6s linear infinite; transform: scaleX(1); transition: transform .6s cubic-bezier(.65,0,.35,1) .22s, opacity .45s ease; }
 .apply-steps .is-done .apply-step-rail::after { opacity: 0; transform: scaleX(1); transition: opacity .5s ease .1s; }
@@ -381,38 +368,17 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .apply-steps button:not(:disabled):hover .apply-step-rail { background: rgba(var(--ap-ink-rgb, 0,0,0),.16); }
 @keyframes apply-rail-flow { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 
-.apply-step-label { align-items: flex-start; display: flex; gap: 8px; min-width: 0; padding-right: 6px; }
-.apply-step-index { align-items: center; background: var(--ap-solid, var(--ink)); border-radius: 5px; color: var(--ap-on-solid, #fff); display: inline-flex; flex: none; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 500; height: 18px; justify-content: center; min-width: 22px; padding: 0 5px; transition: background .4s ease, box-shadow .4s ease, color .4s ease; }
 .apply-steps .is-upcoming .apply-step-index { background: #b3b3b3; }
 .apply-steps .is-current .apply-step-index { background: var(--gold); box-shadow: 0 0 14px rgba(var(--ui-accent-rgb, 254,195,12),.55), 0 0 3px rgba(var(--ui-accent-rgb, 254,195,12),.9); color: var(--ap-on-solid, #fff); font-weight: 600; }
-.apply-step-text { font-size: 13px; font-weight: 500; line-height: 18px; min-width: 0; }
 
 /* Only below 1180px wide, where the step names are hidden. */
-.apply-tracker-readout { align-items: baseline; display: none; font-size: 12px; gap: 10px; margin-top: 12px; }
-.apply-tracker-readout > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
-.apply-tracker-readout strong { color: var(--ink); font-weight: 600; }
-.apply-tracker-readout-title { animation: apply-readout-in .4s cubic-bezier(.22,1,.36,1); flex: 1; font-size: 13px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) { .apply-tracker-readout-title { animation: apply-readout-in .4s cubic-bezier(.22,1,.36,1); } }
 @keyframes apply-readout-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-.apply-tracker-readout-percent { color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* The rails show progress; the progress bar stays for screen readers. */
-.apply-progress { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
 .visually-hidden { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
 /* Below 1180px the names no longer fit beside each number: show numbers only, and spell out the current step underneath. */
-@media (max-width: 1180px) {
-	.apply-step-text { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
-	.apply-steps button { gap: 8px; }
-	.apply-tracker-readout { display: flex; }
-}
-@media (max-width: 600px) { .apply-steps, .apply-skeleton-steps { gap: 8px; } }
-@media (prefers-reduced-motion: reduce) { .apply-steps button, .apply-step-rail, .apply-step-rail::before, .apply-step-rail::after, .apply-steps .apply-step-rail::after, .apply-step-index { transition: none !important; } .apply-steps .is-current .apply-step-rail::after, .apply-tracker-readout-title { animation: none; } }
 
-.apply-body { display: flex; flex: 1; flex-direction: column; gap: 32px; margin: 0 auto; max-width: var(--site-max); padding: 44px clamp(16px, 5vw, 96px) 72px; width: 100%; }
-.apply-body-head span { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
-.apply-body-head h2 { font-size: clamp(20px, 2vw, 23px); font-weight: 600; letter-spacing: 0; line-height: 1.3; margin: 6px 0 0; outline: none; }
-.apply-body-head p { color: var(--muted); font-size: 14px; line-height: 1.65; margin: 6px 0 0; }
-.apply-body-head p a { border-bottom: 1px solid rgba(var(--ui-accent-rgb, 254,195,12),.6); color: var(--ink); font-weight: 500; text-decoration: none; }
-.apply-body-head p a:hover { border-bottom-color: var(--gold); }
 .apply-step[hidden] { display: none; }
 .apply-step:not([hidden]) { display: flex; flex-direction: column; gap: 28px; }
 /* Switching steps (STEP_LEAVE_MS in application-form.tsx): the heading and step slide out the way the
@@ -524,15 +490,7 @@ body.view-mode { padding-top: 0; }
 
 .apply-privacy p { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 0; }
 .apply-privacy a { border-bottom: 1px solid var(--gold); color: var(--ink); }
-.apply-privacy-head { align-items: center; display: flex; gap: 14px; }
-.apply-privacy-icon { align-items: center; background: var(--ap-solid, var(--ink)); border-radius: 12px; color: var(--gold); display: inline-flex; flex: none; height: 42px; justify-content: center; width: 42px; }
-.apply-privacy-head h3 { font-size: 17px !important; }
-.apply-privacy-law { color: var(--muted); display: block; font-size: 12px; margin-top: 2px; }
 .apply-privacy .apply-privacy-intro { color: var(--ink); font-size: 15px; }
-.apply-privacy-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.apply-privacy-item { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-md); display: flex; gap: 14px; padding: 16px 18px; }
-.apply-privacy-item-icon { align-items: center; background: var(--ap-surface, #fff); border: 1px solid var(--line); border-radius: 50%; color: var(--ink); display: inline-flex; flex: none; height: 34px; justify-content: center; width: 34px; }
-.apply-privacy-item p { font-size: 13.5px; line-height: 1.65; }
 .apply-privacy-rights { align-items: flex-start; display: flex; gap: 10px; }
 .apply-privacy-rights svg { color: var(--muted); flex: none; margin-top: 3px; }
 .apply-privacy h4 { font-size: 14px; font-weight: 600; margin: 6px 0 4px; }
@@ -609,7 +567,6 @@ body.view-mode { padding-top: 0; }
 .apply-units strong { color: var(--ink); font-size: 14px; font-weight: 600; }
 .apply-units span { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .apply-body-head .apply-units span { font-size: 13px; font-weight: 400; text-transform: none; }
-.apply-nav { align-items: center; border-top: 1px solid var(--line); display: flex; gap: 16px; justify-content: space-between; margin-top: auto; padding-top: 24px; }
 .apply-back { align-items: center; background: none; border: 0; color: var(--ink); cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; font-weight: 700; gap: 8px; padding: 10px 0; }
 .apply-nav .button-primary { border: 0; cursor: pointer; font-family: inherit; }
 .apply-nav .button-primary:disabled { cursor: progress; opacity: .6; }
@@ -761,3 +718,11 @@ body.view-mode { padding-top: 0; }
    page's own text colour. Each form family sets the edge; the lift is shared. */
 :root { --field-lift: 0 14px 30px -18px rgba(0,0,0,.95); }
 :root[data-theme="light"] { --field-lift: 0 1px 2px rgba(16,24,40,.06), 0 10px 24px -12px rgba(16,24,40,.24); }
+
+.track-edit-request { border-top: 1px solid var(--line); padding-top: 20px; }
+.track-edit-request form { display: grid; gap: 16px; }
+.apply-page .track-edit-request .button-primary { background: var(--gold); color: var(--ui-accent-foreground); border: 0; cursor: pointer; font-family: inherit; min-height: 40px; }
+.track-edit-request .button-primary:disabled { opacity: .5; }
+.track-edit-changes { color: var(--ink); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.track-edit-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+.track-edit-cancel { background: var(--ap-surface); border: 1px solid var(--line); border-radius: var(--ui-button-radius); color: var(--ink); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; padding: 10px 16px; }

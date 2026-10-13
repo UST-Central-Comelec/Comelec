@@ -1,7 +1,24 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { SlidingFilterButtons } from "./sliding-filters";
+import { toast } from "./toast";
+
+export function CopyableReviewFact({ label, children, copyValue }: { label: string; children: ReactNode; copyValue?: string }) {
+  const answer = useRef<HTMLElement>(null);
+  const answerId = useId();
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(copyValue ?? answer.current?.textContent ?? "");
+      toast(`${label} copied to clipboard.`);
+    } catch {
+      toast(`Couldn’t copy ${label.toLowerCase()}. Try selecting and copying the text.`, "error");
+    }
+  }
+  return <div className="portal-review-copy-fact" role="button" tabIndex={0} aria-label={`Copy ${label.toLowerCase()} to clipboard`} aria-describedby={answerId} title={`Copy ${label.toLowerCase()}`} onClick={() => void copy()} onKeyDown={event => {
+    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); void copy(); }
+  }}><dt>{label}</dt><dd ref={answer} id={answerId}>{children}</dd></div>;
+}
 
 export function ReviewModalDetailsGroup({ title, number, children }: {
   title: string;
@@ -50,4 +67,8 @@ export function ReviewModalToolbar<Key extends string>({ items, active, label, o
       {children}
     </div>
   );
+}
+
+export function ReviewModalFooter({ children, leading }: { children: ReactNode; leading?: ReactNode }) {
+  return <footer className="portal-registrant-receipt-foot portal-modal-review-footer">{leading && <div className="portal-modal-review-leading">{leading}</div>}<div className="portal-registrant-actions">{children}</div></footer>;
 }

@@ -69,12 +69,17 @@
 .portal-letter-copy-link:disabled { cursor: default; opacity: .4; }
 .portal-document-icon { align-items: center; border: 1px solid transparent; border-radius: 8px; display: inline-flex; height: 34px; justify-content: center; width: 34px; }
 .portal-document-icon.is-inactive > svg { filter: grayscale(1); opacity: .3; }
-.portal-document-icon.is-active { cursor: pointer; transition: background-color .15s ease, border-color .15s ease, transform .15s ease; }
-.portal-document-icon.is-active:hover { background: rgba(var(--p-ink),.08); border-color: var(--p-line-strong); transform: translateY(-2px); }
-.portal-document-icon.is-active:focus-visible { background: rgba(var(--p-ink),.08); outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+.portal-document-icon.is-available { cursor: pointer; transition: background-color .15s ease, border-color .15s ease, transform .15s ease; }
+.portal-document-icon.is-available:hover { background: rgba(var(--p-ink),.08); border-color: var(--p-line-strong); transform: translateY(-2px); }
+.portal-document-icon.is-available:focus-visible { background: rgba(var(--p-ink),.08); outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+/* Document availability is not a selected toggle; motion is hover-only. */
+.portal-document-icon:not(:hover) > svg { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .portal-document-icon.is-available:hover > svg { animation: ui-button-icon-cycle 1.4s cubic-bezier(.22, 1, .36, 1) infinite; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .portal-document-icon.is-active { transition: none; }
-  .portal-document-icon.is-active:hover { transform: none; }
+  .portal-document-icon.is-available { transition: none; }
+  .portal-document-icon.is-available:hover { transform: none; }
 }
 .portal-letter-dialog { width: 846px; }
 .portal-letter-dialog .portal-registrant-receipt-head { align-items: start; grid-template-columns: minmax(0, 1fr) auto; }

@@ -1,9 +1,10 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { SlidingSegments } from "./sliding-filters";
 
 import { useId, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { ViewIcon as Eye, HideIcon as EyeOff } from "@/components/action-icons";
 import type { CodeKey } from "@/lib/codes/options";
 import type { CodeVisibility } from "@/lib/codes/settings";
 import { updateCodeVisibility } from "@/lib/portal/code-settings-actions";
@@ -38,7 +39,7 @@ export function CodeSettingsForm({ code, visibility: saved, readOnly }: { code: 
         <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
         <div className="portal-form-actions">
           {!unchanged && <button className="portal-button is-ghost" type="button" onClick={() => setVisibility(saved)} disabled={pending}>Discard</button>}
-          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}>{pending ? "Saving…" : unchanged ? "Saved" : "Save settings"}</button>
+          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : unchanged ? "Saved" : "Save settings"}</button>
         </div>
       </footer>}
     </form>

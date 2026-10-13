@@ -91,7 +91,7 @@ export function StepSettings({ step, onUpdate }: { step: EditorStep; onUpdate: (
     {step.kind === "privacy" && (
       <div className="form-builder-standard">
         <ShieldCheck size={16} aria-hidden="true" />
-        <p><strong>Always the first step</strong>Respondents tick these boxes before anything else. A link to the Data Privacy Statement is shown above them. Only confirmation boxes go here.</p>
+        <p><strong>Always the first step</strong>Respondents tick these boxes before anything else. The Data Privacy Statement is provided above them. Only confirmation boxes go here.</p>
       </div>
     )}
     {step.builtin !== undefined && (

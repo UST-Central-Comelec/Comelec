@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Eye } from "lucide-react";
+import { ViewIcon as Eye } from "@/components/action-icons";
 import { useNow } from "./period-overview";
 import { trail } from "./portal-nav";
 import { NotificationBell } from "./notification-bell";

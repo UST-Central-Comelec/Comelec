@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import type { ApplicationRecord } from "@/lib/applications/admin";
 import { conflicts, qualifications, type ConflictId, type QualificationField } from "@/lib/applications/options";
 

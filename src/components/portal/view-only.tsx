@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Eye } from "lucide-react";
+import { ViewIcon as Eye } from "@/components/action-icons";
 
 /**
  * For Advisers and Admins, who read the portal without changing it. A form put inside is shown as

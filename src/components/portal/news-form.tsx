@@ -10,6 +10,7 @@ import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 import { DocumentBodyField } from "./document-body-field";
 import { DatePicker } from "./date-picker";
+import { ReviewActionIcon } from "./review-action-icon";
 
 type Values = Pick<NewsPost, "title" | "category" | "date" | "excerpt" | "body" | "featured">;
 
@@ -55,7 +56,7 @@ export function NewsForm({ action, initial, submitLabel, danger, guard }: { acti
         )}
       </div>
       <EditConflict guard={guard} state={state} />
-      <FormFooter pending={pending} submitLabel={submitLabel} cancelHref="/portal/news" danger={danger} />
+      <FormFooter pending={pending} submitLabel={submitLabel} submitIcon={<ReviewActionIcon kind="update" disabled={pending} />} cancelHref="/portal/news" danger={danger} />
     </form>
   );
 }

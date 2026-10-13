@@ -1,6 +1,7 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+
 import { InterviewPlanner } from "@/components/portal/interview-planner";
 import { Notice } from "@/components/portal/notice";
 import { requireAccess } from "@/lib/auth/session";
@@ -34,7 +35,7 @@ export default async function PortalInterviewsPage({ searchParams }: PageProps<"
           <TitleWithInfo info="Each Comelec unit adds its own interview times. Applicants only see the times for the unit they’re applying to, and a slot disappears from the form once it’s full or its time has passed.">Interviews</TitleWithInfo>
         </div>
         <div className="portal-head-actions">
-          <Link className="portal-button is-ghost" href="/apply/preview" target="_blank">View Mode <ArrowUpRight size={15} /></Link>
+          <Link className="portal-button is-ghost" href="/apply/preview" target="_blank">View Mode <ActionViewIcon size={15} /></Link>
         </div>
       </header>
       <Notice notice={notice} />

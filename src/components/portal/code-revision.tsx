@@ -1,5 +1,7 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Link from "next/link";
-import { ArrowUpRight, Check, CircleDashed, PencilLine } from "lucide-react";
+import { Check, CircleDashed } from "lucide-react";
+import { EditIcon as PencilLine } from "@/components/action-icons";
 import { formatClosing } from "@/lib/applications/period";
 import { canOpen, type PortalUser } from "@/lib/auth/session";
 import { describeStats, diffArticles } from "@/lib/codes/diff";
@@ -129,7 +131,7 @@ export function RevisionView({ revision, user, holders, place, notice, show }: P
         </div>
         <div className="portal-head-actions">
           <span className={`portal-tag portal-status-tag ${state.tone}`}>{state.label}</span>
-          {revision.status === "approved" && <a className="portal-button is-ghost" href={path} target="_blank" rel="noreferrer">View on website <ArrowUpRight size={15} aria-hidden="true" /></a>}
+          {revision.status === "approved" && <a className="portal-button is-ghost" href={path} target="_blank" rel="noreferrer">View on website <ActionViewIcon size={15} aria-hidden="true" /></a>}
           {edits && pending && <DeleteButton tone="quiet" action={withdrawCodeRevision.bind(null, revision.code, revision.id)} label="Withdraw" prompt="Withdraw it from approval? Any approvals so far are cleared." confirmLabel="Yes, withdraw" pendingLabel="Withdrawing…" />}
           {edits && draft && <Link className="portal-button" href={`${tabHref(tab)}/edit`}><PencilLine size={15} aria-hidden="true" /> Continue editing</Link>}
         </div>

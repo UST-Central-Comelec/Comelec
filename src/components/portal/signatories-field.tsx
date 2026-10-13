@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { AddIcon as Plus, CloseIcon as X } from "@/components/action-icons";
 import type { Signatory } from "@/lib/data/types";
 import { InfoTip } from "./info-tip";
 

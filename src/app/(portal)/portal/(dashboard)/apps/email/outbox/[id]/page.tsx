@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CopyPlus, Send, X } from "lucide-react";
+import { CopyPlus, Send } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import { ActionButton, DeleteButton } from "@/components/portal/delete-button";
 import { EmailPreview } from "@/components/portal/email-preview";
 import { Notice } from "@/components/portal/notice";

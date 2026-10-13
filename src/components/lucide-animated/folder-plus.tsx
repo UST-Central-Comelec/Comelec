@@ -4,6 +4,7 @@ import type { Variants } from "motion/react";
 import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes, MouseEvent } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { useIconCycle } from "@/components/use-icon-cycle";
 import { cn } from "@/lib/utils";
 
 export interface FolderPlusIconHandle {
@@ -32,13 +33,15 @@ const PATH_VARIANTS: Variants = {
 const FolderPlusIcon = forwardRef<FolderPlusIconHandle, FolderPlusIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
+    const cycleElement = useRef<HTMLDivElement>(null);
+    useIconCycle(cycleElement, controls, { normal: "normal", enabled: !ref });
     const isControlledRef = useRef(false);
 
     useImperativeHandle(ref, () => {
       isControlledRef.current = true;
       return {
         startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
+        stopAnimation: () => { controls.stop(); controls.set("normal"); },
       };
     });
 
@@ -53,7 +56,7 @@ const FolderPlusIcon = forwardRef<FolderPlusIconHandle, FolderPlusIconProps>(
     }, [controls, onMouseLeave]);
 
     return (
-      <div className={cn(className)} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} {...props}>
+      <div ref={cycleElement} data-icon-motion="" className={cn(className)} onMouseEnter={ref ? handleMouseEnter : onMouseEnter} onMouseLeave={ref ? handleMouseLeave : onMouseLeave} {...props}>
         <svg fill="none" height={size} width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
           <motion.path animate={controls} custom={1} d="M12 10v6" initial="normal" variants={PATH_VARIANTS} />

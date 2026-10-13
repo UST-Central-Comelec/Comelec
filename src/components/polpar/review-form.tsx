@@ -1,4 +1,5 @@
 "use client";
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { startTransition, useActionState, type FormEvent } from "react";
 import { requirements } from "@/lib/polpar/content";
 import { savePartyReview } from "@/lib/polpar/review-actions";
@@ -18,6 +19,6 @@ export function PartyReviewForm({ id, review, readOnly }: { id: string; review: 
     <div className="portal-form-grid"><Field label="Received by · Commissioner"><input name="receivedBy" defaultValue={review.receivedBy ?? ""} maxLength={250} /></Field><Field label="Certified true and complete by · Legal Head"><input name="certifiedBy" defaultValue={review.certifiedBy ?? ""} maxLength={250} /></Field><Field label="Date and time received · Philippine time"><DateTimePicker name="receivedAt" label="Date and time received, Philippine time" defaultValue={review.receivedAt ? toManilaInput(review.receivedAt) : ""} /></Field></div>
     <div style={{ display: "grid", gap: 12, marginBlock: 24 }}>{requirements.map((item) => <label key={item.id} style={{ display: "flex", gap: 10, alignItems: "baseline" }}><input type="checkbox" name="checked" value={item.id} defaultChecked={review.checked?.includes(item.id)} /><span>{item.label}</span></label>)}</div>
     <Field label="Review remarks"><textarea name="remarks" rows={4} maxLength={5000} defaultValue={review.remarks ?? ""} /></Field>
-    {!readOnly && <div className="portal-form-footer"><span /><button className="portal-button" disabled={pending || !hydrated}>{pending ? "Saving…" : "Save Commission checklist"}</button></div>}
+    {!readOnly && <div className="portal-form-footer"><span /><button className="portal-button" disabled={pending || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save Commission checklist"}</button></div>}
   </fieldset></form>;
 }

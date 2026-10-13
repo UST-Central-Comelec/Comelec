@@ -1,9 +1,10 @@
 "use client";
 
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { X } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 import { chamberRoles, type ChamberRole } from "@/lib/data/types";
 import { setChamberRole } from "@/lib/portal/directory-actions";
 import { MemberAvatar } from "./member-avatar";
@@ -98,7 +99,7 @@ export function ChamberGroup({ members, editable, manageable }: { members: Chamb
             </fieldset>
             <footer className="portal-help-foot chamber-dialog-foot">
               {manageable ? <Link className="chamber-edit-link" href={`/portal/accounts/${selected.id}`}>Manage their account</Link> : <span />}
-              <button type="button" className="portal-button" onClick={save} disabled={pending || role === selected.role}>{pending ? "Saving…" : "Save role"}</button>
+              <button type="button" className="portal-button" onClick={save} disabled={pending || role === selected.role}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save role"}</button>
             </footer>
           </div>
         )}

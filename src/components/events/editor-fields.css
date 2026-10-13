@@ -9,13 +9,17 @@ html:has(.ev-evaluation-form) { overflow-anchor: none; }
 .ev .ev-rsvp-form .ev-rsvp-group.ev-animated-fields { padding-bottom: 4px; }
 .ev .ev-animated-fields > .ev-privacy-link { padding-bottom: 24px; }
 .ev-form-preview { overflow-anchor: none; }
+.ev .ev-field-reveal:has(.combobox.is-open) { overflow: visible !important; position: relative; z-index: 6; }
+.ev .ev-field .combobox.is-up .combobox-list { bottom: 100%; margin: 0 0 6px; top: auto; }
+.ev .ev-field .combobox.is-open .combobox-toggle svg { transform: rotate(180deg); }
 
 /* Mirror the native email input so only the UST domain changes colour. */
 .ev .ev-ust-email { --email-end: 14px; display: block; position: relative; }
 .ev .ev-ust-email.is-verified { --email-end: 104px; }
 .ev .ev-ust-email.has-suggestion { --email-end: 48px; }
 .ev .ev-field .ev-ust-email input { caret-color: var(--ev-text); color: transparent; padding-right: var(--email-end); -webkit-text-fill-color: transparent; }
-.ev .ev-ust-email-display { align-items: center; color: var(--ev-text); display: flex; font: inherit; font-size: 16px; inset: 1px; right: calc(var(--email-end) - 13px); overflow: hidden; padding: 11px 14px; pointer-events: none; position: absolute; white-space: pre; }
+.ev .ev-field .ev-ust-email input::placeholder { color: var(--ev-placeholder); -webkit-text-fill-color: var(--ev-placeholder); }
+.ev .ev-ust-email-display { align-items: center; color: var(--ev-text); display: flex; font: inherit; font-size: var(--event-field-size, 16px); inset: 1px; right: calc(var(--email-end) - 13px); overflow: hidden; padding: 11px 14px; pointer-events: none; position: absolute; white-space: pre; }
 .ev .ev-ust-email-display > span { flex: none; }
 .ev .ev-ust-email-domain { transition: color .3s var(--ev-ease); }
 .ev .ev-ust-email-domain.is-ust { color: var(--ev-gold-mark); }
@@ -28,3 +32,9 @@ html:has(.ev-evaluation-form) { overflow-anchor: none; }
   .ev .ev-field-reveal { animation: none; transition: none; }
   .ev .ev-ust-email-domain { transition: none; }
 }
+
+/* Duplicate RSVP emails stay marked while typing, hovering and focusing. */
+.ev .ev-rsvp-form .ev-field input[aria-invalid="true"],
+.ev .ev-rsvp-form .ev-field input[aria-invalid="true"]:focus { border-color: var(--ev-danger); }
+
+.ev .ev-field-error a { color: var(--ev-text); text-decoration: underline; text-underline-offset: 3px; }

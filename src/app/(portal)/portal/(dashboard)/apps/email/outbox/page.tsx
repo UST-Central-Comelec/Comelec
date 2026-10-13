@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { after } from "next/server";
-import { PenLine } from "lucide-react";
+import { EditIcon as PenLine } from "@/components/action-icons";
 import { EmailTabs } from "@/components/portal/email-tabs";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";

@@ -13,6 +13,7 @@ let draftError = false;
 const draftText = [{ id: "article-draft", numeral: "I", title: "Draft heading", sections: [] }];
 const codes = Object.fromEntries(["magna-carta", "constitution", "elections-code"].map(code => [code, { tab: `charters/${code}`, title: code, the: `the ${code}`, path: `/${code}` }]));
 const dependencies = {
+  "@/components/action-icons": new Proxy({}, { get: () => placeholder }),
   "next/navigation": { notFound: () => { throw new Error("Not found"); } },
   "next/link": { default: placeholder },
   "lucide-react": Object.fromEntries(["ArrowUpRight", "BookOpenText", "History", "ListChecks", "PencilLine", "Settings2"].map(name => [name, placeholder])),

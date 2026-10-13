@@ -6,7 +6,7 @@ import { fillTags, type Acknowledgement } from "@/lib/events/form-editor";
 export function FormAcknowledgement({ acknowledgement, eventName, name, link, emailNote, children, details, showLink = acknowledgement.link }: { acknowledgement: Acknowledgement; eventName: string; name?: string; link: string; emailNote?: string; children?: ReactNode; details?: ReactNode; showLink?: boolean }) {
   const fill = (text: string) => fillTags(text, { name, event: eventName, link });
   return (
-    <section className="ev-done ev-evaluation-result ev-acknowledgement" role="status">
+    <section className="apply-result ev-done ev-evaluation-result ev-acknowledgement" role="status">
       <span className="ev-done-mark" aria-hidden="true"><CheckCheck size={24} /></span>
       <h2>{fill(acknowledgement.title)}</h2>
       {fill(acknowledgement.message).split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}

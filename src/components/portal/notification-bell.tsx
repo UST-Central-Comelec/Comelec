@@ -1,9 +1,10 @@
 "use client";
 
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 import type { InboxPreview } from "@/lib/notifications/inbox-rules";
 import { senderLabel } from "@/lib/notifications/inbox-presentation";
 
@@ -100,7 +101,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
           </Link></li>;
         })}</ul>}
       </div>
-      <Link href={historyHref} className="portal-notification-all" onClick={() => setOpen(false)}>View all notifications<ArrowRight size={15} aria-hidden="true" /></Link>
+      <Link href={historyHref} className="portal-notification-all" onClick={() => setOpen(false)}>View all notifications<ActionViewIcon size={15} aria-hidden="true" /></Link>
     </section>}
   </div>;
 }

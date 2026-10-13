@@ -63,8 +63,12 @@
 .onboarding-review-mark.is-done { background: var(--p-ok); border-color: var(--p-ok); color: #04140c; }
 
 /* Legals → Documents → Onboarding. */
+.onboarding-view-label { align-items: center; display: inline-flex; gap: 6px; vertical-align: middle; }
 .onboarding-docs .onboarding-figure { font-variant-numeric: tabular-nums; width: 72px; }
 .onboarding-docs td small { display: block; margin-top: 2px; }
+.onboarding-step-controls, .onboarding-editor-foot-start { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
+.onboarding-locked { align-items: center; display: inline-flex; gap: 6px; font-size: 12px; white-space: nowrap; }
+.onboarding-step-controls { flex-wrap: nowrap; }
 .onboarding-editor { border: 0; display: grid; gap: 22px; margin: 0; min-width: 0; padding: 26px; }
 .onboarding-editor[hidden], .onboarding-preview[hidden] { display: none; }
 .onboarding-preview { padding: 26px; }

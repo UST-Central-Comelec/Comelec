@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { CloseIcon as X } from "@/components/action-icons";
 
 export function ApplicationModal({ children, onClose, titleId }: { children: ReactNode; onClose: () => void; titleId: string }) {
   const dialog = useRef<HTMLDialogElement>(null);

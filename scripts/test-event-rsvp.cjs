@@ -10,7 +10,7 @@ function load(file, dependencies = {}, cache = new Map()) {
   const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   new Function('require', 'module', 'exports', source)(name => {
     if (name in dependencies) return dependencies[name];
-    if (name.startsWith('@/')) return load(`src/${name.slice(2)}.ts`, dependencies, cache);
+    if (name.startsWith('@/')) { const target = `src/${name.slice(2)}.ts`; return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     if (name.startsWith('.')) { const target = path.resolve(path.dirname(file), `${name}.ts`); return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     return require(name);
   }, compiled, compiled.exports);
@@ -46,14 +46,17 @@ const uiSlots = []; let uiCursor = 0;
 const previousFrame = global.requestAnimationFrame;
 global.requestAnimationFrame = callback => callback();
 const formUi = load('src/components/events/rsvp-form.tsx', {
-  react: { ...React, useState: initial => { const slot = uiCursor++; if (!(slot in uiSlots)) uiSlots[slot] = typeof initial === 'function' ? initial() : initial; return [uiSlots[slot], next => { uiSlots[slot] = typeof next === 'function' ? next(uiSlots[slot]) : next; }]; }, useActionState: () => [{}, () => {}, false], useRef: () => ({ current: null }), useEffect: () => {}, useLayoutEffect: () => {} },
+  react: { ...React, useState: initial => { const slot = uiCursor++; if (!(slot in uiSlots)) uiSlots[slot] = typeof initial === 'function' ? initial() : initial; return [uiSlots[slot], next => { uiSlots[slot] = typeof next === 'function' ? next(uiSlots[slot]) : next; }]; }, useActionState: () => [{}, () => {}, false], useId: () => "test-qr", useRef: () => ({ current: null }), useEffect: () => {}, useLayoutEffect: () => {} },
   '@/lib/events/rsvp-actions': { submitRsvp: () => {} },
   '@/lib/events/rsvp': rsvp,
   'next/link': { default: props => ({ type: 'a', props }) },
   './student-verification': { StudentVerification: props => ({ type: 'verify', props }) },
   'motion/react': { AnimatePresence: ({ children }) => children, motion: { div: 'div' }, useReducedMotion: () => true, useIsPresent: () => true },
   './editor-fields.css': {},
+  './event-form.css': {},
+  '../application-form-ui.css': {},
   '@/components/portal/toast': { toast: () => {} },
+  '@/components/combobox': { Combobox: props => ({ type: 'college-picker', props }) },
 });
 function walk(node) {
   if (!node || typeof node !== 'object') return [];
@@ -67,7 +70,8 @@ const stepIds = () => renderUi().find(node => node.type === 'ol' && node.props['
 const openStep = id => renderUi().find(node => node.type === 'ol' && node.props['aria-label'] === 'RSVP steps').props.children[0].find(item => item.key === id).props.children.props.onClick();
 const answers = () => JSON.parse(inputUi('answers').props.value);
 assert.equal(stepIds()[0], 'privacy', 'The Data Privacy Consent comes first');
-assert.ok(renderUi().some(node => node.type === 'a' && node.props.href === '/privacy'), 'It links to the Data Privacy Statement');
+assert.equal(renderUi().some(node => node.type === 'a' && node.props.href === '/privacy'), false, 'The statement stays on the consent step without a separate-page link');
+assert.equal(renderUi().filter(node => node.props?.className?.split(' ').includes('ev-privacy-clause')).length, 9, 'All privacy clauses appear directly on the consent step');
 inputUi('rsvp_consent').props.onChange({ target: { checked: true } });
 assert.equal(answers().rsvp_consent, 'yes');
 openStep('rsvp_profile');
@@ -76,19 +80,20 @@ assert.equal(answers().rsvp_last_name, 'DELA CRUZ', 'Names are kept in capitals 
 assert.equal(inputUi('rsvp_student_number'), undefined);
 inputUi('rsvp_email').props.onChange({ target: { value: 'person@ust.edu.ph' } });
 assert.ok(inputUi('rsvp_student_number'), 'A UST email asks for a student number, without Google sign-in');
-openStep('rsvp_affiliation');
+openStep('rsvp_profile');
 choiceUi('rsvp_affiliation', 'External').props.onChange();
 choiceUi('rsvp_external_type', 'Resource Person (Speakers, Facilitators, Panelists)').props.onChange();
-assert.equal(stepIds().includes('rsvp_role'), false, 'Resource persons skip Attending as');
+assert.equal(rsvp.resolveFlow(definition, answers()).visible.has('rsvp_role'), false, 'Resource persons skip Attending as');
 assert.equal(stepIds().includes('rsvp_committees'), false, 'Externals never see committees');
 assert.ok(stepIds().includes('rsvp_logistics'), 'Externals get the logistical needs');
 choiceUi('rsvp_external_type', 'Organization / Institution Representative').props.onChange();
-assert.ok(stepIds().includes('rsvp_role'));
+assert.ok(rsvp.resolveFlow(definition, answers()).visible.has('rsvp_role'));
 assert.ok(inputUi('rsvp_external_school'));
 choiceUi('rsvp_affiliation', 'University of Santo Tomas').props.onChange();
-renderUi().find(node => node.type === 'select' && node.props.name === 'rsvp_ust_type').props.onChange({ target: { value: 'Commission — Local Comelec' } });
-assert.ok(renderUi().some(node => node.type === 'select' && node.props.name === 'rsvp_college'), 'Local units pick their college');
-assert.ok(stepIds().includes('rsvp_committees') && !stepIds().includes('rsvp_logistics'));
+choiceUi('rsvp_ust_type', 'Commission').props.onChange();
+choiceUi('rsvp_commission_scope', 'Local').props.onChange();
+assert.ok(renderUi().some(node => node.type === 'college-picker' && node.props.name === 'rsvp_college'), 'Local units use the shared college picker');
+assert.ok(stepIds().includes('rsvp_committees') && stepIds().includes('rsvp_logistics'));
 assert.ok(stepIds().includes('rsvp_resources_step'), 'UST respondents also get the separate resources step');
 openStep('rsvp_committees');
 const tick = option => renderUi().find(node => node.type === 'input' && node.props.type === 'checkbox' && node.props.value === option).props.onChange({ target: { checked: true } });
@@ -118,6 +123,7 @@ const event = { id: 'sample', name: 'Sample event', organizer: 'local', college:
 const writes = [], emails = [], refreshed = [];
 let duplicate = false;
 let verifiedPass = null;
+const emailChecks = []; let emailCheckFails = false;
 const actions = load('src/lib/events/rsvp-actions.ts', {
   '@/lib/forms/email-domain': { emailDomainProblem: async email => email.endsWith('@nomail.test') ? 'nomail.test can’t receive email. Check the spelling of the address.' : null },
   './verification': { readEventPass: async () => verifiedPass },
@@ -125,7 +131,7 @@ const actions = load('src/lib/events/rsvp-actions.ts', {
   'next/cache': { revalidatePath: value => refreshed.push(value) },
   'next/navigation': { unstable_rethrow: () => {} },
   '@/lib/auth/session': { requireEditor: async () => { if (user.readOnly) throw Error('Denied'); return user; } },
-  '@/lib/supabase/server': { createAdminClient: () => ({ from(table) { return { insert: async row => { writes.push({ table, row }); return { error: duplicate ? { code: '23505' } : null }; }, update: row => ({ eq: async () => { writes.push({ table, row }); return { error: null }; } }) }; } }) },
+  '@/lib/supabase/server': { createAdminClient: () => ({ from(table) { return { select: column => { const filters = {}; const query = { eq: (key, value) => { filters[key] = value; return query; }, limit: async size => { emailChecks.push({ table, column, filters, size }); return { data: duplicate ? [{ id: "existing" }] : [], error: emailCheckFails ? { message: "Unavailable" } : null }; } }; return query; }, insert: row => { writes.push({ table, row }); const result = { data: { reference_code: 'RS-7K3M-9QXA' }, error: duplicate ? { code: '23505' } : null }; return { ...result, select: () => ({ single: async () => result }) }; }, update: row => ({ eq: async () => { writes.push({ table, row }); return { error: null }; } }) }; } }) },
   '@/lib/notifications/notify': { sendAutomatic: async (key, build) => { assert.equal(key, 'event-rsvp'); emails.push(build()); return 'sent'; } },
   '@/lib/forms/input': load('src/lib/forms/input.ts'),
   '@/lib/security/rate-limit': { clientIp: () => 'local', limits: { eventRegister: { limit: 10, windowMs: 1000 } }, rateLimit: () => ({ ok: true }) },
@@ -133,7 +139,7 @@ const actions = load('src/lib/events/rsvp-actions.ts', {
   './queries': { getEvent: async () => event },
   './rsvp-store': { getRsvpSettings: async () => settings, validRsvpToken: token => /^[0-9a-f-]{36}$/.test(token) },
   './rsvp': rsvp,
-  './rsvp-emails': { acknowledgementEmail: (to, acknowledgement, event, name) => ({ to, subject: acknowledgement.subject, name }) },
+  './rsvp-emails': { acknowledgementEmail: (to, acknowledgement, event, name, eyebrow, referenceCode) => ({ to, subject: acknowledgement.subject, name, referenceCode }) },
 });
 const FormMarker = () => null;
 const publicPage = load('src/app/(site)/events/[id]/rsvp-form/page.tsx', {
@@ -148,6 +154,23 @@ const oldPage = load('src/app/(site)/events/[id]/rsvp/page.tsx', {
   '@/lib/events/rsvp': rsvp,
 });
 (async () => {
+  const invite = settings.invitation_token;
+  assert.deepEqual(await actions.checkRsvpEmail('sample', invite, ' ANA@EXAMPLE.COM '), { available: true });
+  assert.deepEqual(emailChecks.at(-1), { table: 'event_rsvp_responses', column: 'id', filters: { event_id: 'sample', email: 'ana@example.com' }, size: 1 }, 'Check is event scoped and normalizes the email');
+  duplicate = true;
+  assert.deepEqual(await actions.checkRsvpEmail('sample', invite, 'ana@example.com'), { available: false });
+  duplicate = false;
+  const checks = emailChecks.length;
+  assert.ok((await actions.checkRsvpEmail('sample', invite, 'invalid')).error);
+  assert.ok((await actions.checkRsvpEmail('sample', 'bad-token', 'ana@example.com')).error);
+  assert.ok((await actions.checkRsvpEmail('sample', '11111111-1111-1111-1111-111111111111', 'ana@example.com')).error);
+  settings.enabled = false;
+  assert.ok((await actions.checkRsvpEmail('sample', invite, 'ana@example.com')).error);
+  settings.enabled = true;
+  assert.equal(emailChecks.length, checks, 'Invalid email, unauthorized invitation and closed form never query responses');
+  emailCheckFails = true;
+  assert.ok((await actions.checkRsvpEmail('sample', invite, 'ana@example.com')).error, 'An unavailable lookup does not report the email as free');
+  emailCheckFails = false;
   assert.equal(rsvp.rsvpFormPath('test-event'), '/events/test-event/rsvp-form');
   assert.deepEqual(publicPage.metadata.robots, { index: false, follow: false });
   const opened = walk(await publicPage.default({ params: Promise.resolve({ id: 'sample' }) }));
@@ -176,6 +199,8 @@ const oldPage = load('src/app/(site)/events/[id]/rsvp/page.tsx', {
 
   const saved = await submit({ ...filled, rsvp_ust_type: 'Admin', rsvp_committees: ['stale'] });
   assert.equal(saved.success, true);
+  assert.equal(saved.referenceCode, 'RS-7K3M-9QXA');
+  assert.equal(emails.at(-1).referenceCode, saved.referenceCode, 'The receipt email carries the saved reference');
   assert.equal(saved.registrationUrl, 'https://example.com/events/sample/register');
   const row = writes.at(-1).row;
   assert.equal(row.email, 'ana@example.com');
@@ -185,7 +210,9 @@ const oldPage = load('src/app/(site)/events/[id]/rsvp/page.tsx', {
   assert.ok(row.answers.definition.steps.length > 5, 'The response keeps the form as it was answered');
   assert.deepEqual([emails.length, emails.at(-1).to, emails.at(-1).name], [1, 'ana@example.com', 'ANA'], 'The acknowledgement email goes to the respondent, by the name they gave');
   duplicate = true;
-  assert.ok((await submit(filled)).error);
+  const repeated = await submit(filled);
+  assert.ok(repeated.error);
+  assert.equal(repeated.duplicateEmail, "ana@example.com", "A simultaneous duplicate is returned to its email field");
   assert.equal(emails.length, 1, 'Duplicates do not send a second email');
   duplicate = false;
 

@@ -9,16 +9,20 @@ import { rsvpAcknowledgement } from "./rsvp";
  * The email an RSVP or Evaluation form sends once answers are saved: the organizer's Acknowledgement
  * subject and message, with {name}, {event} and {link} filled in.
  */
-export function acknowledgementEmail(to: string, acknowledgement: Acknowledgement, event: Pick<CommissionEvent, "id" | "name">, name: string, eyebrow: string): Email {
+export function acknowledgementEmail(to: string, acknowledgement: Acknowledgement, event: Pick<CommissionEvent, "id" | "name">, name: string, eyebrow: string, referenceCode?: string, response: Array<[string, string]> = []): Email {
   const link = `${siteUrl()}/events/${event.id}/register`;
   const fill = (text: string) => fillTags(text, { name, event: event.name, link });
   const paragraphs = fill(acknowledgement.body).split(/\n{2,}/).map(text => text.trim()).filter(Boolean);
   const subject = fill(acknowledgement.subject);
+  const trackingUrl = referenceCode ? `${siteUrl()}/apply/track?ref=${encodeURIComponent(referenceCode)}` : undefined;
+  const referenceNote = referenceCode ? `RSVP reference: ${referenceCode}. Track your RSVP using this code and your last name.` : undefined;
+  const responseText = response.length ? ["Your response", ...response.map(([label, value]) => `${label}: ${value}`)] : [];
+  const responseBlocks = response.length ? [paragraph("<strong>Your response</strong>"), ...response.map(([label, value]) => paragraph(`<strong>${escape(label)}</strong><br>${escape(value).replaceAll("\n", "<br>")}`))] : [];
   return {
     to,
     subject,
-    text: `${paragraphs.join("\n\n")}${acknowledgement.link ? `\n\n${link}` : ""}`,
-    html: shell({ eyebrow, title: fill(acknowledgement.title), preheader: subject, blocks: [...paragraphs.map(text => paragraph(escape(text).replaceAll("\n", "<br>"))), ...(acknowledgement.link ? [button("Public registration form", link)] : [])] }),
+    text: [...paragraphs, ...responseText, ...(referenceNote ? [referenceNote, `Track RSVP: ${trackingUrl}`] : []), ...(acknowledgement.link ? [link] : [])].join("\n\n"),
+    html: shell({ eyebrow, title: fill(acknowledgement.title), preheader: subject, blocks: [...(referenceNote ? [paragraph(escape(referenceNote)), button("Track RSVP", trackingUrl!)] : []), ...paragraphs.map(text => paragraph(escape(text).replaceAll("\n", "<br>"))), ...responseBlocks, ...(acknowledgement.link ? [button("Public registration form", link)] : [])] }),
   };
 }
 

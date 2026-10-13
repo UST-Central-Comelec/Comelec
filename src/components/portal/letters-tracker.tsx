@@ -1,8 +1,10 @@
 "use client";
 
+import { CloseIcon as ActionCloseIcon, SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
 import { flushSync } from "react-dom";
-import { AlertTriangle, ChevronRight, Copy, Plus, Search, Trash2, X } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
+import { CopyIcon as Copy, AddIcon as Plus, SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { documentTypeLabels, workingDocumentKind, type Letter, type LetterConflict, type LetterSaveResult, type LetterValues, type WorkingDocumentKind } from "@/lib/letters/options";
 import { numberMode, type SecretariatSettings, type ToneItem } from "@/lib/letters/settings";
@@ -12,6 +14,7 @@ import { deleteMinute, getMinuteNumberPreview, saveMinute, setMinuteLabel } from
 import { compareEdits, fieldLabels, setField, valuesOf } from "@/lib/letters/conflict";
 import { LetterLabel } from "./letter-label";
 import { toast } from "./toast";
+import { ReviewActionIcon } from "./review-action-icon";
 import { Dropdown } from "./dropdown";
 import { TitleWithInfo } from "./info-tip";
 import { ViewOnlyTag } from "./view-only";
@@ -391,16 +394,16 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
             </div>
             <div className="portal-edit-conflict-actions">
               <button type="button" className="portal-button is-ghost is-small" disabled={pending} onClick={loadTheirs}>Load their version</button>
-              <button type="button" className="portal-button is-danger-ghost is-small" disabled={pending} onClick={event => saveMine(event.currentTarget.form)}>Save mine over theirs</button>
+              <button type="button" className="portal-button is-danger-ghost is-small" disabled={pending} onClick={event => saveMine(event.currentTarget.form)}><ActionSaveIcon size={15} aria-hidden="true" />Save mine over theirs</button>
             </div>
           </div>}
           <footer className="portal-registrant-receipt-foot">
             {readOnly ? <ViewOnlyTag /> : deleteArmed ? <div className="portal-letter-delete-confirm">
               <span className="portal-muted">Delete permanently?</span>
               <button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => setDeleteArmed(false)}>Keep</button>
-              <button type="button" className="portal-registrant-action-button portal-letter-delete" disabled={pending} onClick={remove}><Trash2 size={16} aria-hidden="true" />{pending ? "Deleting…" : "Delete"}</button>
-            </div> : <button type="button" className="portal-registrant-action-button portal-letter-delete" disabled={!selected || pending} aria-label={`Delete ${noun}`} title={selected ? `Delete ${noun}` : `Save ${noun} before deleting it`} onClick={() => setDeleteArmed(true)}><Trash2 size={16} aria-hidden="true" /></button>}
-            <div className="portal-registrant-actions"><button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => dialog.current?.close()}>{readOnly ? "Close" : "Cancel"}</button>{!readOnly && <button type="submit" className="portal-registrant-action-button" disabled={pending || !changed}>{pending && !deleteArmed ? "Saving…" : selected ? "Save changes" : addLabel}</button>}</div>
+              <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={pending} onClick={remove}><ReviewActionIcon kind="remove" disabled={pending} />{pending ? "Deleting…" : "Delete"}</button>
+            </div> : <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={!selected || pending} aria-label={`Delete ${noun}`} title={selected ? `Delete ${noun}` : `Save ${noun} before deleting it`} onClick={() => setDeleteArmed(true)}><ReviewActionIcon kind="remove" disabled={!selected || pending} />Delete</button>}
+            <div className="portal-registrant-actions"><button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => dialog.current?.close()}><ActionCloseIcon size={15} aria-hidden="true" />{readOnly ? "Close" : "Cancel"}</button>{!readOnly && <button type="submit" className="portal-registrant-action-button" disabled={pending || !changed}><ReviewActionIcon kind="update" disabled={pending || !changed} />{pending && !deleteArmed ? "Saving…" : selected ? "Save changes" : addLabel}</button>}</div>
           </footer>
         </form>
       </dialog>

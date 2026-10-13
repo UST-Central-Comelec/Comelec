@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
+import { useIconCycle } from "@/components/use-icon-cycle";
 import { cn } from "@/lib/utils";
 
 export interface CalendarDaysIconHandle {
@@ -47,13 +48,15 @@ const CalendarDaysIcon = forwardRef<
   CalendarDaysIconProps
 >(({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
   const controls = useAnimation();
+    const cycleElement = useRef<HTMLDivElement>(null);
+    useIconCycle(cycleElement, controls, { normal: "normal", enabled: !ref });
   const isControlledRef = useRef(false);
 
   useImperativeHandle(ref, () => {
     isControlledRef.current = true;
     return {
       startAnimation: () => controls.start("animate"),
-      stopAnimation: () => controls.start("normal"),
+      stopAnimation: () => { controls.stop(); controls.set("normal"); },
     };
   });
 
@@ -80,10 +83,10 @@ const CalendarDaysIcon = forwardRef<
   );
 
   return (
-    <div
+    <div ref={cycleElement} data-icon-motion=""
       className={cn(className)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={ref ? handleMouseEnter : onMouseEnter}
+      onMouseLeave={ref ? handleMouseLeave : onMouseLeave}
       {...props}
     >
       <svg

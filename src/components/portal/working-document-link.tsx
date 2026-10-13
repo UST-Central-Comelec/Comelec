@@ -24,17 +24,17 @@ export function WorkingDocumentLink({ documents, modal = false }: { documents: W
           const label = service ? documentServiceLabels[service] : labels.pdf;
           const icon = service ? <DocumentServiceIcon service={service} /> : <DocumentIcon kind="pdf" />;
           return links.length
-            ? links.map((document, index) => <a key={`${service ?? "pdf"}-${index}`} className="portal-document-icon is-active" href={document.url} target="_blank" rel="noopener noreferrer" aria-label={`Open working document (${label})${links.length > 1 ? ` ${index + 1}` : ""}`} title={`${label}${links.length > 1 ? ` ${index + 1}` : ""}`}>{icon}</a>)
+            ? links.map((document, index) => <a key={`${service ?? "pdf"}-${index}`} className="portal-document-icon is-available" href={document.url} target="_blank" rel="noopener noreferrer" aria-label={`Open working document (${label})${links.length > 1 ? ` ${index + 1}` : ""}`} title={`${label}${links.length > 1 ? ` ${index + 1}` : ""}`}>{icon}</a>)
             : [<span key={service ?? "pdf"} className="portal-document-icon is-inactive" role="img" aria-label={`${label} (unavailable)`} title={label}>{icon}</span>];
         });
       }
       if (format === "pdf") return matches.map((document, index) => {
         const service = documentService(document.url);
         const label = service ? documentServiceLabels[service] : labels.pdf;
-        return <a key={`${format}-${index}`} className="portal-document-icon is-active" href={document.url} target="_blank" rel="noopener noreferrer" aria-label={`Open working document (${label})`} title={label}>{service ? <DocumentServiceIcon service={service} /> : <DocumentIcon kind="pdf" />}</a>;
+        return <a key={`${format}-${index}`} className="portal-document-icon is-available" href={document.url} target="_blank" rel="noopener noreferrer" aria-label={`Open working document (${label})`} title={label}>{service ? <DocumentServiceIcon service={service} /> : <DocumentIcon kind="pdf" />}</a>;
       });
       return matches.length
-        ? matches.map((document, index) => <a key={`${format}-${index}`} className="portal-document-icon is-active" href={document.url} target="_blank" rel="noopener noreferrer" aria-label={`Open working document (${labels[format]})${matches.length > 1 ? ` ${index + 1}` : ""}`} title={`${labels[format]}${matches.length > 1 ? ` ${index + 1}` : ""}`}><DocumentIcon kind={format} /></a>)
+        ? matches.map((document, index) => <a key={`${format}-${index}`} className="portal-document-icon is-available" href={document.url} target="_blank" rel="noopener noreferrer" aria-label={`Open working document (${labels[format]})${matches.length > 1 ? ` ${index + 1}` : ""}`} title={`${labels[format]}${matches.length > 1 ? ` ${index + 1}` : ""}`}><DocumentIcon kind={format} /></a>)
         : [<span key={format} className="portal-document-icon is-inactive" role="img" aria-label={`${labels[format]} (unavailable)`} title={labels[format]}><DocumentIcon kind={format} /></span>];
     })}
   </span>;

@@ -1,4 +1,5 @@
 "use client";
+import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { useActionState } from "react";
 import { registrationStatuses, registrationStatusHints, type RegistrationStatus } from "@/lib/events/options";
 import { rsvpFormPath, type RsvpSettings } from "@/lib/events/rsvp";
@@ -40,7 +41,7 @@ export function EventDeployment({ eventId, baseUrl, registrationStatus, requireG
       </fieldset>
       <EventRegistrationLink label="Evaluation form" href={`${baseUrl}/events/${eventId}/evaluate`} />
     </section>
-    {editable ? <button className="portal-button" disabled={pending}>{pending ? "Saving…" : "Save deployment settings"}</button> : <p className="portal-muted">Read-only access</p>}
+    {editable ? <button className="portal-button" disabled={pending}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save deployment settings"}</button> : <p className="portal-muted">Read-only access</p>}
   </form>;
 }
 

@@ -1,6 +1,7 @@
+import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+
 import { HelpDialog } from "@/components/portal/help-dialog";
 import { Notice } from "@/components/portal/notice";
 import { RecruitmentForm } from "@/components/portal/recruitment-form";
@@ -43,7 +44,7 @@ export default async function PortalRecruitmentSlotsPage({ searchParams }: PageP
         </div>
         <div className="portal-head-actions">
           {user.affiliation !== "local" && <UnitSwitcher units={comelecUnits} value={key} />}
-          <Link className="portal-button is-ghost" href="/apply/preview" target="_blank">View Mode <ArrowUpRight size={15} /></Link>
+          <Link className="portal-button is-ghost" href="/apply/preview" target="_blank">View Mode <ActionViewIcon size={15} /></Link>
         </div>
       </header>
       <Notice notice={notice} />

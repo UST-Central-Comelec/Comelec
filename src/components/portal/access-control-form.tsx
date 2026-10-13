@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Eye, EyeOff, RotateCcw, Save } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import { ViewIcon as Eye, HideIcon as EyeOff, SaveIcon as Save } from "@/components/action-icons";
 import { LockOpenIcon } from "./lock-open-icon";
 import { UnsavedAccessGuard } from "./unsaved-access-guard";
 import { AccessControlLoader } from "./access-control-loader";

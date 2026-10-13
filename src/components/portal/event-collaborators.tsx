@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { AddIcon as Plus, CloseIcon as X } from "@/components/action-icons";
 import { collaboratorUnits, type EventDetails } from "@/lib/events/options";
 
 export function EventCollaborators({ initial, errors }: { initial: EventDetails; errors: Record<string, string> }) {
