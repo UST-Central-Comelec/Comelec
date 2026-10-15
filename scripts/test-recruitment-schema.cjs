@@ -9,7 +9,7 @@ const ts = require("typescript");
 function load(file, dependencies = {}, unusedImports = false) {
   const source = ts.transpileModule(readFileSync(resolve(file), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const compiled = { exports: {} };
-  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : name === "@/lib/forms/fields" ? load("src/lib/forms/fields.ts", { "./input": load("src/lib/forms/input.ts") }) : unusedImports ? {} : require(name), compiled, compiled.exports);
+  new Function("require", "module", "exports", source)((name) => Object.hasOwn(dependencies, name) ? dependencies[name] : name === "@/lib/data/types" ? load("src/lib/data/types.ts") : name === "@/lib/data/local-roles" ? load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") }) : name === "@/lib/forms/display-name" ? load("src/lib/forms/display-name.ts") : name === "@/lib/forms/input" ? load("src/lib/forms/input.ts") : name === "@/lib/forms/fields" ? load("src/lib/forms/fields.ts", { "./input": load("src/lib/forms/input.ts") }) : unusedImports ? {} : require(name), compiled, compiled.exports);
   return compiled.exports;
 }
 
@@ -84,6 +84,7 @@ const actions = load("src/lib/applications/actions.ts", {
   "next/headers": { headers: async () => new Headers() },
   "@/lib/security/rate-limit": { clientIp: () => "test", limits: { track: { limit: 10, windowMs: 1000 } }, rateLimit: () => ({ ok: true }) },
   "@/lib/portal/form": load("src/lib/portal/form.ts"),
+  "./edit-requests": { pendingSubmissionEditRequest: async () => null },
   "./schema": { applicationFields: { shape: {} } },
   "./name": name,
   "./options": options,
@@ -93,7 +94,7 @@ const actions = load("src/lib/applications/actions.ts", {
 async function test() {
   // The original schema must load without either new column or the email-log table/relationship.
   const records = await admin.listApplications({ status: "pending", body: "central", college: application.college });
-  assert.equal(records[0].name, "ANA D. REYES");
+  assert.equal(records[0].name, "REYES, ANA D");
   assert.equal(records[0].middleName, "D");
   assert.equal(records[0].registrationFormUrl, null);
   assert.equal(records[0].letterOfIntentUrl, null);
@@ -106,7 +107,7 @@ async function test() {
 
   // Interview and tracking queries retry only the missing optional middle-name column.
   const slots = await interviews.getSlotsForPortal();
-  assert.equal(slots[0].bookings[0].name, "ANA D. REYES");
+  assert.equal(slots[0].bookings[0].name, "REYES, ANA D");
   assert.equal(slots[0].bookings[0].middleName, "D");
   assert.equal(slots[0].bookings[0].yearLevel, "3rd year");
   assert.equal(slots[0].bookings[0].college, application.college);
@@ -119,7 +120,7 @@ async function test() {
   tracking.set("reference", application.reference_code);
   tracking.set("identity", "2026000001");
   const tracked = await actions.trackApplication(undefined, tracking);
-  assert.equal(tracked.application.name, "ANA D. REYES");
+  assert.equal(tracked.application.name, "REYES, ANA D");
   const trackingRequests = requests.filter(request => request.single && request.filters.some(([field]) => field === "reference_code"));
   assert.equal(trackingRequests.length, 2);
   assert.ok(trackingRequests.every(request => request.filters.some(([field, value]) => field === "student_number" && value === "2026000001")));
@@ -138,7 +139,7 @@ async function test() {
   application.grades_url = "https://drive.google.com/file/d/grades/view";
   emailRows = [{ application_id: id, kind: "acknowledgement", sent_at: "2026-10-01T00:01:00Z" }, { application_id: id, kind: "rejected", sent_at: "2026-10-02T00:00:00Z" }, { application_id: "other", kind: "accepted", sent_at: "2026-10-02T00:00:00Z" }];
   const updated = await admin.getApplication(id);
-  assert.equal(updated.name, "ANA DE LA CRUZ REYES");
+  assert.equal(updated.name, "REYES, ANA DE LA CRUZ");
   assert.equal(updated.registrationFormUrl, application.registration_form_url);
   assert.equal(updated.letterOfIntentUrl, application.letter_of_intent_url);
   assert.equal(updated.gradesUrl, application.grades_url);

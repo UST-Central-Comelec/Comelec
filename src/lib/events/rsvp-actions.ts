@@ -55,7 +55,8 @@ export async function checkRsvpEmail(eventId: string, token: string, value: stri
   if (!validRsvpToken(token)) return { error: "This collaborator RSVP link is invalid." };
   if (!rateLimit(`event-rsvp-email:${clientIp(await headers())}`, limits.eventRegister.limit, limits.eventRegister.windowMs).ok) return { error: "Too many email checks. Please try again shortly." };
   try {
-    const settings = await getRsvpSettings(eventId);
+    const [event, settings] = await Promise.all([getEvent(eventId), getRsvpSettings(eventId)]);
+    if (!event || event.published === false) return { error: "This event is no longer available." };
     if (!settings || settings.invitation_token !== token) return { error: "This collaborator RSVP link is invalid." };
     if (!settings.enabled) return { error: "This RSVP form is closed." };
     const { data, error } = await createAdminClient().from("event_rsvp_responses").select("id").eq("event_id", eventId).eq("email", parsed.data).limit(1);
@@ -80,7 +81,7 @@ export async function submitRsvp(eventId: string, token: string, _state: RsvpSta
   if (!validRsvpToken(token)) return { error: "This collaborator RSVP link is invalid." };
   try {
     const [event, settings] = await Promise.all([getEvent(eventId), getRsvpSettings(eventId)]);
-    if (!event || !settings || settings.invitation_token !== token) return { error: "This collaborator RSVP link is invalid." };
+    if (!event || event.published === false || !settings || settings.invitation_token !== token) return { error: "This collaborator RSVP link is invalid." };
     if (!settings.enabled) return { error: "This RSVP form is closed." };
     const raw = form.get("answers");
     if (typeof raw !== "string" || raw.length > 100000) return { error: "Check your answers and try again." };

@@ -65,7 +65,7 @@ export async function updateRsvpResponse(eventId: string, id: string, stamp: str
     if (error) return { error: "Couldn’t update the RSVP. Try again." };
     if (!data) return { conflict: (await authorized(eventId, id)).response, error: "Another officer updated this RSVP. Load the latest response before saving." };
     const saved = data as RsvpResponse;
-    revalidatePath(`/portal/events/${eventId}/registrants`);
+    revalidatePath(`/portal/events/${eventId}/responses`);
     const sent = await receipt(event, saved).catch(() => false);
     return { saved, sent, message: sent ? "RSVP updated, and the acknowledgement was sent." : "RSVP updated, but the acknowledgement couldn’t be sent. Check the email settings and try Resend acknowledgement." };
   } catch (error) {
@@ -81,7 +81,7 @@ export async function removeRsvpResponse(eventId: string, id: string, stamp: str
     const { data, error } = await createAdminClient().from("event_rsvp_responses").delete().eq("event_id", eventId).eq("id", id).eq("updated_at", stamp).select("id");
     if (error) return { error: "Couldn’t remove the RSVP. Try again." };
     if (!data?.length) return { conflict: (await authorized(eventId, id)).response, error: "The RSVP changed. Load the latest response before removing it." };
-    revalidatePath(`/portal/events/${eventId}/registrants`);
+    revalidatePath(`/portal/events/${eventId}/responses`);
     return { removed: true, message: "RSVP registration removed." };
   } catch (error) {
     unstable_rethrow(error);
@@ -128,7 +128,7 @@ export async function saveRsvpRequestDecisions(eventId: string, id: string, stam
     if (error) return { error: "Couldn’t save the logistical decisions. Try again." };
     if (!data) return { conflict: (await authorized(eventId, id)).response, error: "Another officer updated this RSVP. Load the latest response before saving." };
     const saved = data as RsvpResponse;
-    revalidatePath(`/portal/events/${eventId}/registrants`);
+    revalidatePath(`/portal/events/${eventId}/responses`);
     const person = rsvpRespondent(response.answers);
     const waiting = requests.filter(request => (decisions[request.kind] ?? "pending") === "pending").length;
     const answered = changed.map(request => ({ kind: request.kind, approved: decisions[request.kind] === "approved", revoked: decisions[request.kind] === "revoked", detail: request.facts.map(([, value]) => value).join(" · ") }));

@@ -9,7 +9,7 @@ import { EditorFields } from "./editor-fields";
 import { acknowledgementOf, validateEditorAnswers, type FormAnswers } from "@/lib/events/form-editor";
 import { FormAcknowledgement } from "./form-acknowledgement";
 import { resolveFlow } from "@/lib/events/form-flow";
-import { evaluationAcknowledgement, evaluationDefinition, type EvaluationSettings } from "@/lib/events/evaluation";
+import { evaluationAcknowledgement, evaluationDefinition, evaluationResponseSettings, type EvaluationSettings } from "@/lib/events/evaluation";
 import { checkEvaluationProfile, submitEvaluation, type EvaluationProfileState } from "@/lib/events/evaluation-actions";
 import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
 
@@ -34,7 +34,7 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
   const [state, action, pending] = useActionState(submitEvaluation.bind(null, eventId), {});
   const busy = pending || checkingProfile;
   const needsName = !referenceCode.trim();
-  const definition = evaluationDefinition(settings);
+  const definition = evaluationDefinition(evaluationResponseSettings(settings, anonymous));
   // Questions a conditional choice leads to show only while that choice is picked; steps follow by id, so one appearing earlier doesn't move the respondent.
   const flow = resolveFlow(definition, answers);
   const steps = flow.steps;

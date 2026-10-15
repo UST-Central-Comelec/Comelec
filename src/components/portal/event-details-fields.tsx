@@ -2,9 +2,11 @@
 
 import { SlidingSegments } from "./sliding-filters";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { UsersRound } from "lucide-react";
 import { audiences, venueModes, type Audience, type EventDetails, type VenueMode } from "@/lib/events/options";
+import { isActivityNature, naturesFor, venueTypes, type VenueType } from "@/lib/events/activity-checklist";
+import { Dropdown } from "./dropdown";
 import { EventCollaborators } from "./event-collaborators";
 import { Field } from "./portal-form";
 import { InfoTip } from "./info-tip";
@@ -15,6 +17,8 @@ import type { CalendarHighlight } from "@/lib/calendar/options";
 import { EmailEditor } from "./email-editor";
 import { bodyEditorHtml } from "@/lib/email/body";
 import { readBackground, writeBackground } from "@/lib/events/background";
+import { AddIcon } from "@/components/action-icons";
+import { DeleteButton } from "./delete-button";
 
 /** Each participants checkbox: its form field, and who it means. */
 const audienceFields: Record<Audience, { field: "openToStudents" | "openToExternals" | "openToAdmins" | "openToInternal"; hint: string }> = {
@@ -36,12 +40,15 @@ const venuePlaceholders: Record<VenueMode, string> = {
  * Candidacy settings, which are listed with the events while they're open. Times are picked in
  * five-minute steps. The server reads them back with readDetails (src/lib/events/details.ts).
  */
-export function EventDetailsFields({ initial, errors, what = "event", requireGoogle, allowBothVenue = false, studentsOnly = false, hideRegistrationControls = false, calendarHighlights = [], dateValidation }: {
+export function EventDetailsFields({ initial, errors, what = "event", requireGoogle, activity = false, allowBothVenue = false, allowMultipleVenues = false, studentsOnly = false, hideRegistrationControls = false, calendarHighlights = [], dateValidation }: {
   calendarHighlights?: CalendarHighlight[];
   dateValidation?: DateValidation;
   initial: EventDetails;
-  /** Events and Recruitment can offer both an on-site venue and an online option. */
+  /** An event's e-ReSERVe venue type and nature of activity, in place of how it's held. Its checklist documents follow from them. */
+  activity?: boolean;
+  /** Events, Recruitment and Filing of Candidacy can offer on-site and online options together. */
   allowBothVenue?: boolean;
+  allowMultipleVenues?: boolean;
   /** Recruitment is open exclusively to University students. */
   studentsOnly?: boolean;
   /** The event's switch for Google verification. A unit's Recruitment, Political Party and Filing of Candidacy always verify. */
@@ -51,7 +58,13 @@ export function EventDetailsFields({ initial, errors, what = "event", requireGoo
   /** What the details describe, for the hints: "event", or "listing" for a unit's settings. */
   what?: "event" | "listing";
 }) {
-  const [venueMode, setVenueMode] = useState<VenueMode>(initial.venueMode);
+  const [venueType, setVenueType] = useState<VenueType>(initial.venueType ?? (initial.venueMode === "online" ? "online" : "in-campus"));
+  const [nature, setNature] = useState(initial.natureOfActivity ?? "");
+  const [heldMode, setVenueMode] = useState<VenueMode>(initial.venueMode);
+  const venueMode: VenueMode = activity ? (venueType === "online" ? "online" : "onsite") : heldMode;
+  const natureLabel = useId();
+  const [venues, setVenues] = useState(() => (allowMultipleVenues ? initial.venueDetails.split("\n") : [initial.venueDetails]).map((value, id) => ({ id, value })));
+  const nextVenueId = useRef(venues.length);
   // Kept here so an empty ingress or egress can start from the activity's own times.
   const [startsTime, setStartsTime] = useState(initial.startsTime);
   const [endsTime, setEndsTime] = useState(initial.endsTime);
@@ -118,7 +131,26 @@ export function EventDetailsFields({ initial, errors, what = "event", requireGoo
       <fieldset className="portal-form-section">
         <legend>Venue</legend>
         <div className="portal-form-grid is-venue">
-          <div className={`portal-field${errors.venueMode ? " has-error" : ""}`}>
+          {activity ? <>
+            <div className={`portal-field is-wide${errors.venueType ? " has-error" : ""}`}>
+              <span className="portal-field-label" id={venueLabel}>Venue type<InfoTip label="About the venue type">As e-ReSERVe sorts activities. With the nature of activity, it picks the documents added under Documentations.</InfoTip></span>
+              <SlidingSegments active={venueType} role="radiogroup" aria-labelledby={venueLabel} className="is-venue-types">
+                {(Object.keys(venueTypes) as VenueType[]).map((type) => (
+                  <label key={type} className={`portal-segment${venueType === type ? " is-selected" : ""}`}>
+                    <input type="radio" name="venueType" value={type} checked={venueType === type} onChange={() => { setVenueType(type); if (!isActivityNature(nature, type)) setNature(""); }} />
+                    {venueTypes[type]}
+                  </label>
+                ))}
+              </SlidingSegments>
+              <input type="hidden" name="venueMode" value={venueMode} />
+              {errors.venueType && <span className="portal-field-error">{errors.venueType}</span>}
+            </div>
+            <div className={`portal-field${errors.natureOfActivity ? " has-error" : ""}`}>
+              <span className="portal-field-label" id={natureLabel}>Nature of activity<InfoTip label="About the nature of activity">Only the natures e-ReSERVe offers for this venue type are listed.</InfoTip></span>
+              <Dropdown name="natureOfActivity" required labelledBy={natureLabel} value={nature} onChange={setNature} placeholder="Choose the nature of activity" invalid={Boolean(errors.natureOfActivity)} options={naturesFor(venueType).map(value => ({ value, label: value }))} />
+              {errors.natureOfActivity && <span className="portal-field-error">{errors.natureOfActivity}</span>}
+            </div>
+          </> : <div className={`portal-field${errors.venueMode ? " has-error" : ""}`}>
             <span className="portal-field-label" id={venueLabel}>Held</span>
             <SlidingSegments active={venueMode} role="radiogroup" aria-labelledby={venueLabel}>
               {(Object.keys(venueModes) as VenueMode[]).filter((mode) => mode !== "both" || allowBothVenue).map((mode) => (
@@ -129,10 +161,18 @@ export function EventDetailsFields({ initial, errors, what = "event", requireGoo
               ))}
             </SlidingSegments>
             {errors.venueMode && <span className="portal-field-error">{errors.venueMode}</span>}
-          </div>
-          <Field label={venueMode === "both" ? "Venue and online platform" : venueMode === "online" ? "Platform and link" : "Where"} error={errors.venueDetails}>
+          </div>}
+          {allowMultipleVenues ? <div className="portal-venue-list">
+            {venues.map((venue, index) => <div className="portal-venue-row" key={venue.id}>
+              <Field label={`Venue ${index + 1}`} error={index === 0 ? errors.venueDetails : undefined}>
+                <input name="venueDetails" value={venue.value} onChange={event => setVenues(rows => rows.map(row => row.id === venue.id ? { ...row, value: event.target.value } : row))} maxLength={300} minLength={2} placeholder={venuePlaceholders[venueMode]} required />
+              </Field>
+              {venues.length > 1 && <DeleteButton label="Remove venue" prompt="Remove this venue?" confirmLabel="Remove venue" action={async () => { setVenues(rows => rows.filter(row => row.id !== venue.id)); }} />}
+            </div>)}
+            <button type="button" className="portal-button is-ghost is-small" disabled={venues.length >= 10} onClick={() => { const id = nextVenueId.current++; setVenues(rows => [...rows, { id, value: "" }]); }}><AddIcon size={15} aria-hidden="true" />Add venue</button>
+          </div> : <Field label={venueMode === "both" ? "Venue and online platform" : venueMode === "online" ? "Platform and link" : "Where"} error={errors.venueDetails}>
             <input name="venueDetails" defaultValue={initial.venueDetails} maxLength={300} placeholder={venuePlaceholders[venueMode]} required />
-          </Field>
+          </Field>}
         </div>
       </fieldset>
 

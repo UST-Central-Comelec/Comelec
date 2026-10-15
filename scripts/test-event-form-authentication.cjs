@@ -68,6 +68,26 @@ const evaluation = load('src/lib/events/evaluation-actions.ts', {
   assert.equal(writes.at(-1).registration_id, null);
   assert.equal(writes.at(-1).anonymous, true);
   assert.equal('email' in writes.at(-1), false, 'Verification identity stays out of anonymous feedback');
+  const originalSettings = settings;
+  const defaults = load('src/lib/events/evaluation.ts');
+  const field = (id, kind, section, extra = {}) => ({ id, label: id, prompt: '', kind, required: true, options: [], section, ...extra });
+  settings = { ...settings, steps: defaults.defaultEvaluationSteps, questions: [
+    field('profile_detail', 'text', 1),
+    field('contact_email', 'email', 2, { verifyUst: true }),
+    field('given_name', 'text', 2, { identity: 'firstName' }),
+    field('student_number', 'text', 2, { rules: { studentNumber: true } }),
+    field('mobile_number', 'text', 2, { rules: { mobile: true } }),
+    field('affiliation', 'text', 2, { identity: 'affiliation' }),
+    field('feedback', 'textarea', 2),
+  ] };
+  anonymous.set('feedback', 'Helpful event');
+  for (const question of settings.questions.filter(item => item.id !== 'feedback')) anonymous.set(question.id, 'private identity');
+  assert.equal((await evaluation.submitEvaluation('sample', {}, anonymous)).success, true, 'Anonymous submissions skip required identity questions but still verify Google');
+  assert.deepEqual(writes.at(-1).answers, { feedback: 'Helpful event' }, 'Only feedback answers reach storage');
+  assert.deepEqual(writes.at(-1).questions.map(item => item.id), ['feedback'], 'Profile questions are omitted from anonymous response snapshots');
+  assert.equal(writes.at(-1).registration_id, null);
+  assert.equal(defaults.evaluationResponseSettings(settings, false).questions.length, settings.questions.length, 'Named responses keep profile questions');
+  settings = originalSettings;
   jar.clear(); registration = { ...registration, email: 'guest@example.com', affiliation: 'external' };
   assert.equal((await evaluation.submitEvaluation('sample', {}, named)).success, true, 'External participants can respond without a UST account');
   settings.requireGoogle = false;

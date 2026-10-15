@@ -8,7 +8,9 @@ import { conflictState, mergePlan, readGuard, saveGuarded } from "@/lib/data/edi
 import { store } from "@/lib/data/store";
 import { sendAutomatic } from "@/lib/notifications/notify";
 import { canManageEvent, canRequestChanges, unitOfAccount } from "@/lib/events/access";
-import { checkDetails, detailFields, detailsSchema, readDetails, toDetails } from "@/lib/events/details";
+import { activityFields, checkActivity, checkDetails, detailFields, detailsSchema, readActivity, readDetails, toDetails, venueModeFor } from "@/lib/events/details";
+import { addChecklistDocuments } from "@/lib/events/checklist-documents";
+import { capacityFields, capacitySchema, checkCapacity, readCapacity } from "@/lib/events/capacity";
 import { changeRequestEmail, registrationEmail, requestDecisionsEmail } from "@/lib/events/emails";
 import { formatTime } from "@/lib/events/format";
 import { requestDecisionStatus, isRequestKind, registrationStatuses, type DecisionsResult, type RegistrationStatus, type RequestKind } from "@/lib/events/options";
@@ -26,21 +28,22 @@ import { text, toFormState, type FormState } from "./form";
 // organizer is set from the account that adds the event and never changes.
 
 const jsonDefinition = z.string().max(100000).transform((value, context) => { try { return JSON.parse(value) as unknown; } catch { context.addIssue({ code: "custom", message: "Check the form content." }); return z.NEVER; } }).pipe(rsvpDefinitionSchema);
-const eventSchema = z.object({ ...detailFields, rsvpDefinition: jsonDefinition.optional(), evaluationSettings: z.string().max(64000).transform((value, context) => { try { return JSON.parse(value) as unknown; } catch { context.addIssue({ code: "custom", message: "Check the evaluation form settings." }); return z.NEVER; } }).pipe(evaluationSettingsSchema).optional(), rsvpEnabled: z.boolean(), rsvpCommitteeLimit: committeeLimitSchema.optional(), requireGoogle: z.boolean().optional(), registrationStatus: z.enum(Object.keys(registrationStatuses) as [RegistrationStatus, ...RegistrationStatus[]], "Pick a registration status.").optional() }).superRefine(checkDetails);
+const eventSchema = z.object({ ...detailFields, ...activityFields, ...capacityFields, rsvpDefinition: jsonDefinition.optional(), evaluationSettings: z.string().max(64000).transform((value, context) => { try { return JSON.parse(value) as unknown; } catch { context.addIssue({ code: "custom", message: "Check the evaluation form settings." }); return z.NEVER; } }).pipe(evaluationSettingsSchema).optional(), rsvpEnabled: z.boolean(), rsvpCommitteeLimit: committeeLimitSchema.optional(), requireGoogle: z.boolean().optional(), registrationStatus: z.enum(Object.keys(registrationStatuses) as [RegistrationStatus, ...RegistrationStatus[]], "Pick a registration status.").optional() }).superRefine(checkDetails).superRefine(checkActivity).superRefine(checkCapacity);
 
-const parse = (formData: FormData) => eventSchema.safeParse({ ...readDetails(formData), rsvpDefinition: formData.get("rsvpDefinition") ?? undefined, evaluationSettings: formData.get("evaluationSettings") ?? undefined, rsvpEnabled: formData.get("rsvpEnabled") === "on", rsvpCommitteeLimit: formData.has("rsvpCommitteeLimit") ? formData.get("rsvpCommitteeLimit") : undefined, requireGoogle: formData.has("requireGoogle") ? formData.get("requireGoogle") === "on" : undefined, registrationStatus: formData.has("registrationStatus") ? text(formData, "registrationStatus") : undefined });
+const parse = (formData: FormData) => eventSchema.safeParse({ ...readDetails(formData), ...readActivity(formData), ...readCapacity(formData), rsvpDefinition: formData.get("rsvpDefinition") ?? undefined, evaluationSettings: formData.get("evaluationSettings") ?? undefined, rsvpEnabled: formData.get("rsvpEnabled") === "on", rsvpCommitteeLimit: formData.has("rsvpCommitteeLimit") ? formData.get("rsvpCommitteeLimit") : undefined, requireGoogle: formData.has("requireGoogle") ? formData.get("requireGoogle") === "on" : undefined, registrationStatus: formData.has("registrationStatus") ? text(formData, "registrationStatus") : undefined });
 
 /** The form's fields, as a conflict names them. */
 const labels: Record<string, string> = {
+  minimumRegistrants: "Minimum registrants", maximumRegistrants: "Maximum registrants",
   name: "Name", summary: "Short description", background: "Background", eventDate: "Start date", endDate: "End date",
-  ingressTime: "Ingress", startsTime: "Start time", endsTime: "End time", egressTime: "Egress", venueMode: "How it’s held", venueDetails: "Venue",
+  ingressTime: "Ingress", startsTime: "Start time", endsTime: "End time", egressTime: "Egress", venueMode: "Venue type", venueType: "Venue type", natureOfActivity: "Nature of activity", venueDetails: "Venue",
   openToStudents: "Who can take part", openToExternals: "Who can take part", openToAdmins: "Who can take part", openToInternal: "Who can take part",
   collaborators: "Collaborators", otherCollaborators: "Collaborators", registrationStatus: "Registration", requireGoogle: "Google verification",
   changeRequest: "Requested changes", rsvpDefinition: "RSVP form", evaluation: "Evaluation form",
 };
 
 /** A merge of two people's edits still has to hold together: times in order, someone to take part. */
-const holdsTogether = (event: Record<string, unknown>) => detailsSchema.safeParse({ ...event, ingressTime: event.ingressTime ?? "", egressTime: event.egressTime ?? "" }).success;
+const holdsTogether = (event: Record<string, unknown>) => detailsSchema.safeParse({ ...event, ingressTime: event.ingressTime ?? "", egressTime: event.egressTime ?? "" }).success && capacitySchema.safeParse(event).success;
 
 /** A JSON field as the browser sent it, before any defaults are filled in: to compare with what was opened. */
 function sentJson(formData: FormData, name: string) {
@@ -59,10 +62,12 @@ function saveError(error: unknown): FormState {
   const message = error instanceof Error ? error.message : String(error);
   console.error("Couldn’t save the event:", message);
   if (message.includes("RSVP is unavailable") || message.includes("evaluation form")) return { error: message };
+  if (message.includes("venue_type") || message.includes("nature_of_activity")) return { error: "Apply supabase/migrations/20261015000400_event_activity_checklist.sql, then save the event again." };
   if (message.includes("events_venue_mode_check")) return { error: "Apply supabase/migrations/0054_events_both_venues.sql, then save the event again." };
   if (message.includes("open_to_internal") || message.includes("collaborators")) return { error: "Apply supabase/migrations/0053_event_internal_collaborators.sql, then save the event again." };
   if (message.includes("require_google")) return { error: "Events can’t switch Google verification in the database yet. Run supabase/migrations/0029_event_registration_form.sql in the Supabase SQL Editor, then save again." };
   if (message.includes("end_date")) return { error: "Events can’t have an end date in the database yet. Run supabase/migrations/0028_event_end_dates.sql in the Supabase SQL Editor, then save again." };
+  if (message.includes("minimum_registrants") || message.includes("maximum_registrants")) return { error: "Apply the event_registration_capacity migration in Supabase, then save again." };
   if (message.includes("'public.events'") || message.includes("schema cache")) return { error: "Events aren’t set up in the database yet. Run supabase/migrations/0019_events.sql in the Supabase SQL Editor, then save again." };
   return { error: "Something went wrong saving the event. Please try again." };
 }
@@ -73,7 +78,7 @@ function refresh(id: string) {
   revalidatePath(`/events/${id}`);
   revalidatePath("/portal/events");
   revalidatePath(`/portal/events/${id}`);
-  revalidatePath(`/portal/events/${id}/registrants`);
+  revalidatePath(`/portal/events/${id}/responses`);
   revalidatePath(`/portal/events/${id}/analytics`);
   revalidatePath(`/portal/events/${id}/deployment`);
   revalidatePath(`/portal/events/${id}/rsvp`);
@@ -81,6 +86,7 @@ function refresh(id: string) {
   revalidatePath(rsvpFormPath(id));
   revalidatePath(`/events/${id}/evaluate`);
   revalidatePath(`/portal/events/${id}/edit`);
+  revalidatePath(`/portal/events/${id}/documentations`);
 }
 
 const notYours = (user: PortalUser): FormState => ({ error: isLocal(user) ? `You can only manage ${user.college ?? "your college"}’s events.` : "Local units manage their own events. You can ask the unit for changes instead." });
@@ -96,8 +102,10 @@ export async function createEvent(_state: FormState, formData: FormData): Promis
   // The id is made from the name. One named just "New" would take the address of this very page.
   const idHint = parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "") === "new" ? `${parsed.data.name} event` : parsed.data.name;
   let id: string | undefined;
+  let created;
   try {
-    ({ id } = await store.create("events", { ...toDetails(eventDetails), registrationStatus: registrationStatus ?? "closed", requireGoogle: requireGoogle ?? true, ...unit, createdBy: user.email, changeRequest: null, changeRequestedBy: null, changeRequestedAt: null }, user.email, idHint));
+    created = await store.create("events", { ...toDetails(eventDetails), venueMode: venueModeFor(eventDetails.venueType), registrationStatus: registrationStatus ?? "closed", requireGoogle: requireGoogle ?? true, ...unit, createdBy: user.email, changeRequest: null, changeRequestedBy: null, changeRequestedAt: null }, user.email, idHint);
+    id = created.id;
     if (rsvpCommitteeLimit !== undefined && formData.has("rsvpEnabled")) await writeRsvpSettings(id, rsvpEnabled, rsvpCommitteeLimit);
     if (rsvpDefinition) await writeRsvpDefinition(id, rsvpDefinition, rsvpCommitteeLimit);
     if (evaluationSettings) await writeEvaluationContent(id, evaluationSettings);
@@ -110,8 +118,10 @@ export async function createEvent(_state: FormState, formData: FormData): Promis
   }
   // Each of its forms gets its QR code now. Until migration 0059 is run, they're made when first opened instead.
   await ensureQrCodes(id).catch(() => undefined);
+  // The e-ReSERVe checklist for its venue type and nature of activity starts its Documentations.
+  const documents = await addChecklistDocuments(created, user).catch((error: unknown) => { console.error("Couldn’t add the checklist documents:", error); return null; });
   refresh(id);
-  redirect(`/portal/events/${id}?notice=event-created`);
+  redirect(`/portal/events/${id}?notice=${documents === null ? "event-created-no-documents" : documents ? "event-created-documents" : "event-created"}`);
 }
 
 export async function updateEvent(id: string, _state: FormState, formData: FormData): Promise<FormState> {
@@ -124,6 +134,9 @@ export async function updateEvent(id: string, _state: FormState, formData: FormD
   let addressed = false;
   // Someone else saved while this person was editing, and their changes were kept alongside.
   let merged = false;
+  // The venue type or nature changed: its checklist's missing documents are added after saving.
+  let checklistFor: Awaited<ReturnType<typeof getEvent>> = null;
+  let documents: number | null = 0;
   const guard = readGuard(formData);
   try {
     const existing = await getEvent(id);
@@ -146,17 +159,21 @@ export async function updateEvent(id: string, _state: FormState, formData: FormD
       merged = plan.theirs.length > 0;
     }
 
-    const result = await saveGuarded("events", id, { ...toDetails(eventDetails), ...(registrationStatus ? { registrationStatus } : {}), ...(requireGoogle !== undefined ? { requireGoogle } : {}), ...cleared }, user.email, guard, { load: () => getEvent(id), check: holdsTogether });
+    const result = await saveGuarded("events", id, { ...toDetails(eventDetails), venueMode: venueModeFor(eventDetails.venueType), ...(registrationStatus ? { registrationStatus } : {}), ...(requireGoogle !== undefined ? { requireGoogle } : {}), ...cleared }, user.email, guard, { load: () => getEvent(id), groups: [["minimumRegistrants", "maximumRegistrants"]], check: holdsTogether });
     if ("missing" in result) return { error: "This event no longer exists." };
     if ("conflict" in result) return conflictState(result.conflict, labels, "event", user.email);
     merged ||= result.merged;
+    if (existing.venueType !== eventDetails.venueType || existing.natureOfActivity !== eventDetails.natureOfActivity) checklistFor = await getEvent(id);
     if (rsvpCommitteeLimit !== undefined && formData.has("rsvpEnabled")) await writeRsvpSettings(id, rsvpEnabled, rsvpCommitteeLimit);
     if (rsvpDefinition && forms.rsvpDefinition) await writeRsvpDefinition(id, rsvpDefinition, rsvpCommitteeLimit);
     if (evaluationSettings && forms.evaluation) await writeEvaluationContent(id, evaluationSettings);
   } catch (error) {
     return saveError(error);
   }
+  if (checklistFor) documents = await addChecklistDocuments(checklistFor, user).catch((error: unknown) => { console.error("Couldn’t add the checklist documents:", error); return null; });
   refresh(id);
+  if (documents === null) redirect(`/portal/events/${id}?notice=event-updated-no-documents`);
+  if (documents && !addressed && !merged) redirect(`/portal/events/${id}?notice=event-updated-documents`);
   redirect(`/portal/events/${id}?notice=${addressed ? "event-updated-addressed" : merged ? "event-updated-merged" : "event-updated"}`);
 }
 
@@ -242,10 +259,10 @@ export async function removeRegistration(eventId: string, registrationId: string
   if (!event || !canManageEvent(user, event)) redirect("/portal/events");
   if (registration && registration.eventId === event.id) await deleteRegistration(registration.id);
   revalidatePath(`/portal/events/${eventId}`);
-  revalidatePath(`/portal/events/${eventId}/registrants`);
+  revalidatePath(`/portal/events/${eventId}/responses`);
   revalidatePath(`/portal/events/${eventId}/analytics`);
   revalidatePath("/portal/events");
-  redirect(`/portal/events/${eventId}/registrants?notice=registration-removed`);
+  redirect(`/portal/events/${eventId}/responses?notice=registration-removed`);
 }
 
 /**
@@ -271,7 +288,7 @@ export async function saveRequestDecisions(eventId: string, registrationId: stri
     return { error: "Couldn’t save the answers. Try again." };
   }
   revalidatePath(`/portal/events/${eventId}`);
-  revalidatePath(`/portal/events/${eventId}/registrants`);
+  revalidatePath(`/portal/events/${eventId}/responses`);
   revalidatePath(`/portal/events/${eventId}/analytics`);
 
   // Still waiting for an answer once these are saved: the email says the rest will follow.
@@ -285,28 +302,34 @@ export async function saveRequestDecisions(eventId: string, registrationId: stri
   return { saved: changes.length, email, to: registration.email };
 }
 
-export type EventDeploymentState = { error?: string; fieldErrors?: Record<string, string>; success?: boolean };
+export type EventDeploymentState = { error?: string; fieldErrors?: Record<string, string>; success?: boolean; registrationStatus?: RegistrationStatus };
 
 /** Deployment changes never replace the evaluation questionnaire or RSVP invitation token. */
 export async function saveEventDeployment(id: string, _state: EventDeploymentState, form: FormData): Promise<EventDeploymentState> {
   const user = await requireEditor("events");
-  const event = await getEvent(id);
+  let event: Awaited<ReturnType<typeof getEvent>>;
+  try { event = await getEvent(id); }
+  catch (error) { unstable_rethrow(error); return { error: "Couldn’t load the event. Reload the page and try again." }; }
   if (!event) return { error: "This event no longer exists." };
   if (!canManageEvent(user, event)) return notYours(user) ?? {};
-  const parsed = z.object({ registrationStatus: z.enum(Object.keys(registrationStatuses) as [RegistrationStatus, ...RegistrationStatus[]]) }).safeParse({ registrationStatus: form.get("registrationStatus") });
+  const parsed = z.object({ registrationStatus: z.enum(Object.keys(registrationStatuses) as [RegistrationStatus, ...RegistrationStatus[]]), publicationStatus: z.enum(["published", "unpublished"]).optional() }).safeParse({ registrationStatus: form.get("registrationStatus"), publicationStatus: form.has("publicationStatus") ? form.get("publicationStatus") : undefined });
   if (!parsed.success) return toFormState(parsed.error) ?? {};
+  const capacity = form.has("minimumRegistrants") || form.has("maximumRegistrants") ? capacitySchema.safeParse(readCapacity(form)) : null;
+  if (capacity && !capacity.success) return toFormState(capacity.error) ?? {};
   try {
     const evaluation = await getEvaluationSettings(id);
     const settings = evaluationSettingsSchema.safeParse({ ...evaluation, ...(form.has("evaluationGoogleSetting") ? { requireGoogle: form.get("evaluationGoogleEnabled") === "on" } : {}), enabled: form.get("evaluationEnabled") === "on", allowAnonymous: form.get("allowAnonymous") === "on" });
     if (!settings.success) return { error: "Add at least one valid evaluation question in Edit event before accepting responses." };
-    if (!await store.update("events", id, { registrationStatus: parsed.data.registrationStatus, ...(form.has("googleSetting") ? { requireGoogle: form.get("googleEnabled") === "on" } : {}) }, user.email)) return { error: "This event no longer exists." };
+    if (!await store.update("events", id, { ...(capacity?.success ? capacity.data : {}), registrationStatus: parsed.data.registrationStatus, ...(parsed.data.publicationStatus ? { published: parsed.data.publicationStatus === "published" } : {}), ...(form.has("googleSetting") ? { requireGoogle: form.get("googleEnabled") === "on" } : {}) }, user.email)) return { error: "This event no longer exists." };
     await writeRsvpSettings(id, form.get("rsvpEnabled") === "on", undefined, form.has("rsvpGoogleSetting") ? form.get("rsvpGoogleEnabled") === "on" : undefined);
     await writeEvaluationSettings(id, settings.data);
     refresh(id);
-    return { success: true };
+    return { success: true, registrationStatus: (await getEvent(id))?.registrationStatus };
   } catch (error) {
     unstable_rethrow(error);
     refresh(id);
+    if (error instanceof Error && error.message.includes("published")) return { error: "Apply the event_publication migration in Supabase, then save deployment settings again." };
+    if (error instanceof Error && /minimum_registrants|maximum_registrants/.test(error.message)) return { error: "Apply the event_registration_capacity migration in Supabase, then save deployment settings again." };
     return { error: "Couldn’t save all deployment settings. Check the RSVP and evaluation migrations, then try again." };
   }
 }

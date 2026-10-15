@@ -260,7 +260,7 @@ const facts = rsvp.rsvpResponseFacts({ version: 2, definition: r, values: { rsvp
 assert.deepEqual(facts.find(([label]) => label === 'Preferred committee assignments')[1].split('\n'), ['1. Programs & Module Training (Pre-Event & During)', '2. Food & Refreshment Logistics (Pre-Event & During)']);
 assert.equal(facts.find(([label]) => label.startsWith('I confirm that the information'))[1], 'Confirmed');
 const person = rsvp.rsvpRespondent({ version: 2, definition: r, values: { rsvp_first_name: 'ANA', rsvp_last_name: 'CRUZ', rsvp_email: 'ana@ust.edu.ph', rsvp_org_name: 'UST Debate' } });
-assert.deepEqual([person.name, person.email, person.organization], ['ANA CRUZ', 'ana@ust.edu.ph', 'UST Debate']);
+assert.deepEqual([person.name, person.email, person.organization], ['CRUZ, ANA', 'ana@ust.edu.ph', 'UST Debate']);
 const old = { profile: { lastName: 'Cruz', firstName: 'Ana', middleName: 'M', email: 'ana@example.com', studentNumber: '' }, affiliation: 'external', affiliationKind: 'invited-guest', organization: '', college: '', school: '', role: '', attendance: 'confirmed', delegation: 'no', additionalParticipants: '', accurate: true, authorized: true };
 assert.equal(rsvp.rsvpRespondent(old).email, 'ana@example.com');
 assert.ok(rsvp.rsvpResponseFacts(old).some(([label, value]) => label === 'Affiliation type' && value.startsWith('Invited Guest')));

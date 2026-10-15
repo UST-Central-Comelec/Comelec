@@ -62,7 +62,7 @@
 .ev-facts dt { align-items: center; color: var(--ev-faint); display: flex; font: 500 10px/1 var(--ev-sans); gap: 7px; margin-bottom: 9px; text-transform: uppercase; }
 .ev-facts dt svg { color: var(--ev-gold-mark); flex: none; }
 .ev-facts dd { color: var(--ev-text); font-size: 14.5px; font-weight: 500; letter-spacing: -.01em; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
-.ev-facts dd small { color: var(--ev-muted); display: block; font-size: 13px; font-weight: 400; letter-spacing: 0; margin-top: 3px; }
+.ev-facts dd small { color: var(--ev-muted); display: block; font-size: 13px; font-weight: 400; letter-spacing: 0; margin-top: 3px; white-space: pre-line; }
 /* One fact per row, the label beside its value, hairlines between: in the side cards */
 .ev-facts.is-stacked { gap: 0; grid-template-columns: minmax(0, 1fr); padding-top: 0; }
 .ev-facts.is-stacked > div { align-items: baseline; border-bottom: 1px solid var(--ev-line); display: grid; gap: 12px; grid-template-columns: 124px minmax(0, 1fr); padding: 13px 0; }

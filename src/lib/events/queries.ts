@@ -16,6 +16,10 @@ const hoursAndMinutes = (time: string | null | undefined) => (time ? time.slice(
 function normalize(event: CommissionEvent): CommissionEvent {
   return {
     ...event,
+    minimumRegistrants: event.minimumRegistrants ?? 1,
+    maximumRegistrants: event.maximumRegistrants ?? null,
+    registeredCount: event.registeredCount ?? 0,
+    published: event.published ?? true,
     background: event.background ?? "",
     openToInternal: event.openToInternal ?? false,
     collaborators: event.collaborators ?? [],
@@ -56,7 +60,7 @@ export async function getEvent(id: string) {
  */
 export async function getEventsForSite() {
   try {
-    return await getEvents();
+    return (await getEvents()).filter(event => event.published);
   } catch (error) {
     console.error(error);
     return [];
@@ -124,7 +128,8 @@ export async function getListingForSite(id: string): Promise<Listing | null> {
 /** For an event's own page on the website: one that can't be loaded reads as not found. */
 export async function getEventForSite(id: string) {
   try {
-    return await getEvent(id);
+    const event = await getEvent(id);
+    return event?.published ? event : null;
   } catch (error) {
     console.error(error);
     return null;

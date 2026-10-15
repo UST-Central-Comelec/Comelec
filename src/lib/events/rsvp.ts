@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { personDisplayName } from "@/lib/forms/display-name";
 import { colleges } from "@/lib/applications/options";
 import { acknowledgementOf, defaultAcknowledgementStep, defaultPrivacyStep, editorDefinitionSchema, identityAnswer, isBlock, privacyConsent, respondentEmail, type EditorDefinition, type EditorField, type EditorStep, type FormAnswers } from "./form-editor";
 import { resolveFlow } from "./form-flow";
@@ -84,7 +85,7 @@ export type RsvpAnswers = { version: 2; values: FormAnswers; definition: EditorD
 export type RsvpResponse = { id: string; reference_code?: string; answers: LegacyRsvpAnswers | RsvpAnswers; created_at: string; updated_at?: string; logistics_decisions?: Partial<Record<RequestKind, RequestStatus>> };
 export type RsvpSettings = { require_google?: boolean; enabled: boolean; invitation_token: string; committee_limit: number; definition?: EditorDefinition | null };
 export const isLegacyRsvp = (answers: RsvpResponse["answers"]): answers is LegacyRsvpAnswers => "profile" in answers;
-const legacyName = (answers: LegacyRsvpAnswers) => [answers.profile.firstName, answers.profile.middleName, answers.profile.lastName].filter(Boolean).join(" ");
+const legacyName = (answers: LegacyRsvpAnswers) => personDisplayName(answers.profile);
 
 /** Who answered: what the participant list and receipts need, from either kind of response. */
 export function rsvpRespondent(answers: RsvpResponse["answers"]) {
@@ -93,7 +94,7 @@ export function rsvpRespondent(answers: RsvpResponse["answers"]) {
   const part = (identity: Parameters<typeof identityAnswer>[2]) => identityAnswer(definition, values, identity);
   const [firstName, middleName, lastName] = [part("firstName"), part("middleName"), part("lastName")];
   const email = respondentEmail(definition, values);
-  return { firstName, middleName, lastName, email, studentNumber: part("studentNumber"), name: [firstName, middleName, lastName].filter(Boolean).join(" ") || email, affiliation: part("affiliation"), organization: part("organization") };
+  return { firstName, middleName, lastName, email, studentNumber: part("studentNumber"), name: personDisplayName({ firstName, middleName, lastName }) || email, affiliation: part("affiliation"), organization: part("organization") };
 }
 
 /** A response as label and answer pairs, for the RSVP inbox and the participant review. */
@@ -119,7 +120,7 @@ function legacyFacts(answers: LegacyRsvpAnswers): Array<[string, string]> {
     const needs = answers.logisticalNeeds ?? emptyLogisticalNeeds();
     rows.push(["Logistical needs", needs.requests.map(kind => requestKinds[kind].short).join("\n") || "None requested"], ["Car plate number", needs.parkingPlate], ["Car model", needs.parkingModel], ["Car color", needs.parkingColor], ["Expected time of arrival", needs.parkingArrival], ["Allergens", needs.dietaryAllergens]);
   }
-  if (answers.proxy) rows.push(["Proxy name", [answers.proxy.firstName, answers.proxy.middleName, answers.proxy.lastName].filter(Boolean).join(" ")], ["Proxy email", answers.proxy.email], ["Proxy student number", answers.proxy.studentNumber]);
+  if (answers.proxy) rows.push(["Proxy name", personDisplayName(answers.proxy)], ["Proxy email", answers.proxy.email], ["Proxy student number", answers.proxy.studentNumber]);
   for (const field of answers.customDefinition?.steps.flatMap(step => step.fields) ?? []) { const value = answers.customAnswers?.[field.id]; if (field.kind !== "content" && value) rows.push([field.label, Array.isArray(value) ? value.join(", ") : value]); }
   return rows.filter(([, value]) => Boolean(value));
 }

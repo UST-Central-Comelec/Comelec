@@ -576,11 +576,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
         <div className="apply-body-head" key={step}>
           <span>Step {step + 1} of {trackerSteps.length}</span>
           <h2 ref={headingRef} tabIndex={-1}>{steps[step].title}</h2>
-          {step === 2 && verified ? (
-            <p className="apply-verified-line"><VerifiedBadge /><span>Verified as <strong>{verified.email}</strong></span></p>
-          ) : (
-            <p>{steps[step].description}</p>
-          )}
+          <p>{steps[step].description}</p>
         </div>
 
         {/* Every step stays in the form so all answers are sent together; only the current one shows. */}

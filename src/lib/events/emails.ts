@@ -41,8 +41,8 @@ export function registrationEmail(registrant: Registrant, event: CommissionEvent
 
   const intro = registered
     ? `You’re registered for ${event.name}, organized by the ${unit}. Here are the details:`
-    : `Registration for ${event.name}, organized by the ${unit}, hasn’t opened yet, and you’re on its waitlist. Here’s what’s planned:`;
-  const next = registered ? arrivalNote(event) : `Once registration opens, register on the event’s page with this same email to confirm your place.`;
+    : `You’re on the waitlist for ${event.name}, organized by the ${unit}. Your place isn’t confirmed yet. Here’s what’s planned:`;
+  const next = registered ? arrivalNote(event) : `If places become available, register on the event’s page with this same email to confirm your place.`;
   const help = `Plans can change, so check the event’s page for its latest status. Need to correct your details, or can’t make it? Email comelec@ust.edu.ph.`;
 
   return {

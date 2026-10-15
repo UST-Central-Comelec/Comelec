@@ -32,6 +32,7 @@ const emptyComponent = () => null;
 const mocks = {
   react: hooks,
   "next/link": emptyComponent,
+  "@/components/action-icons": new Proxy({}, { get: () => emptyComponent }),
   "@/lib/applications/actions": { submitApplication: () => {} },
   "@/lib/applications/verification-actions": {},
   "@/lib/applications/receipt-image": {},

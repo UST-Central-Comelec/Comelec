@@ -60,7 +60,7 @@ function maintenanceResponse(request: NextRequest) {
 const isPageLoad = (request: NextRequest) => request.method === "GET" && !request.headers.has("rsc") && (request.headers.get("sec-fetch-dest") === "document" || (request.headers.get("accept") ?? "").includes("text/html"));
 
 /**
- * The portal's rate limit was hit. A page load gets the "Too many requests" screen
+ * The portal's rate limit was hit. A page load gets the security protection screen
  * (src/app/(status)/too-many-requests), counting down `retryAfter` seconds. Anything else gets a
  * line of text: a Server Action shows it as its error, the background polls just skip a beat, and a
  * client-side navigation falls back to a full page load, which then gets the screen.
@@ -68,7 +68,7 @@ const isPageLoad = (request: NextRequest) => request.method === "GET" && !reques
 function tooManyRequestsResponse(request: NextRequest, retryAfter: number) {
   const headers = { "Retry-After": String(retryAfter), "Cache-Control": "no-store, max-age=0" };
   if (isPageLoad(request)) return NextResponse.rewrite(new URL(`/too-many-requests?retry=${retryAfter}`, request.nextUrl), { status: 429, headers });
-  return new NextResponse("Too many requests. Please wait a moment and try again.", {
+  return new NextResponse("Request Blocked by Security Protection - Unusual Traffic Detected. Please wait a moment and try again.", {
     status: 429,
     // Next.js only shows a Server Action's error text when the type is exactly "text/plain".
     headers: { ...headers, "Content-Type": isServerAction(request) ? "text/plain" : "text/plain; charset=utf-8" },

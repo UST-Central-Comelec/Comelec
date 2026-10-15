@@ -39,7 +39,7 @@ function Already({ event, registration }: { event: EventView; registration: Regi
       <h2>{registered ? <>You’re already <em>registered.</em></> : <>You’re on the <em>waitlist.</em></>}</h2>
       <p>
         <strong>{registration.email}</strong> {registered ? "registered for" : "joined the waitlist for"} <strong>{event.name}</strong> on {formatWhen(registration.registeredAt)}, as <strong>{registration.name}</strong>.{" "}
-        {registered ? "Your confirmation email has the details." : "Come back to register once registration opens; the details you gave will already be filled in."}
+        {registered ? "Your confirmation email has the details." : "If places become available, come back to register; the details you gave will already be filled in."}
       </p>
       <p>Need to correct something? Email <a href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</a>.</p>
       <div className="ev-actions">

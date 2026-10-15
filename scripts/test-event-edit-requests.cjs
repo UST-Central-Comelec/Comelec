@@ -57,7 +57,7 @@ function form(code = reference, surname = 'DELA CRUZ', changes = 'Change arrival
   assert.equal(writes.length, 0, 'Invalid identity, wrong kind, invalid changes and throttled requests never write');
   let result = await actions.requestResponseEdit({}, form());assert.equal(result.request.id, 'new');
   assert.deepEqual(writes.at(-1).row, { event_id: 'event', registration_id: null, rsvp_response_id: rsvpId, requested_changes: 'Change arrival time to 9 AM.' }, 'Targets are derived from the verified record');
-  assert.ok(refreshed.includes('/portal/events/event/registrants'));
+  assert.ok(refreshed.includes('/portal/events/event/responses'));
   result = await actions.requestResponseEdit({}, form('ABCDE'));assert.equal(result.request.registration_id, registrationId);
   existing = result.request;const count = writes.length;
   assert.equal((await actions.requestResponseEdit({}, form('ABCDE'))).request.id, existing.id);

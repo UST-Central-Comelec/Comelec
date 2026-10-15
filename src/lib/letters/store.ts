@@ -1,12 +1,13 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { workingDocumentKind, type Letter, type LetterValues, type WorkingDocument } from "./options";
+import { workingDocumentKind, type EventPaperContext, type Letter, type LetterValues, type WorkingDocument } from "./options";
 import { normalizeDestinationOffice } from "./offices";
 import { controlNumber, numberMode, type SecretariatSettings, type TrackerKind } from "./settings";
 
-export const lettersUnavailable = "Couldn’t load or save tracker records. Apply the Secretariat migrations through supabase/migrations/0068_secretariat_settings.sql, then reload.";
+export const lettersUnavailable = "Couldn’t load or save tracker records. Apply the Secretariat migrations through supabase/migrations/0068_secretariat_settings.sql and the event_documentations and event_control_numbers migrations, then reload.";
 export type { TrackerKind };
+export type LetterScope = { local: boolean; college: string | null; eventId?: string };
 const tableName = (kind: TrackerKind) => kind === "minutes" ? "secretariat_minutes" : "secretariat_letters";
 
 type Row = { id: string; control_number: string; control_format: string | null; title: string; label: Letter["label"]; type: Letter["type"]; status: Letter["status"]; destination_office: string; working_document: string; working_documents: WorkingDocument[]; remarks: string; notify_status_updates: boolean; remark_presets: Letter["remarkPresets"]; college: string | null; prepared_by: string; created_by: string; created_at: string; updated_at: string };
@@ -31,16 +32,42 @@ export async function previewControlNumber(format: string): Promise<string> {
   return data;
 }
 
-export async function listLetters(scope: { local: boolean; college: string | null }, kind: TrackerKind = "letters"): Promise<Letter[]> {
+/** The database previews the same per-event counter and fixed-form suffix used at save time. */
+export async function previewEventDocumentControlNumber(eventId: string, type: string): Promise<string> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase must be configured before event documents can be numbered.");
+  const { data, error } = await createAdminClient().rpc("preview_event_document_control_number", { p_event_id: eventId, p_type: type });
+  if (error || typeof data !== "string") throw new Error("Couldn’t load the document number. Apply the event_control_numbers migration, then reload.");
+  return data;
+}
+
+export async function listLetters(scope: LetterScope, kind: TrackerKind = "letters"): Promise<Letter[]> {
   if (!isSupabaseConfigured() || (scope.local && !scope.college)) return [];
   const letters: Letter[] = [];
   for (let offset = 0; ; offset += 1000) {
     let query = createAdminClient().from(tableName(kind)).select(fields).order("control_sequence", { ascending: false }).order("id").range(offset, offset + 999);
+    if (kind === "letters") query = scope.eventId ? query.eq("event_id", scope.eventId) : query.is("event_id", null);
     if (scope.local) query = query.eq("college", scope.college!);
     const { data, error } = await query;
     if (error) throw new Error(lettersUnavailable);
     letters.push(...(data as Row[]).map(fromRow));
     if (data.length < 1000) return letters;
+  }
+}
+
+/** All event documentation in the caller’s unit scope, excluding general letters. */
+export async function listEventPapers(scope: Pick<LetterScope, "local" | "college">): Promise<Letter[]> {
+  if (!isSupabaseConfigured() || (scope.local && !scope.college)) return [];
+  const papers: Letter[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    let query = createAdminClient().from("secretariat_letters")
+      .select(`${fields},event:events!inner(id,name,organizer,college,controlNumber:control_number)`)
+      .order("control_sequence", { ascending: false }).order("id").range(offset, offset + 999);
+    if (scope.local) query = query.eq("event.organizer", "local").eq("event.college", scope.college!);
+    const { data, error } = await query;
+    if (error) throw new Error(lettersUnavailable);
+    const rows = data as unknown as Array<Row & { event: EventPaperContext }>;
+    papers.push(...rows.map(row => ({ ...fromRow(row), event: row.event })));
+    if (rows.length < 1000) return papers;
   }
 }
 
@@ -67,7 +94,7 @@ function numbering(values: LetterValues, settings: SecretariatSettings, kind: Tr
  * when the record the editor opened was last saved: it's saved only over that, and otherwise
  * throws `RecordConflict` with the record as it is now.
  */
-export async function writeLetter(id: string | null, values: LetterValues, actor: { email: string; name: string; local: boolean; college: string | null }, settings: SecretariatSettings, kind: TrackerKind = "letters", expected: string | null = null): Promise<Letter> {
+export async function writeLetter(id: string | null, values: LetterValues, actor: LetterScope & { email: string; name: string }, settings: SecretariatSettings, kind: TrackerKind = "letters", expected: string | null = null): Promise<Letter> {
   if (!isSupabaseConfigured()) throw new Error("Supabase must be configured before records can be saved.");
   if (actor.local && !actor.college) throw new Error("Your account needs a college to manage records.");
   const data = { title: values.title, label: values.label, type: values.type, status: values.status, destination_office: values.destinationOffice, working_document: values.workingDocuments[0]?.url ?? "", working_documents: values.workingDocuments, remarks: values.remarks, notify_status_updates: values.notifyStatusUpdates, remark_presets: values.remarkPresets, updated_at: new Date().toISOString(), updated_by: actor.email };
@@ -75,6 +102,7 @@ export async function writeLetter(id: string | null, values: LetterValues, actor
   let existing: Numbered | null = null;
   if (id) {
     let lookup = table().select(`${fields},updated_by`).eq("id", id);
+    if (kind === "letters") lookup = actor.eventId ? lookup.eq("event_id", actor.eventId) : lookup.is("event_id", null);
     if (actor.local) lookup = lookup.eq("college", actor.college!);
     const { data: found, error } = await lookup.maybeSingle();
     if (error) throw new Error(lettersUnavailable);
@@ -85,7 +113,8 @@ export async function writeLetter(id: string | null, values: LetterValues, actor
     existing = current;
   }
   const number = numbering(values, settings, kind, existing);
-  let query = id ? table().update({ ...data, ...number }).eq("id", id) : table().insert({ ...data, ...number, college: actor.local ? actor.college : null, created_by: actor.email, prepared_by: actor.name || actor.email });
+  let query = id ? table().update({ ...data, ...number }).eq("id", id) : table().insert({ ...data, ...number, college: actor.local ? actor.college : null, created_by: actor.email, prepared_by: actor.name || actor.email, ...(kind === "letters" ? { event_id: actor.eventId ?? null } : {}) });
+  if (id && kind === "letters") query = actor.eventId ? query.eq("event_id", actor.eventId) : query.is("event_id", null);
   if (id && actor.local) query = query.eq("college", actor.college!);
   // Someone saving between the check above and this write: it changes nothing, and is read again below.
   if (id && expected) query = query.eq("updated_at", existing!.updated_at);
@@ -97,10 +126,11 @@ export async function writeLetter(id: string | null, values: LetterValues, actor
 }
 
 /** Only the authenticated server action supplies the caller's unit scope. */
-export async function removeLetter(id: string, scope: { local: boolean; college: string | null }, kind: TrackerKind = "letters"): Promise<void> {
+export async function removeLetter(id: string, scope: LetterScope, kind: TrackerKind = "letters"): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error("Supabase must be configured before records can be deleted.");
   if (scope.local && !scope.college) throw new Error("Your account needs a college to manage records.");
   let query = createAdminClient().from(tableName(kind)).delete().eq("id", id);
+  if (kind === "letters") query = scope.eventId ? query.eq("event_id", scope.eventId) : query.is("event_id", null);
   if (scope.local) query = query.eq("college", scope.college!);
   const { data, error } = await query.select("id").maybeSingle();
   if (error) throw new Error("Couldn’t delete this record. Try again.");
@@ -108,10 +138,11 @@ export async function removeLetter(id: string, scope: { local: boolean; college:
 }
 
 /** Label-only edits never overwrite the letter's other fields or change its status. */
-export async function writeLetterLabel(id: string, label: Letter["label"], actor: { email: string; local: boolean; college: string | null }, kind: TrackerKind = "letters"): Promise<Letter> {
+export async function writeLetterLabel(id: string, label: Letter["label"], actor: LetterScope & { email: string }, kind: TrackerKind = "letters"): Promise<Letter> {
   if (!isSupabaseConfigured()) throw new Error("Supabase must be configured before labels can be saved.");
   if (actor.local && !actor.college) throw new Error("Your account needs a college to manage records.");
   let query = createAdminClient().from(tableName(kind)).update({ label, updated_at: new Date().toISOString(), updated_by: actor.email }).eq("id", id);
+  if (kind === "letters") query = actor.eventId ? query.eq("event_id", actor.eventId) : query.is("event_id", null);
   if (actor.local) query = query.eq("college", actor.college!);
   const { data, error } = await query.select(fields).maybeSingle();
   if (error) throw new Error(lettersUnavailable);

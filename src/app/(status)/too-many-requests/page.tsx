@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { RateLimitScreen } from "./rate-limit-screen";
 
-export const metadata: Metadata = { title: "Too many requests" };
+export const metadata: Metadata = { title: "Request Blocked by Security Protection - Unusual Traffic Detected" };
 
 // What src/proxy.ts shows in place of a portal page when one address has made too many requests.
 // The browser's address bar still shows the page that was asked for, so "Try again" just reloads it.

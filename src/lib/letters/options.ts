@@ -71,7 +71,8 @@ export function recordSchema(settings: SecretariatSettings, kind: TrackerKind) {
 }
 
 export type LetterValues = z.infer<ReturnType<typeof recordSchema>>;
-export type Letter = LetterValues & { id: string; controlFormat: string | null; college: string | null; preparedBy: string; preparedByEmail: string; createdAt: string; updatedAt: string };
+export type EventPaperContext = { controlNumber?: string; id: string; name: string; organizer: "central" | "local"; college: string | null; editable?: boolean };
+export type Letter = LetterValues & { event?: EventPaperContext; id: string; controlFormat: string | null; college: string | null; preparedBy: string; preparedByEmail: string; createdAt: string; updatedAt: string };
 /** Someone else saved the record after this person opened it: theirs as it is now, and who saved it. */
 export type LetterConflict = { letter: Letter; by: string };
 export type LetterSaveResult = { letter: Letter; error?: never; fieldErrors?: never; conflict?: never } | { letter?: never; error: string; fieldErrors?: Record<string, string>; conflict?: LetterConflict };

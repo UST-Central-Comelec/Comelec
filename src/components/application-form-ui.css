@@ -48,3 +48,11 @@
 }
 @media (max-width: 600px) { .apply-steps, .apply-skeleton-steps { gap: 8px; } }
 @media (prefers-reduced-motion: reduce) { .apply-steps button, .apply-step-rail, .apply-step-rail::before, .apply-step-rail::after, .apply-steps .apply-step-rail::after, .apply-step-index { transition: none !important; } .apply-steps .is-current .apply-step-rail::after, .apply-tracker-readout-title { animation: none; } }
+/* A quiet, always-dark title strip, aligned with the form below. */
+.apply-top.is-commissioner { background: var(--ui-on-accent); border-bottom-color: color-mix(in srgb, var(--ui-text-on-dark) 10%, transparent); color: var(--ui-text-on-dark); }
+.apply-top.is-commissioner .apply-top-inner { justify-content: flex-start; min-height: 88px; padding-block: 24px; }
+.apply-top.is-commissioner h1 { font-family: var(--font-sans); font-size: clamp(22px, 2.4vw, 32px); font-weight: 600; letter-spacing: -.035em; line-height: 1.2; text-transform: uppercase; text-wrap: balance; white-space: normal; }
+.apply-top.is-commissioner h1 span { color: var(--ui-accent); }
+@media (max-width: 600px) {
+	.apply-top.is-commissioner .apply-top-inner { justify-content: center; min-height: 76px; padding-block: 20px; }
+}

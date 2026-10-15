@@ -59,6 +59,13 @@ export function evaluationDefinition(settings: EvaluationSettings): EditorDefini
   const normalized = applyEvaluationRequirements(settings);
   return { steps: normalized.steps!.map((step, index) => ({ ...step, fields: normalized.questions.filter(question => question.section === index).map(question => { const field: Partial<EvaluationQuestion> = { ...question }; delete field.section; return field as EditorField; }) })) };
 }
+
+/** Anonymous feedback excludes profile questions before rendering, validation and storage. */
+export function evaluationResponseSettings(settings: EvaluationSettings, anonymous: boolean): EvaluationSettings {
+  const normalized = applyEvaluationRequirements(settings);
+  if (!anonymous) return normalized;
+  return { ...normalized, questions: normalized.questions.filter(question => normalized.steps?.[question.section]?.builtin !== 0 && !question.identity && question.kind !== "email" && !question.rules?.studentNumber && !question.rules?.mobile) };
+}
 export function evaluationFromDefinition(definition: EditorDefinition, settings: EvaluationSettings): EvaluationSettings {
   return { ...settings, steps: definition.steps.map(withoutFields), questions: definition.steps.flatMap((step, section) => step.fields.map(field => ({ ...field, section }))) };
 }

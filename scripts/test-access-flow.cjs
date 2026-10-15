@@ -221,6 +221,8 @@ const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
   "./portal-nav-icons": icons,
   "./portal-tab-icons": { groupIcons: icons, tabIcons: icons },
   "@/lib/portal/access": load("src/lib/portal/access.ts"),
+  "@/components/action-icons": icons,
+  "@/lib/portal/letters-return": load("src/lib/portal/letters-return.ts"),
   "@/lib/portal/directory-return": load("src/lib/portal/directory-return.ts"),
 });
 const allTabs = groups.flatMap(group => group.tabs.map(tab => tab.key));

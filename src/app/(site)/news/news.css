@@ -24,7 +24,7 @@ body:has(.site-header.is-visible) .nr-tuner { top: calc(var(--bp-header) + 14px)
 .nr-channel-thumb { background: var(--bp-text); border-radius: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.5); inset: 0; position: absolute; }
 .nr-channel:focus-visible { outline-offset: -2px; }
 /* Search: always open, so it's found without hunting for it */
-.nr-search { align-items: center; background: rgba(var(--bp-ink),.045); border: 1px solid var(--bp-line); border-radius: 12px; color: var(--bp-muted); display: flex; flex: 0 1 320px; height: 42px; margin: 0; min-width: 0; transition: background-color .25s ease, border-color .25s ease, box-shadow .25s ease; }
+.nr-search { align-items: center; background: rgba(var(--bp-ink),.045); border: 1px solid var(--bp-line); border-radius: var(--ui-button-radius); color: var(--bp-muted); display: flex; flex: 0 1 320px; height: 42px; margin: 0; min-width: 0; transition: background-color .25s ease, border-color .25s ease, box-shadow .25s ease; }
 .nr-search:hover { background: rgba(var(--bp-ink),.07); }
 .nr-search:focus-within { background: rgba(var(--bp-ink),.07); border-color: var(--bp-text); box-shadow: var(--field-lift); }
 .nr-search label { align-items: center; align-self: stretch; cursor: text; display: flex; flex: none; justify-content: center; width: 40px; }
@@ -139,7 +139,7 @@ body:has(.site-header.is-visible) .nr-story-side { top: calc(var(--bp-header) + 
 :root[data-theme="light"] .nr-desk .nr-channel.is-active { color: var(--ui-text); }
 :root[data-theme="light"] .nr-desk .nr-channel.is-active small { color: var(--ui-faint); }
 :root[data-theme="light"] .nr-desk .nr-channel.is-active svg { color: var(--ui-accent-mark); }
-:root[data-theme="light"] .nr-desk .nr-search { background: var(--ui-panel-tint); border-radius: 999px; }
+:root[data-theme="light"] .nr-desk .nr-search { background: var(--ui-panel-tint); border-radius: var(--ui-button-radius); }
 :root[data-theme="light"] .nr-desk .nr-search:focus-within { background: var(--ui-panel); }
 :root[data-theme="light"] .nr-feed .nr-list { display: grid; gap: 12px; }
 :root[data-theme="light"] .nr-feed .nr-list > li + li { border-top: 0; }

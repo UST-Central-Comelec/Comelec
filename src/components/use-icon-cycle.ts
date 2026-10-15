@@ -2,11 +2,12 @@
 
 import { useEffect, type RefObject } from "react";
 
-export const ICON_CYCLE_MS = 1400;
+export const ICON_CYCLE_MS = 2800;
+const ICON_RESET_MS = 2000;
 const controlSelector = 'button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], label';
 const selectedSelector = '[aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"]), [data-state="on"], [data-state="checked"], .is-active, .is-selected';
 
-/** One cadence for both icon libraries; the entire control is the hit target. */
+/** One cadence for both icon libraries, with time to finish and return smoothly before replaying. */
 export function useIconCycle(
   element: RefObject<HTMLElement | null>,
   controls: { stop: () => void; set: (variant: string) => void; start: (variant: string) => unknown },
@@ -28,13 +29,14 @@ export function useIconCycle(
       if (resetPose) controls.set(normal);
     };
     const cycle = () => {
-      controls.set(normal);
       void controls.start("animate");
-      reset = setTimeout(() => { void controls.start(normal); }, 900);
+      // The longest supplied motion is 1.8 seconds. Finish it before easing back,
+      // then leave a quiet gap before the next 2.8-second cycle.
+      reset = setTimeout(() => { void controls.start(normal); }, ICON_RESET_MS);
     };
     const update = () => {
-      const disabled = target.matches(':disabled, [aria-disabled="true"], [aria-busy="true"]') || Boolean(target.closest('[inert], [hidden]'));
-      const selected = target.matches(selectedSelector) || Boolean(target.querySelector('input:checked'));
+      const disabled = target.matches(':disabled, [aria-disabled="true"], [aria-busy="true"]') || Boolean(target.closest('[inert], [hidden], fieldset[disabled]'));
+      const selected = !target.hasAttribute("data-icon-interaction-only") && (target.matches(selectedSelector) || Boolean(target.querySelector('input:checked')));
       const engaged = target.matches(":hover, :focus-visible") || Boolean(target.querySelector("input:focus-visible"));
       if (!motionPreference.matches && !document.hidden && !disabled && (active || selected || engaged)) {
         if (!interval) { cycle(); interval = setInterval(cycle, ICON_CYCLE_MS); }
@@ -42,6 +44,9 @@ export function useIconCycle(
     };
     const observer = new MutationObserver(update);
     observer.observe(target, { attributes: true, attributeFilter: ["disabled", "aria-disabled", "aria-busy", "aria-pressed", "aria-selected", "aria-checked", "aria-current", "data-state", "class", "hidden"] });
+    for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      if (ancestor.tagName === "FIELDSET") observer.observe(ancestor, { attributes: true, attributeFilter: ["disabled"] });
+    }
     for (const event of ["mouseenter", "mouseleave", "focusin", "focusout", "change"]) target.addEventListener(event, update);
     document.addEventListener("visibilitychange", update);
     motionPreference.addEventListener("change", update);

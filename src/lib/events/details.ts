@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { text } from "@/lib/portal/form";
+import { withoutEmoji } from "@/lib/forms/input";
 import { backgroundSchema } from "./background";
+import { isActivityNature, venueTypes, type VenueType } from "./activity-checklist";
 import { collaboratorUnits, TIME_STEP_MINUTES, venueModes, type EventDetails, type VenueMode } from "./options";
 
 // The rules for an event's details, shared by the event form (src/lib/portal/event-actions.ts) and
@@ -29,7 +31,10 @@ export const detailFields = {
   endsTime: time("Set when the activity ends."),
   egressTime: optionalTime,
   venueMode: z.enum(Object.keys(venueModes) as [VenueMode, ...VenueMode[]], "Pick how it’s held."),
-  venueDetails: z.string().trim().min(2, "Add where it’s held.").max(300, "Keep the venue under 300 characters."),
+  venueDetails: z.string().min(2, "Add where it’s held.").max(3009, "Keep each venue to 300 characters, with up to 10 venues.")
+    .refine(value => value.split("\n").length <= 10, "Add up to 10 venues.")
+    .refine(value => value.split("\n").every(venue => venue.trim().length >= 2 && venue.trim().length <= 300), "Enter each venue using 2 to 300 characters.")
+    .transform(value => value.trim()),
   openToStudents: z.boolean(),
   openToExternals: z.boolean(),
   openToAdmins: z.boolean(),
@@ -52,6 +57,21 @@ export function checkDetails(value: DetailValues, context: z.RefinementCtx) {
 
 export const detailsSchema = z.object(detailFields).superRefine(checkDetails);
 
+/** An event's e-ReSERVe venue type and nature of activity. Events only, not a unit's listings. */
+export const activityFields = {
+  venueType: z.enum(Object.keys(venueTypes) as [VenueType, ...VenueType[]], "Pick the venue type."),
+  natureOfActivity: z.string().trim().min(1, "Choose the nature of activity."),
+};
+
+export function checkActivity(value: { venueType: VenueType; natureOfActivity: string }, context: z.RefinementCtx) {
+  if (value.natureOfActivity && !isActivityNature(value.natureOfActivity, value.venueType)) context.addIssue({ code: "custom", path: ["natureOfActivity"], message: `Choose a nature of activity offered for ${venueTypes[value.venueType].toLowerCase()} events.` });
+}
+
+export const readActivity = (formData: FormData) => ({ venueType: text(formData, "venueType"), natureOfActivity: text(formData, "natureOfActivity") });
+
+/** An online venue type is held online; every other is on-site. */
+export const venueModeFor = (venueType: VenueType): VenueMode => (venueType === "online" ? "online" : "onsite");
+
 /** The details as the form sent them. */
 export function readDetails(formData: FormData) {
   return {
@@ -65,7 +85,7 @@ export function readDetails(formData: FormData) {
     endsTime: text(formData, "endsTime"),
     egressTime: text(formData, "egressTime"),
     venueMode: text(formData, "venueMode"),
-    venueDetails: text(formData, "venueDetails"),
+    venueDetails: formData.getAll("venueDetails").filter((value): value is string => typeof value === "string").map(value => withoutEmoji(value).trim()).join("\n"),
     openToStudents: formData.get("openToStudents") === "on",
     openToExternals: formData.get("openToExternals") === "on",
     openToAdmins: formData.get("openToAdmins") === "on",

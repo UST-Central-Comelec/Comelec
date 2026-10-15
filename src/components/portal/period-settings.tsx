@@ -111,7 +111,8 @@ export async function PeriodSettings({ kind, notice, unit: asked }: { kind: Peri
                 action={updateUnitPeriod.bind(null, kind, key)}
                 mode={period.mode}
                 noun={noun}
-                allowBothVenue={kind === "recruitment"}
+                allowBothVenue={kind === "recruitment" || kind === "candidacy"}
+                allowMultipleVenues={kind === "candidacy"}
                 studentsOnly={kind === "recruitment"}
                 // A form that's still empty starts with the kind's own name, from today until the day it closes if that's set.
                 initial={period.details ?? { ...blankDetails(manilaToday()), name: title, ...(period.closesAt ? { endDate: manilaDay(period.closesAt), endsTime: "23:55" } : {}) }}

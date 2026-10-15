@@ -4,7 +4,8 @@ import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { SlidingSegments } from "./sliding-filters";
 
 import { useState } from "react";
-import { CalendarClock, Lock } from "lucide-react";
+import { CalendarCogIcon } from "@/components/lucide-animated/calendar-cog";
+import { LockOpenIcon } from "@/components/lucide-animated/lock-open";
 import { CLOSE_GRACE_MINUTES, type PeriodMode } from "@/lib/applications/period";
 import type { EventDetails } from "@/lib/events/options";
 import type { FormState } from "@/lib/portal/form";
@@ -12,9 +13,9 @@ import { EventDetailsFields } from "./event-details-fields";
 import { InfoTip } from "./info-tip";
 import { useHydrated, usePortalForm } from "./portal-form";
 
-const options: Array<{ mode: "scheduled" | "closed"; label: string; icon: typeof Lock }> = [
-  { mode: "scheduled", label: "Scheduled", icon: CalendarClock },
-  { mode: "closed", label: "Closed", icon: Lock },
+const options: Array<{ mode: "scheduled" | "closed"; label: string; icon: typeof LockOpenIcon }> = [
+  { mode: "scheduled", label: "Scheduled Open", icon: CalendarCogIcon },
+  { mode: "closed", label: "Closed", icon: LockOpenIcon },
 ];
 
 /**
@@ -23,12 +24,13 @@ const options: Array<{ mode: "scheduled" | "closed"; label: string; icon: typeof
  * start and end are when it opens and closes. Scheduled runs it on those dates; Closed stops it, after
  * a grace period for anyone partway through. `noun` is what people submit ("applications").
  */
-export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBothVenue = false, studentsOnly = false }: {
+export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBothVenue = false, allowMultipleVenues = false, studentsOnly = false }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   mode: PeriodMode;
   initial: EventDetails;
   noun: string;
   allowBothVenue?: boolean;
+  allowMultipleVenues?: boolean;
   studentsOnly?: boolean;
 }) {
   const { pending, onSubmit, errors } = usePortalForm(action);
@@ -38,7 +40,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
   const closing = mode === "closed" && savedMode !== "closed";
 
   return (
-    <form className="portal-form" onSubmit={onSubmit} noValidate>
+    <form className="portal-form portal-period-form" onSubmit={onSubmit} noValidate>
       <fieldset className="portal-form-section">
         <legend>Status</legend>
         <div className="portal-setting-inline">
@@ -46,21 +48,21 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
             {options.map(({ mode: option, label, icon: Icon }) => (
               <label key={option} className={`portal-segment is-${option}${mode === option ? " is-selected" : ""}`}>
                 <input type="radio" name="mode" value={option} checked={mode === option} onChange={() => setMode(option)} />
-                <Icon size={15} strokeWidth={1.9} aria-hidden="true" />
+                <Icon size={15} aria-hidden="true" />
                 {label}
               </label>
             ))}
           </SlidingSegments>
           <span className="portal-field-hint">
             <InfoTip>
-              <strong>Scheduled:</strong> opens at the start date and time, closes at the end date and time; the public page counts down to the close.{" "}
+              <strong>Scheduled Open:</strong> opens at the start date and time, closes at the end date and time; the public page counts down to the close.{" "}
               <strong>Closed:</strong> stops new {noun} after a {CLOSE_GRACE_MINUTES}-minute grace period, so anyone partway through can finish; you can cancel until then.
             </InfoTip>
           </span>
         </div>
       </fieldset>
 
-      <EventDetailsFields studentsOnly={studentsOnly} allowBothVenue={allowBothVenue} initial={initial} errors={errors} what="listing" />
+      <EventDetailsFields studentsOnly={studentsOnly} allowBothVenue={allowBothVenue} allowMultipleVenues={allowMultipleVenues} initial={initial} errors={errors} what="listing" />
 
       <div className="portal-form-footer">
         <span />

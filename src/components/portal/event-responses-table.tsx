@@ -7,20 +7,25 @@ import { UserPlusIcon } from "@/components/lucide-animated/user-plus";
 import { UserRoundCogIcon } from "@/components/lucide-animated/user-round-cog";
 import type { EventEditRequest } from "@/lib/events/edit-requests";
 import { SlidingFilterButtons } from "./sliding-filters";
-import { rsvpResponseFacts, type RsvpResponse } from "@/lib/events/rsvp";
+import { Dropdown } from "./dropdown";
+import { RegistrantsExport } from "./registrants-export";
+import { ArrowUpDown } from "@/components/animate-ui/icons/arrow-up-down";
+import { RotateCCWIcon } from "@/components/lucide-animated/rotate-ccw";
+import { scrollToElement } from "@/lib/scroll";
+import { isLegacyRsvp, rsvpResponseFacts, type RsvpResponse } from "@/lib/events/rsvp";
 import { CopyableReviewFact, ReviewModalDetailsGroup, ReviewModalFooter, ReviewModalHeader, ReviewModalToolbar } from "./review-modal-ui";
 import { toast } from "./toast";
 import { ReviewActionIcon } from "./review-action-icon";
 import { EvaluationResponseDetails } from "@/components/portal/event-evaluation-editor";
 import type { EvaluationQuestion, EvaluationResponse } from "@/lib/events/evaluation";
 import { useId, useRef, useState, useTransition } from "react";
-import { ChevronRight, ShieldCheck } from "lucide-react";
+import { ChevronRight, ShieldCheck, Clock } from "lucide-react";
 import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { requestDecisionStatus, type DecisionsResult, type RegistrationKind, type RequestKind, type RequestStatus } from "@/lib/events/options";
 
 /** One person's sign-up, with their answers already in words. */
-export type RegistrantRow = {
+export type EventResponseRow = {
   id: string;
   referenceCode: string;
   registered?: boolean;
@@ -51,20 +56,66 @@ export type RegistrantRow = {
   status: RegistrationKind;
   /** "Oct 1, 2026, 9:41 AM", formatted on the server so the browser draws the same text. */
   signedUp: string;
+  submittedAt?: string;
 };
 
 const PAGE_SIZE = 25;
+const nameOrder = new Intl.Collator("en-PH", { sensitivity: "base" });
+const submittedTime = (row: EventResponseRow, rsvp: boolean) => {
+  const value = rsvp ? row.rsvp?.created_at : row.submittedAt;
+  return value ? Date.parse(value) || 0 : 0;
+};
 
 type ResponseFilter = "registrants" | "rsvp";
+type DisplayColumns = { reference: boolean; submission: boolean; degree: boolean };
+
+function ColumnSwitch({ label, next, selected, onClick }: { label: string; next: string; selected: boolean; onClick: () => void }) {
+  return <button type="button" className="portal-button is-ghost is-small portal-registrants-column-switch" aria-label={`${label}. Show ${next.toLowerCase()}`} aria-pressed={selected} title={`Show ${next.toLowerCase()}`} onClick={onClick}>
+    <span className="portal-registrants-column-label">{label}</span>
+  </button>;
+}
+
+/** University, degree or RSVP attendance answers, rather than a college or organization name. */
+function affiliationCell(row: EventResponseRow, degree: boolean, rsvp: boolean) {
+  const facts = rsvp && row.rsvp ? rsvpResponseFacts(row.rsvp.answers) : row.affiliationFacts;
+  const answer = (labels: string[]) => facts.find(([label, value]) => labels.includes(label.toLowerCase()) && value.trim() && value !== "Not given")?.[1];
+  if (degree && rsvp) {
+    const value = row.rsvp && !isLegacyRsvp(row.rsvp.answers) ? row.rsvp.answers.values.rsvp_attendance : undefined;
+    return typeof value === "string" && value.trim() ? value : answer(["attendance response", "attendance"]) || "—";
+  }
+  if (degree) return answer(["degree", "degree program", "degree / program", "program", "course"]) || "—";
+  const university = answer(["university", "university / institution", "school / university", "school / institution", "institution"]);
+  if (university) return university;
+  const affiliation = rsvp ? answer(["affiliation"]) : row.affiliation;
+  if (affiliation === "University of Santo Tomas" || affiliation === "UST student" || affiliation === "UST faculty or staff") return "University of Santo Tomas";
+  return affiliation || "—";
+}
+type StatusFilter = "all" | "attended" | "evaluated" | "edit-request" | "waitlisted";
+const statusFilters: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All statuses" },
+  { value: "attended", label: "Attendance logged" },
+  { value: "evaluated", label: "Evaluation answered" },
+  { value: "edit-request", label: "Edit request" },
+  { value: "waitlisted", label: "Waitlisted" },
+];
+const matchesStatusFilter = (row: EventResponseRow, filter: StatusFilter) => {
+  switch (filter) {
+    case "attended": return Boolean(row.attendanceConfirmedAt);
+    case "evaluated": return Boolean(row.evaluation);
+    case "edit-request": return (row.editRequests ?? []).some(request => request.status === "pending");
+    case "waitlisted": return row.registered !== false && row.status === "waitlisted";
+    default: return true;
+  }
+};
 const responseFilters: { key: ResponseFilter; label: string; icon: typeof UserPlusIcon }[] = [{ key: "registrants", label: "Registrants", icon: UserPlusIcon }, { key: "rsvp", label: "RSVP Responses", icon: UserRoundCogIcon }];
-export const matchesResponseFilter = (row: RegistrantRow, filter: ResponseFilter) => filter === "registrants" ? row.registered !== false : Boolean(row.rsvp);
+export const matchesResponseFilter = (row: EventResponseRow, filter: ResponseFilter) => filter === "registrants" ? row.registered !== false : Boolean(row.rsvp);
 type AddressEdit = (requestId: string, decision: "accepted" | "declined") => Promise<{ error?: string; saved?: boolean }>;
 type Resend = (registrationId: string) => Promise<{ sent: boolean; message: string }>;
 /** Saves the picks made for one registrant (approved or not) and emails them the ones that changed. */
 type Save = (registrationId: string, decisions: Partial<Record<RequestKind, boolean>>) => Promise<DecisionsResult>;
 
 /** Everything about a registrant that the search box looks through. */
-const searchable = (row: RegistrantRow) => [row.referenceCode, row.rsvp?.reference_code, row.studentNumber, row.name, row.email, row.affiliation, row.affiliationSummary, ...row.affiliationFacts.map(([, value]) => value), row.attending.label, ...row.attending.facts.map(([, value]) => value), ...(row.rsvp ? rsvpResponseFacts(row.rsvp.answers).map(([, value]) => value) : []), ...row.requests.flatMap((request) => [request.label, ...request.facts.map(([, value]) => value)])].join(" ").toLowerCase();
+const searchable = (row: EventResponseRow) => [row.referenceCode, row.rsvp?.reference_code, row.studentNumber, row.name, row.email, row.affiliation, row.affiliationSummary, ...row.affiliationFacts.map(([, value]) => value), row.attending.label, ...row.attending.facts.map(([, value]) => value), ...(row.rsvp ? rsvpResponseFacts(row.rsvp.answers).map(([, value]) => value) : []), ...row.requests.flatMap((request) => [request.label, ...request.facts.map(([, value]) => value)])].join(" ").toLowerCase();
 
 /** What came of a save, in a line. */
 function savedMessage(result: DecisionsResult) {
@@ -85,7 +136,7 @@ function Facts({ title, number, facts }: { title: string; number: string; facts:
 }
 
 /** A compact list row opens a native modal with the registration details. */
-function Registrant({ row, evaluationQuestions, remove, save, resend, preferredView, addressEdit, rsvpActions }: { row: RegistrantRow; rsvpActions?: RsvpReviewActions; addressEdit?: AddressEdit; preferredView?: "rsvp" | "evaluation"; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
+function Registrant({ row, columns, evaluationQuestions, remove, save, resend, preferredView, addressEdit, rsvpActions }: { row: EventResponseRow; columns: DisplayColumns; rsvpActions?: RsvpReviewActions; addressEdit?: AddressEdit; preferredView?: "rsvp" | "evaluation"; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
   const [view, setView] = useState<"registration" | "logistics" | "evaluation" | "rsvp">(preferredView ?? (row.registered === false ? row.rsvp ? "rsvp" : "evaluation" : "registration"));
   const panelId = useId();
   const titleId = useId();
@@ -203,20 +254,28 @@ function Registrant({ row, evaluationQuestions, remove, save, resend, preferredV
     </section>;
   });
 
+  const reference = preferredView === "rsvp" ? row.rsvp?.reference_code || "—" : row.referenceCode;
+  const nameValue = columns.reference ? reference : row.name;
+  const nameLabel = columns.reference ? "Reference code" : "Name";
+  const submissionDate = preferredView === "rsvp" && row.rsvp
+    ? new Date(row.rsvp.created_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })
+    : row.signedUp;
+
   return (
     <li className="portal-registrant">
       <div className="portal-registrant-toggle portal-event-registrant-row" onClick={event => {
         if ((event.target as Element).closest("button, a")) return;
         reviewRegistration();
       }}>
-        <span className="portal-registrant-progress" aria-label={`${row.attendanceConfirmedAt ? "Attendance logged" : "Attendance not logged"}; ${row.evaluation ? "Evaluation answered" : "Evaluation not answered"}; ${pendingEdits.length ? "Edit requested" : "No edit request"}`}>
+        <span className="portal-registrant-progress" aria-label={`${row.attendanceConfirmedAt ? "Attendance logged" : "Attendance not logged"}; ${row.evaluation ? "Evaluation answered" : "Evaluation not answered"}; ${pendingEdits.length ? "Edit requested" : "No edit request"}${row.registered !== false && row.status === "waitlisted" ? "; Waitlisted" : ""}`}>
           {row.attendanceConfirmedAt && <i className="is-attended" title="Attendance logged" />}
           {row.evaluation && <i className="is-evaluated" title="Evaluation answered" />}
           {pendingEdits.length > 0 && <i className="is-edit-request" title="Edit requested" />}
+          {row.registered !== false && row.status === "waitlisted" && <i className="is-waitlisted" title="Waitlisted" />}
         </span>
-        <span className="portal-registrant-name"><button type="button" className="portal-registrant-copy" title="Copy name" aria-label={`Copy name ${row.name}`} onClick={() => void copy(row.name, "Name")}>{row.name}</button></span>
-        <span className="portal-registrant-email">{row.email && <button type="button" className="portal-registrant-copy" title="Copy email" aria-label={`Copy email ${row.email}`} onClick={() => void copy(row.email, "Email")}>{row.email}</button>}</span>
-        <span className="portal-registrant-affiliation">{row.affiliationSummary}</span>
+        <span className="portal-registrant-name"><button type="button" className="portal-registrant-copy" title={`Copy ${nameLabel.toLowerCase()}`} aria-label={`Copy ${nameLabel.toLowerCase()} ${nameValue}`} onClick={() => void copy(nameValue, nameLabel)}>{nameValue}</button></span>
+        <span className={`portal-registrant-email${columns.submission ? " is-submission" : ""}`}>{columns.submission ? submissionDate : row.email && <button type="button" className="portal-registrant-copy" title="Copy email" aria-label={`Copy email ${row.email}`} onClick={() => void copy(row.email, "Email")}>{row.email}</button>}</span>
+        <span className="portal-registrant-affiliation">{affiliationCell(row, columns.degree, preferredView === "rsvp")}</span>
         <button type="button" className="portal-list-review" aria-haspopup="dialog" aria-controls={panelId} aria-label={`Review responses for ${row.name}`} onClick={reviewRegistration}><ChevronRight size={18} strokeWidth={1.8} aria-hidden="true" /></button>
       </div>
       <dialog ref={dialog} className="portal-registrant-dialog" id={panelId} aria-labelledby={titleId} onClick={(event) => {
@@ -282,14 +341,22 @@ function Registrant({ row, evaluationQuestions, remove, save, resend, preferredV
  * With `remove` and `save` (the unit that manages the event), a registration can be removed and what
  * it asked for under Logistics answered.
  */
-export function RegistrantsTable({ rows, evaluationQuestions, remove, save, resend, addressEdit, rsvpActions }: { rows: RegistrantRow[]; rsvpActions?: RsvpReviewActions; addressEdit?: AddressEdit; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
+export function EventResponsesTable({ rows, evaluationQuestions, remove, save, resend, addressEdit, rsvpActions }: { rows: EventResponseRow[]; rsvpActions?: RsvpReviewActions; addressEdit?: AddressEdit; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
   const [responseFilter, setResponseFilter] = useState<ResponseFilter>("registrants");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sort, setSort] = useState<"time" | "name">("time");
+  const [columns, setColumns] = useState<DisplayColumns>({ reference: false, submission: false, degree: false });
+  const columnsChanged = columns.reference || columns.submission || columns.degree;
+  const affiliationAlternate = responseFilter === "rsvp" ? "Attendance response" : "Degree";
+  const summary = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
 
   const filtered = rows.filter(row => matchesResponseFilter(row, responseFilter));
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const matching = filtered.filter((row) => (terms.length === 0 || terms.every((term) => searchable(row).includes(term))));
+  const matching = filtered.filter((row) => matchesStatusFilter(row, statusFilter) && (terms.length === 0 || terms.every((term) => searchable(row).includes(term))));
+  const newestFirst = (a: EventResponseRow, b: EventResponseRow) => submittedTime(b, responseFilter === "rsvp") - submittedTime(a, responseFilter === "rsvp") || a.id.localeCompare(b.id);
+  matching.sort(sort === "time" ? newestFirst : (a, b) => nameOrder.compare(a.lastName, b.lastName) || nameOrder.compare(a.firstName, b.firstName) || nameOrder.compare(a.middleName, b.middleName) || newestFirst(a, b));
   const pages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
   // Removing the last row of the last page, or narrowing the search, can leave the page number past the end.
   const current = Math.min(page, pages - 1);
@@ -308,22 +375,43 @@ export function RegistrantsTable({ rows, evaluationQuestions, remove, save, rese
         </label>
       </div>
 
-      <div className="portal-table-tools portal-participant-summary">
+      <div ref={summary} className="portal-table-tools portal-participant-summary">
         <div className="portal-progress-legend" aria-label="Registrant status legends">
           <span><i className="is-attended" aria-hidden="true" />Attendance logged</span>
           <span><i className="is-evaluated" aria-hidden="true" />Evaluation answered</span>
           <span><i className="is-edit-request" aria-hidden="true" />Edit request</span>
+          <span><i className="is-waitlisted" aria-hidden="true" />Waitlisted</span>
         </div>
-        <span className="portal-index">{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</span>
+        <div className="portal-participant-summary-actions">
+          <RegistrantsExport rows={matching} rsvp={responseFilter === "rsvp"} />
+          <button type="button" className="portal-icon-button" aria-label={sort === "time" ? "Sorted newest first. Switch to surname A–Z" : "Sorted by surname A–Z. Switch to newest first"} aria-pressed={sort === "name"} title={sort === "time" ? "Newest first · Switch to surname A–Z" : "Surname A–Z · Switch to newest first"} onClick={() => {
+            setSort(sort === "time" ? "name" : "time");
+            setPage(0);
+            if (summary.current) scrollToElement(summary.current);
+          }}>{sort === "time" ? <Clock size={15} aria-hidden="true" /> : <span className="portal-applicant-sort-letter" aria-hidden="true">A</span>}</button>
+          <Dropdown className="portal-participant-status-filter" size="pill" label="Filter registrants by status" value={statusFilter} options={statusFilters} onChange={value => {
+            setStatusFilter(value as StatusFilter);
+            setPage(0);
+            if (summary.current) scrollToElement(summary.current);
+          }} />
+        </div>
       </div>
 
       {shown.length === 0 ? (
-        <p className="portal-empty" role="status">{filtered.length === 0 ? responseFilter === "rsvp" ? "No RSVPs yet." : "No public registrations yet." : "No entries match your search."}</p>
+        <p className="portal-empty" role="status">{filtered.length === 0 ? responseFilter === "rsvp" ? "No RSVPs yet." : "No public registrations yet." : "No entries match your filters or search."}</p>
       ) : (
-        <div className="portal-registrants">
-          <div className="portal-registrants-head" aria-hidden="true"><span>Status</span><span>Name</span><span>Email</span><span>Affiliation</span></div>
+        <div className="portal-registrants portal-event-registrants">
+          <div className="portal-registrants-head">
+            <span className="portal-registrants-status-heading">Status</span>
+            <ColumnSwitch label={columns.reference ? "Reference code" : "Name"} next={columns.reference ? "Name" : "Reference code"} selected={columns.reference} onClick={() => setColumns(current => ({ ...current, reference: !current.reference }))} />
+            <ColumnSwitch label={columns.submission ? "Submission date" : "Email"} next={columns.submission ? "Email" : "Submission date"} selected={columns.submission} onClick={() => setColumns(current => ({ ...current, submission: !current.submission }))} />
+            <ColumnSwitch label={columns.degree ? affiliationAlternate : "Affiliation"} next={columns.degree ? "Affiliation" : affiliationAlternate} selected={columns.degree} onClick={() => setColumns(current => ({ ...current, degree: !current.degree }))} />
+            <button type="button" className="portal-list-review portal-registrants-switch-all" aria-label={columnsChanged ? "Restore default columns" : "Switch all displayed columns"} title={columnsChanged ? "Restore default columns" : "Switch all displayed columns"} onClick={() => setColumns({ reference: !columnsChanged, submission: !columnsChanged, degree: !columnsChanged })}>
+              {columnsChanged ? <RotateCCWIcon size={16} aria-hidden="true" /> : <ArrowUpDown className="portal-registrants-switch-arrows" size={16} strokeWidth={1.75} aria-hidden="true" />}
+            </button>
+          </div>
           <ul className="portal-registrants-list">
-            {shown.map((row) => <Registrant key={row.id} row={row} rsvpActions={rsvpActions} preferredView={responseFilter === "rsvp" ? "rsvp" : undefined} addressEdit={addressEdit} evaluationQuestions={evaluationQuestions} remove={row.registered !== false ? remove : undefined} save={row.registered !== false ? save : undefined} resend={row.registered !== false ? resend : undefined} />)}
+            {shown.map((row) => <Registrant key={row.id} row={row} columns={columns} rsvpActions={rsvpActions} preferredView={responseFilter === "rsvp" ? "rsvp" : undefined} addressEdit={addressEdit} evaluationQuestions={evaluationQuestions} remove={row.registered !== false ? remove : undefined} save={row.registered !== false ? save : undefined} resend={row.registered !== false ? resend : undefined} />)}
           </ul>
         </div>
       )}

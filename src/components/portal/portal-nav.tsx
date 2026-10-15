@@ -11,6 +11,7 @@ import { groupIcons, tabIcons } from "./portal-tab-icons";
 import { navigationTabKeys, tabGroups, tabHref, type TabKey } from "@/lib/portal/access";
 import type { AttentionCounts } from "@/lib/portal/attention-types";
 import { directoryReturnHref } from "@/lib/portal/directory-return";
+import { fromLettersTracker, LETTERS_TRACKER_HREF } from "@/lib/portal/letters-return";
 /** `item` is the top bar's word for one of the tab's own pages, such as an application under Applications ("Edit" if not given). */
 type Tab = { key: TabKey | "access-control"; href: string; label: string; icon: Icon; item?: string };
 /** A main tab opens its own sidebar panel. */
@@ -113,13 +114,14 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const directoryReturn = isActive("/portal/accounts", pathname) && tabs.includes("members") ? directoryReturnHref(searchParams.get("returnTo")) : null;
+  // An event opened from the Letters Tracker returns there.
+  const lettersReturn = pathname.startsWith("/portal/events/") && fromLettersTracker(searchParams.get("from")) && tabs.includes("secretariat/letters-tracker");
   const shown = openSections(tabs, showAccessControl);
   const entries = shown.flatMap((section) => section.entries);
   const activeGroups = tabPaths(entries).find(({ tab }) => isActive(tab.href, pathname))?.groups ?? [];
   const activeGroup = activeGroups[0]?.label ?? null;
-  const activeExpanded = activeGroups.slice(1).map(group => group.label);
-  const [navigation, setNavigation] = useState<{ pathname: string; group: string | null; query: string; expanded: string[] }>({ pathname, group: activeGroup, query: "", expanded: activeExpanded });
-  const current = navigation.pathname === pathname ? navigation : { pathname, group: activeGroup, query: "", expanded: activeExpanded };
+  const [navigation, setNavigation] = useState<{ pathname: string; group: string | null; query: string }>({ pathname, group: activeGroup, query: "" });
+  const current = navigation.pathname === pathname ? navigation : { pathname, group: activeGroup, query: "" };
   if (navigation.pathname !== pathname) setNavigation(current);
   const selectedPath = groupPaths(entries).find(({ group }) => group.label === current.group);
   const selected = selectedPath?.group;
@@ -132,7 +134,7 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
   const searching = words.length > 0;
   const results = shown.flatMap(section => tabPaths(section.entries).filter(({ tab, groups }) =>
     words.every(word => `${section.label ?? ""} ${groups.map(group => group.label).join(" ")} ${tab.label}`.toLocaleLowerCase().includes(word)))
-    .map(({ tab, groups }) => ({ tab, group: groups[0]?.label ?? null, expanded: groups.slice(1).map(group => group.label), context: groups.map(group => group.label).join(" · ") })));
+    .map(({ tab, groups }) => ({ tab, group: groups[0]?.label ?? null, context: groups.map(group => group.label).join(" · ") })));
 
   const openPanel = (group: string | null) => {
     setNavigation({ ...current, pathname, group, query: "" });
@@ -145,18 +147,16 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
     const active = activeGroups.some(group => group.label === entry.label);
     const count = groupCount(entry);
     if (!pinned && selected?.label === "Legals") {
-      const expanded = current.expanded.includes(entry.label);
       const subpanel = `${id}-${entry.label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
       return <div key={entry.label} className="portal-nav-dropdown">
-        <button type="button" className={`portal-nav-parent${active ? " is-current-group" : ""}`} aria-label={`Open ${entry.label} tabs${count > 0 ? `, ${count} items needing attention` : ""}`} aria-expanded={expanded} aria-controls={subpanel} title={collapsed ? entry.label : undefined} onClick={() => setNavigation({ ...current, expanded: expanded ? current.expanded.filter(label => label !== entry.label) : [...current.expanded, entry.label] })}>
+        <div id={`${subpanel}-heading`} role="heading" aria-level={3} className={`portal-nav-parent is-static${active ? " is-current-group" : ""}`} title={collapsed ? entry.label : undefined}>
           {active && <NavHighlight />}
           <NavSymbol icon={entry.icon} active={active} />
           <span className="portal-nav-label">{entry.label}</span>
           <UnreadBadge count={count} />
-          <ChevronRight className={`portal-nav-chevron${expanded ? " is-open" : ""}`} size={15} strokeWidth={1.8} aria-hidden="true" />
-        </button>
-        <div id={subpanel} className="portal-nav-subtabs" hidden={!expanded}>
-          {expanded && tabPaths(entry.items).map(({ tab }) => <NavLink key={tab.href} tab={tab} subtab active={isActive(tab.href, pathname)} count={countOf(tab)} />)}
+        </div>
+        <div id={subpanel} className="portal-nav-subtabs" role="group" aria-labelledby={`${subpanel}-heading`}>
+          {tabPaths(entry.items).map(({ tab }) => <NavLink key={tab.href} tab={tab} subtab active={isActive(tab.href, pathname)} count={countOf(tab)} />)}
         </div>
       </div>;
     }
@@ -187,12 +187,14 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
             {searching ? (
               <>
                 <span className="portal-nav-section" role="status">{results.length} {results.length === 1 ? "result" : "results"}</span>
-                {results.length ? results.map(({ tab, group, expanded, context }) => <NavLink key={tab.href} tab={tab} active={isActive(tab.href, pathname)} count={countOf(tab)} context={context || undefined} onNavigate={() => setNavigation({ pathname, group, expanded, query: "" })} />) : <p className="portal-nav-empty" role="status">No matching tabs.</p>}
+                {results.length ? results.map(({ tab, group, context }) => <NavLink key={tab.href} tab={tab} active={isActive(tab.href, pathname)} count={countOf(tab)} context={context || undefined} onNavigate={() => setNavigation({ pathname, group, query: "" })} />) : <p className="portal-nav-empty" role="status">No matching tabs.</p>}
               </>
             ) : selected ? (
               <>
                 {directoryReturn && selected.label === "Administrative" ? (
                   <Link className="portal-nav-back" href={directoryReturn} aria-label="Back to Directory" title={collapsed ? "Back to Directory" : undefined}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">Directory</span></Link>
+                ) : lettersReturn && selected.label === "Secretariat" ? (
+                  <Link className="portal-nav-back" href={LETTERS_TRACKER_HREF} aria-label="Back to Letters Tracker" title={collapsed ? "Back to Letters Tracker" : undefined}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">Letters Tracker</span></Link>
                 ) : (
                   <button type="button" className="portal-nav-back" aria-label={backGroup ? `Back to ${backGroup}` : "Back to all tabs"} title={collapsed ? (backGroup ? `Back to ${backGroup}` : "Back to all tabs") : undefined} onClick={() => openPanel(backGroup)}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">{backGroup ?? "All tabs"}</span></button>
                 )}

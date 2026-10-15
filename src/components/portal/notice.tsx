@@ -51,7 +51,9 @@ const messages: Record<string, string> = {
   "filing-closed-now": "Closed. It hadn’t opened yet, so nobody was partway through.",
   "details-saved": "Saved. It stays closed: choose Scheduled to open it on its dates.",
   "event-created": "Event added. It’s now on the website’s Events page.",
+  "event-created-documents": "Event added, and its e-ReSERVe checklist documents are under Documentations.",
   "event-updated": "Changes saved. The website shows them now.",
+  "event-updated-documents": "Changes saved. The new checklist documents for this activity are under Documentations.",
   "event-updated-merged": "Changes saved, and the website shows them now. Someone else saved this event while you were editing, and their changes were kept too.",
   "event-updated-addressed": "Changes saved, and the Central Comelec’s request is marked as addressed.",
   "event-deleted": "Event deleted. It’s off the website, and its registrations were deleted with it.",
@@ -76,6 +78,8 @@ const messages: Record<string, string> = {
 
 /** Notices for something that half-worked: shown as a warning. */
 const warnings: Record<string, string> = {
+  "event-created-no-documents": "Event added, but its checklist documents couldn’t be created. Add them under Documentations.",
+  "event-updated-no-documents": "Changes saved, but the new checklist documents couldn’t be created. Add them under Documentations.",
   "slot-booked": "That slot wasn’t deleted: an applicant booked it just now.",
   "access-needs-migration": "Not approved yet: the database needs an update first. Run supabase/migrations/0021_account_profiles_and_access.sql and 0022_official_accounts_and_viewers.sql in the Supabase SQL Editor, then approve again.",
   "access-request-gone": "That request was already decided by someone else, or it no longer exists.",

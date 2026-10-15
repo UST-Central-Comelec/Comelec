@@ -2,12 +2,6 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { SquishTabs } from "@/components/squish-tabs";
-
-const tabs = [
-  { href: "/apply", label: "Become a Commissioner" },
-  { href: "/apply/track", label: "Track application" },
-];
 
 /** What the banner shows about the application period; set in the portal (Recruitment → Settings). */
 export type BannerPeriod = { accepting: boolean; closesAt: number | null; closesLabel: string | null };
@@ -64,21 +58,15 @@ export function PeriodStatus({ period, noun = "Applications" }: { period: Banner
   return <Countdown deadline={period.closesAt} closesLabel={period.closesLabel} noun={noun} />;
 }
 
-/**
- * Black banner across the Apply section: title, the Become a Commissioner / Track application tabs, and the
- * countdown on the commissioner form. Tracking uses its own title without recruitment status.
- * View mode leaves out the tabs, since they lead off the preview.
- */
-export function ApplyBanner({ period, tabs: showTabs = true }: { period: BannerPeriod; tabs?: boolean }) {
+/** A title strip shared by the commissioner application, tracking page and portal preview. */
+export function ApplyBanner() {
   const isTracking = usePathname() === "/apply/track";
   return (
-    <header className="apply-top">
+    <header className="apply-top is-commissioner">
       <div className="apply-top-inner">
         <div className="apply-top-title">
-          <h1>{isTracking ? "Track submission" : "Commissioner application"}</h1>
-          {showTabs && <SquishTabs tabs={tabs} label="Application" />}
+          <h1>{isTracking ? <>Track <span>submission</span></> : <>Commissioner <span>application</span></>}</h1>
         </div>
-        {!isTracking && <PeriodStatus period={period} />}
       </div>
     </header>
   );

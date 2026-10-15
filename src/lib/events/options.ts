@@ -1,6 +1,7 @@
 import { affiliations, type Affiliation } from "@/lib/data/types";
 import { comelecUnits } from "@/lib/applications/options";
 import type { PeriodKind } from "@/lib/periods/kinds";
+import type { VenueType } from "./activity-checklist";
 
 // Events and activities: an event's shape, and the choices on the portal's event form and the
 // website's registration form. Free of server-only imports, so client forms can use it. The
@@ -19,10 +20,10 @@ export type RegistrationStatus = keyof typeof registrationStatuses;
 
 /** What each status means for the website, shown beside the choice on the event form. */
 export const registrationStatusHints: Record<RegistrationStatus, string> = {
-  closed: "Nobody can sign up. The event still shows on the website.",
-  open: "Students can register on the website.",
-  waitlist: "Registration hasn’t opened yet. Students can join the waitlist instead.",
-  cancelled: "The event is called off. It stays listed, marked as cancelled.",
+  closed: "Pause new registrations. Published events stay visible on the website.",
+  open: "Accept new registrations on the website.",
+  waitlist: "New sign-ups join the waitlist. A place is confirmed only after registration opens.",
+  cancelled: "The event is called off. If published, it stays listed as cancelled.",
   rescheduled: "The event moved to the date above. Sign-ups are paused until you reopen them.",
 };
 
@@ -52,7 +53,16 @@ export const collaboratorLabel = (value: string) => collaboratorUnits.find(unit 
 export type Audience = keyof typeof audiences;
 
 export type CommissionEvent = {
+  /** Assigned once by Supabase; missing until the event control numbering migration is applied. */
+  activitySequence?: number;
+  controlYear?: number;
+  controlNumber?: string;
+  minimumRegistrants?: number;
+  maximumRegistrants?: number | null;
+  registeredCount?: number;
   id: string;
+  /** Missing on older records means published, preserving their existing visibility. */
+  published?: boolean;
   createdAt: string;
   createdBy: string;
   updatedAt: string;
@@ -76,8 +86,15 @@ export type CommissionEvent = {
   endsTime: string;
   egressTime: string | null;
   venueMode: VenueMode;
-  /** The room and building, the online platform, or both with joining instructions. */
+  /** The room and building, online platform, or both. Multiple venues are separated by newlines. */
   venueDetails: string;
+  /**
+   * The e-ReSERVe venue type and nature of activity, which pick the event's checklist documents
+   * (./activity-checklist.ts). Events only; venueMode follows the venue type. Missing on events from
+   * before the activity checklist migration.
+   */
+  venueType?: VenueType | null;
+  natureOfActivity?: string | null;
   openToStudents: boolean;
   openToExternals: boolean;
   openToAdmins: boolean;
@@ -102,10 +119,10 @@ export type CommissionEvent = {
  * venue and who it's open to. A unit's Recruitment, Political Party Registration and Filing of
  * Candidacy are given the same details under their Settings (src/lib/periods/kinds.ts).
  */
-export type EventDetails = Pick<CommissionEvent, "name" | "summary" | "background" | "eventDate" | "endDate" | "ingressTime" | "startsTime" | "endsTime" | "egressTime" | "venueMode" | "venueDetails" | "openToStudents" | "openToExternals" | "openToAdmins" | "openToInternal" | "collaborators" | "otherCollaborators">;
+export type EventDetails = Pick<CommissionEvent, "name" | "summary" | "background" | "eventDate" | "endDate" | "ingressTime" | "startsTime" | "endsTime" | "egressTime" | "venueMode" | "venueDetails" | "venueType" | "natureOfActivity" | "openToStudents" | "openToExternals" | "openToAdmins" | "openToInternal" | "collaborators" | "otherCollaborators">;
 
 /** What a new event form starts with: the given day, an afternoon, on-site, students only. */
-export const blankDetails = (date: string): EventDetails => ({ name: "", summary: "", background: "", eventDate: date, endDate: date, ingressTime: null, startsTime: "13:00", endsTime: "15:00", egressTime: null, venueMode: "onsite", venueDetails: "", openToStudents: true, openToExternals: false, openToAdmins: false, openToInternal: false, collaborators: [], otherCollaborators: [] });
+export const blankDetails = (date: string): EventDetails => ({ name: "", summary: "", background: "", eventDate: date, endDate: date, ingressTime: null, startsTime: "13:00", endsTime: "15:00", egressTime: null, venueMode: "onsite", venueDetails: "", venueType: "in-campus", natureOfActivity: "", openToStudents: true, openToExternals: false, openToAdmins: false, openToInternal: false, collaborators: [], otherCollaborators: [] });
 
 /**
  * What the Events page and the portal's Events tab list: an event, or a unit's Recruitment, Political

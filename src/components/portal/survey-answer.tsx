@@ -1,7 +1,10 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EditorFields } from "@/components/events/editor-fields";
+import { EventConsentStatement, EventFormTracker } from "@/components/events/event-form-ui";
+import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { scrollToElement } from "@/lib/scroll";
 import { acknowledgementOf, fillTags, type EditorDefinition, type FormAnswers } from "@/lib/events/form-editor";
 import { resolveFlow } from "@/lib/events/form-flow";
 import { submitSurvey } from "@/lib/surveys/actions";
@@ -11,23 +14,64 @@ import { SaveIcon } from "@/components/action-icons";
 import "./event-form-editor.css";
 import "./surveys.css";
 
-export function SurveyAnswer({ id, title, definition, updatedAt, preview = false, answered = false }: { id: string; title: string; definition: EditorDefinition; updatedAt: string; preview?: boolean; answered?: boolean }) {
+export function SurveyAnswer({ id, title, description = "", definition, updatedAt, preview = false, answered = false }: { id: string; title: string; description?: string; definition: EditorDefinition; updatedAt: string; preview?: boolean; answered?: boolean }) {
+  const privacyId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [answers, setAnswers] = useState<FormAnswers>({});
+  const [stepId, setStepId] = useState(definition.steps[0]?.id);
   const [submitted, setSubmitted] = useState(answered);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const flow = resolveFlow(definition, answers);
   const acknowledgement = acknowledgementOf(definition);
-  if (submitted) return <div className="portal-empty"><h2>{acknowledgement?.title ?? "Response recorded"}</h2><p>{fillTags(acknowledgement?.message ?? "Thank you for answering this survey.", { event: title, link: "" })}</p></div>;
-  return <FormPreview><form className="ev-rsvp-review-form portal-survey-answer" data-validation={preview ? "off" : undefined} onSubmit={event => {
-    event.preventDefault();
-    if (preview) { toast("This is a preview. No response was submitted."); return; }
-    startTransition(async () => {
-      const result = await submitSurvey(id, answers, updatedAt);
-      if (result.error) { toast(result.error, "error"); return; }
-      setSubmitted(true);
-      toast("Response recorded. Thank you for answering this survey.");
-      router.refresh();
+  const index = Math.max(0, flow.steps.findIndex(step => step.id === stepId));
+  const current = flow.steps[index];
+  const last = index === flow.steps.length - 1;
+  const go = (next: number) => {
+    setSubmitted(false);
+    setStepId(flow.steps[next]?.id);
+    requestAnimationFrame(() => {
+      headingRef.current?.focus({ preventScroll: true });
+      if (headingRef.current) scrollToElement(headingRef.current);
     });
-  }}><fieldset disabled={pending} className="portal-survey-fields">{flow.steps.map(step => <section className="ev-rsvp-group" key={step.id}><h2>{step.title}</h2>{step.description && <p className="portal-muted">{step.description}</p>}<EditorFields fields={step.fields} visible={flow.visible} values={answers} portalPickers onChange={(key, value) => setAnswers(previous => ({ ...previous, [key]: value }))} /></section>)}</fieldset><div className="portal-form-actions"><button type="submit" className="portal-button" disabled={pending}><SaveIcon size={15} aria-hidden="true" />{pending ? "Submitting…" : preview ? "Preview submission" : "Submit response"}</button></div></form></FormPreview>;
+  };
+  const showAcknowledgement = () => {
+    setSubmitted(true);
+    requestAnimationFrame(() => {
+      if (headingRef.current) scrollToElement(headingRef.current);
+    });
+  };
+  return <FormPreview><div className="portal-survey-form">
+    {preview && <header className="portal-survey-form-banner"><span>Survey form</span><h2>{title}</h2>{description && <p>{description}</p>}</header>}
+    <form className="apply-form ev-form ev-steps-form ev-evaluation-form ev-rsvp-form ev-application-form portal-survey-answer" noValidate data-validation={preview ? "off" : undefined} aria-busy={pending} onSubmit={event => {
+      event.preventDefault();
+      if (pending || submitted) return;
+      if (!last) { go(index + 1); return; }
+      if (preview) { showAcknowledgement(); return; }
+      startTransition(async () => {
+        const result = await submitSurvey(id, answers, updatedAt);
+        if (result.error) { toast(result.error, "error"); return; }
+        showAcknowledgement();
+        toast("Response recorded. Thank you for answering this survey.");
+        router.refresh();
+      });
+    }}>
+      <EventFormTracker steps={flow.steps} current={submitted ? flow.steps.length : index} acknowledgement={definition.steps.at(-1)?.title ?? "Acknowledgement"} label="Survey steps" preview={preview} busy={pending || (submitted && !preview)} onStep={go} onAcknowledgement={showAcknowledgement} />
+      <div className="apply-body ev-form-body">
+        {submitted ? <>
+          <div className="apply-body-head"><span>Step {flow.steps.length + 1} of {flow.steps.length + 1}</span><h2 ref={headingRef} tabIndex={-1}>{acknowledgement?.title ?? "Response recorded"}</h2></div>
+          <div className="portal-survey-acknowledgement"><CheckCircle2 size={24} aria-hidden="true" /><p>{fillTags(acknowledgement?.message ?? "Thank you for answering this survey.", { event: title, link: "" })}</p></div>
+          {preview && <footer className="portal-settings-foot"><button type="button" className="portal-button is-ghost" onClick={() => go(Math.max(0, flow.steps.length - 1))}><ArrowLeft size={15} aria-hidden="true" />Back to form</button></footer>}
+        </> : current ? <>
+          <div className="apply-body-head"><span>Step {index + 1} of {flow.steps.length + 1}</span><h2 ref={headingRef} tabIndex={-1}>{current.title}</h2>{current.description && <p>{current.description}</p>}</div>
+          <fieldset disabled={pending} className="apply-group ev-group ev-rsvp-group ev-animated-fields" key={current.id}>
+            <legend className="ev-sr-only">{current.title}</legend>
+            {current.kind === "privacy" && <EventConsentStatement id={privacyId} />}
+            <EditorFields fields={current.fields} visible={flow.visible} values={answers} portalPickers onChange={(key, value) => setAnswers(previous => ({ ...previous, [key]: value }))} />
+          </fieldset>
+          <footer className="portal-settings-foot"><div>{index > 0 && <button type="button" className="portal-button is-ghost" disabled={pending} onClick={() => go(index - 1)}><ArrowLeft size={15} aria-hidden="true" />Back</button>}</div><button type="submit" className="portal-button" disabled={pending}>{last ? <SaveIcon size={15} aria-hidden="true" /> : <ArrowRight size={15} aria-hidden="true" />}{pending ? "Submitting…" : last ? preview ? "Preview submission" : "Submit response" : "Continue"}</button></footer>
+        </> : <p className="portal-empty">Add a question to preview this survey.</p>}
+      </div>
+    </form>
+  </div></FormPreview>;
 }

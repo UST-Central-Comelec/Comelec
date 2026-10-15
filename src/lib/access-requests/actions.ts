@@ -64,7 +64,7 @@ export async function submitAccessRequest(_state: AccessRequestState, formData: 
   if (!isSupabaseConfigured()) return { error: "Requesting access isn’t available right now. Please email comelec@ust.edu.ph." };
 
   const limited = rateLimit(`access-request:${clientIp(await headers())}`, limits.apply.limit, limits.apply.windowMs);
-  if (!limited.ok) return { error: `Too many requests from this network. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.` };
+  if (!limited.ok) return { error: `Request Blocked by Security Protection - Unusual Traffic Detected. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.` };
 
   // The email saved is the Google-verified one, whatever the form says, and only after it was
   // confirmed with Google again just now.

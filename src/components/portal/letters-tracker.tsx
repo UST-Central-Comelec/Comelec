@@ -1,10 +1,13 @@
 "use client";
 
 import { CloseIcon as ActionCloseIcon, SaveIcon as ActionSaveIcon } from "@/components/action-icons";
-import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
+import { eventDocumentSettings, isOfficialEventDocument } from "@/lib/events/document-numbering";
+import { withLettersReturn } from "@/lib/portal/letters-return";
 import { flushSync } from "react-dom";
-import { AlertTriangle, ChevronRight } from "lucide-react";
-import { CopyIcon as Copy, AddIcon as Plus, SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
+import { AlertTriangle, ChevronRight, Lock } from "lucide-react";
+import { CopyIcon as Copy, AddIcon as Plus, SearchIcon as Search, CloseIcon as X, ViewIcon as View } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { documentTypeLabels, workingDocumentKind, type Letter, type LetterConflict, type LetterSaveResult, type LetterValues, type WorkingDocumentKind } from "@/lib/letters/options";
 import { numberMode, type SecretariatSettings, type ToneItem } from "@/lib/letters/settings";
@@ -16,9 +19,10 @@ import { LetterLabel } from "./letter-label";
 import { toast } from "./toast";
 import { ReviewActionIcon } from "./review-action-icon";
 import { Dropdown } from "./dropdown";
-import { TitleWithInfo } from "./info-tip";
+import { InfoTip, TitleWithInfo } from "./info-tip";
 import { ViewOnlyTag } from "./view-only";
 import { WorkingDocumentLink } from "./working-document-link";
+import { activityDocument } from "@/lib/events/activity-checklist";
 import { SlidingFilterButtons } from "./sliding-filters";
 import { LetterDocumentCard, LetterDocumentList } from "./letter-document-sortable";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -34,22 +38,25 @@ function LetterStatus({ status, statuses }: { status: string; statuses: ToneItem
   return <span className={`portal-letter-status is-tone-${statuses.find(item => item.name === status)?.tone ?? "grey"}`}><span className="portal-letter-status-dot" aria-hidden="true" />{status}</span>;
 }
 
-export function LettersTracker({ rows, readOnly, loadError, preparerName, settings, kind = "letters" }: { rows: Letter[]; readOnly: boolean; loadError: string | null; preparerName: string; settings: SecretariatSettings; kind?: "letters" | "minutes" }) {
+export function LettersTracker({ rows, readOnly, loadError, preparerName, settings, kind = "letters", eventActions, eventPapers = false, selector, eventControlNumber, eventChecklist = [] }: { eventChecklist?: string[]; rows: Letter[]; readOnly: boolean; loadError: string | null; preparerName: string; settings: SecretariatSettings; kind?: "letters" | "minutes"; eventPapers?: boolean; selector?: ReactNode; eventControlNumber?: string; eventActions?: { previewNumber: (type: string, recordId?: string) => ReturnType<typeof getLetterNumberPreview>; saveRecord: typeof saveLetter; deleteRecord: typeof deleteLetter; labelRecord: typeof setLetterLabel } }) {
   const minutes = kind === "minutes";
-  const noun = minutes ? "meeting minutes" : "letter";
-  const plural = minutes ? "meeting minutes" : "letters";
-  const title = minutes ? "Minutes of the Meetings" : "Letters Tracker";
-  const addLabel = minutes ? "Add meeting minutes" : "Add letter";
-  const tracker = settings[kind];
-  const typeOptions = tracker.types.map(type => ({ value: type.name, label: type.name }));
+  const noun = eventActions ? "document" : minutes ? "meeting minutes" : "letter";
+  const plural = eventPapers ? "event papers" : eventActions ? "documents" : minutes ? "meeting minutes" : "letters";
+  const title = eventPapers ? "Letters Tracker" : eventActions ? "Documentations" : minutes ? "Minutes of the Meetings" : "Letters Tracker";
+  const addLabel = eventActions ? "Add letter" : minutes ? "Add meeting minutes" : "Add letter";
+  // An event offers its own checklist documents, and keeps any type its documents already have.
+  const checklist = [...eventChecklist, ...rows.map(row => row.type)];
+  const tracker = eventActions ? eventDocumentSettings(settings, eventControlNumber, checklist).letters : settings[kind];
+  // Event documents added by hand are letters; the checklist's official documents are added for them.
+  const letterTypes = eventActions ? tracker.types.filter(type => !isOfficialEventDocument(type.name)) : tracker.types;
   const statusOptions = settings.statuses.map(status => ({ value: status.name, label: status.name }));
   const labelOptions = settings.labels.map(label => ({ value: label.name, label: label.name }));
   const officeNames = settings.offices.map(office => office.name);
-  const blank: LetterValues = { ...emptyLetter, type: tracker.types[0]?.name ?? "", status: settings.statuses[0]?.name ?? "" };
-  const previewNumber = minutes ? getMinuteNumberPreview : getLetterNumberPreview;
-  const saveRecord = minutes ? saveMinute : saveLetter;
-  const deleteRecord = minutes ? deleteMinute : deleteLetter;
-  const labelRecord = minutes ? setMinuteLabel : setLetterLabel;
+  const blank: LetterValues = { ...emptyLetter, type: letterTypes[0]?.name ?? "", status: settings.statuses[0]?.name ?? "" };
+  const previewNumber = eventActions?.previewNumber ?? (minutes ? getMinuteNumberPreview : getLetterNumberPreview);
+  const saveRecord = eventActions?.saveRecord ?? (minutes ? saveMinute : saveLetter);
+  const deleteRecord = eventActions?.deleteRecord ?? (minutes ? deleteMinute : deleteLetter);
+  const labelRecord = eventActions?.labelRecord ?? (minutes ? setMinuteLabel : setLetterLabel);
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -71,19 +78,28 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
   const titleId = `${id}-title`;
+  const selectedEvent = rows.find(row => row.id === selected?.id)?.event;
+  const recordReadOnly = readOnly || (eventPapers && !selectedEvent?.editable);
+  // An official checklist document keeps its type; a letter can become another letter type.
+  const officialType = Boolean(eventActions) && Boolean(selected) && isOfficialEventDocument(selected!.type);
+  // The e-ReSERVe template for an official document, shown locked above its working documents.
+  const template = eventActions ? activityDocument(draft.type)?.template : undefined;
+  const templateKind: WorkingDocumentKind = template ? activityDocument(draft.type)?.templateKind ?? workingDocumentKind(template) ?? "pdf" : "pdf";
+  const typeOptions = (officialType ? tracker.types.filter(type => type.name === selected!.type) : letterTypes).map(type => ({ value: type.name, label: type.name }));
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const matching = rows.filter(row => (filter === "all" || (filter === "none" ? !row.label : row.label === filter)) && terms.every(term => `${row.controlNumber} ${row.title} ${row.type} ${row.status} ${row.label ?? ""}`.toLowerCase().includes(term)));
+  const matching = rows.filter(row => (filter === "all" || (filter === "none" ? !row.label : row.label === filter)) && terms.every(term => `${row.controlNumber} ${row.title} ${row.type} ${row.status} ${row.label ?? ""} ${row.event?.name ?? ""}`.toLowerCase().includes(term)));
   const pages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
   const shown = matching.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
   const fieldErrors = feedback?.fieldErrors ?? {};
   const changed = selected ? (Object.keys(emptyLetter) as Array<keyof LetterValues>).some(key => JSON.stringify(draft[key]) !== JSON.stringify(selected[key])) : true;
   // How the number is made for the chosen type, and whether the record keeps the number it has.
-  const draftType = tracker.types.find(type => type.name === draft.type);
-  const mode = numberMode(tracker, draftType);
+  const numberTracker = eventActions ? eventDocumentSettings(settings, eventControlNumber ?? selectedEvent?.controlNumber, checklist).letters : tracker;
+  const draftType = numberTracker.types.find(type => type.name === draft.type);
+  const mode = numberMode(numberTracker, draftType);
   // Mirrors numbering() in src/lib/letters/store.ts: a record keeps its number while its type stays.
   const keepsNumber = Boolean(selected) && (draft.type === selected?.type || (mode === "auto" ? selected?.controlFormat === draftType?.format : !selected?.controlFormat && selected?.controlNumber === draftType?.format));
-  const previewFor = modalOpen && !readOnly && mode === "auto" && !keepsNumber ? draft.type : null;
+  const previewFor = modalOpen && !recordReadOnly && mode === "auto" && !keepsNumber ? draft.type : null;
 
   async function copy(value: string, label: string) {
     try {
@@ -102,7 +118,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
       if (fetching || document.visibilityState === "hidden") return;
       fetching = true;
       try {
-        const result = await previewNumber(previewFor);
+        const result = await previewNumber(previewFor, selected?.id);
         if (!active) return;
         setPreviewError(result.error ?? "");
         if (result.controlNumber) setNumberPreview({ type: previewFor, value: result.controlNumber });
@@ -123,7 +139,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [previewFor, pending, previewNumber, noun]);
+  }, [previewFor, pending, previewNumber, noun, selected?.id]);
 
   function open(letter: Letter | null) {
     setSelected(letter);
@@ -143,7 +159,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (readOnly || pending) return;
+    if (recordReadOnly || pending) return;
     const data = new FormData(event.currentTarget);
     startTransition(async () => {
       try {
@@ -176,7 +192,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
         if (result.error) toast(result.error, "error");
         if (result.fieldErrors) setView(Object.keys(result.fieldErrors).some(key => key.startsWith("workingDocuments")) ? "documents" : (result.fieldErrors.remarks || Object.keys(result.fieldErrors).some(key => key.startsWith("remarkPresets"))) ? "remarks" : "details");
         if (result.letter) {
-          const what = minutes ? "Meeting minutes" : "Letter";
+          const what = eventActions ? "Document" : minutes ? "Meeting minutes" : "Letter";
           toast(!selected ? `${what} added.` : alsoChangedBy === "You" ? `${what} updated. What you saved in another tab meanwhile was kept too.` : alsoChangedBy ? `${what} updated. ${alsoChangedBy} also changed ${minutes ? "them" : "it"} while you were editing, and those changes were kept.` : `${what} updated.`);
           dialog.current?.close();
         }
@@ -205,7 +221,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
   }
 
   function changeLabel(letter: Letter, label: Letter["label"]) {
-    if (readOnly || pending) return;
+    if (readOnly || (eventPapers && !letter.event?.editable) || pending) return;
     startTransition(async () => {
       try {
         const result = await labelRecord(letter.id, label);
@@ -218,7 +234,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
   }
 
   function remove() {
-    if (!selected || readOnly || pending) return;
+    if (!selected || recordReadOnly || pending) return;
     startTransition(async () => {
       try {
         const result = await deleteRecord(selected.id);
@@ -227,7 +243,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
           setDeleteArmed(false);
           return;
         }
-        toast(`${minutes ? "Meeting minutes" : "Letter"} deleted.`);
+        toast(`${eventActions ? "Document" : minutes ? "Meeting minutes" : "Letter"} deleted.`);
         dialog.current?.close();
       } catch (error) {
         unstable_rethrow(error);
@@ -242,21 +258,24 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
     setFeedback(null);
   };
   function moveDocument(from: number, to: number) {
-    if (readOnly || pending || from < 0 || to < 0 || from >= documentKeys.length || to >= documentKeys.length) return;
+    if (recordReadOnly || pending || from < 0 || to < 0 || from >= documentKeys.length || to >= documentKeys.length) return;
     update("workingDocuments", arrayMove(draft.workingDocuments, from, to));
     setDocumentKeys(arrayMove(documentKeys, from, to));
   }
   const errorFor = (key: keyof LetterValues) => fieldErrors[key] ? <span className="portal-field-error" id={`${id}-${key}-error`}>{fieldErrors[key]}</span> : null;
 
+  const embedded = Boolean(eventActions) && !eventPapers;
+  const Root = embedded ? "section" : "main";
   return (
-    <main className="portal-page is-wide">
+    <Root className={embedded ? "portal-event-documents" : "portal-page is-wide"}>
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Secretariat</p>
-          <TitleWithInfo info={`Track ${minutes ? "meeting minutes" : "letters and reports"} by control number, type and status. Open a row to view or edit its details. Working documents support Google Docs, Google Sheets, Google Drive and other HTTPS links.`}>{title}</TitleWithInfo>
+          {!embedded && <p className="portal-eyebrow">Secretariat</p>}
+          <TitleWithInfo as={embedded ? "h2" : "h1"} info={`Track ${eventPapers ? "documents from all events you can access" : eventActions ? "this event’s documents" : minutes ? "meeting minutes" : "letters and reports"} by control number, type and status. Open a row to view or edit its details. Working documents support Google Docs, Google Sheets, Google Drive and other HTTPS links.`}>{title}</TitleWithInfo>
         </div>
-        {readOnly ? <ViewOnlyTag /> : <button type="button" className="portal-button" disabled={Boolean(loadError)} aria-haspopup="dialog" aria-controls={id} onClick={() => open(null)}><Plus size={16} aria-hidden="true" />{addLabel}</button>}
+        {readOnly ? <ViewOnlyTag /> : eventPapers ? null : <button type="button" className="portal-button" disabled={Boolean(loadError)} aria-haspopup="dialog" aria-controls={id} onClick={() => open(null)}><Plus size={16} aria-hidden="true" />{addLabel}</button>}
       </header>
+      {selector && <div className="portal-letters-selector">{selector}</div>}
       <section className="portal-card is-flush">
         <div className="portal-table-tools portal-letters-tools">
           <div className="portal-letters-filter">
@@ -279,8 +298,8 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
                   open(letter);
                 }}>
                   <td className="is-nowrap portal-letter-control"><button type="button" className="portal-letter-copy" title="Copy control number" aria-label={`Copy control number ${letter.controlNumber}`} onClick={() => void copy(letter.controlNumber, "Control number")}>{letter.controlNumber}</button></td>
-                  <td><LetterLabel labels={settings.labels} value={letter.label} disabled={readOnly || pending} onChange={label => changeLabel(letter, label)} /></td>
-                  <td><button type="button" className="portal-letter-copy portal-row-title" title="Copy title" aria-label={`Copy title ${letter.title}`} onClick={() => void copy(letter.title, "Title")}>{letter.title}</button></td>
+                  <td><LetterLabel labels={settings.labels} value={letter.label} disabled={readOnly || (eventPapers && !letter.event?.editable) || pending} onChange={label => changeLabel(letter, label)} /></td>
+                  <td><button type="button" className="portal-letter-copy portal-row-title" title="Copy title" aria-label={`Copy title ${letter.title}`} onClick={() => void copy(letter.title, "Title")}>{letter.title}</button>{eventPapers && letter.event && <Link className="portal-letter-event" href={withLettersReturn(`/portal/events/${encodeURIComponent(letter.event.id)}`)} title={`Open ${letter.event.name}`}>{letter.event.name}</Link>}</td>
                   <td><LetterStatus status={letter.status} statuses={settings.statuses} /></td>
                   <td><WorkingDocumentLink documents={letter.workingDocuments} /></td>
                   <td className="portal-row-actions"><button type="button" className="portal-list-review" aria-haspopup="dialog" aria-controls={id} aria-label={`Open ${noun} ${letter.controlNumber}: ${letter.title}`} onClick={() => open(letter)}><ChevronRight size={18} strokeWidth={1.8} aria-hidden="true" /></button></td>
@@ -310,7 +329,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
                 </> : <span className="portal-registrant-date">Dates recorded automatically when saved</span>}
               </div>
             </div>
-            <div className="portal-letter-header-label"><LetterLabel name="label" labels={settings.labels} value={draft.label} disabled={readOnly || pending} onChange={label => update("label", label)} /></div>
+            <div className="portal-letter-header-label"><LetterLabel name="label" labels={settings.labels} value={draft.label} disabled={recordReadOnly || pending} onChange={label => update("label", label)} /></div>
           </header>
           <div className="portal-registrant-receipt-body">
             <dl className="portal-letter-preparer">
@@ -318,23 +337,22 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
               <div className="portal-letter-view-picker"><dt className="portal-visually-hidden">View</dt><dd><SlidingFilterButtons active={view} label={`${minutes ? "Meeting minutes" : "Letter"} details view`} onChange={setView} items={[{ key: "details", label: "Details" }, { key: "documents", label: "Working Documents" }, { key: "remarks", label: "Remarks" }]} /></dd></div>
             </dl>
             {previewError && <p className="portal-form-error" role="alert">{previewError}</p>}
-            <fieldset className="portal-letter-fields" disabled={readOnly || pending}>
+            <fieldset className="portal-letter-fields" disabled={recordReadOnly || pending}>
               <div className="portal-form-grid portal-letter-details-panel" hidden={view !== "details"}>
-                {mode === "manual" ? <label className={`portal-field is-wide${fieldErrors.controlNumber ? " has-error" : ""}`}>
-                  <span className="portal-field-label">Control Number</span>
-                  <input name="controlNumber" value={draft.controlNumber} required maxLength={100} placeholder="Type the control number" aria-invalid={Boolean(fieldErrors.controlNumber)} aria-describedby={fieldErrors.controlNumber ? `${id}-controlNumber-error` : undefined} onChange={event => update("controlNumber", event.target.value)} onBlur={event => update("controlNumber", event.target.value.replace(/\s+/g, " ").trim())} />
-                  {errorFor("controlNumber") ?? <span className="portal-field-hint">{tracker.autoIncrement ? `${draft.type} numbers are typed by hand.` : "Automatic numbering is off under Secretariat → Settings."}</span>}
-                </label> : <label className="portal-field is-wide">
-                  <span className="portal-field-label">Control Number</span>
-                  <input readOnly className="is-fixed" value={keepsNumber ? selected?.controlNumber ?? "" : mode === "fixed" ? draftType?.format ?? "" : numberPreview.type === draft.type ? numberPreview.value : ""} placeholder="Loading…" />
-                  {keepsNumber ? null : mode === "fixed" ? <span className="portal-field-hint">University-issued number for every {draft.type}.</span> : <span className="portal-field-hint">{selected ? "The next number is assigned when you save." : "Assigned when you save. If someone saves first, you get the next one."}</span>}
-                </label>}
+                {mode === "manual" ? <div className={`portal-field is-wide${fieldErrors.controlNumber ? " has-error" : ""}`}>
+                  <span className="portal-field-label"><label htmlFor={`${id}-controlNumber`}>Control Number</label><InfoTip>{tracker.autoIncrement ? `${draft.type} numbers are typed by hand.` : "Automatic numbering is off under Secretariat → Settings."}</InfoTip></span>
+                  <input id={`${id}-controlNumber`} name="controlNumber" value={draft.controlNumber} required maxLength={100} placeholder="Type the control number" aria-invalid={Boolean(fieldErrors.controlNumber)} aria-describedby={fieldErrors.controlNumber ? `${id}-controlNumber-error` : undefined} onChange={event => update("controlNumber", event.target.value)} onBlur={event => update("controlNumber", event.target.value.replace(/\s+/g, " ").trim())} />
+                  {errorFor("controlNumber")}
+                </div> : <div className="portal-field is-wide">
+                  <span className="portal-field-label"><label htmlFor={`${id}-controlNumber`}>Control Number</label>{!keepsNumber && <InfoTip>{mode === "fixed" ? eventActions || eventPapers ? "University-issued form number with this event’s activity suffix." : `University-issued number for every ${draft.type}.` : selected ? "The next number is assigned when you save." : "Assigned when you save. If someone saves first, you get the next one."}</InfoTip>}</span>
+                  <input id={`${id}-controlNumber`} readOnly className="is-fixed" value={keepsNumber ? selected?.controlNumber ?? "" : mode === "fixed" ? draftType?.format ?? "" : numberPreview.type === draft.type ? numberPreview.value : ""} placeholder="Loading…" />
+                </div>}
                 <label className={`portal-field is-wide${fieldErrors.title ? " has-error" : ""}`}><span className="portal-field-label">Title</span><input name="title" value={draft.title} required maxLength={300} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? `${id}-title-error` : undefined} onChange={event => update("title", event.target.value)} />{errorFor("title")}</label>
-                <div className={`portal-field${fieldErrors.type ? " has-error" : ""}`}><span className="portal-field-label" id={`${id}-type`}>Type</span><Dropdown name="type" labelledBy={`${id}-type`} value={draft.type} options={typeOptions} disabled={readOnly || pending} invalid={Boolean(fieldErrors.type)} onChange={value => update("type", value)} />{errorFor("type")}</div>
-                <div className={`portal-field${fieldErrors.status ? " has-error" : ""}`}><span className="portal-field-label" id={`${id}-status`}>Status</span><Dropdown name="status" labelledBy={`${id}-status`} value={draft.status} options={statusOptions} disabled={readOnly || pending} invalid={Boolean(fieldErrors.status)} onChange={value => update("status", value)} />{errorFor("status")}</div>
+                <div className={`portal-field${fieldErrors.type ? " has-error" : ""}`}><span className="portal-field-label" id={`${id}-type`}>Type</span><Dropdown required name="type" labelledBy={`${id}-type`} value={draft.type} options={typeOptions} disabled={recordReadOnly || pending || officialType} invalid={Boolean(fieldErrors.type)} onChange={value => update("type", value)} />{errorFor("type")}</div>
+                <div className={`portal-field${fieldErrors.status ? " has-error" : ""}`}><span className="portal-field-label" id={`${id}-status`}>Status</span><Dropdown required name="status" labelledBy={`${id}-status`} value={draft.status} options={statusOptions} disabled={recordReadOnly || pending} invalid={Boolean(fieldErrors.status)} onChange={value => update("status", value)} />{errorFor("status")}</div>
                 <div className={`portal-field is-wide${fieldErrors.destinationOffice ? " has-error" : ""}`}>
                   <span className="portal-field-label" id={`${id}-destination`}>Destination Office</span>
-                  <Combobox key={`${selected?.id ?? "new"}-${selected?.updatedAt ?? creating}`} name="destinationOffice" freeText options={officeNames} value={draft.destinationOffice} onChange={value => update("destinationOffice", value)} placeholder="Type any office, or pick a suggestion" labelledBy={`${id}-destination`} disabled={readOnly || pending} invalid={Boolean(fieldErrors.destinationOffice)} describedBy={fieldErrors.destinationOffice ? `${id}-destinationOffice-error` : undefined} emptyText="No suggestion matches. What you typed is kept." />
+                  <Combobox key={`${selected?.id ?? "new"}-${selected?.updatedAt ?? creating}`} name="destinationOffice" required freeText options={officeNames} value={draft.destinationOffice} onChange={value => update("destinationOffice", value)} placeholder="Type any office, or pick a suggestion" labelledBy={`${id}-destination`} disabled={recordReadOnly || pending} invalid={Boolean(fieldErrors.destinationOffice)} describedBy={fieldErrors.destinationOffice ? `${id}-destinationOffice-error` : undefined} emptyText="No suggestion matches. What you typed is kept." />
                   {errorFor("destinationOffice")}
                 </div>
                 <div className="portal-field is-wide portal-letter-notifications">
@@ -349,23 +367,44 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
                   </div>
                   <input type="hidden" name="workingDocuments" value={JSON.stringify(draft.workingDocuments)} />
                   {fieldErrors.workingDocuments && <span className="portal-field-error">{fieldErrors.workingDocuments}</span>}
+                  {template && <div className="portal-letter-document-list">
+                    <div className="portal-letter-document-card is-locked">
+                      <div className="portal-letter-document-controls"><span className="portal-letter-document-lock" title="Template, locked"><Lock size={15} aria-hidden="true" /></span></div>
+                      <div className="portal-letter-document-row">
+                        <div className="portal-field">
+                          <span className="portal-field-label" id={`${id}-template-type`}>Document type</span>
+                          <Dropdown value={templateKind} options={documentTypeOptions} labelledBy={`${id}-template-type`} disabled />
+                        </div>
+                        <div className="portal-field">
+                          <label className="portal-field-label" htmlFor={`${id}-template-url`}>Template</label>
+                          <div className="portal-letter-link-input has-remove">
+                            <input id={`${id}-template-url`} type="url" value={template} readOnly />
+                            <div className="portal-letter-link-actions">
+                              <a className="portal-letter-copy-link" href={template} target="_blank" rel="noopener noreferrer" title="Open template" aria-label={`Open the ${draft.type} template`}><View size={16} aria-hidden="true" /></a>
+                              <button type="button" className="portal-letter-copy-link" title="Copy link" aria-label="Copy template link" onClick={() => void copy(template, "Template link")}><Copy size={16} aria-hidden="true" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>}
                   <LetterDocumentList ids={documentKeys} onMove={moveDocument}>
                   {draft.workingDocuments.map((document, index) => {
                     const typeError = fieldErrors[`workingDocuments.${index}.type`];
                     const urlError = fieldErrors[`workingDocuments.${index}.url`];
-                    return <LetterDocumentCard key={documentKeys[index]} id={documentKeys[index]} index={index} count={draft.workingDocuments.length} onMove={moveDocument} disabled={readOnly || pending}>
+                    return <LetterDocumentCard key={documentKeys[index]} id={documentKeys[index]} index={index} count={draft.workingDocuments.length} onMove={moveDocument} disabled={recordReadOnly || pending}>
                       <div className={`portal-field${typeError ? " has-error" : ""}`}>
                         <span className="portal-field-label" id={`${id}-document-type-${index}`}>Document type</span>
-                        <Dropdown value={document.type} options={documentTypeOptions} labelledBy={`${id}-document-type-${index}`} disabled={readOnly || pending} invalid={Boolean(typeError)} onChange={value => update("workingDocuments", draft.workingDocuments.map((item, position) => position === index ? { ...item, type: value as WorkingDocumentKind } : item))} />
+                        <Dropdown value={document.type} options={documentTypeOptions} labelledBy={`${id}-document-type-${index}`} disabled={recordReadOnly || pending} invalid={Boolean(typeError)} onChange={value => update("workingDocuments", draft.workingDocuments.map((item, position) => position === index ? { ...item, type: value as WorkingDocumentKind } : item))} />
                         {typeError && <span className="portal-field-error">{typeError}</span>}
                       </div>
                       <div className={`portal-field${urlError ? " has-error" : ""}`}>
                         <label className="portal-field-label" htmlFor={`${id}-document-url-${index}`}>{index === 0 ? "Main Working Document" : "Reference Material"}</label>
-                        <div className={`portal-letter-link-input${readOnly ? "" : " has-remove"}`}>
+                        <div className={`portal-letter-link-input${recordReadOnly ? "" : " has-remove"}`}>
                           <input id={`${id}-document-url-${index}`} type="url" value={document.url} required maxLength={2000} placeholder="Paste document link" aria-invalid={Boolean(urlError)} aria-describedby={urlError ? `${id}-document-url-error-${index}` : undefined} onChange={event => { const url = event.target.value; update("workingDocuments", draft.workingDocuments.map((item, position) => position === index ? { url, type: item.type === "pdf" ? "pdf" : workingDocumentKind(url) ?? item.type } : item)); }} />
                           <div className="portal-letter-link-actions">
                             <button type="button" className="portal-letter-copy-link" title="Copy link" aria-label={`Copy ${index === 0 ? "main working document" : `reference material ${index}`} link`} disabled={pending || !document.url.trim()} onClick={() => void copy(document.url, index === 0 ? "Main working document link" : "Reference material link")}><Copy size={16} aria-hidden="true" /></button>
-                            {!readOnly && <button type="button" className="portal-letter-copy-link" title="Remove link" disabled={pending} aria-label={`Remove document link ${index + 1}`} onClick={() => { update("workingDocuments", draft.workingDocuments.filter((_, position) => position !== index)); setDocumentKeys(documentKeys.filter((_, position) => position !== index)); }}><X size={16} aria-hidden="true" /></button>}
+                            {!recordReadOnly && <button type="button" className="portal-letter-copy-link" title="Remove link" disabled={pending} aria-label={`Remove document link ${index + 1}`} onClick={() => { update("workingDocuments", draft.workingDocuments.filter((_, position) => position !== index)); setDocumentKeys(documentKeys.filter((_, position) => position !== index)); }}><X size={16} aria-hidden="true" /></button>}
                           </div>
                         </div>
                         {urlError && <span className="portal-field-error" id={`${id}-document-url-error-${index}`}>{urlError}</span>}
@@ -373,7 +412,7 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
                     </LetterDocumentCard>;
                   })}
                   </LetterDocumentList>
-                  {!readOnly && <button type="button" className="portal-button is-small is-ghost portal-letter-add-document" disabled={pending || draft.workingDocuments.length >= 100} onClick={() => { update("workingDocuments", [...draft.workingDocuments, { type: "docs", url: "" }]); setDocumentKeys([...documentKeys, crypto.randomUUID()]); }}><Plus size={14} aria-hidden="true" />Add link</button>}
+                  {!recordReadOnly && <button type="button" className="portal-button is-small is-ghost portal-letter-add-document" disabled={pending || draft.workingDocuments.length >= 100} onClick={() => { update("workingDocuments", [...draft.workingDocuments, { type: "docs", url: "" }]); setDocumentKeys([...documentKeys, crypto.randomUUID()]); }}><Plus size={14} aria-hidden="true" />Add link</button>}
                 </section>
               <section className="portal-field portal-letter-remarks" hidden={view !== "remarks"}>
                 <div className="portal-letter-remark-presets" role="group" aria-label="Preset remarks">
@@ -398,15 +437,15 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
             </div>
           </div>}
           <footer className="portal-registrant-receipt-foot">
-            {readOnly ? <ViewOnlyTag /> : deleteArmed ? <div className="portal-letter-delete-confirm">
+            {recordReadOnly ? <ViewOnlyTag /> : deleteArmed ? <div className="portal-letter-delete-confirm">
               <span className="portal-muted">Delete permanently?</span>
               <button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => setDeleteArmed(false)}>Keep</button>
               <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={pending} onClick={remove}><ReviewActionIcon kind="remove" disabled={pending} />{pending ? "Deleting…" : "Delete"}</button>
             </div> : <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={!selected || pending} aria-label={`Delete ${noun}`} title={selected ? `Delete ${noun}` : `Save ${noun} before deleting it`} onClick={() => setDeleteArmed(true)}><ReviewActionIcon kind="remove" disabled={!selected || pending} />Delete</button>}
-            <div className="portal-registrant-actions"><button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => dialog.current?.close()}><ActionCloseIcon size={15} aria-hidden="true" />{readOnly ? "Close" : "Cancel"}</button>{!readOnly && <button type="submit" className="portal-registrant-action-button" disabled={pending || !changed}><ReviewActionIcon kind="update" disabled={pending || !changed} />{pending && !deleteArmed ? "Saving…" : selected ? "Save changes" : addLabel}</button>}</div>
+            <div className="portal-registrant-actions"><button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => dialog.current?.close()}><ActionCloseIcon size={15} aria-hidden="true" />{recordReadOnly ? "Close" : "Cancel"}</button>{!recordReadOnly && <button type="submit" className="portal-registrant-action-button" disabled={pending || !changed}><ReviewActionIcon kind="update" disabled={pending || !changed} />{pending && !deleteArmed ? "Saving…" : selected ? "Save changes" : addLabel}</button>}</div>
           </footer>
         </form>
       </dialog>
-    </main>
+    </Root>
   );
 }

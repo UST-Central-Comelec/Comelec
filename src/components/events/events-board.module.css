@@ -104,6 +104,7 @@
 .detailToggle { position: absolute; right: 24px; top: 8px; }
 .detailToggle svg { transition: transform .25s ease; }
 .detailToggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.details dd { white-space: pre-line; }
 .board .actions :global(.ev-button) { background: #fec30c; border: 0; border-radius: 8px; box-shadow: none; color: #141820; font-size: 12px; gap: 10px; min-height: 36px; padding: 10px 14px; }
 .board .eventStatus :global(.ev-status) { background: none; border: 0; color: var(--muted); font-size: 11px; font-weight: 500; gap: 6px; padding: 0; text-transform: none; }
 .board .eventStatus :global(.ev-status.is-open) { color: var(--green); }

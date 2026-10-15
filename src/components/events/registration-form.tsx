@@ -123,7 +123,7 @@ function Saved({ event, kind, name, email, referenceCode, acknowledgement }: { e
       {registered ? (
         <p>{name ? <><strong>{name}</strong>, your</> : "Your"} place at <strong>{event.name}</strong> is confirmed.{email && acknowledgement === "sent" && <> A confirmation with the event’s details is on its way to <strong>{email}</strong>.</>} If you asked for anything under Logistics, you’ll be emailed whether it can be arranged.</p>
       ) : (
-        <p>{name ? <><strong>{name}</strong>, you’re</> : "You’re"} on the waitlist for <strong>{event.name}</strong>. Once registration opens, come back to the event’s page to register.{email && acknowledgement === "sent" && <> A confirmation is on its way to <strong>{email}</strong>.</>}</p>
+        <p>{name ? <><strong>{name}</strong>, you’re</> : "You’re"} on the waitlist for <strong>{event.name}</strong>. Your place isn’t confirmed yet. If places become available, come back to the event’s page to register.{email && acknowledgement === "sent" && <> A confirmation is on its way to <strong>{email}</strong>.</>}</p>
       )}
       {acknowledgement === "failed" && <p>Your registration is saved, but we couldn’t send the acknowledgement to <strong>{email}</strong>. Please contact <a href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</a> for confirmation. You don’t need to register again.</p>}
       {referenceCode && <p>Registration reference: <strong>{referenceCode}</strong>. Keep this code to track your registration with your last name.</p>}

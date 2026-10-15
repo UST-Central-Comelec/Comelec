@@ -11,7 +11,7 @@ function fixture({ reduced = false, active = false } = {}) {
   const control = new EventTarget();
   Object.assign(control, { hovered: false, selected: false, disabled: false,
     matches(selector) { return selector.startsWith(':disabled') ? this.disabled : selector.startsWith(':hover') ? this.hovered : this.selected; },
-    closest() { return null; }, querySelector() { return null; } });
+    hasAttribute() { return false; }, closest() { return null; }, querySelector() { return null; } });
   const media = Object.assign(new EventTarget(), { matches: reduced });
   const document = Object.assign(new EventTarget(), { hidden: false });
   const schedule = (fn, delay, repeat = false) => { const key = ++id; timers.set(key, { fn, delay, due: now + delay, repeat }); return key; };
@@ -33,12 +33,12 @@ function fixture({ reduced = false, active = false } = {}) {
 }
 const hovered = fixture();
 assert.equal(hovered.starts.length, 0);
-hovered.hover(true); hovered.advance(2800);
-assert.deepEqual(hovered.starts, [0, 1400, 2800], 'Replay starts every 1.4 seconds');
+hovered.hover(true); hovered.advance(5600);
+assert.deepEqual(hovered.starts, [0, 2800, 5600], 'Replay starts every 2.8 seconds');
 hovered.hover(false); hovered.advance(3000);
 assert.equal(hovered.starts.length, 3, 'Leaving stops the loop');
 assert.equal(hovered.poses.at(-1), 'initial');
-hovered.control.selected = true; hovered.change(); hovered.advance(1400);
+hovered.control.selected = true; hovered.change(); hovered.advance(2800);
 assert.equal(hovered.starts.length, 5, 'An active toggle loops without hover');
 hovered.control.disabled = true; hovered.change(); hovered.advance(2800);
 assert.equal(hovered.starts.length, 5, 'Disabled controls stop even when selected');
@@ -47,7 +47,7 @@ hovered.document.hidden = true; hovered.document.dispatchEvent(new Event('visibi
 assert.equal(hovered.timers.size, 0, 'Hidden documents stop playback');
 hovered.cleanup();
 const reduced = fixture({ reduced: true, active: true }); reduced.hover(true); reduced.advance(5000);
-assert.equal(reduced.starts.length, 0, 'Reduced motion stays static'); reduced.media.matches = false; reduced.media.dispatchEvent(new Event('change')); reduced.advance(1400);
+assert.equal(reduced.starts.length, 0, 'Reduced motion stays static'); reduced.media.matches = false; reduced.media.dispatchEvent(new Event('change')); reduced.advance(2800);
 assert.equal(reduced.starts.length, 2, 'Changing motion preference resumes playback'); reduced.cleanup();
 const unmount = fixture({ active: true }); const before = unmount.poses.length; unmount.cleanup();
 assert.equal(unmount.timers.size, 0, 'Unmount clears every timer');

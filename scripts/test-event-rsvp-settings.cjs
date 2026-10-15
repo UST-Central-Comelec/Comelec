@@ -32,13 +32,13 @@ const actions = load('src/lib/portal/event-actions.ts', {
   '@/lib/data/store': { store: { create: async (_, row) => { calls.push(['create', row]); return { id: 'sample' }; }, update: async (_, id, row) => { calls.push(['update', id, row]); return true; }, remove: async (_, id) => { calls.push(['remove', id]); } } },
   '@/lib/events/queries': { getEvent: async () => ({ organizer: 'local', college: 'CICS' }) },
   '@/lib/events/registrations': {}, '@/lib/events/emails': {}, '@/lib/notifications/notify': {},
-  '@/lib/events/qr-codes': { ensureQrCodes: async id => { calls.push(['qr', id]); return {}; } },
+  '@/lib/events/checklist-documents': { addChecklistDocuments: async () => 0 }, '@/lib/events/qr-codes': { ensureQrCodes: async id => { calls.push(['qr', id]); return {}; } },
   '@/lib/events/evaluation-store': { getEvaluationSettings: async () => storedEvaluation, writeEvaluationContent: async (...args) => { calls.push(['evaluation', ...args]); }, writeEvaluationSettings: async (...args) => { calls.push(['evaluation', ...args]); } },
   '@/lib/events/rsvp-store': { getRsvpSettings: async () => null, writeRsvpDefinition: async (...args) => { calls.push(['definition', ...args]); }, writeRsvpSettings: async (...args) => { calls.push(['settings', ...args]); if (failSettings) throw Error('RSVP is unavailable'); } },
 });
 function form(limit = '2') {
   const data = new FormData();
-  for (const [key, value] of Object.entries({ name: 'Sample event', summary: 'An event for collaborators.', background: '', eventDate: '2026-10-08', endDate: '2026-10-08', ingressTime: '', startsTime: '09:00', endsTime: '10:00', egressTime: '', venueMode: 'onsite', venueDetails: 'UST campus', openToStudents: 'on', registrationStatus: 'closed', rsvpEnabled: 'on', rsvpCommitteeLimit: limit })) data.set(key, value);
+  for (const [key, value] of Object.entries({ name: 'Sample event', summary: 'An event for collaborators.', background: '', eventDate: '2026-10-08', endDate: '2026-10-08', ingressTime: '', startsTime: '09:00', endsTime: '10:00', egressTime: '', venueMode: 'onsite', venueType: 'in-campus', natureOfActivity: 'Meeting', venueDetails: 'UST campus', openToStudents: 'on', registrationStatus: 'closed', rsvpEnabled: 'on', rsvpCommitteeLimit: limit })) data.set(key, value);
   data.set('evaluationSettings', JSON.stringify(load('src/lib/events/evaluation.ts').defaultEvaluation));
   return data;
 }
@@ -87,7 +87,7 @@ assert.equal(linkFor('rsvp').form, 'rsvp');
 assert.deepEqual([linkFor('evaluation').form, linkFor('evaluation').eventId], ['evaluation', 'sample']);
 tabs().props.onChange('details');
 const deploymentUi = load('src/components/portal/event-deployment.tsx', {
-  react: { ...React, useActionState: () => [{}, () => {}, false] },
+  react: { ...React, useId: () => 'deployment', useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}], useActionState: () => [{}, () => {}, false] },
   '@/lib/portal/event-actions': { saveEventDeployment: () => {} },
   './event-registration-link': { EventRegistrationLink: () => null },
   './toast': { useToast: () => {} },
@@ -157,6 +157,28 @@ assert.equal(deploymentNodes.some(node => node.type === 'button'), false, 'Read-
   assert.deepEqual(evaluationWrite.questions, storedEvaluation.questions, 'Deployment preserves all questions');
   assert.equal(evaluationWrite.enabled, true); assert.equal(evaluationWrite.allowAnonymous, true);
   assert.ok(refreshed.includes('/portal/events/sample/deployment'));
+  calls.length = 0;
+  deployment.set('minimumRegistrants', '2'); deployment.set('maximumRegistrants', '1');
+  assert.ok((await actions.saveEventDeployment('sample', {}, deployment)).fieldErrors.maximumRegistrants);
+  assert.equal(calls.length, 0, 'Invalid capacity never writes deployment settings');
+  deployment.set('maximumRegistrants', '20');
+  assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
+  assert.equal(calls.find(call => call[0] === 'update')[2].minimumRegistrants, 2);
+  assert.equal(calls.find(call => call[0] === 'update')[2].maximumRegistrants, 20);
+  deployment.delete('minimumRegistrants'); deployment.delete('maximumRegistrants');
+  calls.length = 0;
+  deployment.set('publicationStatus', 'unpublished');
+  assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
+  assert.equal(calls.find(call => call[0] === 'update')[2].published, false, 'Unpublishing is saved independently of registration status');
+  calls.length = 0;
+  deployment.set('publicationStatus', 'published');
+  assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
+  assert.equal(calls.find(call => call[0] === 'update')[2].published, true);
+  calls.length = 0;
+  deployment.set('publicationStatus', 'invalid');
+  assert.ok((await actions.saveEventDeployment('sample', {}, deployment)).fieldErrors.publicationStatus);
+  assert.equal(calls.length, 0, 'An invalid publication choice cannot save any deployment settings');
+  deployment.delete('publicationStatus');
   calls.length = 0;
   deployment.set('rsvpGoogleSetting', 'on'); deployment.set('rsvpGoogleEnabled', 'on');
   deployment.set('evaluationGoogleSetting', 'on'); deployment.set('evaluationGoogleEnabled', 'on');

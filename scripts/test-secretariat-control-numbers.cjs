@@ -123,7 +123,29 @@ async function main() {
     await assert.rejects(db.query("select * from secretariat_settings"), /permission denied/);
     await assert.rejects(db.query("select preview_secretariat_control_number('X')"), /permission denied/);
     await db.exec("reset role");
-    console.log("PostgreSQL migration checks passed: historical Manila years, previews, immutable creation metadata, notifications, deletion, overflow, per-format counters, university-issued and typed numbers, settings renames and removals, and restricted database access.");
+    await db.exec("create table public.events (id text primary key); insert into events values ('event-one'), ('event-two');");
+    const eventMigration = fs.readFileSync("supabase/migrations/20261015000100_event_documentations.sql", "utf8");
+    await db.exec(eventMigration);
+    await db.exec(eventMigration);
+    assert.equal(Number((await db.query("select count(*) from secretariat_letters where event_id is not null")).rows[0].count), 0, "Existing letters stay in Secretariat");
+    const document = (await db.query(`insert into secretariat_letters
+      (event_id, title, type, status, prepared_by, created_by, updated_by, control_format, notify_status_updates)
+      values ('event-one', 'Event proposal', 'Event memo', 'Draft', 'Officer', 'officer@ust.edu.ph', 'officer@ust.edu.ph', 'UST:CC-{YYY}-LTR', true) returning *`)).rows[0];
+    assert.ok(document.control_number, "Event documents use the same automatic numbering trigger");
+    await db.query("update secretariat_letters set status = 'Approved' where id = $1", [document.id]);
+    assert.ok((await db.query("select body from portal_messages where title like $1", [document.control_number + '%'])).rows.some(message => message.body.includes('/portal/events/event-one/documentations')), "Notifications point to the event’s documents");
+    await assert.rejects(db.exec(`insert into secretariat_letters
+      (event_id, title, type, prepared_by, created_by, updated_by, control_number)
+      values ('missing', 'Invalid', 'Request Letter', 'Officer', 'officer@ust.edu.ph', 'officer@ust.edu.ph', 'INVALID')`), /foreign key/);
+    assert.equal((await db.query("select relrowsecurity from pg_class where oid = 'public.secretariat_letters'::regclass")).rows[0].relrowsecurity, true);
+    await db.exec("set role authenticated");
+    await assert.rejects(db.query("select * from secretariat_letters where event_id = 'event-one'"), /permission denied/);
+    await db.exec("reset role");
+    const letterCount = Number((await db.query("select count(*) from secretariat_letters where event_id is null")).rows[0].count);
+    await db.exec("delete from events where id = 'event-one'");
+    assert.equal(Number((await db.query("select count(*) from secretariat_letters where id = $1", [document.id])).rows[0].count), 0, "Deleting an event removes its documentation records");
+    assert.equal(Number((await db.query("select count(*) from secretariat_letters where event_id is null")).rows[0].count), letterCount, "Event cleanup leaves Secretariat letters untouched");
+    console.log("PostgreSQL migration checks passed: historical Manila years, previews, immutable creation metadata, notifications, deletion, overflow, per-format counters, university-issued and typed numbers, settings renames and removals, restricted database access, and event documentation migration idempotence, notifications and cascading cleanup.");
   } finally { await db.close(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

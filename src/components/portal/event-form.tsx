@@ -13,11 +13,12 @@ import type { FormState } from "@/lib/portal/form";
 import { EditConflict, EditPresence } from "./edit-guard";
 import { FormEditorViewToggle, useFormEditorMode } from "./event-form-editor";
 import { EventDetailsFields } from "./event-details-fields";
+import { EventCapacityFields, EventCapacityTracker } from "./event-capacity";
 import type { CalendarHighlight } from "@/lib/calendar/options";
 import { InfoTip } from "./info-tip";
 import { FormActions, FormFooter, usePortalForm } from "./portal-form";
 
-type Values = EventDetails & { registrationStatus: RegistrationStatus; requireGoogle: boolean };
+type Values = EventDetails & { registrationStatus: RegistrationStatus; requireGoogle: boolean; minimumRegistrants?: number; maximumRegistrants?: number | null; registeredCount?: number };
 
 /**
  * The event form, for adding an event and editing one. The organizer isn't on it: it's the unit of
@@ -79,7 +80,12 @@ export function EventForm({ action, initial, submitLabel, cancelHref, danger, ch
           </div>
         )}
 
-        <EventDetailsFields initial={initial} errors={errors} calendarHighlights={calendarHighlights} dateValidation={dateValidation} hideRegistrationControls allowBothVenue />
+        <EventDetailsFields initial={initial} errors={errors} calendarHighlights={calendarHighlights} dateValidation={dateValidation} hideRegistrationControls activity />
+        <fieldset className="portal-form-section" disabled={pending}>
+          <legend>Registration capacity</legend>
+          <EventCapacityFields minimum={initial.minimumRegistrants ?? 1} maximum={initial.maximumRegistrants} errors={errors} />
+          {eventId && <EventCapacityTracker registered={initial.registeredCount ?? 0} minimum={initial.minimumRegistrants ?? 1} maximum={initial.maximumRegistrants} />}
+        </fieldset>
 
         {!eventId && <fieldset className="portal-form-section" disabled={pending} aria-describedby={errors.registrationStatus ? `${formId}-registration-status-error` : undefined}>
             <legend>Registration Status</legend>

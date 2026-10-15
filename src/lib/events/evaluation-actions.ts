@@ -17,7 +17,7 @@ import { canManageEvent } from "./access";
 import { getEvent, getEventForSite } from "./queries";
 import { findEventRegistrationByReference, getRegistration, listRegistrations } from "./registrations";
 import { getEvaluationSettings, hasEvaluationResponse } from "./evaluation-store";
-import { defaultEvaluationSteps, evaluationDefinition, applyEvaluationRequirements, evaluationSettingsSchema as settingsSchema, normalizeName, type EvaluationSettings } from "./evaluation";
+import { defaultEvaluationSteps, evaluationDefinition, applyEvaluationRequirements, evaluationResponseSettings, evaluationSettingsSchema as settingsSchema, normalizeName, type EvaluationSettings } from "./evaluation";
 
 import { affiliationDetails, participationDetails, type RegistrationDetailGroup } from "./registration-details";
 
@@ -96,9 +96,10 @@ export async function submitEvaluation(eventId: string, _state: EvaluationState,
     const event = await getEventForSite(eventId);
     if (!event) return { error: "This event is no longer available." };
     // Forms saved before the consent step existed gain it here too, so every response is checked against, and keeps, the full form.
-    const settings = applyEvaluationRequirements(await getEvaluationSettings(eventId));
-    if (!settings.enabled) return { error: "This evaluation form is closed." };
+    const configured = await getEvaluationSettings(eventId);
     const anonymous = form.get("anonymous") === "on";
+    const settings = evaluationResponseSettings(configured, anonymous);
+    if (!settings.enabled) return { error: "This evaluation form is closed." };
     if (anonymous && !settings.allowAnonymous) return { error: "Anonymous responses are not enabled for this event." };
     const values: FormAnswers = Object.fromEntries(settings.questions.map(question => [question.id, question.kind === "checkbox" ? form.getAll(question.id).map(value => String(value).trim()) : String(form.get(question.id) ?? "").trim()]));
     const definition = evaluationDefinition(settings);

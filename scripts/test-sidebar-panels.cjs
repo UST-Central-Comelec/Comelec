@@ -24,6 +24,8 @@ const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
   "./portal-nav-icons": icons,
   "./portal-tab-icons": { groupIcons: icons, tabIcons: icons },
   "@/lib/portal/access": access,
+  "@/components/action-icons": icons,
+  "@/lib/portal/letters-return": load("src/lib/portal/letters-return.ts"),
   "@/lib/portal/directory-return": load("src/lib/portal/directory-return.ts"),
 });
 const props = { tabs: ["dashboard", "charters/constitution", "charters/elections-code", "documents/archive", "accounts"], collapsed: false, showAccessControl: false, onExpand: () => expanded++ };
@@ -42,15 +44,8 @@ try {
   const root = render();
   assert.ok(root.findIndex(node => node.type === "input") < root.findIndex(node => node.props?.tab?.key === "dashboard"), "Search precedes Dashboard");
   button("Open Legals tabs").props.onClick();
-  button("Open Charters tabs").props.onClick();
-  assert.deepEqual(links(), ["charters/constitution", "charters/elections-code"], "Legal subgroups expand their tabs inline");
-  assert.ok(button("Open Documents tabs"), "Sibling legal groups remain in the Legals panel");
-  assert.equal(button("Open Charters tabs").props["aria-expanded"], true);
-  button("Open Documents tabs").props.onClick();
-  assert.deepEqual(links(), ["documents/archive", "charters/constitution", "charters/elections-code"], "Multiple legal groups can be expanded together");
-  button("Open Charters tabs").props.onClick();
-  assert.equal(button("Open Charters tabs").props["aria-expanded"], false);
-  assert.deepEqual(links(), ["documents/archive"], "Collapsing one group leaves its sibling open");
+  assert.deepEqual(links(), ["documents/archive", "charters/constitution", "charters/elections-code"], "Legal subgroup links are visible together");
+  assert.ok(render().some(node => node.props?.role === "heading" && node.props?.children?.some?.(child => child?.props?.children === "Charters")), "Subgroups retain accessible headings");
   button("Back to all tabs").props.onClick();
   assert.deepEqual(links(), ["dashboard"]);
   assert.ok(button("Open Legals tabs"));
@@ -66,7 +61,7 @@ try {
   input().props.onKeyDown({ key: "Escape" });
   assert.equal(input().props.value, "");
   pathname = "/portal/charters/elections-code/edit";
-  assert.deepEqual(links(), ["charters/constitution", "charters/elections-code"], "Navigation opens Legals and expands the active subgroup");
+  assert.deepEqual(links(), ["documents/archive", "charters/constitution", "charters/elections-code"], "Navigation opens Legals with every permitted subgroup visible");
   assert.deepEqual(trail(pathname).map(item => item.label), ["Legals", "Charters", "Elections Code", "Edit"]);
   props.collapsed = true;
   assert.ok(button("Back to all tabs"), "Collapsed Legals retains back navigation");
@@ -88,10 +83,7 @@ try {
   props.counts = { "documents/approval": 2, "documents/archive": 1, accounts: 4, "apps/inbox": 3, "charters/constitution": 99 };
   assert.ok(button("Open Legals tabs, 1 items needing attention"), "Parents exclude removed Approval from their counts");
   button("Open Legals tabs, 1 items needing attention").props.onClick();
-  assert.ok(button("Open Documents tabs, 1 items needing attention"));
-  assert.ok(!links().includes("legals/onboarding"), "Onboarding stays inside the collapsed Documents group");
-  button("Open Documents tabs, 1 items needing attention").props.onClick();
-  assert.ok(links().includes("legals/onboarding"), "Onboarding appears under Documents");
+  assert.ok(links().includes("legals/onboarding"), "Onboarding appears in the visible Documents group");
   assert.ok(!links().includes("documents/approval"), "Approval stays out of Documents even with permission");
   assert.ok(links().includes("documents/archive"), "Archive remains available");
   assert.deepEqual(trail("/portal/legals/onboarding").map(item => item.label), ["Legals", "Documents", "Onboarding"]);

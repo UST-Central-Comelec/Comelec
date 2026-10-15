@@ -1,4 +1,5 @@
 import "server-only";
+import { personDisplayName } from "@/lib/forms/display-name";
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -16,7 +17,7 @@ export type Registration = {
   firstName: string;
   /** Empty for someone without a middle name. Registrations before 0029 have only its initial. */
   middleName: string;
-  /** "JUAN PEDRO DELA CRUZ". */
+  /** "DELA CRUZ, JUAN PEDRO". */
   name: string;
   email: string;
   /** The email was verified through UST Google sign-in. */
@@ -73,7 +74,7 @@ type Row = {
 };
 
 /** "JUAN PEDRO DELA CRUZ", "JUAN P. DELA CRUZ" from an older registration's initial, or "JUAN DELA CRUZ". */
-export const fullName = (firstName: string, middleName: string, lastName: string) => [firstName, middleName.length === 1 ? `${middleName}.` : middleName, lastName].filter(Boolean).join(" ");
+export const fullName = (firstName: string, middleName: string, lastName: string) => personDisplayName({ firstName, middleName, lastName });
 
 /** Only the requests the form offers, each with an answer. */
 function requestsOf(value: unknown): Requests {

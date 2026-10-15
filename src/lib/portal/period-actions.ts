@@ -90,7 +90,7 @@ export async function updateUnitPeriod(kind: PeriodKind, college: string, _state
     raw.openToExternals = false;
     raw.openToAdmins = false;
   }
-  if (raw.venueMode === "both" && kind !== "recruitment") return { error: "Check the highlighted fields.", fieldErrors: { venueMode: "Pick on-site or online." } };
+  if (raw.venueMode === "both" && kind !== "recruitment" && kind !== "candidacy") return { error: "Check the highlighted fields.", fieldErrors: { venueMode: "Pick on-site or online." } };
   const parsed = detailsSchema.safeParse(raw);
   // Closing doesn't need the details, as long as nothing's been typed in them that would be lost.
   if (!parsed.success && (mode === "scheduled" || raw.summary.trim() || raw.venueDetails.trim())) return toFormState(parsed.error);

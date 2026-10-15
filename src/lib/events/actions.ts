@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { sendAutomatic } from "@/lib/notifications/notify";
 import { text, type FormState } from "@/lib/portal/form";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
@@ -56,7 +57,7 @@ export async function submitRegistration(eventId: string, _state: RegistrationSt
     console.error(error);
     return { error: failed };
   }
-  if (!event) return { error: "This event is no longer listed, so your registration wasn’t sent.", closed: true };
+  if (!event || event.published === false) return { error: "This event is no longer listed, so your registration wasn’t sent.", closed: true };
   const mode = signUpMode(event);
   if (!mode) return { error: closedMessage(event), closed: true };
 
@@ -78,7 +79,7 @@ export async function submitRegistration(eventId: string, _state: RegistrationSt
   const representative = values.attendingAs === "representative";
   const middleName = tidyPersonName(values.middleName);
 
-  const kind: RegistrationKind = mode === "register" ? "registered" : "waitlisted";
+  let kind: RegistrationKind = mode === "register" ? "registered" : "waitlisted";
   const answers = {
     status: kind,
     last_name: tidyPersonName(values.lastName),
@@ -117,17 +118,25 @@ export async function submitRegistration(eventId: string, _state: RegistrationSt
     const table = createAdminClient().from("event_registrations");
     // Someone from the waitlist registering now that it's open keeps their entry, with these answers.
     const { data: saved, error } = existing
-      ? await table.update({ ...answers, updated_at: new Date().toISOString() }).eq("id", existing.id).select("reference_code").single()
-      : await table.insert({ ...answers, event_id: event.id, email }).select("reference_code").single();
+      ? await table.update({ ...answers, updated_at: new Date().toISOString() }).eq("id", existing.id).select("reference_code, status").single()
+      : await table.insert({ ...answers, event_id: event.id, email }).select("reference_code, status").single();
     // The same email sent the form twice at once; the first one saved it.
     if (error?.code === "23505") return kind === "registered" ? alreadyRegistered : alreadyWaitlisted;
+    if (error?.message === "Event registration is closed") return { error: "Registration closed while you were filling in the form. Check the event page.", closed: true };
     if (error?.message.includes("column")) throw new Error(`${error.message} (run supabase/migrations/0029_event_registration_form.sql and 0030_event_registration_references.sql)`);
     if (error) throw new Error(error.message);
     referenceCode = saved!.reference_code;
+    kind = saved!.status === "waitlisted" ? "waitlisted" : "registered";
   } catch (error) {
     console.error("Couldn’t save event registration:", error instanceof Error ? error.message : error);
     return { error: failed };
   }
+
+  revalidatePath("/events");
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/events/${eventId}/register`);
+  revalidatePath("/portal/events");
+  revalidatePath(`/portal/events/${eventId}`, "layout");
 
   // Attempt the mandatory acknowledgement before reporting success, and report failures honestly.
   const registrant = { email, firstName: answers.first_name, referenceCode };

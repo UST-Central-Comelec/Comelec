@@ -50,6 +50,9 @@
 .portal-letter-document-handle:hover:not(:disabled) { color: var(--p-text); }
 .portal-letter-document-handle:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
 .portal-letter-document-handle:disabled { cursor: default; opacity: .3; }
+.portal-letter-document-lock { align-items: center; color: var(--p-faint); display: flex; height: 28px; justify-content: center; width: 48px; }
+.portal-letter-document-card.is-locked .portal-letter-link-input { background: rgba(var(--p-ink),.02); border-color: var(--p-line); }
+.portal-letter-document-card.is-locked .portal-letter-link-input > input { color: var(--p-soft); cursor: default; }
 .portal-letter-document-row { align-items: start; display: grid; gap: 12px; grid-template-columns: 150px minmax(0, 1fr); min-width: 0; }
 .portal-letter-document-row .portal-field { gap: 6px; }
 .portal-letter-document-row .portal-field-label { font-size: 11px; }
@@ -75,7 +78,7 @@
 /* Document availability is not a selected toggle; motion is hover-only. */
 .portal-document-icon:not(:hover) > svg { animation: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .portal-document-icon.is-available:hover > svg { animation: ui-button-icon-cycle 1.4s cubic-bezier(.22, 1, .36, 1) infinite; }
+  .portal-document-icon.is-available:hover > svg { animation: ui-button-icon-cycle 2.8s cubic-bezier(.22, 1, .36, 1) infinite; }
 }
 @media (prefers-reduced-motion: reduce) {
   .portal-document-icon.is-available { transition: none; }
@@ -146,3 +149,9 @@
 /* Someone else saved the record while it was open (portal.css .portal-edit-conflict): between the body and the footer. */
 .portal-letter-dialog .portal-letter-conflict { flex: none; margin: 0 28px 16px; }
 @media (max-width: 700px) { .portal-letter-dialog .portal-letter-conflict { margin: 0 20px 14px; } }
+
+.portal-event-documents > .portal-page-head h2 { color: var(--p-bright); font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 0; }
+
+.portal-letters-selector { margin: 20px 0; }
+.portal-letter-event { color: var(--p-muted); display: block; font-size: 12px; line-height: 1.5; margin-top: 5px; text-decoration: underline; text-underline-offset: 3px; }
+.portal-letter-event:hover { color: var(--p-text); }

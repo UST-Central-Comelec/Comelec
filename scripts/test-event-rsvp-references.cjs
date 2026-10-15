@@ -74,7 +74,7 @@ const emails = load('src/lib/events/rsvp-emails.ts', {
   assert.ok((await track('RS-AAAA-BBBB', 'DELA CRUZ')).error);
   assert.ok((await track(row.reference_code, '2026123456')).fieldErrors.identity);
   const result = await track(row.reference_code.toLowerCase(), 'dela cruz');
-  assert.equal(result.rsvp.name, 'ANA MARIA DELA CRUZ');
+  assert.equal(result.rsvp.name, 'DELA CRUZ, ANA MARIA');
   assert.deepEqual(result.rsvp.requests, ['I have dietary restrictions']);
   assert.equal('answers' in result.rsvp, false, 'Private answers never reach the tracking client');
   assert.equal('email' in result.rsvp, false);

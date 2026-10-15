@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, context: RouteContext<"/events/[
 
   // No sign-in for an event that isn't taking sign-ups: its registration page says why.
   const event = await getEvent(id).catch(() => null);
-  if (!event) return NextResponse.redirect(new URL("/events", request.nextUrl));
+  if (!event || event.published === false) return NextResponse.redirect(new URL("/events", request.nextUrl));
   if (target === "register" && !signUpMode(event)) return NextResponse.redirect(registrationUrl(request, id));
   if (target !== "register") {
     const settings = await (target === "rsvp-form" ? getRsvpSettings(id) : getEvaluationSettings(id)).catch(() => null);

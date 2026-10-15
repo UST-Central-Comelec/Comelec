@@ -117,13 +117,13 @@ const actor = { email: 'jo@ust.edu.ph', name: 'Jo', local: false, college: null 
     '@/lib/data/store': { store: {} },
     '@/lib/events/access': { canManageEvent: () => true, canRequestChanges: () => true, unitOfAccount: () => ({ organizer: 'central', college: null }) },
     '@/lib/events/queries': { getEvent: async () => ({ updatedAt: 'v1', updatedBy: 'jo@ust.edu.ph', changeRequest: null }), setChangeRequest: async () => {} },
-    '@/lib/events/registrations': {}, '@/lib/events/emails': {}, '@/lib/notifications/notify': {}, '@/lib/events/qr-codes': { ensureQrCodes: async () => ({}) },
+    '@/lib/events/registrations': {}, '@/lib/events/emails': {}, '@/lib/notifications/notify': {}, '@/lib/events/checklist-documents': { addChecklistDocuments: async () => 0 }, '@/lib/events/qr-codes': { ensureQrCodes: async () => ({}) },
     '@/lib/events/evaluation-store': { getEvaluationSettings: async () => ({}), writeEvaluationContent: async () => { calls.push('evaluation'); }, writeEvaluationSettings: async () => {} },
     '@/lib/events/rsvp-store': { getRsvpSettings: async () => null, writeRsvpDefinition: async () => { calls.push('rsvp'); }, writeRsvpSettings: async () => {} },
   });
   const eventForm = (flags) => {
     const sent = new FormData();
-    for (const [key, value] of Object.entries({ name: 'Sample event', summary: 'An event for collaborators.', background: '', eventDate: '2026-10-08', endDate: '2026-10-08', ingressTime: '', startsTime: '09:00', endsTime: '10:00', egressTime: '', venueMode: 'onsite', venueDetails: 'UST campus', openToStudents: 'on', ...flags })) sent.set(key, value);
+    for (const [key, value] of Object.entries({ name: 'Sample event', summary: 'An event for collaborators.', background: '', eventDate: '2026-10-08', endDate: '2026-10-08', ingressTime: '', startsTime: '09:00', endsTime: '10:00', egressTime: '', venueMode: 'onsite', venueType: 'in-campus', natureOfActivity: 'Meeting', venueDetails: 'UST campus', openToStudents: 'on', ...flags })) sent.set(key, value);
     sent.set('evaluationSettings', JSON.stringify(load('src/lib/events/evaluation.ts').defaultEvaluation));
     sent.set('rsvpDefinition', JSON.stringify(load('src/lib/events/rsvp.ts', mocks).defaultRsvpDefinition));
     return sent;

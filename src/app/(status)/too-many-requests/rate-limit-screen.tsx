@@ -19,7 +19,7 @@ export function RateLimitScreen({ retryAfter }: { retryAfter: number }) {
   return (
     <FallbackScreen
       code="429"
-      eyebrow="Too many requests"
+      eyebrow="Request Blocked by Security Protection - Unusual Traffic Detected"
       working={waiting}
       title={<>Hold steady for <em>a moment.</em></>}
       actions={[

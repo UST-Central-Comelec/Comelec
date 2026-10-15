@@ -9,7 +9,7 @@ function load(file, dependencies = {}) {
   const source = ts.transpileModule(fs.readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
   new Function("require", "module", "exports", source)(name => {
     if (Object.hasOwn(dependencies, name)) return dependencies[name];
-    if (name.startsWith("@/")) return load(`src/${name.slice(2)}.ts`, dependencies);
+    if (name.startsWith("@/")) { const target = `src/${name.slice(2)}.ts`; return load(fs.existsSync(target) ? target : `${target}x`, dependencies); }
     if (name.startsWith(".")) return load(path.resolve(path.dirname(file), `${name}.ts`), dependencies);
     return require(name);
   }, compiled, compiled.exports);
@@ -20,6 +20,42 @@ const offices = load("src/lib/letters/offices.ts");
 const settings = load("src/lib/letters/settings.ts");
 const defaults = settings.defaultSecretariatSettings;
 const schema = options.recordSchema(defaults, "letters");
+const numbering = load("src/lib/events/document-numbering.ts");
+const eventSettings = numbering.eventDocumentSettings({ ...defaults, letters: { autoIncrement: false, types: defaults.letters.types.filter(type => !type.universityIssued) } }, "UST:CC-026-SA04");
+assert.equal(eventSettings.letters.autoIncrement, true, "Event numbering ignores General Letters’ manual-numbering preference");
+assert.equal(eventSettings.letters.types.find(type => type.name === "Request Letter").format, "UST:CC-026-SA04");
+assert.equal(eventSettings.letters.types.find(type => type.name === "Project Proposal Form (PPF)").format, "UST:S030-00-FO120 (SA04)");
+assert.equal(eventSettings.letters.types.find(type => type.name === "Budget Proposal").format, "UST:S030-00-FO130 (SA04)");
+assert.equal(defaults.letters.types.find(type => type.name === "Budget Proposal").format, "UST:S030-00-FO130", "Event suffixes never change General Letters settings");
+assert.deepEqual(eventSettings.letters.types.slice(0, 4).map(type => [type.name, type.format]), [
+  ["Project Proposal Form (PPF)", "UST:S030-00-FO120 (SA04)"],
+  ["Community Development Project Proposal Form (Simbahayan)", "UST:S040-00-FO21 (SA04)"],
+  ["Vehicle Reservation Form", "UST:S040-00-FO25 (SA04)"],
+  ["Budget Proposal", "UST:S030-00-FO130 (SA04)"],
+]);
+// Only the event's own checklist is offered; its printed forms keep their codes, the rest take the counter.
+assert.ok(!eventSettings.letters.types.some(type => type.name === "Approved Publicity Material/s" || type.name === "Advocacy Project Proposal"), "Documents outside the event’s checklist aren’t offered");
+const allChecklist = load("src/lib/events/activity-checklist.ts").activityDocuments.map(document => document.name);
+const checklistSettings = numbering.eventDocumentSettings({ ...defaults, letters: { autoIncrement: false, types: defaults.letters.types.filter(type => !type.universityIssued) } }, "UST:CC-026-SA04", allChecklist);
+for (const [name, format] of [["Advocacy Project Proposal", "UST:S040-00-FO38 (SA04)"], ["Service Learning Project Proposal", "UST:S040-00-FO47 (SA04)"], ["Student Undertaking and Parental Consent for Sports and Physical Activities", "UST:S030-00-FO90 (SA04)"], ["Accomplished and Notarized Student Undertaking and Parental Consent", "UST:S030-00-FO30 (SA04)"], ["Food Approval Form", "UST:S042-00-FO83 (SA04)"]]) {
+  const type = checklistSettings.letters.types.find(item => item.name === name);
+  assert.equal(type.format, format); assert.equal(type.universityIssued, true);
+}
+assert.equal(checklistSettings.letters.types.find(type => type.name === "Approved Publicity Material/s").format, "UST:CC-026-SA04");
+assert.equal(new Set(checklistSettings.letters.types.map(type => type.name.toLowerCase())).size, checklistSettings.letters.types.length, "Each event document type is listed once");
+const advocacyNames = numbering.eventChecklistNames({ venueType: "in-campus", natureOfActivity: "Advocacy" }, ["Request Letter"]);
+assert.ok(advocacyNames.includes("Approved Publicity Material/s") && advocacyNames.includes("Request Letter") && !advocacyNames.some(name => name.startsWith("~")));
+assert.equal(numbering.eventDocumentFormNumber({ id: "", name: "Accomplished Vehicle Reservation Form", format: "" }), "UST:S040-00-FO25");
+const checklist = load("src/lib/events/activity-checklist.ts");
+const advocacy = checklist.activityChecklist("in-campus", "Advocacy");
+assert.equal(advocacy.length, 10, "Advocacy in-campus: 8 required and 2 optional, without the additional-document placeholders");
+assert.deepEqual([advocacy.filter(item => item.required).length, advocacy.filter(item => !item.required).length], [8, 2]);
+assert.ok(advocacy.some(item => item.name === "Vehicle Reservation Form" && item.template));
+assert.equal(checklist.activityChecklist("off-campus-local", "Elections").length, 0, "Natures e-ReSERVe doesn’t offer for a venue type have no checklist");
+assert.ok(!checklist.naturesFor("off-campus-local").includes("Elections") && checklist.naturesFor("online").includes("Elections"));
+for (const nature of checklist.activityNatures) for (const venue of Object.keys(checklist.venueTypes)) for (const item of checklist.activityChecklist(venue, nature)) assert.ok(checklistSettings.letters.types.some(type => type.name === item.name), `${item.name} is an event document type`);
+
+
 const presetNames = defaults.remarkPresets.map(preset => preset.name);
 assert.equal(offices.universityOffices.length, 62);
 assert.equal(offices.letterFacultiesAndColleges.length, 26);
@@ -88,15 +124,19 @@ const admin = { from: table => {
   let mutation = null;
   const filters = [];
   const orders = [];
+  let eventJoin = false;
+  let range = null;
   const builder = {
-    select() { return this; }, order(key, settings) { orders.push([key, settings?.ascending !== false]); return this; }, range() { return this; },
+    select(columns = "") { eventJoin = columns.includes("event:events!inner"); return this; }, order(key, settings) { orders.push([key, settings?.ascending !== false]); return this; }, range(from, to) { range = [from, to]; return this; },
     eq(key, value) { filters.push([key, value]); return this; },
+    is(key, value) { filters.push([key, value]); return this; },
     delete() { mutation = { kind: "delete" }; return this; },
     update(data) { for (const key of ["control_number", "control_sequence", "prepared_by", "created_by", "created_at"]) assert.ok(!(key in data), `Updates must never write ${key}`); mutation = { kind: "update", data }; return this; },
     insert(data) { for (const key of ["control_sequence", "created_at"]) assert.ok(!(key in data), `${key} is assigned by the database`); assert.ok(!("control_number" in data) || data.control_format === null, "Automatic numbers are assigned by the database"); mutation = { kind: "insert", data }; return this; },
     result(single) {
-      let rows = database.filter(row => filters.every(([key, value]) => row[key] === value));
+      let rows = database.filter(row => (!eventJoin || row.event) && filters.every(([key, value]) => (key.split(".").reduce((value, part) => value?.[part], row) ?? null) === value));
       rows.sort((left, right) => { for (const [key, ascending] of orders) { if (left[key] !== right[key]) return (left[key] > right[key] ? 1 : -1) * (ascending ? 1 : -1); } return 0; });
+      if (range) rows = rows.slice(range[0], range[1] + 1);
       if (!dbError && mutation?.kind === "update") rows.forEach(row => Object.assign(row, mutation.data));
       if (!dbError && mutation?.kind === "delete") database = database.filter(row => !rows.includes(row));
       if (!dbError && mutation?.kind === "insert") { rows = [{ ...record, ...mutation.data }]; database.push(...rows); }
@@ -106,7 +146,7 @@ const admin = { from: table => {
     then(resolve, reject) { return Promise.resolve(this.result(false)).then(resolve, reject); },
   };
   return builder;
-}, rpc: async (name, args) => { assert.equal(name, "preview_secretariat_control_number"); assert.deepEqual(args, { p_format: "UST:CC-{YYY}-LTR" }); return { data: "UST:CC-026-LTR-1001", error: null }; } };
+}, rpc: async (name, args) => { if (name === "preview_event_document_control_number") { assert.equal(args.p_event_id, "event-one"); return { data: args.p_type === "Project Proposal Form (PPF)" ? "UST:S030-00-FO120 (SA01)" : "UST:CC-026-SA01-05", error: null }; } assert.equal(name, "preview_secretariat_control_number"); assert.deepEqual(args, { p_format: "UST:CC-{YYY}-LTR" }); return { data: "UST:CC-026-LTR-1001", error: null }; } };
 const store = load("src/lib/letters/store.ts", { "server-only": {}, "@/lib/supabase/server": { createAdminClient: () => admin }, "@/lib/supabase/config": { isSupabaseConfigured: () => configured } });
 let user = { email: "officer@ust.edu.ph", name: "Current Officer", affiliation: "local", college: "CICS", readOnly: false };
 let revalidated = 0;
@@ -216,6 +256,111 @@ async function main() {
   user = { ...user, readOnly: false };
   assert.equal((await actions.setLetterLabel(record.id, null)).letter.label, null, "Labels can be cleared");
   assert.equal(revalidated, 10, "Only successful label edits refresh the list");
+  // Event documents are isolated from the Secretariat tracker and every other event.
+  const eventPaths = [];
+  const eventActions = load("src/lib/portal/event-document-actions.ts", {
+    "next/cache": { revalidatePath: path => eventPaths.push(path) },
+    "@/lib/auth/session": { requireEditor: async tab => { assert.equal(tab, "events"); if (user.readOnly) throw new Error("view only"); return user; } },
+    "@/lib/events/queries": { getEvent: async id => id === "missing" ? null : { id, controlNumber: "UST:CC-026-SA01", organizer: "local", college: id === "other-unit" ? "AB" : "CICS" } },
+    "@/lib/events/access": load("src/lib/events/access.ts"),
+    "@/lib/letters/options": options, "@/lib/letters/store": store, "@/lib/letters/settings": settings,
+    "@/lib/data/edit-guard": { saverName: async email => email },
+    "@/lib/letters/settings-store": { getSecretariatSettings: async () => ({ settings: defaults }) },
+    "./form": { text: (form, key) => typeof form.get(key) === "string" ? form.get(key) : "" },
+  });
+  assert.deepEqual(await eventActions.getEventDocumentNumberPreview("event-one", "Request Letter"), { controlNumber: "UST:CC-026-SA01-05" });
+  assert.deepEqual(await eventActions.getEventDocumentNumberPreview("event-one", "Project Proposal Form (PPF)"), { controlNumber: "UST:S030-00-FO120 (SA01)" });
+  const refusedProposal = await eventActions.saveEventDocument("event-one", null, form({ type: "Project Proposal Form (PPF)" }));
+  assert.equal(refusedProposal.fieldErrors?.type, "Choose a letter type. The checklist’s documents are added for you.", "Official documents aren’t added by hand");
+  const eventRecord = { ...record, id: "55555555-5555-4555-8555-555555555555", event_id: "event-one", event: { id: "event-one", name: "First event", organizer: "local", college: "CICS" }, updated_at: "2026-10-15T00:00:00Z" };
+  const otherEventRecord = { ...eventRecord, id: "66666666-6666-4666-8666-666666666666", event_id: "event-two", event: { id: "event-two", name: "Second event", organizer: "local", college: "CICS" } };
+  database.push(eventRecord, otherEventRecord);
+  const centralPaper = { ...eventRecord, id: "77777777-7777-4777-8777-777777777777", event_id: "central-event", college: null, event: { id: "central-event", name: "Central event", organizer: "central", college: null } };
+  database.push(centralPaper);
+  assert.deepEqual((await store.listEventPapers({ local: true, college: "CICS" })).map(row => row.event.id).sort(), ["event-one", "event-two"]);
+  assert.equal((await store.listEventPapers({ local: true, college: null })).length, 0);
+  assert.equal((await store.listEventPapers({ local: true, college: "AB" })).length, 0);
+  assert.equal((await store.listEventPapers({ local: false, college: null })).length, 3, "Central can consolidate all units’ event papers");
+  database = database.filter(row => row !== centralPaper);
+  const smallDatabase = database;
+  database = Array.from({ length: 1005 }, (_, index) => ({ ...eventRecord, id: `bulk-${index}`, control_sequence: index }));
+  assert.equal((await store.listEventPapers({ local: true, college: "CICS" })).length, 1005, "Consolidation reads all pages beyond the Supabase row limit");
+  database = smallDatabase;
+  const paperActions = load("src/lib/portal/event-paper-actions.ts", {
+    "next/navigation": { unstable_rethrow: () => {} },
+    "@/lib/auth/session": { isLocal: account => account.affiliation === "local", requireEditor: async tab => { assert.equal(tab, "secretariat/letters-tracker"); if (user.readOnly) throw new Error("view only"); return user; } },
+    "@/lib/supabase/server": { createAdminClient: () => admin },
+    "./event-document-actions": eventActions,
+  });
+  assert.deepEqual(await paperActions.getEventPaperNumberPreview("Request Letter", eventRecord.id), { controlNumber: "UST:CC-026-SA01-05" });
+  assert.ok((await paperActions.saveEventPaper(null, form())).error, "Papers must be added within their event");
+  assert.ok((await paperActions.saveEventPaper(record.id, form())).error, "General letters cannot be edited through Event Papers");
+  assert.ok((await paperActions.deleteEventPaper(record.id)).error);
+  assert.ok((await paperActions.setEventPaperLabel(record.id, "Print")).error);
+  assert.ok((await paperActions.saveEventPaper(eventRecord.id, form())).letter, "Consolidated edits resolve the actual parent event");
+  assert.equal((await paperActions.setEventPaperLabel(eventRecord.id, "Print")).letter.label, "Print");
+  user = { ...user, readOnly: true };
+  assert.ok((await paperActions.saveEventPaper(eventRecord.id, form())).error);
+  assert.ok((await paperActions.deleteEventPaper(eventRecord.id)).error);
+  assert.ok((await paperActions.setEventPaperLabel(eventRecord.id, "Print")).error);
+  user = { ...user, readOnly: false };
+  const trackerPage = load("src/app/(portal)/portal/(dashboard)/secretariat/letters-tracker/page.tsx", {
+    "@/components/portal/letters-tracker": { LettersTracker: "tracker" },
+    "@/components/portal/sliding-filters": { SlidingFilters: "tracker-selector" },
+    "@/lib/auth/session": { isLocal: account => account.affiliation === "local", requireAccess: async () => ({ ...user, tabs: ["events", "secretariat/letters-tracker"] }) },
+    "@/lib/events/access": load("src/lib/events/access.ts"),
+    "@/lib/letters/store": store, "@/lib/letters/settings": settings,
+    "@/lib/letters/settings-store": { getSecretariatSettings: async () => ({ settings: defaults }) },
+    "@/lib/portal/letter-actions": actions,
+    "@/lib/portal/event-paper-actions": paperActions,
+  }).default;
+  const general = await trackerPage({ searchParams: Promise.resolve({}) });
+  assert.equal(general.props.eventPapers, false, "General Letters is the default view");
+  assert.ok(general.props.rows.every(row => !row.event));
+  assert.equal(general.props.selector.props.active, "general");
+  assert.deepEqual(general.props.selector.props.items.map(item => item.label), ["General Letters", "Event Papers"]);
+  const papers = await trackerPage({ searchParams: Promise.resolve({ view: "event-papers" }) });
+  assert.equal(papers.props.eventPapers, true);
+  assert.equal(papers.props.rows.length, 2);
+  assert.ok(papers.props.rows.every(row => row.event.editable));
+  user = { ...user, affiliation: "central", college: null };
+  const centralPapers = await trackerPage({ searchParams: Promise.resolve({ view: "event-papers" }) });
+  assert.ok(centralPapers.props.rows.every(row => !row.event.editable), "Central readers cannot edit Local papers without executive access");
+  assert.ok((await paperActions.saveEventPaper(eventRecord.id, form())).error);
+  assert.ok((await paperActions.deleteEventPaper(eventRecord.id)).error);
+  assert.ok((await paperActions.setEventPaperLabel(eventRecord.id, "Print")).error);
+  user = { ...user, affiliation: "local", college: "CICS" };
+
+  assert.ok(!(await store.listLetters({ local: false, college: null })).some(row => row.id === eventRecord.id));
+  assert.deepEqual((await store.listLetters({ local: true, college: "CICS", eventId: "event-one" })).map(row => row.id), [eventRecord.id]);
+  assert.ok((await actions.saveLetter(eventRecord.id, form())).error, "Secretariat actions cannot edit event documents");
+  assert.ok((await actions.deleteLetter(eventRecord.id)).error, "Secretariat actions cannot delete event documents");
+  assert.ok((await actions.setLetterLabel(eventRecord.id, "Print")).error, "Secretariat actions cannot relabel event documents");
+  await assert.rejects(eventActions.saveEventDocument("other-unit", null, form()), /don’t have access/);
+  await assert.rejects(eventActions.deleteEventDocument("missing", eventRecord.id), /don’t have access/);
+  assert.ok((await eventActions.saveEventDocument("event-one", otherEventRecord.id, form())).error);
+  assert.ok((await eventActions.deleteEventDocument("event-one", otherEventRecord.id)).error);
+  assert.ok((await eventActions.setEventDocumentLabel("event-one", otherEventRecord.id, "Print")).error);
+  assert.ok((await eventActions.saveEventDocument("event-one", record.id, form())).error, "Event actions cannot edit Secretariat letters");
+  const stale = await eventActions.saveEventDocument("event-one", eventRecord.id, form({ _expected: "old" }));
+  assert.equal(stale.conflict.letter.id, eventRecord.id, "Event documents retain concurrent edit protection");
+  assert.ok((await eventActions.saveEventDocument("event-one", eventRecord.id, form({ _expected: eventRecord.updated_at }))).letter);
+  assert.equal((await eventActions.setEventDocumentLabel("event-one", eventRecord.id, "Print")).letter.label, "Print");
+  assert.ok((await eventActions.saveEventDocument("event-one", null, form({ eventId: "event-two", college: "AB" }))).letter);
+  assert.equal(database.at(-1).event_id, "event-one", "The server binds the event, ignoring forged form values");
+  assert.equal(database.at(-1).college, "CICS");
+  database.pop();
+  user = { ...user, readOnly: true };
+  await assert.rejects(eventActions.saveEventDocument("event-one", eventRecord.id, form()), /view only/);
+  await assert.rejects(eventActions.deleteEventDocument("event-one", eventRecord.id), /view only/);
+  await assert.rejects(eventActions.setEventDocumentLabel("event-one", eventRecord.id, "Print"), /view only/);
+  await assert.rejects(eventActions.getEventDocumentNumberPreview("event-one", "Request Letter"), /view only/);
+  user = { ...user, readOnly: false, affiliation: "central", position: "executive-board", college: null };
+  assert.ok((await eventActions.saveEventDocument("event-one", eventRecord.id, form())).letter, "Central Executive Board may manage a Local event’s documents");
+  assert.deepEqual(await eventActions.deleteEventDocument("event-one", eventRecord.id), { success: true });
+  assert.ok(database.includes(otherEventRecord), "Deleting a document leaves another event’s records intact");
+  assert.ok(eventPaths.includes("/portal/events/event-one/documentations"));
+  database = database.filter(row => row !== otherEventRecord);
   user = { ...user, affiliation: "central", college: null };
   configured = false;
   assert.deepEqual(await store.listLetters({ local: false, college: null }), []);
@@ -230,12 +375,14 @@ async function main() {
   const dialog = { showModal: () => opened++, close() {} };
   const { LettersTracker } = load("src/components/portal/letters-tracker.tsx", {
     react: { ...React, useCallback: callback => callback, useEffect: callback => { effect = callback; }, useId: () => "letters-test", useRef: () => ({ current: dialog }), useTransition: () => [false, callback => callback()], useState: initial => { const index = cursor++; if (!(index in state)) state[index] = initial; return [state[index], next => { state[index] = typeof next === "function" ? next(state[index]) : next; }]; } },
+    "@/components/action-icons": new Proxy({}, { get: () => "action-icon" }),
+    "./review-action-icon": { ReviewActionIcon: "review-action-icon" },
     "next/navigation": { unstable_rethrow: () => {} }, "@/lib/letters/options": options, "@/lib/portal/letter-actions": actions,
     "@/lib/portal/minute-actions": {},
     "@/lib/letters/settings": settings, "@/components/combobox": { Combobox: "combobox" },
     "./toast": { toast: (message, tone = "ok") => toasts.push({ message, tone }) },
     "./letter-label": { LetterLabel: "letter-label" },
-    "./dropdown": { Dropdown: "dropdown" }, "./info-tip": { TitleWithInfo: "h1" }, "./view-only": { ViewOnlyTag: "view-only" }, "./letters-tracker.css": {},
+    "./dropdown": { Dropdown: "dropdown" }, "./info-tip": { TitleWithInfo: "h1", InfoTip: "info-tip" }, "./view-only": { ViewOnlyTag: "view-only" }, "./letters-tracker.css": {},
     "./working-document-link": { WorkingDocumentLink: "document-link" },
     "./sliding-filters": { SlidingFilterButtons: "view-picker" },
     "./letter-document-sortable": { LetterDocumentList: "document-list", LetterDocumentCard: "document-card" },
@@ -391,7 +538,7 @@ async function main() {
     const link = icons.find(icon => icon.type === "a");
     assert.equal(link.props.href, href);
     assert.equal(link.props.children.props.kind, kind, "Matching document format lights up");
-    assert.ok(link.props.className.includes("is-active"));
+    assert.ok(link.props.className.includes("is-available"));
     assert.equal(link.props["aria-label"], `Open working document (${{ docs: "Google Docs", sheets: "Google Sheets", drive: "Google Drive", pdf: "Others" }[kind]})`);
     assert.equal(link.props.title, { docs: "Google Docs", sheets: "Google Sheets", drive: "Google Drive", pdf: "Others" }[kind]);
   }
@@ -462,6 +609,22 @@ async function main() {
   assert.equal(minuteType.props.value, "Minutes of the Meeting");
   assert.deepEqual(minuteType.props.options, [{ value: "Minutes of the Meeting", label: "Minutes of the Meeting" }]);
   assert.ok(render().find(node => node.type === "dropdown" && node.props.label === "Filter meeting minutes by label"));
-  console.log("Letters and minutes UI checks passed: numeric descending order, fixed numbers, automatic preparer, creation timestamp, saves, college scope, viewer restrictions, modal editing, and minutes-specific creation.");
+  state.length = 0;
+  Object.assign(props, { rows: [], readOnly: false, kind: "letters", eventPapers: false, eventControlNumber: "UST:CC-026-SA04", eventActions: { previewNumber: async () => ({ controlNumber: "UST:CC-026-SA04-05" }), saveRecord: async () => ({ letter: rows[0] }), deleteRecord: async () => ({ success: true }), labelRecord: async () => ({ letter: rows[0] }) } });
+  render().find(node => node.type === "button" && node.props.children?.includes?.("Add letter")).props.onClick();
+  const documentType = () => render().find(node => node.type === "dropdown" && node.props.name === "type");
+  assert.ok(!documentType().props.options.some(option => option.value === "Project Proposal Form (PPF)" || option.value === "Budget Proposal"), "A new event document offers letter types only");
+  assert.ok(documentType().props.options.some(option => option.value === "Request Letter"));
+  const eventFixedNumber = () => render().find(node => node.type === "input" && node.props.className === "is-fixed").props.value;
+  documentType().props.onChange("Project Proposal Form (PPF)");
+  assert.equal(eventFixedNumber(), "UST:S030-00-FO120 (SA04)");
+  documentType().props.onChange("Budget Proposal");
+  assert.equal(eventFixedNumber(), "UST:S030-00-FO130 (SA04)");
+  state.length = 0;
+  Object.assign(props, { eventControlNumber: undefined, eventPapers: true, rows: [{ ...rows[0], event: { id: "event-nine", name: "Ninth activity", organizer: "central", college: null, controlNumber: "UST:CC-026-SA09", editable: true } }] });
+  render().find(node => node.type === "button" && node.props["aria-label"]?.startsWith("Open document ")).props.onClick();
+  documentType().props.onChange("Budget Proposal");
+  assert.equal(eventFixedNumber(), "UST:S030-00-FO130 (SA09)", "Consolidated forms use the selected paper’s event suffix");
+  console.log("Letters and minutes UI checks passed: numeric descending order, fixed numbers, automatic preparer, creation timestamp, saves, college scope, viewer restrictions, modal editing, minutes-specific creation, event isolation, event permissions, forged scope rejection, concurrent document edits, default General Letters, consolidated pagination, parent-event search metadata, and per-event edit permissions.");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

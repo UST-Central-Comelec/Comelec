@@ -97,7 +97,7 @@ html.is-scroll-locked { overflow: hidden; }
 
 /* Search, EvoSys and (where the tabs fold away) the menu button */
 .sh-tools { align-items: center; display: flex; flex: none; gap: 10px; margin-left: auto; }
-.sh-search { align-items: center; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: 6px; color: var(--sh-muted); cursor: pointer; display: inline-flex; flex: none; font-size: 13px; gap: 9px; height: 38px; padding: 0 7px 0 13px; transition: background-color .25s ease, border-color .25s ease, color .25s ease; white-space: nowrap; }
+.sh-search { align-items: center; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: var(--ui-button-radius); color: var(--sh-muted); cursor: pointer; display: inline-flex; flex: none; font-size: 13px; gap: 9px; height: 38px; padding: 0 7px 0 13px; transition: background-color .25s ease, border-color .25s ease, color .25s ease; white-space: nowrap; }
 .sh-search:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.26); color: #fff; }
 .sh-search svg { color: var(--sh-text); flex: none; transition: color .25s ease; }
 .sh-search:hover svg { color: var(--sh-gold); }
@@ -251,7 +251,7 @@ html.is-scroll-locked { overflow: hidden; }
 }
 .sh-palette-box { background: radial-gradient(70% 90% at 0% 0%, rgba(66,84,190,.15), transparent 64%), linear-gradient(180deg, rgba(13,13,19,.97), rgba(6,6,10,.98)); border: 1px solid rgba(255,255,255,.11); border-radius: 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 60px 120px -30px rgba(0,0,0,.9); overflow: hidden; }
 /* The field: a gold line draws out under it while it has focus */
-.sh-palette-field { align-items: center; border-bottom: 1px solid var(--sh-line); cursor: text; display: flex; gap: 14px; padding: 19px 20px; position: relative; }
+.sh-palette-field { align-items: center; border-radius: var(--ui-button-radius); border-bottom: 1px solid var(--sh-line); cursor: text; display: flex; gap: 14px; padding: 19px 20px; position: relative; }
 .sh-palette-field::after { background: linear-gradient(90deg, transparent, var(--sh-gold), transparent); bottom: -1px; content: ""; height: 1px; left: 0; opacity: 0; position: absolute; right: 0; transform: scaleX(.3); transition: opacity .4s ease, transform .8s var(--sh-ease); }
 .sh-palette-field:focus-within::after { opacity: .9; transform: none; }
 .sh-palette-field svg { color: var(--sh-gold); flex: none; }

@@ -18,8 +18,8 @@ const lookupModes = [
   { value: "name", label: "Full name", icon: UserRound },
 ] as const;
 type LookupMode = typeof lookupModes[number]["value"];
-type AttendanceStep = "lookup" | "review" | "confirmed";
-const attendanceSteps: AttendanceStep[] = ["lookup", "review", "confirmed"];
+type CheckInStep = "lookup" | "review" | "confirmed";
+const checkInSteps: CheckInStep[] = ["lookup", "review", "confirmed"];
 const emptyInputs = { reference: "", student: "", lastName: "", firstName: "", middleName: "" };
 function sanitizeLookupInput(value: string, mode: LookupMode) {
   if (mode === "student") return value.replace(/[^0-9]/g, "");
@@ -45,7 +45,7 @@ function Details({ title, group }: { title: string; group: RegistrationDetailGro
   return <section className="event-attendance-detail-group"><h4>{title}</h4><p>{group.label}</p>{group.facts.length > 0 && <dl>{group.facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}</section>;
 }
 
-function AttendanceDetails({ person }: { person: AttendancePerson }) {
+function CheckInDetails({ person }: { person: AttendancePerson }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
   return <>
@@ -65,14 +65,14 @@ function AttendanceDetails({ person }: { person: AttendancePerson }) {
   </>;
 }
 
-export function EventAttendance({ eventId }: { eventId: string }) {
+export function EventCheckIn({ eventId }: { eventId: string }) {
   const booth = useRef<HTMLElement>(null);
   const form = useRef<HTMLFormElement>(null);
   const stepHeading = useRef<HTMLHeadingElement>(null);
   const focusLookup = useRef(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [mode, setMode] = useState<LookupMode>("reference");
-  const [step, setStep] = useState<AttendanceStep>("lookup");
+  const [step, setStep] = useState<CheckInStep>("lookup");
   const [inputs, setInputs] = useState(emptyInputs);
   const [people, setPeople] = useState<AttendancePerson[]>([]);
   const [selectedPerson, setSelectedPerson] = useState(0);
@@ -81,7 +81,7 @@ export function EventAttendance({ eventId }: { eventId: string }) {
   const lookupStatusId = useId();
   const [working, setWorking] = useState<"lookup" | string | null>(null);
   const [pending, startTransition] = useTransition();
-  const reached = step === "confirmed" ? 3 : attendanceSteps.indexOf(step);
+  const reached = step === "confirmed" ? 3 : checkInSteps.indexOf(step);
 
   function updateLookupInput(event: ChangeEvent<HTMLInputElement>, name: keyof typeof emptyInputs, inputMode: LookupMode) {
     const input = event.currentTarget;
@@ -174,7 +174,7 @@ export function EventAttendance({ eventId }: { eventId: string }) {
   }
 
   return (
-    <section ref={booth} className={`portal-attendance${fullscreen ? " is-fullscreen" : ""}${notFound ? " is-not-found" : ""}`} aria-label="Event attendance booth">
+    <section ref={booth} className={`portal-attendance${fullscreen ? " is-fullscreen" : ""}${notFound ? " is-not-found" : ""}`} aria-label="Event check-in booth">
       <header className="portal-attendance-header">
         <div className="event-booth-brand"><Image src="/images/Logo-1.png" alt="" width={48} height={48} /><div><span>University of Santo Tomas</span><strong>Central Comelec</strong></div></div>
         <div className="event-booth-actions">
@@ -183,7 +183,7 @@ export function EventAttendance({ eventId }: { eventId: string }) {
         </div>
       </header>
       <div className="portal-attendance-content">
-        <div className="event-booth-welcome"><CheckinClock /><h2>Event <em>Check-in</em></h2></div>
+        <div className="event-booth-welcome"><CheckinClock /><h2>Event <em>Check-In</em></h2></div>
         <section className="portal-card is-flush event-attendance-card">
           <ol className="event-checkin-progress" aria-label="Attendance steps">{["Find registration", "Review details", "Confirm attendance"].map((label, i) => <li key={label} className={i < reached ? "is-done" : i === reached ? "is-current" : undefined} aria-current={i === reached ? "step" : undefined}><b>{i < reached ? <Check size={12} aria-hidden="true" /> : i + 1}</b><span>{label}</span>{i < 2 && <ChevronRight size={13} aria-hidden="true" />}</li>)}</ol>
 
@@ -211,7 +211,7 @@ export function EventAttendance({ eventId }: { eventId: string }) {
             {people.slice(selectedPerson, selectedPerson + 1).map(person => <article className="event-attendance-person" key={person.id}>
               <header><span className="event-person-icon"><UserRound size={23} aria-hidden="true" /></span><div><h3>{person.name}</h3><p className="event-attendance-reference">Reference code <strong>{person.referenceCode}</strong></p></div></header>
               <span className={`portal-tag${person.confirmedAt ? " is-ok" : " is-gold"}`}>{person.confirmedAt ? "Already checked in" : "Registered"}</span>
-              <div className="event-attendance-confirm"><AttendanceDetails person={person} /><button className="portal-button event-attendance-primary" type="button" disabled={pending} onClick={() => confirm(person)}>{pending && working === person.id ? <LoaderCircle size={15} className="event-icon-spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}{pending && working === person.id ? "Confirming…" : person.confirmedAt ? "View confirmation" : "Confirm Attendance"}</button></div>
+              <div className="event-attendance-confirm"><CheckInDetails person={person} /><button className="portal-button event-attendance-primary" type="button" disabled={pending} onClick={() => confirm(person)}>{pending && working === person.id ? <LoaderCircle size={15} className="event-icon-spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}{pending && working === person.id ? "Confirming…" : person.confirmedAt ? "View confirmation" : "Confirm Attendance"}</button></div>
             </article>)}
           </div>}
 

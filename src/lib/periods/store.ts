@@ -121,6 +121,7 @@ export async function saveUnitPeriod(kind: PeriodKind, unit: Unit, period: Perio
   try {
     await save(kind, unit, details ? { ...values, ...detailValues(details, author) } : values);
   } catch (error) {
+    if (kind === "candidacy" && details?.venueMode === "both" && error instanceof Error && error.message.includes("unit_periods_venue_mode_check")) throw new Error("Both venues aren’t enabled for Filing of Candidacy yet. Run supabase/migrations/0087_candidacy_both_venues.sql in the Supabase SQL Editor, then save again.");
     if (error instanceof Error && /opens_at|end_date/.test(error.message)) throw new Error("Each unit’s dates aren’t set up in the database yet. Run supabase/migrations/0028_event_end_dates.sql in the Supabase SQL Editor, then save again.");
     throw error;
   }

@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 type Tab = { key: string; href: string; label: ReactNode };
 type Line = { left: number; width: number };
 
 /** A shared underline moves immediately on navigation and survives the destination's mount. */
-export function SlidingSubtabs({ items, active, label, scope, className = "" }: {
+export function SlidingSubtabs({ items, active, label, scope, className = "", keepQuery = [] }: {
   items: Tab[];
+  /** Query parameters each tab keeps from the current address, like where the page was opened from. */
+  keepQuery?: string[];
   active: string;
   label: string;
   scope: string;
@@ -20,6 +23,9 @@ export function SlidingSubtabs({ items, active, label, scope, className = "" }: 
   const [seen, setSeen] = useState(active);
   const [line, setLine] = useState<Line | null>(null);
   const storageKey = `portal-subtabs:${scope}`;
+  const searchParams = useSearchParams();
+  const kept = new URLSearchParams(keepQuery.flatMap(key => searchParams.get(key) ? [[key, searchParams.get(key)!]] : []));
+  const hrefOf = (href: string) => kept.size ? `${href}${href.includes("?") ? "&" : "?"}${kept}` : href;
   if (active !== seen) {
     setSeen(active);
     setPicked(active);
@@ -61,7 +67,7 @@ export function SlidingSubtabs({ items, active, label, scope, className = "" }: 
     <nav ref={strip} className={`portal-subtabs is-sliding${line ? " is-placed" : ""} ${className}`} aria-label={label}>
       {line && <span className="portal-subtabs-line" style={{ width: line.width, transform: `translateX(${line.left}px)` }} aria-hidden="true" />}
       {items.map(item => (
-        <Link key={item.key} href={item.href} scroll={false} data-tab={item.key} data-picked={picked === item.key} aria-current={active === item.key ? "page" : undefined} onNavigate={() => {
+        <Link key={item.key} href={hrefOf(item.href)} scroll={false} data-tab={item.key} data-picked={picked === item.key} aria-current={active === item.key ? "page" : undefined} onNavigate={() => {
           try { sessionStorage.setItem(storageKey, JSON.stringify({ from: picked, to: item.key, at: Date.now() })); } catch { /* Storage is optional. */ }
           setPicked(item.key);
         }}>{item.label}</Link>

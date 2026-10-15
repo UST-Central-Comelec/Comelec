@@ -33,9 +33,12 @@ assert.equal(person.rsvp, undefined, 'Joining does not mutate the input');
 const React = require('react');
 let slots = [], cursor = 0;
 const marker = () => null;
-const table = load('src/components/portal/registrants-table.tsx', {
+const table = load('src/components/portal/event-responses-table.tsx', {
   '@/components/action-icons': new Proxy({}, { get: () => marker }),
   './review-action-icon': { ReviewActionIcon: marker },
+  './registrants-export': { RegistrantsExport: marker },
+  '@/components/animate-ui/icons/arrow-up-down': { ArrowUpDown: marker },
+  '@/components/lucide-animated/rotate-ccw': { RotateCCWIcon: marker },
   '@/components/lucide-animated/user-plus': { UserPlusIcon: marker },
   '@/components/lucide-animated/user-round-cog': { UserRoundCogIcon: marker },
   react: { ...React, useState: initial => { const index = cursor++; if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial; return [slots[index], value => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }]; }, useRef: () => ({ current: null }), useId: () => 'id', useTransition: () => [false, () => {}] },
@@ -48,7 +51,7 @@ const table = load('src/components/portal/registrants-table.tsx', {
 assert.equal(rows.filter(row => table.matchesResponseFilter(row, 'registrants')).length, 1);
 assert.equal(rows.filter(row => table.matchesResponseFilter(row, 'rsvp')).length, 2);
 function walk(node) { if (!node || typeof node !== 'object') return []; if (Array.isArray(node)) return node.flatMap(walk); return [node, ...walk(node.props?.children)]; }
-function render() { cursor = 0; return walk(table.RegistrantsTable({ rows, remove: () => {}, save: () => {}, resend: () => {} })); }
+function render() { cursor = 0; return walk(table.EventResponsesTable({ rows, remove: () => {}, save: () => {}, resend: () => {} })); }
 const toggle = () => render().find(node => node.props?.label === 'Participant response type');
 assert.equal(toggle().props.active, 'registrants');
 assert.deepEqual(toggle().props.items.map(item => item.label.props.children[1]), ['Registrants', 'RSVP Responses']);

@@ -1,5 +1,6 @@
 /* Both themes and both applications share the same button-icon cadence.
-   Bespoke Motion icons opt out of this fallback through data-icon-motion. */
+   Bespoke Motion icons opt out through data-icon-motion. Theme switches use
+   data-icon-interaction-only so their checked state doesn't animate while idle. */
 [data-icon-motion] > svg { flex-shrink: 0; }
 
 @keyframes ui-button-icon-cycle {
@@ -9,9 +10,9 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :where(button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], label):where(:hover, :focus-visible, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"]), [data-state="on"], [data-state="checked"], .is-active, .is-selected):not(:disabled, [aria-disabled="true"], [aria-busy="true"])
+  :where(button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], label):where(:hover, :focus-visible, :is([aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"]), [data-state="on"], [data-state="checked"], .is-active, .is-selected):not([data-icon-interaction-only])):not(:disabled, [aria-disabled="true"], [aria-busy="true"])
   svg:not(:where([data-icon-motion] svg, [data-icon-motion], .portal-document-icon svg, .event-icon-spin, .lucide-loader-circle, .lucide-loader, .lucide-loader-2)) {
-    animation: ui-button-icon-cycle 1.4s cubic-bezier(.22, 1, .36, 1) infinite;
+    animation: ui-button-icon-cycle 2.8s cubic-bezier(.22, 1, .36, 1) infinite;
   }
 }
 

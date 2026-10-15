@@ -73,7 +73,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
               <p className="ev-eyebrow">At a glance</p>
               <Facts event={view} className="is-stacked" />
               <SignUp event={view} block />
-              {view.signUp && <p className="ev-fine">{view.period ? view.period.fine : view.signUp === "waitlist" ? "Registration hasn’t opened yet. Join the waitlist to hold your interest." : (event.requireGoogle ? "A short form in five steps. UST students and staff verify their UST Google account partway through." : "A short form in five steps.")}</p>}
+              {view.signUp && <p className="ev-fine">{view.period ? view.period.fine : view.signUp === "waitlist" ? "Join the waitlist to register your interest. Your place isn’t confirmed yet." : (event.requireGoogle ? "A short form in five steps. UST students and staff verify their UST Google account partway through." : "A short form in five steps.")}</p>}
               <p className="ev-fine">For the latest updates, see the <a href={FACEBOOK_PAGE} target="_blank" rel="noreferrer">Central Comelec’s Facebook page</a>.</p>
             </div>
           </div>

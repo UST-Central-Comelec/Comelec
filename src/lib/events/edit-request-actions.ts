@@ -29,7 +29,7 @@ export async function requestResponseEdit(_state: EditRequestState, form: FormDa
   if (!requested.success) return { fieldErrors: { changes: requested.error.issues[0].message } };
   const otherSubmission = parsed?.prefix === "CC" || parsed?.prefix === "PA";
   if ((!surname.success && !(otherSubmission && number.success)) || (!registrationCode && !parsed)) return { error: "Track your submission again before requesting an edit." };
-  if (!rateLimit(`event-response-edit:${clientIp(await headers())}`, limits.track.limit, limits.track.windowMs).ok) return { error: "Too many requests. Please try again shortly." };
+  if (!rateLimit(`event-response-edit:${clientIp(await headers())}`, limits.track.limit, limits.track.windowMs).ok) return { error: "Request Blocked by Security Protection - Unusual Traffic Detected. Please try again shortly." };
   try {
     if (otherSubmission) {
       const identity = number.success ? number.data : surname.data!;
@@ -62,7 +62,7 @@ export async function requestResponseEdit(_state: EditRequestState, form: FormDa
       if (concurrent) return { request: concurrent };
     }
     if (error) return { error: "Couldn’t send your edit request. Please try again." };
-    revalidatePath(`/portal/events/${eventId}/registrants`);
+    revalidatePath(`/portal/events/${eventId}/responses`);
     return { request: data as EventEditRequest };
   } catch (error) {
     unstable_rethrow(error);
@@ -78,7 +78,7 @@ export async function addressResponseEdit(eventId: string, requestId: string, de
   try {
     const { data, error } = await createAdminClient().from("event_response_edit_requests").update({ status: decision, addressed_at: new Date().toISOString(), addressed_by: user.email }).eq("event_id", eventId).eq("id", requestId).eq("status", "pending").select("id");
     if (error || !data?.length) return { error: "Couldn’t address this request. Reload the list and try again." };
-    revalidatePath(`/portal/events/${eventId}/registrants`);
+    revalidatePath(`/portal/events/${eventId}/responses`);
     return { saved: true };
   } catch (error) {
     unstable_rethrow(error);
