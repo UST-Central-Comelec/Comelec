@@ -6,5 +6,5 @@ export const metadata: Metadata = { title: "Manual" };
 
 export default async function PortalManualPage() {
   await requireAccess("apps/manual");
-  return <ComingSoon section="Apps" title="Manual">No manual content has been added yet.</ComingSoon>;
+  return <ComingSoon section="Administrative" title="Manual">No manual content has been added yet.</ComingSoon>;
 }

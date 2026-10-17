@@ -5,6 +5,7 @@ import { getEvent } from "@/lib/events/queries";
 import { getRsvpSettings } from "@/lib/events/rsvp-store";
 import { getEvaluationSettings } from "@/lib/events/evaluation-store";
 import { startEventFlow } from "@/lib/events/verification";
+import { endFilingFlow } from "@/lib/filing-portal/verification";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAuthClient } from "@/lib/supabase/server";
@@ -42,6 +43,8 @@ export async function GET(request: NextRequest, context: RouteContext<"/events/[
   });
   if (error || !data.url) return eventVerificationReply(request, id, target, "failed");
 
+  // An abandoned filing portal sign-in mustn't catch this one's callback.
+  await endFilingFlow();
   await startEventFlow(id, target);
   return NextResponse.redirect(data.url);
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { EditIcon as ActionEditIcon } from "@/components/action-icons";
 import { scrollToTop } from "@/lib/scroll";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
@@ -28,6 +27,7 @@ import { useFormDraft } from "@/components/use-form-draft";
 import { SESSION_SLOT } from "@/components/apply-banner";
 import { createPortal } from "react-dom";
 import { DraftExpired, DraftStrip } from "@/components/draft-notice";
+import { ApplyTracker, Field, Required, ReviewSection, VerifiedBadge } from "@/components/apply-form-parts";
 
 const steps: Array<{ title: string; description: string; fields: ApplicationField[] }> = [
   { title: "Data Privacy Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
@@ -43,9 +43,6 @@ const steps: Array<{ title: string; description: string; fields: ApplicationFiel
 const receiptStep = steps.length;
 const trackerSteps = [...steps.map((step) => step.title), "Receipt"];
 
-
-const twoDigits = (value: number) => String(value).padStart(2, "0");
-
 const slotLabel = (count: number) => (count < 1 ? "No slots open" : count === 1 ? "1 slot open" : `${count} slots open`);
 
 const lastStep = steps.length - 1;
@@ -58,27 +55,12 @@ function stepOf(field: string) {
   return index === -1 ? lastStep : index;
 }
 
-/** Red dot after a label. Every field on the form is required. */
-function Required() {
-  return <span className="apply-required" aria-hidden="true" />;
-}
-
 /** Uppercases a name as it's typed, keeping the cursor where it was. */
 function uppercase(event: FormEvent<HTMLInputElement>) {
   const input = event.currentTarget;
   const { selectionStart, selectionEnd } = input;
   input.value = input.value.toUpperCase();
   input.setSelectionRange(selectionStart, selectionEnd);
-}
-
-function Field({ label, hint, error, children, span = 4, optional }: { label: string; hint?: string; error?: string; children: ReactNode; span?: 2 | 3 | 4 | 5 | 6 | 8 | 12; optional?: boolean }) {
-  return (
-    <label className={`apply-field span-${span}${error ? " has-error" : ""}`}>
-      <span className="apply-field-label">{label}{optional ? <em> Optional</em> : <Required />}</span>
-      {children}
-      {error ? <span className="apply-field-error">{error}</span> : hint ? <span className="apply-field-hint">{hint}</span> : null}
-    </label>
-  );
 }
 
 type ConflictAnswers = Record<ConflictId, "" | "yes" | "no">;
@@ -219,17 +201,6 @@ function ViewModeNote({ children }: { children: ReactNode }) {
 /** The step that holds each answer section, for the Review step's Edit links. */
 const sectionSteps: Record<AnswerSectionId, number> = { qualifications: 1, about: 2, application: 3, documents: 4, interview: 5 };
 
-function ReviewSection({ title, onEdit, rows }: { title: string; onEdit?: () => void; rows: Array<[string, string]> }) {
-  return (
-    <section className="apply-review-section">
-      <header><h3>{title}</h3>{onEdit && <button type="button" onClick={onEdit}><ActionEditIcon size={15} aria-hidden="true" />Edit</button>}</header>
-      <dl>
-        {rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || <span className="is-empty">Not provided</span>}</dd></div>)}
-      </dl>
-    </section>
-  );
-}
-
 /** About you and Qualifications on the left, with the remaining answers stacked beside them. */
 function AnswerSections({ sections, onEdit }: { sections: AnswerSection[]; onEdit?: (id: AnswerSectionId) => void }) {
   const left = sections.filter(({ id }) => id === "about" || id === "qualifications");
@@ -240,30 +211,6 @@ function AnswerSections({ sections, onEdit }: { sections: AnswerSection[]; onEdi
       <div className="apply-review-stack">{left.map(section)}</div>
       <div className="apply-review-stack">{right.map(section)}</div>
     </div>
-  );
-}
-
-/** Solid green shield with a white check. */
-function ShieldMark() {
-  return (
-    <svg className="verified-shield" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="m9 12 2 2 4-4" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/**
- * Marks something verified with the applicant's UST Google account. With `tooltip`, hovering or
- * focusing it explains what it means.
- */
-function VerifiedBadge({ tooltip }: { tooltip?: string }) {
-  if (!tooltip) return <span className="verified-badge"><ShieldMark /></span>;
-  return (
-    <span className="verified-badge has-tooltip" tabIndex={0} role="img" aria-label={tooltip}>
-      <ShieldMark />
-      <span className="verified-tooltip" role="tooltip">{tooltip}</span>
-    </span>
   );
 }
 
@@ -540,46 +487,11 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
 
   const submitted = Boolean(state?.submitted) || previewResult !== null;
   const current = submitted ? receiptStep : step;
-  const progress = Math.round(((current + 1) / trackerSteps.length) * 100);
   // A step counts as done only when every required answer on it is valid, as of the last step change.
   // Before the first one there's nothing to check: the only step behind is Consent, done by verifying.
   const complete = steps.map((item) => !values || Object.keys(checkFields(values, item.fields, slots, openInterviews, bodies)).length === 0);
 
-  const tracker = (
-    <div className="apply-tracker">
-      <div className="apply-tracker-inner">
-        <nav aria-label="Application progress">
-          <ol className="apply-steps">
-            {trackerSteps.map((title, index) => {
-              const status = index === current ? "is-current" : submitted || ((index < reached || index < step) && complete[index]) ? "is-done" : "is-upcoming";
-              // Once submitted there's nothing to go back to; the Receipt step is never a link.
-              const reachable = !submitted && index < receiptStep && index <= reached && index !== step && !pending && !transitioning;
-              return (
-                <li key={title} className={status}>
-                  <button type="button" disabled={!reachable} onClick={() => goTo(index)} aria-current={index === current ? "step" : undefined}>
-                    <span className="apply-step-rail" aria-hidden="true" />
-                    <span className="apply-step-label">
-                      <span className="apply-step-index"><span className="visually-hidden">Step </span>{twoDigits(index + 1)}</span>
-                      <span className="apply-step-text">{title}{status === "is-done" && <span className="visually-hidden"> (done)</span>}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-        {/* Phones and tablets hide the step names, so the current one is spelled out here. */}
-        <div className="apply-tracker-readout" aria-hidden="true">
-          <span><strong>{twoDigits(current + 1)}</strong> / {twoDigits(trackerSteps.length)}</span>
-          <span className="apply-tracker-readout-title" key={current}>{trackerSteps[current]}</span>
-          <span className="apply-tracker-readout-percent">{progress}%</span>
-        </div>
-      </div>
-      <div className="apply-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-label="Progress">
-        <span style={{ width: `${progress}%` }} />
-      </div>
-    </div>
-  );
+  const tracker = <ApplyTracker titles={trackerSteps} current={current} step={step} reached={reached} submitted={submitted} complete={complete} busy={pending || transitioning} onGo={goTo} />;
 
   if (submitted) {
     return (

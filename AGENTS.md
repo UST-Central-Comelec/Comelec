@@ -50,10 +50,10 @@ Gold is scarce: the main action, the current tab, live markers, and accent words
 
 - **Portal:** dark is the default; light is "Daylight", cool and neutral in the Apple manner. The sidebar and phone header, the dashboard hero, a settings page's status card and tooltips stay dark in both themes (the "Night" selector list at the top of `portal.css`). Light mode keeps three depth layers: a grey floor, white raised panels, and recessed fields that turn white in use.
 - **Site:** the home page, every banner and landing section, the navbar, mega-menu, search and footer are always dark. Other pages follow the visitor's choice. Every site page belongs to one of the themed families:
-  - banner pages (`.bp`, `banner-page.css`): News, Explainer, Statistics, Elections Code, Constitution, Magna Carta, About, Archive, Party Registration
+  - banner pages (`.bp`, `banner-page.css`): News, Explainer, Statistics, Elections Code, Constitution, Magna Carta, About, Archive
   - Events (`.ev`)
   - Cookies and Privacy (`.ck`)
-  - Apply (`.apply-page`): Become a Commissioner, Filing of Candidacy, and closed registrations
+  - Apply (`.apply-page`): Become a Commissioner, Political Party Registration, Filing of Candidacy, and closed registrations. Its step-by-step forms share `src/components/apply-form-parts.tsx` (`Field`, `Required`, `ApplyTracker`, `ReviewSection`) and the dark title strip `ApplyBanner`.
   A new page joins one of these families; never a plain white page.
 - **Overrides:** anything a token can't express goes in the file's Daylight block as `:where([data-theme="light"]) <same selector>`. The `:where()` keeps it from outranking hover and state rules.
 - **Check both themes**, at desktop and phone width (the portal switches to its phone layout at 860px), before calling UI work done.
@@ -115,7 +115,7 @@ When building a form:
 
 ## Keeping answers through a reload
 
-Long forms keep their answers on the device while they're filled in, so a reload, a closed tab or a dropped connection doesn't mean starting again. `useFormDraft` (`src/components/use-form-draft.ts`) saves the form's React state (step, pickers, rows) and every named field to `localStorage`. Like booking a ticket, each session is held for one hour (`SESSION_MINUTES`) from when the form opens; a reload keeps the same clock. `DraftNotice` (`src/components/draft-notice.tsx`) at the top of the form counts the hour down (red in the last five minutes), says when answers came back with "Start over", says answers are kept while offline, and when time's up clears the answers and opens a "Your session has ended" dialog with "Start again". Pass it the family's secondary (`buttonClassName`) and main (`actionClassName`) button classes. The Commissioner Application shows it in its dark title banner instead: `DraftStrip` puts the countdown at the banner's right (in the banner's own countdown style) with a short note under it, portalled into the banner's `SESSION_SLOT`, and `DraftExpired` handles the end. It's on Apply, Party registration, event Registration, RSVP and Evaluation, surveys, and Request access.
+Long forms keep their answers on the device while they're filled in, so a reload, a closed tab or a dropped connection doesn't mean starting again. `useFormDraft` (`src/components/use-form-draft.ts`) saves the form's React state (step, pickers, rows) and every named field to `localStorage`. Like booking a ticket, each session is held for one hour (`SESSION_MINUTES`) from when the form opens; a reload keeps the same clock. `DraftNotice` (`src/components/draft-notice.tsx`) at the top of the form counts the hour down (red in the last five minutes), says when answers came back with "Start over", says answers are kept while offline, and when time's up clears the answers and opens a "Your session has ended" dialog with "Start again". Pass it the family's secondary (`buttonClassName`) and main (`actionClassName`) button classes. The Commissioner Application, Political Party Registration and Filing of Candidacy show it in their dark title banner instead: `DraftStrip` puts the countdown at the banner's right (in the banner's own countdown style) with a short note under it, portalled into the banner's `SESSION_SLOT`, and `DraftExpired` handles the end. It's on Apply, Party registration, event Registration, RSVP and Evaluation, surveys, and Request access.
 
 - A new multi-step or long form uses it. Give it a key per form (and per record: event, survey, token), `null` in view mode or preview.
 - Key drafts with personal details by the verified account where there is one (Apply, Request access), so a shared computer doesn't show someone else's answers.
@@ -217,6 +217,21 @@ In each, one solid ink "thumb" (`.portal-filters-thumb`) slides to the picked it
 - **Plain words a visitor or commissioner would use, in sentence case.** Curly apostrophes and quotes (’ “ ”), and "…" for an ellipsis.
 - **Say what happened and what follows**, not just "Success": "Account added, and they’ve been emailed. They can now sign in…".
 - **Errors say what to do:** "Couldn’t save the settings. Try again."
+
+## The filing portal (political parties and candidates)
+
+The public files its applications in the filing portal (`/filing`), behind the site header's **Sign in** button. Each student has one account (`public_accounts`), signed in with their UST Google account, holding two separate applications:
+- **Political Party Registration** (`/party-registration`): consent and UST Google, About you, then Your party (join a party that's registering, which its contact person approves, or make one, which makes them its locked contact person). Members file the party's documents requirement by requirement; the unit reviews them under PolPaR → Applicants.
+- **Filing of Candidacy** (`/candidacy`): the same first steps, then Your candidacy (unit, elective position, under an accredited party or independent, date of birth, address) and the oath. One under a party reaches the unit only once the party's contact person endorses it; the unit reviews it under Filing of Candidacy → Filings. Elective positions come from Administrative → Database → Elective positions (`public.elective_positions`, `src/lib/candidacy/positions-store.ts`).
+
+How it's built:
+- Someone who already has an account sees their saved profile on About you instead of filling it in again (`FilingSignUp`, `src/components/filing-portal/sign-up.tsx`, shared by both pages).
+- It shares the commission portal's look and root layout (`src/app/(portal)/filing`), with a sign-in of its own: a signed `filing_session` cookie (`src/lib/filing-portal/session-token.ts`), checked against the database on every request (`requireFilingAccount`, `requirePartyMember`, `requireCandidacy`). No Supabase session is kept for the public. Google returns to `/apply/verify`, which hands filing sign-ins to `src/lib/filing-portal/callback.ts`.
+- Commissioners never sign in here, and nothing on the public site links to `/portal/login`.
+- Its pop-ups are the same `toast()` pills (`ToastStack`), and its pages follow the portal's page structure.
+- Documents (a party's and a candidacy's alike) go through `FilingDocuments`, `/filing/upload` and `src/lib/filing-portal/document-actions.ts`. Change files only through `addFiles` / `removeFile` and `addCandidacyFiles` / `removeCandidacyFile`, which change them in one statement.
+- Every change adds a notice (the party's, or the account's own) and sends its automatic email (`src/lib/party-portal/notify.ts`, `src/lib/candidacy/notify.ts`).
+- Migrations: `20261017190000_party_portal.sql`, `20261017210000_candidacy_filing.sql`.
 
 ## Two people editing the same record
 

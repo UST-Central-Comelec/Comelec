@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib
 import { ACTIVITY_COOKIE, activityCookieFor, activityCookieOptions, decodeActivity, encodeActivity, timeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { isSiteUnderMaintenance } from "@/lib/site-settings/maintenance-flag";
+import { decodeFilingSession, encodeFilingSession, FILING_SESSION_COOKIE, filingSessionCookieOptions, filingTimeout } from "@/lib/filing-portal/session-token";
 
 // Runs on every page request. Under maintenance it answers with the maintenance page: for the
 // public site when that's switched on in the portal (Maintenance), which leaves the portal up to
@@ -18,6 +19,8 @@ import { isSiteUnderMaintenance } from "@/lib/site-settings/maintenance-flag";
 // themselves via `requirePortalUser`.
 
 const openPaths = new Set(["/portal/login", "/portal/auth/callback", "/portal/request-access/start"]);
+/** The filing portal's pages open to anyone: its sign-in page, and the start of Google sign-in. */
+const filingOpenPaths = new Set(["/filing/login", "/filing/auth/start"]);
 
 /** Link prefetches aren't the person doing anything, so they don't count as activity. */
 const isPrefetch = (request: NextRequest) => request.headers.has("next-router-prefetch") || request.headers.get("sec-purpose")?.includes("prefetch") || request.headers.get("purpose") === "prefetch";
@@ -75,6 +78,33 @@ function tooManyRequestsResponse(request: NextRequest, retryAfter: number) {
   });
 }
 
+/**
+ * The filing portal (/filing), for political parties' members and candidates. Its session is a
+ * signed cookie of its own (src/lib/filing-portal/session-token.ts), with the commission portal's
+ * limits: a ceiling per address and per account, signed out after 30 minutes idle or 8 hours, and
+ * no caching. Pages and actions still check the account against the database themselves.
+ */
+async function filingProxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const flood = rateLimit(`filing:${clientIp(request.headers)}`, limits.portalAddress.limit, limits.portalAddress.windowMs);
+  if (!flood.ok) return tooManyRequestsResponse(request, flood.retryAfter);
+  if (filingOpenPaths.has(pathname)) return noStore(NextResponse.next());
+
+  const session = await decodeFilingSession(request.cookies.get(FILING_SESSION_COOKIE)?.value);
+  const reason = session ? filingTimeout(session) : null;
+  if (!session || reason) {
+    const redirect = redirectResponse(request, reason ? `/filing/login?reason=${reason}` : "/filing/login");
+    redirect.cookies.delete({ name: FILING_SESSION_COOKIE, path: filingSessionCookieOptions.path });
+    return noStore(redirect);
+  }
+  const own = rateLimit(`filing-account:${session.accountId}`, limits.portal.limit, limits.portal.windowMs);
+  if (!own.ok) return tooManyRequestsResponse(request, own.retryAfter);
+
+  const response = NextResponse.next();
+  if (!isPrefetch(request)) response.cookies.set(FILING_SESSION_COOKIE, await encodeFilingSession({ ...session, lastActiveAt: Date.now() }), filingSessionCookieOptions);
+  return noStore(response);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (lockedDown()) return maintenanceResponse(request);
@@ -82,6 +112,8 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/api/email/dispatch") return NextResponse.next();
   // Uploaded photos (src/app/files): the portal shows them, and it stays up while the public site is down.
   if (pathname.startsWith("/files/")) return NextResponse.next();
+  // The filing portal stays up with the commission portal while the public site is down.
+  if (pathname === "/filing" || pathname.startsWith("/filing/")) return filingProxy(request);
   if (pathname !== "/portal" && !pathname.startsWith("/portal/")) return (await isSiteUnderMaintenance()) ? maintenanceResponse(request) : NextResponse.next();
 
   const ip = clientIp(request.headers);

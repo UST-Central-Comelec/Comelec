@@ -13,7 +13,7 @@ import type { AccessGroup } from "./access-control-form";
 
 const branchColors: Record<string, string> = {
   Dashboard: "254,195,12",
-  Apps: "76,201,218",
+  Services: "76,201,218",
   Documents: "129,184,210",
   Charters: "189,165,234",
   Secretariat: "167,139,250",

@@ -60,7 +60,8 @@ export function OnlineNotices() {
   </div>;
 }
 
-function ToastPill({ item }: { item: ToastItem }) {
+/** One action's pop-up: it goes by itself after a while, or when dismissed; hovering keeps it up. */
+export function ToastPill({ item }: { item: ToastItem }) {
   const [held, setHeld] = useState(false);
   useEffect(() => {
     if (held) return;

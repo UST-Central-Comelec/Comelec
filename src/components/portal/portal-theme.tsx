@@ -20,8 +20,9 @@ function paintBrowser(theme: PortalTheme) {
  * The portal's shell, which carries the theme as data-theme (portal.css turns its colours over from
  * there; the sidebar and a few cards stay dark in both). The choice is kept in a cookie so the server
  * renders the same theme on the next visit, with no flash of the other one while the page loads.
+ * `cookiePath` is where that cookie is sent: the commission portal's, or the filing portal's (/filing).
  */
-export function PortalShell({ initialTheme, children }: { initialTheme: PortalTheme; children: ReactNode }) {
+export function PortalShell({ initialTheme, children, cookiePath = "/portal" }: { initialTheme: PortalTheme; children: ReactNode; cookiePath?: string }) {
   // In the browser the cookie has the last word: the router can bring this layout back from its cache,
   // rendered before the theme was last changed.
   const [theme, setTheme] = useState(() => (typeof document === "undefined" ? initialTheme : readTheme(document.cookie.match(`(?:^|; )${THEME_COOKIE}=(\\w+)`)?.[1] ?? initialTheme)));
@@ -35,7 +36,7 @@ export function PortalShell({ initialTheme, children }: { initialTheme: PortalTh
   /** `from` is the switch that was pressed: daylight spreads out from it, and draws back into it. */
   const toggle = (from: HTMLElement) => {
     const next: PortalTheme = theme === "light" ? "dark" : "light";
-    document.cookie = `${THEME_COOKIE}=${next}; path=/portal; max-age=31536000; samesite=lax`;
+    document.cookie = `${THEME_COOKIE}=${next}; path=${cookiePath}; max-age=31536000; samesite=lax`;
     // Synchronously, so the browser's snapshot of the new page really is the new theme.
     const apply = () => flushSync(() => setTheme(next));
     if (!("startViewTransition" in document)) return apply();

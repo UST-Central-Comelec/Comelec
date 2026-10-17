@@ -62,28 +62,3 @@
 .portal-date-time { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0; }
 .portal-date-time > .portal-calendar { flex: 1 1 190px; }
 .portal-date-time > input[type="time"] { flex: 0 1 130px; min-width: 0; }
-
-/* Public registration inherits its page palette; the calendar UI stays shared. */
-.pp-field .portal-calendar {
-  --p-ink: var(--bp-ink, 255,255,255);
-  --p-text: var(--bp-text);
-  --p-surface: var(--bp-surface);
-  --p-glass: linear-gradient(transparent, transparent);
-  --p-line: var(--bp-line);
-  --p-line-strong: var(--bp-line-strong);
-  --p-muted: var(--bp-muted);
-  --p-placeholder: var(--bp-faint);
-  --p-faint: var(--bp-faint);
-  --p-dim: var(--bp-faint);
-  --p-gold-edge: var(--bp-gold-mark);
-  --p-gold-ink: var(--bp-gold-mark);
-  --p-on-bright: var(--bp-surface);
-  --p-danger: #d87878;
-  --p-ring: 0 0 0 3px rgba(var(--ui-accent-rgb, 254,195,12),.14);
-  --p-shadow-pop: 0 16px 48px rgba(0,0,0,.25);
-  display: flex;
-  width: 100%;
-}
-.pp-field .portal-calendar > button { background: var(--bp-raised); border-radius: 9px; min-height: 46px; padding: 12px; }
-:root[data-theme="light"] .pp-field .portal-calendar { --p-ink: 0,0,0; --p-danger: #b0243b; }
-:root[data-theme="light"] .pp-field .portal-calendar > button { background: var(--ui-panel-tint); border-radius: var(--ui-control-radius); }

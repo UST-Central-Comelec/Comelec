@@ -60,3 +60,36 @@
 @media (max-width: 600px) {
 	.apply-top.is-commissioner .apply-top-inner { justify-content: center; min-height: 76px; padding-block: 20px; }
 }
+
+/* The calendar date picker (portal/date-picker.tsx) in an Apply-family field: the field's own look,
+   and the family's colours for the calendar that opens from it. */
+.apply-field .portal-calendar {
+	--p-ink: var(--ap-ink-rgb, var(--ui-ink-rgb));
+	--p-text: var(--ink);
+	--p-surface: var(--ap-surface, var(--ui-panel));
+	--p-glass: linear-gradient(transparent, transparent);
+	--p-line: var(--line);
+	--p-line-strong: var(--line);
+	--p-muted: var(--muted);
+	--p-placeholder: var(--muted);
+	--p-faint: var(--muted);
+	--p-dim: rgba(var(--ap-ink-rgb, var(--ui-ink-rgb)), .3);
+	--p-gold-edge: var(--gold);
+	--p-gold-ink: var(--ink);
+	--p-on-bright: var(--ap-surface, var(--ui-panel));
+	--p-danger: var(--ap-danger, var(--ui-danger));
+	--p-field-active-bg: var(--ap-surface, var(--ui-panel));
+	--p-field-active-edge: var(--ink);
+	--p-field-active-lift: var(--field-lift);
+	--p-shadow-pop: 0 18px 40px rgba(0,0,0,.12);
+	--p-ease: cubic-bezier(.22, 1, .36, 1);
+	display: flex;
+	width: 100%;
+}
+/* Its look at rest only, so the picker's own focus and open states (the ink edge and lift) still show. */
+.apply-field .portal-calendar > button { border-radius: var(--radius-sm); font-size: 14px; min-height: 46px; padding: 11px 14px; }
+.apply-field .portal-calendar:not(.is-open) > button:not(:focus-visible) { background: var(--ap-surface, var(--ui-panel)); }
+:where(:root:not([data-theme="light"])) .apply-field .portal-calendar { --p-shadow-pop: 0 0 0 1px rgba(0,0,0,.5), 0 30px 80px -20px rgba(0,0,0,.9); }
+:root[data-theme="light"] .apply-body .apply-field .portal-calendar { --p-line-strong: var(--ui-border-strong); --p-field-active-bg: var(--ui-panel); }
+:root[data-theme="light"] .apply-body .apply-field .portal-calendar > button { border-radius: var(--ui-control-radius); }
+:root[data-theme="light"] .apply-body .apply-field .portal-calendar:not(.is-open) > button:not(:focus-visible) { background: var(--ui-panel-tint); }

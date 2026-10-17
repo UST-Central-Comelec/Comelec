@@ -52,8 +52,8 @@ export default async function AutomaticEmailsPage({ searchParams }: PageProps<"/
     <main className="portal-page is-wide">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Apps</p>
-          <TitleWithInfo info="The emails the site sends by itself: receipts, results, and notices to the commission. Each has a switch beside its name: switched off, it stops going out from the next time it would, until it’s switched back on. All of them leave from the Central Comelec’s mailbox. One about a Local unit says it came through the Central Comelec COMET, and goes to that unit’s official account and Executive Board only; one about the Central Comelec goes to the Central Comelec’s only.">Email Sender</TitleWithInfo>
+          <p className="portal-eyebrow">Services</p>
+          <TitleWithInfo info="The emails the site sends by itself: receipts, results, and notices to the commission. Each has a switch beside its name: switched off, it stops going out from the next time it would, until it’s switched back on. All of them leave from the Central Comelec’s mailbox. One about a Local unit says it came through the Central Comelec COMET, and goes to that unit’s official account and Executive Board only; one about the Central Comelec goes to the Central Comelec’s only.">Email</TitleWithInfo>
         </div>
         {user.readOnly && <ViewOnlyTag />}
       </header>

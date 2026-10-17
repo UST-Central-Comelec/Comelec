@@ -1,0 +1,96 @@
+/* The filing portal (/filing, inside .pp-app): the commission portal's look (portal.css) and tokens
+   (--p-*), with what its pages add: the dashboard's figures, the requirement cards, files and feedback, members
+   and notifications. Works in both themes through the tokens. */
+
+/* Dashboard */
+.pp-stats { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 20px; }
+.pp-stat { display: grid; gap: 6px; padding: 18px 20px; }
+.pp-stat span { color: var(--p-muted); font-size: 12.5px; font-weight: 500; }
+.pp-stat strong { color: var(--p-bright); font-size: 28px; font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
+.pp-stat small { color: var(--p-muted); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.pp-dash-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); margin-bottom: 20px; }
+.pp-app .portal-card h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
+.pp-app .portal-details a { color: var(--p-text); }
+.pp-waiting { align-items: flex-start; display: flex; gap: 16px; max-width: 760px; }
+.pp-waiting > svg { color: var(--p-gold-mark); flex: none; margin-top: 2px; }
+.pp-waiting h2 { margin-bottom: 8px !important; }
+.pp-waiting p { line-height: 1.65; margin: 0; }
+.pp-waiting strong { color: var(--p-text); font-weight: 600; }
+
+/* Templates */
+.pp-templates { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); list-style: none; margin: 14px 0 0; padding: 0; }
+.pp-templates a { align-items: center; background: rgba(var(--p-ink), .04); border: 1px solid var(--p-line); border-radius: 10px; color: var(--p-text); display: flex; font-size: 13px; gap: 10px; padding: 11px 14px; text-decoration: none; transition: background-color .15s ease, border-color .15s ease; }
+.pp-templates a:hover { background: rgba(var(--p-ink), .07); border-color: var(--p-line-strong); }
+.pp-templates a:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+.pp-templates svg { color: var(--p-gold-mark); flex: none; }
+
+/* Members */
+.pp-people { list-style: none; margin: 0; padding: 0; }
+.pp-people li { align-items: center; border-top: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; padding: 14px 24px; }
+.pp-person { display: grid; gap: 3px; min-width: 0; }
+.pp-person strong { color: var(--p-text); font-weight: 600; }
+.pp-person small { color: var(--p-muted); font-size: 12.5px; }
+.pp-request-actions { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.pp-app .pp-app .portal-page > .portal-card + .portal-card { margin-top: 20px; }
+
+/* Notifications */
+.pp-notices { list-style: none; margin: 0; padding: 0; }
+.pp-notices li { display: grid; gap: 4px; padding: 16px 24px; position: relative; }
+.pp-notices li + li { border-top: 1px solid var(--p-line); }
+.pp-notices li.is-new::before { background: var(--p-gold); border-radius: 50%; content: ""; height: 6px; left: 10px; position: absolute; top: 23px; width: 6px; }
+.pp-notices strong { color: var(--p-text); font-size: 14px; font-weight: 600; }
+.pp-notices strong a { color: inherit; text-decoration: none; }
+.pp-notices strong a:hover { text-decoration: underline; text-decoration-color: var(--p-gold-edge); text-underline-offset: 3px; }
+.pp-notices p { color: var(--p-soft); font-size: 13.5px; line-height: 1.6; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.pp-notices small { color: var(--p-faint); font-size: 12px; }
+.pp-notices.is-compact li { padding: 12px 0; }
+.pp-notices.is-compact li:first-child { padding-top: 0; }
+.pp-notices.is-compact li.is-new::before { display: none; }
+
+@media (max-width: 1100px) {
+	.pp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.pp-dash-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+	.pp-people li, .pp-notices li { padding-inline: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.pp-templates a { transition: none; }
+}
+
+/* Dashboard: the party's and the candidacy's cards, side by side. */
+.pp-dash-grid.is-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pp-application { display: grid; align-content: start; gap: 14px; }
+.pp-application .pp-card-head { margin-bottom: 0; }
+.pp-application > .portal-button { justify-self: start; }
+.pp-application-name { color: var(--p-bright); font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; margin: 0; overflow-wrap: anywhere; }
+.pp-application .pp-waiting { max-width: none; }
+
+/* A note from the unit above a page's documents: neutral, like feedback. */
+.pp-remarks { margin: 0 0 16px; }
+.pp-remarks > span { display: grid; gap: 4px; color: var(--p-soft); font-size: 13.5px; line-height: 1.6; }
+.pp-remarks strong { color: var(--p-text); font-weight: 600; }
+
+/* My candidacy */
+.pp-candidacy-details { margin-bottom: 8px; }
+.pp-withdraw { align-items: center; display: flex; flex-wrap: wrap; gap: 14px 24px; justify-content: space-between; margin-top: 20px; }
+.pp-withdraw h2 { margin: 0 0 6px !important; }
+.pp-withdraw p { margin: 0; max-width: 620px; }
+
+/* The sign-in page: one way in for each application. */
+.pp-login-starts { display: grid; gap: 8px; }
+
+@media (max-width: 1100px) { .pp-dash-grid.is-even { grid-template-columns: minmax(0, 1fr); } }
+
+/* The sign-in's backdrop: the Central Comelec's justice scale (components/filing-portal/scale-backdrop.tsx), across
+   the viewport like the commission sign-in's sky, behind the pitch and the card. Always dark, like that page. The
+   wash shows until the scene draws, and stays if WebGL isn't there. */
+.portal-login .pp-scale { height: 100svh; left: 0; pointer-events: none; position: absolute; top: 0; width: 100vw; z-index: -2; }
+.pp-scale-wash { background: radial-gradient(ellipse 34% 46% at 50% 44%, rgba(var(--ui-accent-rgb, 254,195,12),.07), transparent 70%), linear-gradient(180deg, #06070e, #020204); inset: 0; position: absolute; }
+.pp-scale-scene { animation: pp-scale-in 1.2s var(--p-ease) both; display: block; height: 100%; left: 0; position: absolute; top: 0; width: 100%; }
+@keyframes pp-scale-in { from { opacity: 0; } }
+/* The scale stands in the middle, so the pitch's shade sits a little wider and darker. */
+.portal-login.is-scale .portal-login-aside::after { background: radial-gradient(58% 64% at 22% 54%, rgba(2,2,4,.78), transparent 74%); }
+@media (prefers-reduced-motion: reduce) {
+	.pp-scale-scene { animation: none; }
+}

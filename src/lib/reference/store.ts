@@ -7,14 +7,21 @@ import { applyReferenceData, composeReferenceData, defaultReferenceData, type Re
 export const REFERENCE_TAG = "reference-data";
 export const referenceUnavailable = "Couldn’t load the Database. Apply supabase/migrations/20261015120000_reference_data.sql, then reload.";
 
+export const referenceUnreachable = "Couldn’t reach the Database. Check the connection, then reload.";
+
 type Row = { section: string; value: unknown; updatedAt: string };
+
+const isMissing = (error: { code?: string; message: string }) => error.code === "PGRST205" || error.code === "42P01" || /could not find the table|does not exist/i.test(error.message);
 
 // Shared between requests (and server instances, through Next's data cache) for a minute, and
 // dropped the moment a section is saved. A failed read throws, so it isn't kept. Made on first use.
+// A dropped connection is tried once more; only a missing table asks for the migration.
 let readSections: (() => Promise<Row[]>) | null = null;
 const cachedSections = () => (readSections ??= unstable_cache(async (): Promise<Row[]> => {
-  const { data, error } = await createAdminClient().from("reference_data").select("section,value,updated_at");
-  if (error) throw new Error(referenceUnavailable);
+  const read = () => createAdminClient().from("reference_data").select("section,value,updated_at");
+  let { data, error } = await read();
+  if (error && !isMissing(error)) ({ data, error } = await read());
+  if (error) throw new Error(isMissing(error) ? referenceUnavailable : referenceUnreachable, { cause: error });
   return (data ?? []).map((row) => ({ section: row.section as string, value: row.value, updatedAt: row.updated_at as string }));
 }, [REFERENCE_TAG], { tags: [REFERENCE_TAG], revalidate: 60 }))();
 
@@ -24,7 +31,7 @@ export async function loadReferenceData(): Promise<{ data: ReferenceData; error:
   try {
     return { data: composeReferenceData(await cachedSections()), error: null };
   } catch (error) {
-    return { data: defaultReferenceData(), error: error instanceof Error ? error.message : referenceUnavailable };
+    return { data: defaultReferenceData(), error: error instanceof Error ? error.message : referenceUnreachable };
   }
 }
 

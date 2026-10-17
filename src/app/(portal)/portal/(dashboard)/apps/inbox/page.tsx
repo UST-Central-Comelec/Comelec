@@ -17,7 +17,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/portal/app
   const page = Math.max(0, Math.min(10000, Number.parseInt(String(params.page ?? "0"), 10) || 0));
   const result = await settle(getInbox(user, undefined, page, tab));
   return <main className="portal-page portal-inbox-page">
-    <header className="portal-page-head"><div><p className="portal-eyebrow">Apps</p><h1>Inbox</h1></div>
+    <header className="portal-page-head"><div><p className="portal-eyebrow">Services</p><h1>Inbox</h1></div>
       {canAnnounce(user) && <Link className="portal-button" href="/portal/apps/inbox/new"><Plus size={16} aria-hidden="true" />New announcement</Link>}
     </header>
     {params.notice === "sent" && <Toast message="Announcement sent." param="notice" />}

@@ -89,7 +89,7 @@ try {
   assert.ok(links().includes("documents/archive"), "Archive remains available");
   assert.deepEqual(trail("/portal/legals/onboarding").map(item => item.label), ["Legals", "Documents", "Onboarding"]);
   button("Back to all tabs").props.onClick();
-  assert.ok(button("Open Apps tabs, 3 items needing attention"));
+  assert.ok(button("Open Services tabs, 3 items needing attention"));
   assert.ok(button("Open Administrative tabs, 4 items needing attention"));
   input().props.onChange({ target: { value: "inbox" } });
   assert.equal(render().find(node => node.props?.tab?.key === "apps/inbox").props.count, 3, "Search retains other tabs' badges");

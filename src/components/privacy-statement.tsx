@@ -39,7 +39,7 @@ export function PrivacyStatement({ portal = false, eventForm = false, idPrefix }
     </>,
     <>
       <p>Portal access depends on an account’s role and granted permissions. Local accounts are restricted to their own college’s records where the portal applies unit boundaries. Authorized Central accounts may access records across units according to their permissions. Shared official accounts act for the unit they represent.</p>
-      <p>Inbox messages are available to the account memberships selected as recipients. Officials authorized to use the Email Sender can review its Outbox within their permitted scope. Notification audiences follow the relevant account or unit activity. Email and portal inbox delivery may be selected separately.</p>
+      <p>Inbox messages are available to the account memberships selected as recipients. Officials authorized to use the Email can review its Outbox within their permitted scope. Notification audiences follow the relevant account or unit activity. Email and portal inbox delivery may be selected separately.</p>
       <p>The public About page displays the names, roles, college affiliations and available photos of listed commission members and advisers. Public news, official documents and event pages can also identify people involved in published commission activities. Application records, student numbers and private inbox messages are not displayed in the public directory.</p>
       <p>Information may be handled by the officers reviewing the relevant matter and by service providers needed to operate the system. Disclosure may also be required by law or an authorized process. The website does not provide an advertising marketplace or a feature for selling personal information.</p>
     </>,

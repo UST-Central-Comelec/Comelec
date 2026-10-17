@@ -1,0 +1,50 @@
+/* The filing portal's sign-up (./sign-up.tsx), on Political Party Registration and Filing of
+   Candidacy, in the Apply family (.apply-page) with the same title strip, step tracker, fields,
+   choices and buttons as Become a Commissioner (globals.css, application-form-ui.css). This file holds
+   only what the party and candidacy steps add. Tokens: the Apply family's (--ink, --muted, --line,
+   --cream, --gold, --ap-*). */
+
+/* Text links that act: ink, underlined in gold. */
+.pp-link { align-items: center; background: none; border: 0; border-bottom: 1px solid var(--gold); border-radius: 0; color: var(--ink); cursor: pointer; display: inline-flex; font: inherit; font-size: 13px; font-weight: 600; gap: 6px; padding: 0 0 2px; text-decoration: none; transition: border-color .15s ease; }
+.pp-link:hover { border-bottom-color: var(--ink); }
+.pp-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.pp-signin-note { color: var(--muted); font-size: 13px; margin: 0; }
+.apply-verified > svg { color: var(--ap-ok, var(--ink)); flex: none; }
+
+/* The choice cards' icons sit in line with their words. */
+.apply-choice-text strong svg { display: inline-block; margin-right: 6px; vertical-align: -2px; }
+
+/* A party to join, or the contact person: what's filled in for them, read only. */
+.pp-facts { display: grid; gap: 14px 24px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 0; }
+.pp-facts dt { color: var(--muted); font-size: 12px; }
+.pp-facts dd { font-size: 14px; line-height: 1.5; margin: 3px 0 0; overflow-wrap: anywhere; }
+.pp-join { border-top: 1px solid var(--line); display: grid; gap: 16px; margin-top: 22px; padding-top: 20px; }
+.pp-join-note { align-items: flex-start; color: var(--muted); display: flex; font-size: 13px; gap: 8px; line-height: 1.6; margin: 0; }
+.pp-join-note svg { color: var(--ui-accent-mark, var(--gold)); flex: none; margin-top: 3px; }
+.pp-clash { margin-top: 18px; }
+.pp-clash .pp-link { margin-left: 4px; }
+
+/* The contact person: ticked and locked, since whoever makes the party is its contact. */
+.pp-contact { cursor: default; margin-bottom: 18px; }
+.pp-contact span { display: grid; gap: 4px; }
+.pp-contact strong { font-weight: 600; }
+.pp-contact small { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.pp-contact input:disabled { opacity: 1; }
+
+.pp-facts-below { margin-top: 18px; }
+
+/* Date of birth: month, day and year side by side. */
+.pp-birth { display: grid; gap: 8px; grid-template-columns: minmax(0, 1.5fr) minmax(0, .9fr) minmax(0, 1fr); }
+
+/* About you, for someone who already has an account: their saved profile. */
+.pp-profile { display: grid; gap: 16px; }
+.pp-profile-note { align-items: flex-start; display: flex; gap: 10px; }
+.pp-profile-note svg { color: var(--ui-accent-mark, var(--gold)); flex: none; margin-top: 3px; }
+.pp-profile-note a { border-bottom: 1px solid var(--gold); color: var(--ink); }
+
+/* The candidacy's oath, before filing. */
+.pp-oath h3 { font-size: 17px; font-weight: 600; margin: 0; }
+.pp-oath-list { color: var(--muted); display: grid; font-size: 14px; gap: 8px; line-height: 1.65; list-style: decimal; margin: 0; padding-left: 22px; }
+.pp-oath-list li::marker { color: var(--ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) { .pp-link { transition: none; } }

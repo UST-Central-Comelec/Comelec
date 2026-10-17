@@ -541,7 +541,7 @@ body.view-mode { padding-top: 0; }
 .apply-review-section { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 24px; }
 .apply-review-section header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 14px; }
 .apply-review-section h3, .apply-privacy h3 { font-size: 15px; font-weight: 600; margin: 0; }
-.apply-review-section header button { background: none; border: 0; border-bottom: 1px solid var(--gold); color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; padding: 0 0 2px; }
+.apply-review-section header button { align-items: center; background: none; border: 0; border-bottom: 1px solid var(--gold); color: var(--ink); cursor: pointer; display: inline-flex; font: inherit; font-size: 12px; font-weight: 700; gap: 5px; padding: 0 0 2px; }
 .apply-review-section dl { display: grid; gap: 12px; margin: 0; }
 .apply-review-section dl div { display: grid; gap: 16px; grid-template-columns: 150px minmax(0, 1fr); }
 .apply-review-section dt { color: var(--muted); font-size: 13px; }

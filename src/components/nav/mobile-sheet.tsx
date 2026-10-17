@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, LogIn } from "lucide-react";
 import { SearchIcon as Search } from "@/components/action-icons";
 import { useState, type CSSProperties } from "react";
 import { FeaturedCarousel, type Featured } from "@/components/featured-carousel";
@@ -63,7 +63,7 @@ function SheetBody({ id, open, status, pathname, featured, featuredIndex, onFeat
       <div className="sh-sheet-extra" style={{ "--i": sections.length } as CSSProperties}>
         <FeaturedCarousel items={featured} index={featuredIndex} onIndexChange={onFeaturedIndexChange} playing={open} onNavigate={onNavigate} />
         <div className="sh-sheet-actions">
-          <Link href="/news" className="sh-cta" onClick={onNavigate}>EvoSys<ArrowUpRight size={15} aria-hidden="true" /></Link>
+          <Link href="/filing/login" prefetch={false} className="sh-cta" onClick={onNavigate}><LogIn size={15} aria-hidden="true" />Sign in</Link>
           <button type="button" className="sh-search" onClick={onSearch}><Search size={16} strokeWidth={1.8} aria-hidden="true" /><span>Search</span></button>
         </div>
         <p className="sh-sheet-theme"><span>Appearance</span><SiteThemeToggle /></p>
@@ -76,7 +76,7 @@ function SheetBody({ id, open, status, pathname, featured, featuredIndex, onFeat
 /**
  * The navbar's menu where there's no room for tabs (phones, tablets): the whole screen, opening out
  * from the menu button. The sections are an accordion of the same links as the dropdowns, over the
- * Featured carousel, EvoSys, search and what's open right now; behind them, a night sky above a
+ * Featured carousel, Sign in, search and what's open right now; behind them, a night sky above a
  * planet's gold horizon, as at the foot of the home page.
  */
 export function MobileSheet({ id, open, session, ...body }: SheetProps & { id: string; open: boolean; session: number }) {

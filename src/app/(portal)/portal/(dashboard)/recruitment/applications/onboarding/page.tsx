@@ -26,7 +26,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     <header className="portal-page-head">
       <div>
         <p className="portal-eyebrow">Recruitment</p>
-        <TitleWithInfo info="Set the onboarding links for your unit’s acceptance emails. Join the Commission always comes first, followed by Messenger and any additional buttons. The email format is shown under Email Sender’s automatic emails. Preview shows your current edits with sample applicant details.">Applicants</TitleWithInfo>
+        <TitleWithInfo info="Set the onboarding links for your unit’s acceptance emails. Join the Commission always comes first, followed by Messenger and any additional buttons. The email format is shown under Email’s automatic emails. Preview shows your current edits with sample applicant details.">Applicants</TitleWithInfo>
       </div>
       <div className="portal-head-actions">
         {user.affiliation !== "local" && <UnitSwitcher units={comelecUnits} value={key} />}

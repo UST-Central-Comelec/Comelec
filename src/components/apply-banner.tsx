@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 /** What the banner shows about the application period; set in the portal (Recruitment → Settings). */
 export type BannerPeriod = { accepting: boolean; closesAt: number | null; closesLabel: string | null };
@@ -61,14 +61,17 @@ export function PeriodStatus({ period, noun = "Applications" }: { period: Banner
 /** Where the Apply form puts its session countdown (use-form-draft.ts), at the strip's right. */
 export const SESSION_SLOT = "apply-session-slot";
 
-/** A title strip shared by the commissioner application, tracking page and portal preview. */
-export function ApplyBanner() {
-  const isTracking = usePathname() === "/apply/track";
+/**
+ * A title strip shared by the commissioner application, tracking page and portal preview, and by
+ * Political Party Registration, which passes its own `title` (the gold word in a span).
+ */
+export function ApplyBanner({ title }: { title?: ReactNode }) {
+  const isTracking = usePathname() === "/apply/track" && !title;
   return (
     <header className="apply-top is-commissioner">
       <div className="apply-top-inner">
         <div className="apply-top-title">
-          <h1>{isTracking ? <>Track <span>submission</span></> : <>Commissioner <span>application</span></>}</h1>
+          <h1>{title ?? (isTracking ? <>Track <span>submission</span></> : <>Commissioner <span>application</span></>)}</h1>
         </div>
         {!isTracking && <div id={SESSION_SLOT} className="apply-top-session" />}
       </div>

@@ -1,0 +1,67 @@
+/* An application's documents, one card per requirement: shared by the filing portal's document
+   pages (./documents.tsx), for a party and a candidacy, and the commission's reviews of them (PolPaR →
+   Applicants, Filing of Candidacy → Filings). Portal tokens (--p-*), so both themes. */
+
+/* Documents: one card per requirement. */
+.pp-locked { margin: 0 0 16px; }
+.pp-requirements { display: grid; gap: 14px; list-style: none; margin: 0; padding: 0; }
+.pp-requirement { display: grid; gap: 16px; transition: border-color .15s ease, box-shadow .15s ease; }
+.pp-requirement.is-dragging { border-color: var(--p-line-strong); box-shadow: inset 0 0 0 1px var(--p-text); }
+.pp-requirement-head { align-items: start; display: grid; gap: 4px 14px; grid-template-columns: 28px minmax(0, 1fr) auto; }
+.pp-requirement-index { color: var(--p-faint); font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; line-height: 22px; }
+.pp-requirement-title h2 { font-size: 15px !important; line-height: 1.45; margin: 0 0 3px !important; }
+.pp-requirement-title h2 small { color: var(--p-muted); font-size: 11.5px; font-weight: 500; margin-left: 6px; }
+.pp-requirement-title p { color: var(--p-muted); font-size: 13px; line-height: 1.55; margin: 0; }
+.pp-requirement-head .portal-tag { padding-top: 3px; }
+.pp-requirement-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.pp-requirement-when { color: var(--p-muted); font-size: 12px; }
+.pp-requirement-actions:empty { display: none; }
+.pp-upload { cursor: pointer; }
+.pp-upload:has(input:focus-visible) { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
+.pp-upload.is-busy { cursor: progress; opacity: .6; }
+
+/* The unit's feedback: a neutral panel; colour only in the icon. */
+.pp-feedback { align-items: flex-start; background: var(--p-surface-2, rgba(var(--p-ink), .04)); border: 1px solid var(--p-line); border-radius: 12px; display: flex; gap: 12px; padding: 14px 16px; }
+.pp-feedback > svg { color: var(--p-ok-ink); flex: none; margin-top: 2px; }
+.pp-feedback.is-changes > svg { color: var(--p-warn-ink); }
+.pp-feedback strong { color: var(--p-text); display: block; font-size: 13px; font-weight: 600; }
+.pp-feedback p { color: var(--p-soft); font-size: 13.5px; line-height: 1.6; margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+.pp-feedback small { color: var(--p-faint); display: block; font-size: 12px; margin-top: 6px; }
+
+/* Files */
+.pp-files { border: 1px solid var(--p-line); border-radius: 12px; list-style: none; margin: 0; padding: 0; }
+.pp-files li { align-items: center; display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px 10px 14px; }
+.pp-files li + li { border-top: 1px solid var(--p-line); }
+.pp-files li > svg { color: var(--p-muted); flex: none; }
+.pp-file-name { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.pp-file-name a { color: var(--p-text); font-size: 13.5px; overflow: hidden; text-decoration: underline; text-decoration-color: rgba(var(--p-ink), .25); text-overflow: ellipsis; text-underline-offset: 3px; white-space: nowrap; }
+.pp-file-name a:hover { text-decoration-color: var(--p-gold-edge); }
+.pp-file-name small { color: var(--p-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* A card's title row, with a link or a note at its right. */
+.pp-card-head { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; margin-bottom: 14px; }
+.pp-card-head h2 { margin: 0 !important; }
+.pp-card-head a { color: var(--p-text); font-size: 12.5px; font-weight: 500; text-decoration: underline; text-decoration-color: var(--p-gold-edge); text-underline-offset: 3px; }
+.pp-card-head.is-padded { margin: 0; padding: 20px 24px 14px; }
+
+/* The commission's page for one party: its details beside the decision, members, then documents. */
+.pp-review-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-bottom: 20px; }
+.pp-review-grid h2, .pp-members-card h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
+.pp-members-card, .pp-earlier { margin-top: 20px; }
+.pp-section-title { font-size: 18px; font-weight: 600; margin: 32px 0 14px; }
+
+/* The unit's review of a document, and its decision on the party. */
+.pp-review-form { display: grid; gap: 14px; }
+.pp-review-form .portal-segmented { justify-self: start; }
+.pp-review-form textarea { min-height: 84px; }
+.pp-review-actions { display: flex; justify-content: flex-end; }
+.pp-review-meta { color: var(--p-faint); font-size: 12px; margin: 0; }
+.pp-requirement .pp-review-form { border-top: 1px solid var(--p-line); padding-top: 16px; }
+
+@media (max-width: 1100px) { .pp-review-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+	.pp-card-head.is-padded { padding-inline: 18px; }
+	.pp-requirement-head { grid-template-columns: minmax(0, 1fr); }
+	.pp-requirement-index { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .pp-requirement { transition: none; } }

@@ -7,6 +7,8 @@ import { AddIcon as Plus, DeleteIcon as Trash2, SaveIcon, SearchIcon as Search }
 import type { AccountPosition } from "@/lib/data/types";
 import { fixedPositions, type CollegeEntry, type CustomRole, type ProgramEntry, type ReferenceData, type UnitPosition } from "@/lib/reference/data";
 import { saveDatabaseSection } from "@/lib/portal/database-actions";
+import { saveElectivePositionsAction } from "@/lib/candidacy/positions-actions";
+import type { ElectivePosition } from "@/lib/candidacy/positions";
 import { DatabaseCollegeSearch } from "./database-college-search";
 import { Dropdown } from "./dropdown";
 import { InfoTip } from "./info-tip";
@@ -494,6 +496,77 @@ function UnitRolesPanel({ unit, unitName, names, savedNames, initial, stamp, rea
               <Dropdown label={`Role ${role.name || "this role"} is based on`} value={role.position} options={basedOn} disabled={readOnly} onChange={(position) => roles.edit(rows.map((item) => (item.id === role.id ? { ...item, position: position as CustomRole["position"] } : item)))} />
             </div>
             {!readOnly && <RowActions name={role.name} index={index} total={rows.length} onRemove={() => roles.edit(rows.filter((item) => item.id !== role.id))} />}
+          </li>
+        ))}
+      </ol>
+    </Panel>
+  );
+}
+
+// ——— Elective positions ———
+
+/**
+ * Elective positions, for one unit at a time: what candidates run for on Filing of Candidacy. Kept
+ * apart from the Database's other lists (public.elective_positions), with the same picker, rows and
+ * footer. A unit that hasn't saved its own shows the CSC Executive Board it starts with.
+ */
+export function ElectivePositionsWorkspace({ units, positions, stamps, initial, readOnly, local, info }: {
+  units: string[]; positions: Record<string, ElectivePosition[]>; stamps: Record<string, string>;
+  initial: string | null; readOnly: boolean; local: boolean; info: ReactNode;
+}) {
+  const { unit, reveal, pick } = usePickedUnit(initial);
+  const title = "Elective positions";
+  const picker = local ? null : <DatabaseCollegeSearch colleges={units} value={unit} onPick={pick} central label="Unit" />;
+  if (unit === null) return <UnpickedPanel title={title} info={info} picker={picker} />;
+  const unitName = unit ? `${unit} Student Council` : "Central Student Council";
+  return <ElectivePositionsEditor key={unit} unit={unit} unitName={unitName} initial={positions[unit] ?? []} stamp={stamps[unit] ?? null} readOnly={readOnly} picker={picker} reveal={reveal} title={local ? `${unitName} positions` : title} info={info} />;
+}
+
+function ElectivePositionsEditor({ unit, unitName, initial, stamp: initialStamp, readOnly, picker, reveal, title, info }: {
+  unit: string; unitName: string; initial: ElectivePosition[]; stamp: string | null; readOnly: boolean; picker?: ReactNode; reveal?: Reveal; title: string; info: ReactNode;
+}) {
+  const router = useRouter();
+  const [saved, setSaved] = useState(initial);
+  const [rows, setRows] = useState(initial);
+  const [stamp, setStamp] = useState(initialStamp);
+  const [errors, setErrors] = useState<Errors>({});
+  const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
+  const dirty = JSON.stringify(rows) !== JSON.stringify(saved);
+  const edit = (next: ElectivePosition[]) => { setRows(next); setErrors({}); };
+  const state = { pending, hydrated, dirty, discard: () => { setRows(saved); setErrors({}); } };
+  const save = () => {
+    if (pending || !dirty) return;
+    startTransition(async () => {
+      try {
+        const result = await saveElectivePositionsAction(unit, stamp, rows);
+        if ("error" in result) {
+          toast(result.error, "error");
+          setErrors(result.fieldErrors ?? {});
+          return;
+        }
+        setSaved(result.positions);
+        setRows(result.positions);
+        setStamp(result.stamp);
+        toast(`${unitName} positions saved. Filing of Candidacy now offers them.`);
+        router.refresh();
+      } catch (error) {
+        unstable_rethrow(error);
+        toast("Couldn’t save the list. Try again.", "error");
+      }
+    });
+  };
+  return (
+    <Panel title={title} picker={picker} reveal={reveal} state={state} readOnly={readOnly} onSave={save} info={info}
+      addLabel="Add position" onAdd={() => edit([...rows, { id: `new-${newKey()}`, name: "" }])} addDisabled={rows.length >= 40}>
+      {errors[""] && <p className="portal-field-error">{errors[""]}</p>}
+      <ol className="db-rows">
+        {rows.map((position, index) => (
+          <li key={position.id} className="db-row db-name-row">
+            <div className="db-position">
+              <TextCell value={position.name} label={`Position ${index + 1}`} maxLength={100} placeholder="Position name" autoFocus={!position.name} error={errors[`${index}.name`]} onChange={(name) => edit(rows.map((item) => (item.id === position.id ? { ...item, name } : item)))} />
+            </div>
+            <RowActions name={position.name} index={index} total={rows.length} onMove={(to) => edit(move(rows, index, to))} onRemove={() => edit(rows.filter((item) => item.id !== position.id))} />
           </li>
         ))}
       </ol>

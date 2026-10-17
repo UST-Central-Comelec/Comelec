@@ -12,7 +12,7 @@ const followUs = <>For the requirements, how to submit and the latest updates, f
  * portal (PolPaR → Settings, Filing of Candidacy → Settings): the banner says whether any unit is
  * open, and the body names the ones that are.
  */
-export function ApplicationNotOpen({ title, eyebrow, status, description, period, units = [] }: {
+export function ApplicationNotOpen({ title, eyebrow, status, description, period, units = [], action = { href: "/news", label: "See announcements" } }: {
   title: string;
   eyebrow: string;
   /** "Filing": what the banner says is open or closed. */
@@ -22,6 +22,8 @@ export function ApplicationNotOpen({ title, eyebrow, status, description, period
   period: BannerPeriod;
   /** The units that are open right now, the Central Comelec first, each with when it closes ("October 29, 2026, 11:59 PM"; null with no closing date). */
   units?: Array<{ name: string; closes: string | null; /** The unit the visitor came for, from the Events page. */ picked?: boolean }>;
+  /** The main button: the announcements, or somewhere of the page's own (the filing portal's sign-in). */
+  action?: { href: string; label: string };
 }) {
   return (
     <main className="apply-page">
@@ -61,7 +63,7 @@ export function ApplicationNotOpen({ title, eyebrow, status, description, period
         </div>
         <footer className="apply-nav">
           <Link className="apply-back" href="/"><ArrowLeft size={15} /> Back to home</Link>
-          <Link className="button-primary" href="/news">See announcements <ArrowRight size={15} /></Link>
+          <Link className="button-primary" href={action.href}>{action.label} <ArrowRight size={15} /></Link>
         </footer>
       </div>
     </main>

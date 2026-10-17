@@ -122,7 +122,7 @@ function savedMessage(result: DecisionsResult) {
   if (result.error) return result.error;
   if (!result.saved) return "Nothing changed, so nothing was sent.";
   if (result.email === "sent") return "Logistical decisions saved, and an email sent.";
-  if (result.email === "off") return "Saved. No email was sent: the Logistics email is switched off under Email Sender → Automatic.";
+  if (result.email === "off") return "Saved. No email was sent: the Logistics email is switched off under Email → Automatic.";
   return `Saved, but the email to ${result.to} couldn’t be sent. Let them know another way.`;
 }
 

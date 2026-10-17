@@ -95,18 +95,18 @@ html.is-scroll-locked { overflow: hidden; }
 .sh-tab-label { position: relative; }
 .sh-tab.is-current .sh-tab-label::after { background: var(--sh-gold); border-radius: 50%; bottom: -9px; box-shadow: 0 0 0 3px rgba(var(--ui-accent-rgb, 254,195,12),.14), 0 0 10px rgba(var(--ui-accent-rgb, 254,195,12),.75); content: ""; height: 3px; left: calc(50% - 1.5px); position: absolute; width: 3px; }
 
-/* Search, EvoSys and (where the tabs fold away) the menu button */
+/* Search, Sign in and (where the tabs fold away) the menu button */
 .sh-tools { align-items: center; display: flex; flex: none; gap: 10px; margin-left: auto; }
 .sh-search { align-items: center; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: var(--ui-button-radius); color: var(--sh-muted); cursor: pointer; display: inline-flex; flex: none; font-size: 13px; gap: 9px; height: 38px; padding: 0 7px 0 13px; transition: background-color .25s ease, border-color .25s ease, color .25s ease; white-space: nowrap; }
 .sh-search:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.26); color: #fff; }
 .sh-search svg { color: var(--sh-text); flex: none; transition: color .25s ease; }
 .sh-search:hover svg { color: var(--sh-gold); }
 .sh-search span { padding-right: 14px; }
-/* EvoSys uses the same solid gold action as the public pages. */
+/* Sign in (for political parties and candidates) uses the same solid gold action as the public pages. */
 .sh-cta { align-items: center; background: var(--sh-gold); border-radius: var(--ui-button-radius, 6px); box-shadow: none; color: var(--ui-accent-foreground, #0c0b08); display: inline-flex; flex: none; font-size: 13px; font-weight: 600; gap: 7px; height: 38px; isolation: isolate; letter-spacing: -.005em; overflow: hidden; padding: 0 15px 0 17px; position: relative; transition: background-color .16s ease, border-color .16s ease, color .16s ease; white-space: nowrap; }
 .sh-cta:hover { box-shadow: none; transform: none; filter: brightness(.94); }
 .sh-cta svg { flex: none; transition: transform .4s var(--sh-ease); }
-.sh-cta:hover svg { transform: translate(2px, -2px); }
+.sh-cta:hover svg { transform: translateX(2px); }
 .sh-cta:focus-visible { outline-color: #fff; }
 /* Two lines that cross into an X while the full-screen menu is open */
 .sh-menu-button { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(255,255,255,.05); border: 1px solid var(--sh-line-strong); border-radius: 6px; color: var(--sh-text); cursor: pointer; display: none; flex: none; height: 40px; position: relative; transition: background-color .25s ease, border-color .25s ease; width: 40px; }
@@ -313,7 +313,7 @@ html.is-scroll-locked { overflow: hidden; }
 .sh-acc-links { display: grid; gap: 0 20px; list-style: none; margin: 0; padding: 0; }
 .sh-acc .sh-mega-link { padding: 11px 0; }
 .sh-acc .sh-mega-cta { margin: 8px 0 24px 49px; }
-/* Under them: Featured, EvoSys and search, and what's open right now */
+/* Under them: Featured, Sign in and search, and what's open right now */
 .sh-sheet-extra { display: flex; flex-direction: column; gap: 26px; margin-top: 30px; }
 .sh-sheet-actions { display: flex; gap: 10px; }
 .sh-sheet-actions > * { flex: 1; height: 48px; justify-content: center; }

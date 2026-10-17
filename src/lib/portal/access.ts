@@ -24,15 +24,14 @@ import type { AccountAffiliation, AccountKind, AccountPosition } from "@/lib/dat
 export const tabGroups = [
   { label: null, section: null, tabs: [{ key: "dashboard", label: "Dashboard", local: true }] },
   {
-    label: "Apps",
+    label: "Services",
     section: null,
     tabs: [
       { key: "apps/inbox", label: "Inbox", local: true },
-      { key: "apps/email", label: "Email Sender", local: true },
-      { key: "apps/tickets", label: "Tickets", local: true },
-      { key: "apps/manual", label: "Manual", local: true },
+      { key: "apps/email", label: "Email", local: true },
     ],
   },
+  { label: null, section: null, tabs: [{ key: "request", label: "Request", local: true }] },
   {
     label: "Secretariat",
     section: "Committee",
@@ -93,6 +92,7 @@ export const tabGroups = [
     section: "Registrations",
     tabs: [
       { key: "polpar/registrations", label: "Applicants", local: true },
+      { key: "polpar/accredited-parties", label: "Accredited Parties", local: true },
       { key: "polpar/requirements", label: "Requirements", local: false },
       { key: "polpar/settings", label: "Settings", local: true },
     ],
@@ -116,6 +116,7 @@ export const tabGroups = [
       { key: "statistics", label: "Statistics", local: false },
       { key: "maintenance", label: "Maintenance", local: false },
       { key: "logs", label: "Logs", local: false },
+      { key: "apps/manual", label: "Manual", local: true },
     ],
   },
 ] as const;
@@ -200,8 +201,8 @@ export type EditableLevel = AccessLevel;
 export const editableLevels = Object.keys(accessLevels) as EditableLevel[];
 
 /**
- * The levels that switch the automatic emails off and on (Apps → Email Sender → Automatic). The
- * switches are the whole commission's, so they aren't every Email Sender's to change: only the
+ * The levels that switch the automatic emails off and on (Services → Email → Automatic). The
+ * switches are the whole commission's, so they aren't every Email's to change: only the
  * Central Executive Board's and the Central Comelec's official account's. The rest see how they stand.
  */
 export const switchesEmails = (level: AccessLevel) => level === FULL_ACCESS || level === "central-official";
@@ -226,7 +227,8 @@ export function accessLevelOf({ kind, affiliation, position }: Leveled): AccessL
 /** Whether every account at this level is Local, so the Central-only tabs can't be switched on for it. */
 export const isLocalLevel = (level: AccessLevel) => level.startsWith("local-");
 
-const administrative = new Set<TabKey>(tabs.filter((tab) => tab.group === "Administrative" && tab.key !== "statistics").map((tab) => tab.key));
+// Moving shared tools into Administrative must not remove associates’ existing access.
+const administrative = new Set<TabKey>(tabs.filter((tab) => tab.group === "Administrative" && tab.key !== "statistics" && tab.key !== "apps/manual").map((tab) => tab.key));
 const deputyGroups: readonly (GroupLabel | null)[] = ["Recruitment", "Political Party", "Filing of Candidacy"];
 /** Every tab a level other than the Central Executive Board can have. */
 const grantable = tabKeys.filter((key) => !isBoardTab(key));
@@ -235,12 +237,12 @@ const everythingBut = (...left: Array<TabKey | Set<TabKey>>) => grantable.filter
 /**
  * What each level opens until it's changed under Accounts → Access Control:
  *   Executive Board: everything;
- *   Executive Associates: everything but the Administrative tab;
+ *   Executive Associates: everything but Administrative’s management tabs;
  *   Deputies: Recruitment, Political Party and Filing of Candidacy;
  *   Advisers and Admins: everything, to read;
  *   Official accounts: what their unit's Executive Board has, but for Approvals.
  * A Local account gets the part of its level's tabs that a Local account can have (tabsFor). Of
- * the apps, Local commissioners get Inbox, Tickets and Manual, plus Secretariat’s Local tabs; the Email Sender is for a
+ * the shared tools, Local commissioners get Inbox and Manual, plus Secretariat’s Local tabs; Email is for a
  * Local unit's official account.
  */
 export const defaultTabs: Record<AccessLevel, readonly TabKey[]> = {

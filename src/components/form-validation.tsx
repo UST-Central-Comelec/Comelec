@@ -26,7 +26,7 @@ function labelOf(control: Control, anchor: HTMLElement): string {
   const ids = anchor.getAttribute("aria-labelledby") ?? control.getAttribute("aria-labelledby");
   const named = ids?.split(/\s+/).map((id) => document.getElementById(id)).find((element) => element && !anchor.contains(element));
   // A field's wrapper, on forms whose label is a span beside the control rather than a <label>.
-  const wrapped = anchor.closest(".apply-field, .portal-field, .ev-field, .pp-field")?.querySelector("[class*='field-label']");
+  const wrapped = anchor.closest(".apply-field, .portal-field, .ev-field")?.querySelector("[class*='field-label']");
   const label = named ?? (control.type !== "hidden" ? control.labels?.[0] : undefined) ?? wrapped ?? anchor.closest("label") ?? anchor.closest("fieldset")?.querySelector("legend");
   let text = direct ?? "";
   if (!text && label) {

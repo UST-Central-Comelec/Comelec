@@ -25,7 +25,7 @@ type Section = { label?: string; entries: Entry[] };
 // also decides who may open each. Here they get what the sidebar adds: an icon, and the top bar's
 // word for a page inside them.
 
-const tabItems: Partial<Record<TabKey, string>> = { "apps/email": "Email", "documents/approval": "Review", events: "Details", "charters/constitution": "Revision", "charters/elections-code": "Revision", "charters/magna-carta": "Revision", "recruitment/applications": "Review", accounts: "Manage", maintenance: "Test" };
+const tabItems: Partial<Record<TabKey, string>> = { "apps/email": "Email", "documents/approval": "Review", events: "Details", "charters/constitution": "Revision", "charters/elections-code": "Revision", "charters/magna-carta": "Revision", "recruitment/applications": "Review", "polpar/registrations": "Review", "candidacy/filings": "Review", accounts: "Manage", maintenance: "Test" };
 
 /** Pages inside a tab that have a name of their own in the top bar. */
 const namedPages: Record<string, string> = { "/portal/accounts/access-control": "Access Control", "/portal/accounts/expiration": "Expiration", "/portal/apps/email/outbox": "Outbox", "/portal/apps/email/automatic": "Automatic" };

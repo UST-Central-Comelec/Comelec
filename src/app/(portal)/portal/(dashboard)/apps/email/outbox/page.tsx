@@ -39,8 +39,8 @@ export default async function EmailOutboxPage({ searchParams }: PageProps<"/port
     <main className="portal-page">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Apps</p>
-          <TitleWithInfo info="Every email written in the Email Sender: what’s scheduled, what’s going out, and what was sent, with who got it. A scheduled email can be cancelled or sent early until it starts sending.">Email Sender</TitleWithInfo>
+          <p className="portal-eyebrow">Services</p>
+          <TitleWithInfo info="Every email written in the Email: what’s scheduled, what’s going out, and what was sent, with who got it. A scheduled email can be cancelled or sent early until it starts sending.">Email</TitleWithInfo>
         </div>
         {user.readOnly ? <ViewOnlyTag /> : <Link className="portal-button" href="/portal/apps/email"><PenLine size={16} /> Write an email</Link>}
       </header>

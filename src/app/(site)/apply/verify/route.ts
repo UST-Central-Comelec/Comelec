@@ -5,6 +5,8 @@ import { verificationFinishPage } from "@/lib/applications/verification-page";
 import { checkAccess } from "@/lib/auth/session";
 import { finishEventVerification } from "@/lib/events/callback";
 import { takeEventFlow } from "@/lib/events/verification";
+import { finishFilingVerification } from "@/lib/filing-portal/callback";
+import { takeFilingFlow } from "@/lib/filing-portal/verification";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
 import { createAdminClient, createAuthClient } from "@/lib/supabase/server";
 
@@ -13,12 +15,14 @@ import { createAdminClient, createAuthClient } from "@/lib/supabase/server";
 // (src/lib/applications/verification.ts). Nobody stays signed in on the public site. The reply is
 // a small page that reports back to the form and closes the popup (verification-page.ts).
 // Sign-ins started from an event's Register button come back here too, and are handed over to
-// finishEventVerification.
+// finishEventVerification; so do the filing portal's sign-ups and sign-in, handed to finishFilingVerification.
 
 type Metadata = { full_name?: string; name?: string; given_name?: string; family_name?: string };
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  const filingFlow = await takeFilingFlow();
+  if (filingFlow) return finishFilingVerification(request, code, filingFlow);
   const eventFlow = await takeEventFlow();
   if (eventFlow) return finishEventVerification(request, code, eventFlow.eventId, eventFlow.target);
 

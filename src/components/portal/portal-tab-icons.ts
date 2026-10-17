@@ -11,8 +11,8 @@ export const tabIcons: Record<TabKey, Icon> = {
   "secretariat/settings": Settings2,
   "apps/email": Send,
   "secretariat/calendar": Calendar,
-  "apps/tickets": Ticket,
   "apps/manual": BookOpenText,
+  request: Ticket,
   "documents/approval": Stamp,
   news: Radio,
   statistics: ChartColumn,
@@ -31,6 +31,7 @@ export const tabIcons: Record<TabKey, Icon> = {
   "recruitment/slots": Hash,
   "recruitment/settings": Settings2,
   "polpar/registrations": Inbox,
+  "polpar/accredited-parties": ShieldCheck,
   "polpar/requirements": ListChecks,
   "polpar/settings": Settings2,
   "candidacy/filings": Inbox,
@@ -43,7 +44,7 @@ export const tabIcons: Record<TabKey, Icon> = {
 };
 
 export const groupIcons: Record<GroupLabel, Icon> = {
-  Apps: Grip,
+  Services: Grip,
   Documents: FolderPlus,
   Charters: BookOpenText,
   Secretariat: Briefcase,

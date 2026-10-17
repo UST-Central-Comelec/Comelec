@@ -27,8 +27,8 @@ const messages: Record<string, string> = {
   "application-onboarded": "Applicant onboarded. They’re now listed in the members directory with their accepted position.",
   "application-accepted-emailed": "Marked as accepted, and the applicant has been emailed to join or decline within 14 days. One slot for this position is now taken.",
   "application-declined-emailed": "Marked as rejected, and the applicant has been emailed.",
-  "application-accepted-email-off": "Marked as accepted, and one slot for this position is now taken. The applicant wasn’t emailed: that email is switched off under Apps → Email Sender → Automatic. They can still join or decline from the tracker.",
-  "application-declined-email-off": "Marked as rejected. The applicant wasn’t emailed: that email is switched off under Apps → Email Sender → Automatic. They see this when they track their application.",
+  "application-accepted-email-off": "Marked as accepted, and one slot for this position is now taken. The applicant wasn’t emailed: that email is switched off under Services → Email → Automatic. They can still join or decline from the tracker.",
+  "application-declined-email-off": "Marked as rejected. The applicant wasn’t emailed: that email is switched off under Services → Email → Automatic. They see this when they track their application.",
   "application-pending": "Moved back to pending review.",
   "application-deleted": "Application deleted. Its interview booking, if it had one, is free again.",
   "email-switches-saved": "Saved. It applies from the next email the site would send.",
@@ -92,19 +92,19 @@ const warnings: Record<string, string> = {
   "application-accepted-email-failed": "Marked as accepted, but the email didn’t send, so their 14 days to join or decline haven’t started. Check SMTP_USER and SMTP_PASSWORD in .env.local, or use Send email.",
   "application-declined-email-failed": "Marked as rejected, but the email didn’t send. Check SMTP_USER and SMTP_PASSWORD in .env.local, or use Send email.",
   "email-too-late": "Too late: that email had already started sending, or was already cancelled.",
-  "code-submitted-no-email": "Sent for approval, and it’s waiting under Legals → Documents → Approval, but those who sign weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic. Let them know yourself.",
-  "code-published-no-email": "Approved by all three, and published: the website shows the new text now. The Central Comelec and its editors weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic.",
-  "code-returned-no-email": "Sent back for changes, and it’s a draft again, but its editors and the Central Comelec weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic. Let them know yourself.",
+  "code-submitted-no-email": "Sent for approval, and it’s waiting under Legals → Documents → Approval, but those who sign weren’t emailed: the email didn’t send, or it’s switched off under Email → Automatic. Let them know yourself.",
+  "code-published-no-email": "Approved by all three, and published: the website shows the new text now. The Central Comelec and its editors weren’t emailed: the email didn’t send, or it’s switched off under Email → Automatic.",
+  "code-returned-no-email": "Sent back for changes, and it’s a draft again, but its editors and the Central Comelec weren’t emailed: the email didn’t send, or it’s switched off under Email → Automatic. Let them know yourself.",
   "code-moved-on": "Nothing was changed: this revision had already moved on. This is where it stands now.",
   "code-already-signed": "Nothing was changed: your office had already approved this revision.",
   "code-busy": "That didn’t go through: others were deciding on it at the same moment. Open it again to see where it stands.",
   "email-not-configured": "Not sent: email isn’t set up on the server. Set SMTP_USER and SMTP_PASSWORD in .env.local, then send again.",
-  "event-changes-requested-no-email": "Request saved, and the unit sees it on this event, but its commissioners weren’t emailed: the email didn’t send, or it’s switched off under Email Sender → Automatic. Let them know yourself.",
+  "event-changes-requested-no-email": "Request saved, and the unit sees it on this event, but its commissioners weren’t emailed: the email didn’t send, or it’s switched off under Email → Automatic. Let them know yourself.",
 };
 
 /**
  * Notices for a change to the commission's settings. What changed is emailed to the Central
- * Comelec (src/lib/notifications/settings-emails.ts) unless that's switched off under Email Sender
+ * Comelec (src/lib/notifications/settings-emails.ts) unless that's switched off under Email
  * → Automatic, and the notice says so. Opening or closing a unit's own Recruitment, Political Party
  * Registration or Filing of Candidacy is emailed to that unit instead.
  */
@@ -117,7 +117,7 @@ export function noticeToast(notice?: string | string[]): { message: string; tone
   if (warnings[notice]) return { message: warnings[notice], tone: "warn" };
   if (!messages[notice]) return null;
   const told = announcedToUnit.test(notice) ? "the unit’s" : announced.test(notice) ? "the Central Comelec’s" : null;
-  return { message: `${messages[notice]}${told ? ` A change here is emailed to ${told} official account and Executive Board, unless that’s switched off under Apps → Email Sender → Automatic.` : ""}`, tone: "ok" };
+  return { message: `${messages[notice]}${told ? ` A change here is emailed to ${told} official account and Executive Board, unless that’s switched off under Services → Email → Automatic.` : ""}`, tone: "ok" };
 }
 
 /** Shows the outcome of what was just done, as a pop-up on the header; `?notice=` comes off the address. */

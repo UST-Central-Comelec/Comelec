@@ -176,7 +176,7 @@ body.portal::after { background-image: var(--p-grain); content: ""; inset: 0; op
    lift, so --hero-lift is added back. Padding keeps the glyphs' overhang inside the painted box. */
 .portal-login-wordmark { background: radial-gradient(circle at var(--lx, 112%) calc(var(--ly, 24%) + var(--hero-lift, 0px)), rgba(255,246,220,.95) 0, rgba(var(--ui-accent-soft-rgb, 255,222,140),.85) 5vw, rgba(var(--ui-accent-rgb, 254,195,12),.5) 12vw, rgba(var(--ui-accent-rgb, 254,195,12),.14) 20vw, rgba(var(--ui-accent-rgb, 254,195,12),0) 28vw), linear-gradient(180deg, #fff 10%, #d6d3de 58%, #6c6a76 100%); -webkit-background-clip: text; background-clip: text; color: transparent; display: block; font-weight: 650; letter-spacing: -.068em; line-height: .8; margin-left: -.05em; padding: .06em .1em .06em 0; width: fit-content; }
 /* Light runs slowly through the gold line once it has risen into place. */
-.portal .portal-login-title em { animation: portal-rise 1.1s var(--p-ease) calc(.1s + var(--enter, 0) * .08s) backwards, portal-sheen 10s linear infinite; display: block; font-size: .84em; line-height: 1; margin-top: .01em; }
+.portal .portal-login-title em { animation: portal-rise 1.1s var(--p-ease) calc(.1s + var(--enter, 0) * .08s) backwards, portal-sheen 10s linear infinite; display: block; font-size: .84em; line-height: 1; margin: .01em 0 -.18em -.06em; padding: 0 .1em .18em .06em; width: fit-content; }
 @keyframes portal-sheen { to { background-position: 200% 0; } }
 .portal-login-brief { color: var(--p-muted); font-size: clamp(15px, 1.15vw, 17.5px); line-height: 1.7; margin: clamp(20px, 2.4vw, 34px) 0 0; max-width: 31em; }
 .portal-login-brief strong { color: var(--p-text); font-weight: 500; }

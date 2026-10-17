@@ -17,12 +17,14 @@ import type { Actor } from "./notify";
 import { periodChange, settingChangedEmail, type SettingChange } from "./settings-emails";
 import { emailKeys, type EmailKey } from "./switches";
 
-// Every email the site sends by itself, with when it goes and who gets it: what Apps → Email Sender
+// Every email the site sends by itself, with when it goes and who gets it: what Services → Email
 // → Automatic lists, each with its switch, and shows with made-up details. Each one's `id` is its
 // switch (./switches.ts). The samples are built by the same code that sends the real ones, so the
 // page shows what a recipient would see.
 
 import type { OnboardingSettings } from "@/lib/applications/onboarding";
+import { feedbackSample, joinDecisionSample, joinRequestSample, partyDecisionSample } from "@/lib/party-portal/emails";
+import { candidacyDecisionSample, candidacyFeedbackSample, endorsementDecisionSample, endorsementRequestSample } from "@/lib/candidacy/emails";
 
 export type AutomaticEmail = {
   /** Its switch. */
@@ -235,6 +237,14 @@ export const automaticEmails: AutomaticGroup[] = [
     emails: [
       { id: "party-received", name: "Party registration received", when: "A party registration is submitted.", to: () => "Whoever filed it", byUnit: true, waiting: true, sample: (concern) => filingReceivedEmail(filing("party-registration", concern)) },
       { id: "party-result", name: "Party registration result", when: "A party registration is approved or declined.", to: () => "Whoever filed it", byUnit: true, waiting: true, sample: (concern) => filingResultEmail(filing("party-registration", concern), true) },
+      { id: "party-join-request", name: "Request to join a party", when: "Someone signs up on the Political Party Registration page and picks a party that’s already registering.", to: () => "The party’s contact person", byUnit: true, sample: (concern) => joinRequestSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "party-join-decision", name: "Request to join, answered", when: "A party’s contact person approves or declines a request to join, in the filing portal.", to: () => "Whoever asked to join", byUnit: true, sample: (concern) => joinDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "party-feedback", name: "Party document reviewed", when: "A party’s document is approved or sent back with changes under PolPaR → Applicants.", to: () => "Every member of the party", byUnit: true, sample: (concern) => feedbackSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "party-decision", name: "Party accredited or declined", when: "A party is accredited, declined or reopened under PolPaR → Applicants.", to: () => "Every member of the party", byUnit: true, sample: (concern) => partyDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-endorsement-request", name: "Candidate asks for the party’s endorsement", when: "Someone files on the Filing of Candidacy page under a party.", to: () => "The party’s contact person", byUnit: true, sample: (concern) => endorsementRequestSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-endorsement-decision", name: "Party endorsement, answered", when: "A party’s contact person endorses a candidate, or declines to, in the filing portal.", to: () => "The candidate", byUnit: true, sample: (concern) => endorsementDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-feedback", name: "Candidacy document reviewed", when: "A candidate’s document is approved or sent back with changes under Filing of Candidacy → Filings.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyFeedbackSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-decision", name: "Candidate qualified or disqualified", when: "A candidate is found qualified, disqualified, or reopened under Filing of Candidacy → Filings.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyDecisionSample(isLocalConcern(concern) ? concern.college : null) },
       { id: "candidacy-received", name: "Certificate of candidacy received", when: "A certificate of candidacy is filed.", to: () => "Whoever filed it", byUnit: true, waiting: true, sample: (concern) => filingReceivedEmail(filing("candidacy", concern)) },
       {
         id: "candidacy-result",
@@ -358,7 +368,7 @@ export const automaticEmails: AutomaticGroup[] = [
       {
         id: "setting-email",
         name: "Automatic emails",
-        when: "An automatic email is switched off or on under Apps → Email Sender → Automatic.",
+        when: "An automatic email is switched off or on under Services → Email → Automatic.",
         to: centralOnly,
         byUnit: false,
         sample: setting({

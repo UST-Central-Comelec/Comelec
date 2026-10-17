@@ -67,9 +67,11 @@ const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 /** A brief flare peaking at `at` seconds. */
 const flare = (t: number, at: number, width: number) => Math.exp(-(((t - at) / width) ** 2));
 
-/** The scale behind the heading and banners. It only draws while the Comelec banner is pointed at (`active`). */
-export function ComelecBackdrop({ active }: { active: boolean }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+/** The scale behind the heading and banners. It only draws while the Comelec banner is pointed at (`active`).
+    Elsewhere (the filing portal's sign-in) it takes the page it sits in (`root`, a selector for an ancestor), how
+    to place the scale in it (`layout`), and its own class. */
+export function ComelecBackdrop({ active, root = ".sg-landing", layout = measure, className = "sg-cc" }: { active: boolean; root?: string; layout?: (section: HTMLElement) => ScaleLayout | null; className?: string }) {
+  const frameRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(active);
   const syncRef = useRef<() => void>(() => {});
   useEffect(() => {
@@ -78,9 +80,14 @@ export function ComelecBackdrop({ active }: { active: boolean }) {
   }, [active]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const section = canvas?.closest<HTMLElement>(".sg-landing");
-    if (!canvas || !section) return;
+    const holder = frameRef.current;
+    const section = holder?.closest<HTMLElement>(root);
+    if (!holder || !section) return;
+    // A canvas of its own each time: disposing the scene loses its canvas's context for good, and a remount
+    // (React's development double run included) would otherwise find it dead.
+    const canvas = document.createElement("canvas");
+    canvas.className = `${className}-scene`;
+    holder.append(canvas);
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let scene: JusticeScale | null = null;
     let unavailable = false, lost = false, onScreen = true, shown = false;
@@ -95,7 +102,7 @@ export function ComelecBackdrop({ active }: { active: boolean }) {
 
     /** Measures the section and rebuilds the scene if anything moved. */
     const fit = () => {
-      const next = measure(section);
+      const next = layout(section);
       if (!next || !scene) return false;
       const ratio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(3.2e6 / (next.width * next.height)));
       const key = [...Object.values(next).flat().map(Math.round), ratio.toFixed(2)].join();
@@ -235,13 +242,13 @@ export function ComelecBackdrop({ active }: { active: boolean }) {
       document.removeEventListener("visibilitychange", sync);
       motion.removeEventListener("change", sync);
       scene?.dispose();
+      canvas.remove();
     };
-  }, []);
+  }, [root, layout, className]);
 
   return (
-    <div className="sg-cc" aria-hidden="true">
-      <div className="sg-cc-wash" />
-      <canvas ref={canvasRef} className="sg-cc-scene" />
+    <div ref={frameRef} className={className} aria-hidden="true">
+      <div className={`${className}-wash`} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { comelecUnit } from "@/lib/events/options";
 import { sendMessage, sendTestMessage } from "@/lib/portal/email-actions";
 import { settle } from "@/lib/portal/settle";
 
-export const metadata: Metadata = { title: "Email Sender" };
+export const metadata: Metadata = { title: "Email" };
 
 const HOUR = 60 * 60_000;
 
@@ -55,8 +55,8 @@ export default async function PortalEmailSenderPage({ searchParams }: PageProps<
     <main className="portal-page is-wide">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Apps</p>
-          <TitleWithInfo info="Write one email and send it to a group of the portal’s accounts: every commissioner, one unit, one position or one role. Each person gets their own copy, so nobody sees anyone else’s address, and replies come to you. Send it now, or schedule it.">Email Sender</TitleWithInfo>
+          <p className="portal-eyebrow">Services</p>
+          <TitleWithInfo info="Write one email and send it to a group of the portal’s accounts: every commissioner, one unit, one position or one role. Each person gets their own copy, so nobody sees anyone else’s address, and replies come to you. Send it now, or schedule it.">Email</TitleWithInfo>
         </div>
       </header>
       <EmailTabs current="compose" waiting={waiting} />

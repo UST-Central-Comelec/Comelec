@@ -191,9 +191,9 @@ assert.equal(new Set(batches.flat().map(edge => edge.to.id)).size, initialPulses
 assert.ok(batches[0].every(edge => edge.from.id === "root"), "Flow starts at the center");
 button("Secretariat: Calendar access").props.onClick(); assert.equal(open.has("secretariat/calendar"), false); assert.equal(pulses(), initialPulses - 1);
 button("Secretariat: Calendar access").props.onClick(); assert.equal(open.has("secretariat/calendar"), true); assert.equal(pulses(), initialPulses);
-button("Apps access").props.onClick(); assert.ok(open.has("secretariat/calendar") && !open.has("apps/inbox"));
-button("Apps access").props.onClick(); assert.ok(open.has("secretariat/calendar") && open.has("apps/inbox"));
-assert.ok(!open.has("documents/approval") && open.has("documents/archive"), "Toggling Apps leaves Legal document access alone");
+button("Services access").props.onClick(); assert.ok(open.has("secretariat/calendar") && !open.has("apps/inbox"));
+button("Services access").props.onClick(); assert.ok(open.has("secretariat/calendar") && open.has("apps/inbox"));
+assert.ok(!open.has("documents/approval") && open.has("documents/archive"), "Toggling Services leaves Legal document access alone");
 button("Legals access").props.onClick(); assert.ok(open.has("documents/approval") && open.has("documents/archive"));
 button("Legals access").props.onClick(); assert.ok(!open.has("documents/approval") && !open.has("documents/archive"));
 button("Legals access").props.onClick(); assert.ok(open.has("documents/approval") && open.has("documents/archive"));

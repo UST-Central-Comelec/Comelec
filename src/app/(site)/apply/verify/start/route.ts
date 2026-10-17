@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verificationFinishPage } from "@/lib/applications/verification-page";
 import { endEventFlow } from "@/lib/events/verification";
+import { endFilingFlow } from "@/lib/filing-portal/verification";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAuthClient } from "@/lib/supabase/server";
@@ -24,5 +25,6 @@ export async function GET(request: NextRequest) {
   if (error || !data.url) return verificationFinishPage("failed");
   // So the callback treats this as an applicant's verification, even after an abandoned event registration.
   await endEventFlow();
+  await endFilingFlow();
   return NextResponse.redirect(data.url);
 }
