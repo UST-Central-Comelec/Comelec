@@ -45,6 +45,7 @@ const selection = load("src/lib/portal/account-selection.ts");
 const identity = { email: account.email, amr: [{ method: "oauth" }], app_metadata: { providers: ["google"] } };
 const authClient = { auth: { getClaims: async () => ({ data: { claims: identity } }), signOut: async () => {} } };
 const session = load("src/lib/auth/session.ts", {
+  "@/lib/reference/store": { ensureReferenceData: async () => {} },
   "server-only": {},
   "next/headers": { cookies: async () => cookieStore },
   "@/lib/portal/account-selection": selection,

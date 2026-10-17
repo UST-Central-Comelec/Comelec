@@ -1,4 +1,6 @@
 "use server";
+
+import { ensureReferenceData } from "@/lib/reference/store";
 import { readEventPass } from "./verification";
 import { acknowledgementOf, identityAnswer, keptAnswers, respondentEmail, validateEditorAnswers } from "./form-editor";
 import { headers } from "next/headers";
@@ -76,6 +78,7 @@ const answersSchema = z.record(z.string().max(80), z.union([z.string().max(4000)
  * questions that ask for UST Google verification must match the account they verified.
  */
 export async function submitRsvp(eventId: string, token: string, _state: RsvpState, form: FormData): Promise<RsvpState> {
+  await ensureReferenceData();
   if (form.get("website")) return { success: true };
   if (!rateLimit(`event-rsvp:${clientIp(await headers())}`, limits.eventRegister.limit, limits.eventRegister.windowMs).ok) return { error: "Too many submissions. Please try again shortly." };
   if (!validRsvpToken(token)) return { error: "This collaborator RSVP link is invalid." };

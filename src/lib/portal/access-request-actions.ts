@@ -7,7 +7,7 @@ import { decideAccessRequest, getAccessRequest } from "@/lib/access-requests/adm
 import { accessDecisionEmail } from "@/lib/access-requests/emails";
 import { isBuiltInEmail, requireEditor } from "@/lib/auth/session";
 import { addRequestedAccount } from "@/lib/access-requests/approve";
-import { fullName, isCentralRepresentative, isRoleFor, toSummary, upperName } from "@/lib/data/accounts";
+import { fullName, isCentralRepresentative, isRoleFor, toSummary, upperName, positionName } from "@/lib/data/accounts";
 import { isMissingColumn, store } from "@/lib/data/store";
 import { accountPositions, describeAffiliation, isAffiliation, isCommissionerPosition } from "@/lib/data/types";
 import type { Details } from "@/lib/email/template";
@@ -66,7 +66,7 @@ export async function approveAccessRequest(id: string, formData: FormData) {
     ["Name", fullName({ firstName, middleName: request.middleName, middleInitial: request.middleInitial, lastName })],
     ["UST email", email],
     ["Serves in", describeAffiliation(affiliation, college)],
-    ["Position", accountPositions[position]],
+    ["Position", positionName({ affiliation, position, role, college })],
     ["Role", role],
     ["Program", request.program],
     ["Student number", request.studentNumber],

@@ -18,6 +18,7 @@ export const emailDefaults = {
   "application-notice": false,
   "application-accepted": true,
   "application-declined": true,
+  "offer-declined": true,
   "party-received": true,
   "party-result": true,
   "candidacy-received": true,

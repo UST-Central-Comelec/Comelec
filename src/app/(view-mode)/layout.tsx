@@ -5,6 +5,8 @@ import { ViewModeStrip } from "@/components/view-mode-strip";
 import { FormInputGuard } from "@/components/form-input-guard";
 import { FormValidation } from "@/components/form-validation";
 import { ScrollKeeper } from "@/components/scroll-keeper";
+import { ReferenceData } from "@/components/reference-data";
+import { getReferenceData } from "@/lib/reference/store";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -17,13 +19,14 @@ export const metadata: Metadata = {
 };
 
 /** Site pages as commissioners preview them: no site header or footer, just a strip to leave view mode. */
-export default function ViewModeLayout({ children }: LayoutProps<"/">) {
+export default async function ViewModeLayout({ children }: LayoutProps<"/">) {
+  const lists = await getReferenceData();
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className="view-mode">
         <FormInputGuard /><FormValidation /><ScrollKeeper />
         <ViewModeStrip />
-        {children}
+        <ReferenceData data={lists}>{children}</ReferenceData>
       </body>
     </html>
   );

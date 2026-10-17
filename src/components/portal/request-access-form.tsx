@@ -8,6 +8,8 @@ import { startTransition, useActionState, useEffect, useRef, useState, useTransi
 import { ArrowLeft, ArrowRight, Check, Info } from "lucide-react";
 import { CopyIcon as Copy } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
+import { DraftNotice } from "@/components/draft-notice";
+import { useFormDraft } from "@/components/use-form-draft";
 import { FacebookProfileInput } from "@/components/facebook-profile-input";
 import { GoogleMark } from "@/components/portal/login-form";
 import { Dropdown, optionsOf } from "@/components/portal/dropdown";
@@ -18,7 +20,7 @@ import { ACCESS_CHANNEL, accessStatusMessages, type AccessMessage, type AccessPr
 import { checkAccessRequest, readAccessRequest } from "@/lib/access-requests/schema";
 import { colleges, programsByCollege, programLocked, yearLevelsFor, type College } from "@/lib/applications/options";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
-import { accountPositions, affiliations, commissionerPositions, describeAffiliation, type AccountPosition, type Affiliation } from "@/lib/data/types";
+import { accountPositions, affiliations, commissionerPositions, describeAffiliation, type Affiliation } from "@/lib/data/types";
 import { formatAccepted, requestOnboardingSteps, type OnboardingDocument, type OnboardingDocumentKey } from "@/lib/onboarding/documents";
 import { LegalText } from "./legal-text";
 import "./onboarding.css";
@@ -313,6 +315,38 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     setWaiting(null);
   };
 
+  // Answers stay on this device until sent, kept per verified account, through a reload or a dropped connection.
+  const restoring = useRef<{ choice?: string; role?: string } | null>(null);
+  const draft = useFormDraft({
+    key: profile?.email ? `request-access:${profile.email.toLowerCase()}` : null,
+    form: formRef,
+    state: { step, furthest, accepted, read, college, program, yearLevel, affiliation: unit.affiliation, choice: unit.choice, role: unit.role },
+    restore: (saved) => {
+      setAccepted(saved.accepted ?? {});
+      setRead(saved.read ?? {});
+      setCollege(saved.college ?? "");
+      setProgram(saved.program ?? "");
+      setYearLevel(saved.yearLevel ?? "");
+      if (saved.affiliation) unit.setAffiliation(saved.affiliation);
+      restoring.current = { choice: saved.choice, role: saved.role };
+      setStep(Math.min(Math.max(0, saved.step ?? 0), LAST));
+      setFurthest(Math.min(Math.max(0, saved.furthest ?? 0), LAST));
+    },
+    // The position and role choices depend on the unit, so they follow once it's back.
+    onRestored: () => {
+      if (restoring.current?.choice) unit.setChoice(restoring.current.choice);
+    },
+  });
+  const { clear: clearDraft } = draft;
+  useEffect(() => { if (state?.submitted) clearDraft(); }, [state?.submitted, clearDraft]);
+  // Then the role, once the position's roles are drawn.
+  useEffect(() => {
+    const role = restoring.current?.role;
+    if (!role || !unit.options.includes(role)) return;
+    restoring.current = null;
+    unit.setRole(role);
+  }, [unit]);
+
   const clearError = (field: string) => setErrors((current) => (current[field] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== field)) : current));
 
   /** The profile's answers as the server will check them; marks the fields that need fixing. */
@@ -410,6 +444,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
           : <StepNote>For Central and Local Comelec commissioners who don’t have an account yet. Read and agree to each step; the Executive Board reviews every request.</StepNote>)}
 
         {alert && <p className="portal-form-error portal-login-alert" role="alert">{alert}</p>}
+        <DraftNotice draft={draft} buttonClassName="portal-button is-ghost is-small" actionClassName="portal-button" />
 
         {shown && <DocumentStep key={shown.key} document={shown} acceptedAt={accepted[shown.key]} read={Boolean(read[shown.key])} onRead={() => setRead((was) => (was[shown.key] ? was : { ...was, [shown.key]: true }))} onAccept={(yes) => setAccepted((was) => { const nextAccepted = { ...was }; if (yes) nextAccepted[shown.key] = new Date().toISOString(); else delete nextAccepted[shown.key]; return nextAccepted; })} />}
 
@@ -523,7 +558,8 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                     </Field>
                     <Field label="Position" error={errors.position}>
                       {/* Commissioners ask here; advisers and admins are added by the Executive Board. */}
-                      <Dropdown required name="position" value={unit.position} onChange={(nextValue) => { unit.setPosition(nextValue as AccountPosition); clearError("position"); clearError("role"); }} options={commissionerPositions.map((value) => ({ value, label: accountPositions[value] }))} invalid={Boolean(errors.position)} />
+                      <input type="hidden" name="position" value={unit.position} />
+                      <Dropdown required name="positionChoice" value={unit.choice} onChange={(nextValue) => { unit.setChoice(nextValue); clearError("position"); clearError("role"); }} options={unit.choices(commissionerPositions)} invalid={Boolean(errors.position)} />
                     </Field>
                     <Field label="Role" error={errors.role} wide>
                       <RoleSelect name="role" position={unit.position} role={unit.role} options={unit.options} onChange={(nextValue) => { unit.setRole(nextValue); clearError("role"); }} />

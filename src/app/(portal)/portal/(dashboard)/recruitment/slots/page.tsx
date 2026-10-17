@@ -6,7 +6,7 @@ import { HelpDialog } from "@/components/portal/help-dialog";
 import { Notice } from "@/components/portal/notice";
 import { RecruitmentForm } from "@/components/portal/recruitment-form";
 import { ViewOnly } from "@/components/portal/view-only";
-import { requireAccess } from "@/lib/auth/session";
+import { canOpen, requireAccess } from "@/lib/auth/session";
 import { comelecUnits } from "@/lib/applications/options";
 import { canManageEvent, canSeeInside, unitOfAccount } from "@/lib/events/access";
 import { localUnit, unitKey } from "@/lib/periods/kinds";
@@ -25,6 +25,8 @@ export default async function PortalRecruitmentSlotsPage({ searchParams }: PageP
   const key = unit ? unitKey(unit) : "";
   const { value: slots, error: loadError } = unit ? await settle(getSlots(key)) : { value: null, error: "Your account has no college set." };
   const readOnly = !unit || !canManageEvent(user, unit);
+  // "Add roles" opens Database → Roles for this unit, whose back link returns here.
+  const addRolesHref = !readOnly && canOpen(user, "database") ? `/portal/database/roles?from=slots${key ? `&unit=${encodeURIComponent(key)}` : ""}` : undefined;
 
   return (
     <main className="portal-page">
@@ -34,10 +36,11 @@ export default async function PortalRecruitmentSlotsPage({ searchParams }: PageP
           <h1>Slots</h1>
           <HelpDialog label="How slots work" title="How slots work">
             <ul>
-              <li><strong>Set the number of open slots</strong> for each position. Applicants see these counts on the Apply page.</li>
-              <li><strong>Accepting an applicant takes one slot</strong> from their position automatically. Rejecting them, or moving them back to pending, gives it back.</li>
-              <li><strong>0 closes the position.</strong> Applicants can’t choose it on the Apply page until you add a slot again.</li>
-              <li><strong>A position with no slots left can’t accept more applicants.</strong> Add a slot here first, then accept.</li>
+              <li><strong>Each office lists the roles it can recruit:</strong> Executive Board, Executive Associate, and any roles the unit added under Database → Roles. Offices come from Database → Positions.</li>
+              <li><strong>Set the number of open slots</strong> for each role. Applicants see these counts on the Apply page, office by office.</li>
+              <li><strong>Accepting an applicant takes one slot</strong> from the role they applied for automatically. Rejecting them, or moving them back to pending, gives it back.</li>
+              <li><strong>0 closes the role.</strong> Applicants can’t choose it on the Apply page until you add a slot again.</li>
+              <li><strong>A role with no slots left can’t accept more applicants.</strong> Add a slot here first, then accept.</li>
               <li><strong>Saving only changes the counts you edited</strong>, so an applicant accepted while you had this page open isn’t undone.</li>
             </ul>
           </HelpDialog>
@@ -51,7 +54,7 @@ export default async function PortalRecruitmentSlotsPage({ searchParams }: PageP
       {slots ? (
         // Keyed on the counts so the inputs reset when they change (after a save or an acceptance).
         <ViewOnly when={readOnly}>
-          <RecruitmentForm key={`${key}:${JSON.stringify(slots)}`} action={updateRecruitmentSlots} slots={slots} unit={key} />
+          <RecruitmentForm key={`${key}:${JSON.stringify(slots)}`} action={updateRecruitmentSlots} slots={slots} unit={key} addRolesHref={addRolesHref} />
         </ViewOnly>
       ) : (
         <p className="portal-form-error" role="alert">

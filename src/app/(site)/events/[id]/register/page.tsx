@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowUpRight, Check, Hourglass } from "lucide-react";
 import { Facts, Organizer, StatusTag } from "@/components/events/event-parts";
 import { signUpNote, toEventView, type EventView } from "@/components/events/event-view";
 import { EventRegistration } from "@/components/events/registration-form";
-import { NightSky } from "@/components/night-sky";
 import { submitRegistration } from "@/lib/events/actions";
 import { allowedAffiliations, isEventId, sexChoices } from "@/lib/events/options";
 import { getEventForSite } from "@/lib/events/queries";
@@ -14,6 +13,7 @@ import { findRegistration, type Registration } from "@/lib/events/registrations"
 import { emptyRegistration } from "@/lib/events/schema";
 import { readEventPass } from "@/lib/events/verification";
 import "../../events.css";
+import { ensureReferenceData } from "@/lib/reference/store";
 
 type FormSetup = NonNullable<Parameters<typeof EventRegistration>[0]["form"]>;
 
@@ -56,6 +56,7 @@ function Already({ event, registration }: { event: EventView; registration: Regi
  * Google account partway through, and lands back here with a pass for this event.
  */
 export default async function EventRegistrationPage({ params, searchParams }: PageProps<"/events/[id]/register">) {
+  await ensureReferenceData();
   const [{ id }, { verify }] = await Promise.all([params, searchParams]);
   const event = isEventId(id) ? await getEventForSite(id) : null;
   if (!event) notFound();
@@ -104,34 +105,32 @@ export default async function EventRegistrationPage({ params, searchParams }: Pa
     }
   }
 
+  const aside = (
+    <aside className="ev-side ev-register-side" aria-label="The event">
+      <div className="ev-card">
+        <Organizer event={view} />
+        <div className="ev-card-body">
+          <h2 className="ev-card-title">{event.name}</h2>
+          <div><StatusTag event={view} /></div>
+          <Facts event={view} className="is-stacked" />
+        </div>
+      </div>
+    </aside>
+  );
+
+  // Laid out like the RSVP and the Apply form: a slim title bar, the step tracker across the page, then the step.
   return (
-    <main className="ev">
-      <header className="ev-banner">
-        <NightSky seed={1927} count={64} />
-        <div className="ev-wrap">
-          <nav className="ev-crumbs" aria-label="Breadcrumb">
-            <Link href={`/events/${event.id}`}><ArrowLeft size={14} aria-hidden="true" />{event.name}</Link>
-          </nav>
-          <p className="ev-eyebrow">{view.signUp === "waitlist" ? "Waitlist" : "Registration"}</p>
-          <h1 className="ev-title is-event">{view.signUp === "waitlist" ? <>Join the <em>waitlist.</em></> : <>Register for <em>this event.</em></>}</h1>
+    <main className="ev ev-application-page ev-register-page">
+      <header className="apply-top">
+        <div className="apply-top-inner">
+          <div className="apply-top-title">
+            <h1>{view.signUp === "waitlist" ? "Join the waitlist" : "Register for this event"}</h1>
+            <p className="ev-rsvp-event">{event.name}</p>
+          </div>
+          <Link className="ev-application-back" href={`/events/${event.id}`}><ArrowLeft size={14} aria-hidden="true" />Back to event</Link>
         </div>
       </header>
-
-      <div className="ev-wrap ev-register-layout">
-        <div className="ev-register-main">
-          <EventRegistration action={submitRegistration.bind(null, event.id)} event={{ id: event.id, name: event.name }} mode={view.signUp} form={form}>{fallback}</EventRegistration>
-        </div>
-        <aside className="ev-side ev-register-side" aria-label="The event">
-          <div className="ev-card">
-            <Organizer event={view} />
-            <div className="ev-card-body">
-              <h2 className="ev-card-title">{event.name}</h2>
-              <div><StatusTag event={view} /></div>
-              <Facts event={view} className="is-stacked" />
-            </div>
-          </div>
-        </aside>
-      </div>
+      <EventRegistration action={submitRegistration.bind(null, event.id)} event={{ id: event.id, name: event.name }} mode={view.signUp} form={form} aside={aside}>{fallback}</EventRegistration>
     </main>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
+import { positionName } from "@/lib/data/accounts";
 import type { AccessRequest } from "@/lib/access-requests/admin";
 import { unitAbbreviations } from "@/lib/applications/options";
-import { accountPositions, affiliations, type Affiliation, type CommissionerPosition } from "@/lib/data/types";
+import { affiliations, type Affiliation, type CommissionerPosition } from "@/lib/data/types";
 import { approveAccessRequest, declineAccessRequest } from "@/lib/portal/access-request-actions";
 import { grantableCommissionerPositions, type Manager } from "@/lib/portal/account-scope";
 import { AccountKindLabel, AccountStatusLabel } from "./account-badges";
@@ -24,7 +25,7 @@ export function AccessRequestRow({ request, manager }: { request: AccessRequest;
   const hydrated = useHydrated();
   const localManager = manager?.affiliation === "local";
   const start: Affiliation = localManager ? "local" : request.affiliation;
-  const { affiliation, setAffiliation, position, setPosition, role, setRole, options } = useRoleChoice({
+  const { affiliation, setAffiliation, position, role, setRole, options, choice, choices, setChoice } = useRoleChoice({
     affiliation: start,
     position: request.position && (!manager || grantableCommissionerPositions(manager, start).includes(request.position)) ? request.position : "",
     role: request.role,
@@ -53,12 +54,12 @@ export function AccessRequestRow({ request, manager }: { request: AccessRequest;
         <div className="portal-account-standing"><AccountKindLabel kind="personal" /></div>
         {manager ? (
           <div className="portal-request-picks">
-            <Dropdown size="pill" label={`Position for ${request.name}`} value={position} onChange={(next) => setPosition(next as CommissionerPosition)} options={positions.map((value) => ({ value, label: accountPositions[value] }))} placeholder="Select position" disabled={!hydrated} />
+            <Dropdown size="pill" label={`Position for ${request.name}`} value={choice} onChange={setChoice} options={choices(positions)} placeholder="Select position" disabled={!hydrated} />
             <RoleSelect size="pill" position={position} role={role} options={options} onChange={setRole} label={`Role for ${request.name}`} disabled={!hydrated} />
           </div>
         ) : (
           <>
-            {request.position ? accountPositions[request.position] : "Not said"}
+            {request.position ? positionName({ affiliation: request.affiliation, position: request.position, role: request.role, college: request.college }) : "Not said"}
             {!ownWords && <small className="portal-muted">{request.role}</small>}
           </>
         )}

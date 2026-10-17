@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { positionsFor, rolesFor } from "@/lib/data/accounts";
-import type { AccountAffiliation, AccountPosition } from "@/lib/data/types";
+import { addedRolesFor, positionsFor, rolesFor } from "@/lib/data/accounts";
+import { accountPositions, type AccountAffiliation, type AccountPosition } from "@/lib/data/types";
 import { Dropdown, optionsFrom } from "./dropdown";
 
 type Unit = { affiliation: AccountAffiliation | ""; position: AccountPosition | "" };
@@ -14,20 +14,31 @@ type Unit = { affiliation: AccountAffiliation | ""; position: AccountPosition | 
  * someone from the Executive Board to Executive Associate turns "Chairperson" into "Office of the
  * Chairperson". Changing the affiliation keeps the position where the new one has it; the Office
  * for Student Affairs has only Admin, so that's picked for it.
+ *
+ * A role the unit added (Administrative → Database → Roles) is picked where the position is, as a
+ * position of its own: `choice` is "added:<name>", `position` the role it's based on, and `role` its
+ * name, filled in. Moving to a unit without it clears the pick.
  */
 export function useRoleChoice(initial: Unit & { role: string }, college?: string | null) {
   const [affiliation, setOwnAffiliation] = useState(initial.affiliation);
-  const [position, setPosition] = useState(initial.position);
+  const [position, setOwnPosition] = useState(initial.position);
   const [seat, setSeat] = useState(() => (initial.affiliation && initial.position ? rolesFor(initial.affiliation, initial.position, college).indexOf(initial.role) : -1));
+  const [added, setAdded] = useState(() => (addedRolesFor(initial.affiliation, college).some((item) => item.name === initial.role && item.position === initial.position) ? initial.role : ""));
+  const unitRoles = addedRolesFor(affiliation, college);
 
   const [previousUnit, setPreviousUnit] = useState({ affiliation, college });
   if (previousUnit.affiliation !== affiliation || previousUnit.college !== college) {
     const previousRoles = previousUnit.affiliation && position ? rolesFor(previousUnit.affiliation, position, previousUnit.college) : [];
     const nextRoles = affiliation && position ? rolesFor(affiliation, position, college) : [];
     setSeat(nextRoles.indexOf(previousRoles[seat]));
+    if (added && !unitRoles.some((item) => item.name === added && item.position === position)) setAdded("");
     setPreviousUnit({ affiliation, college });
   }
 
+  const setPosition = (next: AccountPosition | "") => {
+    setOwnPosition(next);
+    setAdded("");
+  };
   const setAffiliation = (next: AccountAffiliation) => {
     setOwnAffiliation(next);
     const positions = positionsFor(next);
@@ -35,7 +46,7 @@ export function useRoleChoice(initial: Unit & { role: string }, college?: string
     else if (!position && positions.length === 1) setPosition(positions[0]);
   };
 
-  const options = affiliation && position ? rolesFor(affiliation, position, college) : [];
+  const options = added ? [added] : affiliation && position ? rolesFor(affiliation, position, college) : [];
   // A position with one role has it; one with none has none.
   const role = options.length === 1 ? options[0] : (options[seat] ?? "");
   const setRole = (next: string) => setSeat(options.indexOf(next));
@@ -44,7 +55,20 @@ export function useRoleChoice(initial: Unit & { role: string }, college?: string
     setSeat(affiliation ? rolesFor(affiliation, next, college).indexOf(nextRole) : -1);
   };
 
-  return { affiliation, setAffiliation, position, setPosition, role, setRole, setPositionAndRole, options };
+  const choice = added ? `added:${added}` : position;
+  /** The positions to pick from, `allowed` first, then the unit's added roles based on one of them. */
+  const choices = (allowed: readonly AccountPosition[], enabled: (position: AccountPosition) => boolean = () => true) => [
+    ...allowed.map((value) => ({ value, label: accountPositions[value], disabled: !enabled(value) })),
+    ...unitRoles.filter((item) => allowed.includes(item.position)).map((item) => ({ value: `added:${item.name}`, label: item.name, disabled: !enabled(item.position) })),
+  ];
+  const setChoice = (next: string) => {
+    const picked = next.startsWith("added:") ? unitRoles.find((item) => `added:${item.name}` === next) : undefined;
+    if (!picked) return setPositionAndRole(next as AccountPosition, "");
+    setOwnPosition(picked.position);
+    setAdded(picked.name);
+  };
+
+  return { affiliation, setAffiliation, position, setPosition, role, setRole, setPositionAndRole, options, choice, choices, setChoice };
 }
 
 /**

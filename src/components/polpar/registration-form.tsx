@@ -1,9 +1,11 @@
 "use client";
 
 import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
-import { isStudentNumberField } from "@/lib/forms/input";
+import { isPersonNameField, isStudentNumberField, titleCaseText } from "@/lib/forms/input";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { DraftNotice } from "@/components/draft-notice";
+import { useFormDraft } from "@/components/use-form-draft";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileText } from "lucide-react";
 import { AddIcon as Plus, DeleteIcon as Trash2 } from "@/components/action-icons";
 import { communicationDeclaration, conformeDeclarations, MAX_FILE_BYTES, MAX_TOTAL_BYTES, petitionDeclaration, requirements, rosterSections, templateHref, uploadTypes, type RosterId } from "@/lib/polpar/content";
@@ -16,9 +18,18 @@ type UnitChoice = { value: string; label: string; closes: string | null };
 type Rows = Record<RosterId, string[]>;
 
 function Field({ name, label, type = "text", required = true, error, children, defaultValue }: { name: string; label: string; type?: string; required?: boolean; error?: string; children?: ReactNode; defaultValue?: string }) {
+  const titleCase = type === "text" && !isPersonNameField(name) && !isStudentNumberField(name);
   return <label className="pp-field" htmlFor={`pp-${name}`}>
     <span>{label}{required && <span aria-hidden="true"> *</span>}</span>
-    {children ?? (type === "date" ? <DatePicker id={`pp-${name}`} name={name} defaultValue={defaultValue} required={required} invalid={!!error} describedBy={error ? `pp-error-${name}` : undefined} /> : <input id={`pp-${name}`} name={name} type={type} defaultValue={defaultValue} required={required} inputMode={type === "tel" || isStudentNumberField(name) ? "numeric" : undefined} maxLength={type === "tel" ? 11 : isStudentNumberField(name) ? 10 : type === "text" ? 250 : undefined} aria-invalid={!!error} aria-describedby={error ? `pp-error-${name}` : undefined} />)}
+    {children ?? (type === "date" ? <DatePicker id={`pp-${name}`} name={name} defaultValue={defaultValue} required={required} invalid={!!error} describedBy={error ? `pp-error-${name}` : undefined} /> : <input id={`pp-${name}`} name={name} type={type} defaultValue={titleCase && defaultValue ? titleCaseText(defaultValue) : defaultValue} autoCapitalize={titleCase ? "words" : undefined} onChange={titleCase ? event => {
+      if ((event.nativeEvent as InputEvent).isComposing) return;
+      const input = event.currentTarget;
+      const value = input.value;
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      input.value = titleCaseText(value);
+      if (start !== null && end !== null) input.setSelectionRange(titleCaseText(value.slice(0, start)).length, titleCaseText(value.slice(0, end)).length);
+    } : undefined} required={required} inputMode={type === "tel" || isStudentNumberField(name) ? "numeric" : undefined} maxLength={type === "tel" ? 11 : isStudentNumberField(name) ? 10 : type === "text" ? 250 : undefined} aria-invalid={!!error} aria-describedby={error ? `pp-error-${name}` : undefined} />)}
     {error && <small id={`pp-error-${name}`} className="pp-error">{error}</small>}
   </label>;
 }
@@ -41,6 +52,23 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
   const chosenUnit = units.find((item) => item.value === unit);
 
   useEffect(() => { heading.current?.focus(); }, [step, result.receipt]);
+
+  // Entries stay on this device until sent, through a reload or a dropped connection. Files can't be
+  // kept, so a draft from past the uploads comes back on the uploads step.
+  const draft = useFormDraft({
+    key: "party-registration",
+    form,
+    state: { step, unit, partyName, rows, conformes },
+    restore: (saved) => {
+      if (units.some((item) => item.value === saved.unit)) setUnit(saved.unit);
+      setPartyName((saved.partyName ?? "").toLocaleUpperCase("en-PH"));
+      if (saved.rows) setRows(saved.rows);
+      setConformes(saved.conformes ?? []);
+      setStep(Math.min(Math.max(0, saved.step ?? 0), 8));
+    },
+  });
+  const { clear: clearDraft } = draft;
+  useEffect(() => { if (result.receipt) clearDraft(); }, [result.receipt, clearDraft]);
 
   function readValues(): PartyRegistration {
     const fd = new FormData(form.current!);
@@ -167,20 +195,20 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
     </aside>
 
     <form ref={form} onSubmit={submit} noValidate method="post" className="pp-form">
-      <header className="pp-form-head"><span>Step {step + 1} of {steps.length}</span><h2 ref={heading} tabIndex={-1}>{steps[step]}</h2><p>Fields marked * are required. Your entries stay here as you move between steps.</p></header>
+      <header className="pp-form-head"><span>Step {step + 1} of {steps.length}</span><h2 ref={heading} tabIndex={-1}>{steps[step]}</h2></header>
+      <DraftNotice draft={draft} buttonClassName="bp-button is-ghost" actionClassName="bp-button is-primary" note="Files can’t be kept, so attach them again on the uploads step." />
       {result.error && <p className="pp-alert" role="alert">{result.error}</p>}
       <fieldset disabled={pending} className="pp-fields">
         <section data-step="0" hidden={step !== 0}>
           <div className="pp-grid">
             <Field name="unit" label="Register with" error={errors.unit}><select id="pp-unit" name="unit" value={unit} onChange={(event) => setUnit(event.target.value)} required>{units.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
-            <Field name="partyName" label="Political party name" error={errors.partyName}><input id="pp-partyName" name="partyName" value={partyName} onChange={(event) => setPartyName(event.target.value)} required maxLength={250} /></Field>
+            <Field name="partyName" label="Political party name" error={errors.partyName}><input id="pp-partyName" name="partyName" value={partyName} autoCapitalize="characters" onChange={(event) => setPartyName(event.target.value.toLocaleUpperCase("en-PH"))} required maxLength={250} /></Field>
             <Field name="establishedAt" label="Date of establishment" type="date" error={errors.establishedAt} />
             <Field name="headquarters" label="Principal headquarters" required={unit === "central"} error={errors.headquarters} />
             <Field name="contactPerson" label="Contact person’s full name" error={errors.contactPerson} />
             <Field name="contactNumber" label="Contact number" type="tel" error={errors.contactNumber} />
             <Field name="email" label="Contact email address" type="email" error={errors.email} />
           </div>
-          <p className="pp-note">{chosenUnit?.closes ? `This unit accepts registrations until ${chosenUnit.closes} (Philippine time).` : "This unit is accepting registrations. No closing date has been set."}</p>
         </section>
 
         <section data-step="1" hidden={step !== 1}>
@@ -262,7 +290,6 @@ export function PartyRegistrationForm({ units, initialUnit }: { units: UnitChoic
         </section>
       </fieldset>
       <footer className="pp-actions"><button type="button" className="bp-button is-ghost" disabled={step === 0 || pending} onClick={() => { setStep(step - 1); setResult({}); }}><ArrowLeft size={16} aria-hidden="true" />Back</button><button type="submit" className="bp-button is-primary" disabled={pending}>{pending ? "Submitting application…" : step === 9 ? "Submit registration application" : "Continue"}{!pending && <ArrowRight size={16} aria-hidden="true" />}</button></footer>
-      <p className="pp-note pp-session-note">Keep this tab open while completing the form. Reloading the page clears unsent entries and selected files.</p>
     </form>
   </div>;
 }

@@ -64,14 +64,17 @@ for (const unit of offices.letterFacultiesAndColleges) {
   assert.ok(offices.destinationOffices.includes(`Dean of the ${unit}`));
   assert.ok(offices.destinationOffices.includes(`Regent of the ${unit}`));
 }
-assert.ok(offices.destinationOffices.includes("Dean of the UST–Alfredo M. Velayo College of Accountancy (AMV)"));
+assert.ok(offices.destinationOffices.includes("Dean of the Alfredo M. Velayo College of Accountancy (AMV)"));
 assert.ok(offices.destinationOffices.includes("Regent of the Faculty of Medicine and Surgery (FMS, MED)"));
-for (const unit of ["Graduate School (GS)", "Graduate School of Law (GS Law)", "Institute of Religion (IR)", "Senior High School (SHS)", "Junior High School (JHS)", "Education High School (EHS)"]) assert.ok(offices.destinationOffices.includes(`Regent of the ${unit}`));
-assert.equal(offices.normalizeDestinationOffice("Dean of the Alfredo M. Velayo College of Accountancy"), "Dean of the UST–Alfredo M. Velayo College of Accountancy (AMV)");
+for (const unit of ["Graduate School (GS)", "Graduate School of Law (GSL, GS Law)", "Institute of Religion (IR)", "Senior High School (SHS)", "Junior High School (JHS)", "Education High School (EHS)"]) assert.ok(offices.destinationOffices.includes(`Regent of the ${unit}`));
+assert.equal(offices.normalizeDestinationOffice("Dean of the Alfredo M. Velayo College of Accountancy"), "Dean of the Alfredo M. Velayo College of Accountancy (AMV)");
+// Destinations saved before the units came from the Database read as the current ones.
+assert.equal(offices.normalizeDestinationOffice("Dean of the UST–Alfredo M. Velayo College of Accountancy (AMV)"), "Dean of the Alfredo M. Velayo College of Accountancy (AMV)");
+assert.equal(offices.normalizeDestinationOffice("Regent of the College of Architecture (ARKI)"), "Regent of the College of Architecture (ARCHI, ARKI)");
 const values = { title: " Request for venue ", type: "Request Letter", status: "Draft", destinationOffice: "Office for Student Affairs (OSA)", workingDocuments: [{ type: "docs", url: "https://docs.google.com/document/d/example/edit" }], notifyStatusUpdates: false, remarkPresets: [] };
 assert.equal(schema.parse({ ...values, destinationOffice: "Regent of the Faculty of Medicine and Surgery" }).destinationOffice, "Regent of the Faculty of Medicine and Surgery (FMS, MED)");
 for (const destinationOffice of offices.destinationOffices) assert.ok(schema.safeParse({ ...values, destinationOffice }).success);
-assert.deepEqual(defaults.offices.map(office => office.name), offices.destinationOffices, "Office suggestions start from the full list");
+assert.equal(defaults.offices, undefined, "Office suggestions come from the Database only");
 assert.equal(schema.parse({ ...values, destinationOffice: "  Office of the   City Mayor  " }).destinationOffice, "Office of the City Mayor", "Any office may be typed; extra spaces are removed");
 assert.equal(schema.parse(values).title, "Request for venue");
 assert.equal(schema.parse({ ...values, controlSequence: 9, preparedBy: "tampered" }).preparedBy, undefined, "Fields outside the form are dropped");
@@ -318,7 +321,7 @@ async function main() {
   assert.equal(general.props.eventPapers, false, "General Letters is the default view");
   assert.ok(general.props.rows.every(row => !row.event));
   assert.equal(general.props.selector.props.active, "general");
-  assert.deepEqual(general.props.selector.props.items.map(item => item.label), ["General Letters", "Event Papers"]);
+  assert.deepEqual(general.props.selector.props.items.map(item => typeof item.label === "string" ? item.label : [item.label.props.children].flat().filter(part => typeof part === "string").join("")), ["General Letters", "Event Papers"]);
   const papers = await trackerPage({ searchParams: Promise.resolve({ view: "event-papers" }) });
   assert.equal(papers.props.eventPapers, true);
   assert.equal(papers.props.rows.length, 2);

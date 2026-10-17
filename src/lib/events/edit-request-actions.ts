@@ -1,4 +1,6 @@
 "use server";
+
+import { ensureReferenceData } from "@/lib/reference/store";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
@@ -20,6 +22,7 @@ export type EditRequestState = { request?: EventEditRequest | SubmissionEditRequ
 const changes = z.string().trim().min(1, "Describe what you want to change.").max(4000, "Keep your request under 4,000 characters.");
 
 export async function requestResponseEdit(_state: EditRequestState, form: FormData): Promise<EditRequestState> {
+  await ensureReferenceData();
   const number = studentNumber().safeParse(String(form.get("identity") ?? "").replace(/\s+/g, ""));
   const surname = personName("Enter the last name you submitted with.").safeParse(form.get("identity"));
   const reference = String(form.get("reference") ?? "").trim().toUpperCase();

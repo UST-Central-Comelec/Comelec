@@ -113,6 +113,15 @@ When building a form:
 - Don't build another validation tooltip, and don't turn the check off, except on a preview that only moves between steps (`data-validation="off"` on the form). A submit button that saves a draft can skip it with `formNoValidate`.
 - Server-side errors still show under their fields as before (`Field`'s `error`).
 
+## Keeping answers through a reload
+
+Long forms keep their answers on the device while they're filled in, so a reload, a closed tab or a dropped connection doesn't mean starting again. `useFormDraft` (`src/components/use-form-draft.ts`) saves the form's React state (step, pickers, rows) and every named field to `localStorage`. Like booking a ticket, each session is held for one hour (`SESSION_MINUTES`) from when the form opens; a reload keeps the same clock. `DraftNotice` (`src/components/draft-notice.tsx`) at the top of the form counts the hour down (red in the last five minutes), says when answers came back with "Start over", says answers are kept while offline, and when time's up clears the answers and opens a "Your session has ended" dialog with "Start again". Pass it the family's secondary (`buttonClassName`) and main (`actionClassName`) button classes. The Commissioner Application shows it in its dark title banner instead: `DraftStrip` puts the countdown at the banner's right (in the banner's own countdown style) with a short note under it, portalled into the banner's `SESSION_SLOT`, and `DraftExpired` handles the end. It's on Apply, Party registration, event Registration, RSVP and Evaluation, surveys, and Request access.
+
+- A new multi-step or long form uses it. Give it a key per form (and per record: event, survey, token), `null` in view mode or preview.
+- Key drafts with personal details by the verified account where there is one (Apply, Request access), so a shared computer doesn't show someone else's answers.
+- Clear the draft once the form is sent (`draft.clear()`, or `forgetFormDraft(key)` when the form unmounts on success). The hour is kept in the browser only; the server doesn't refuse a late submission.
+- Files, passwords and hidden inputs aren't kept; say so with `note` when a form has uploads. Mark a field to leave out with `data-draft="off"`.
+
 ## Scrolling when content changes
 
 A press that swaps content (a form's Next, a tab, a filter) must never leave the view on the footer. `ScrollKeeper` (`src/components/scroll-keeper.tsx`, mounted in each root layout) handles this for every page. When a press changes the part of the page it's in, and that part now starts above the screen and ends in the upper part of it, the part's top is brought back under the header.
@@ -239,3 +248,11 @@ These stay inline, beside what they're about:
 - the public website and the portal login page, which have no portal header
 
 When you add or change an action anywhere in the portal, check its success and failure paths both go through `toast()`.
+
+## Colleges, programs, offices, positions and roles come from the Database
+
+Administrative → Database edits these lists, and every form, dropdown, check and recruitment page must follow it. Saving there replaces the contents of the exported lists in place (`applyReferenceData` in `src/lib/reference/data.ts`), on the server per request and in the browser from each root layout.
+- Read them where they're used: `colleges`, `comelecUnits`, `academicUnits`, `programsByCollege`, `unitAbbreviations`, `collegeSearchAliases`, `positionsForUnit`, `unitPositions` (`src/lib/applications/options.ts`); `centralRoles`, `localRolesByCollege`, `accountPositions` (`src/lib/data/`); `rolesFor`, `boardRolesFor`, `programsOf` (`src/lib/data/accounts.ts`); `universityOffices`, `destinationOffices` (`src/lib/letters/offices.ts`).
+- Never copy one into a constant when a module loads (`const units = [...comelecUnits]`), and never `z.enum(colleges)`: both keep the defaults forever. Build such a list inside a function, or rebuild it with `onReferenceChange` from `options.ts`. Check membership with `.includes` in a `refine`.
+- Never write a new hardcoded list of colleges, programs, offices or positions. Add to the Database's defaults instead.
+- A public page or Server Action that checks one of these lists on the server calls `await ensureReferenceData()` (`src/lib/reference/store.ts`) first. Portal pages and actions already get it through `getPortalUser`.

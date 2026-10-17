@@ -1,17 +1,51 @@
-import { centralRoles } from "@/lib/data/types";
-import { localRolesByCollege } from "@/lib/data/local-roles";
+import { accountPositions, centralRoles } from "@/lib/data/types";
+import { customRolesByUnit, localRolesByCollege } from "@/lib/data/local-roles";
 
 // Choices shown on the commissioner application form.
 // Colleges and programs come from ust.edu.ph (Faculties, Colleges, Institutes, and Schools, and
 // each college's own page), undergraduate and first professional degrees only, as of September 2026.
 // The database checks year level and preferred body (supabase/migrations/0004_applications.sql),
 // so keep those keys in sync.
+//
+// These are the defaults. Administrative → Database edits them, and saving there replaces the
+// contents of these lists in place (src/lib/reference/data.ts), so read them where they're used
+// rather than copying them into a constant when a module loads.
+
+// ——— Keeping the lists live ———
+// The lists edited under Administrative → Database (colleges, programs, offices, positions, roles)
+// are plain arrays and objects read synchronously across the app. Saving there replaces their
+// contents in place (applyReferenceData in src/lib/reference/data.ts), so every import sees the
+// saved lists. Lists built from them elsewhere rebuild themselves through onReferenceChange. These
+// helpers live here, beside the lists, because every module that needs them already imports this one.
+
+/** Replaces an array's items, keeping the array itself (and so every import of it). */
+export function replaceArray<Item>(target: Item[], next: readonly Item[]) {
+  target.splice(0, target.length, ...next);
+}
+
+/** Replaces an object's entries, keeping the object itself. */
+export function replaceRecord<Value>(target: Record<string, Value>, next: Readonly<Record<string, Value>>) {
+  for (const key of Object.keys(target)) delete target[key];
+  Object.assign(target, next);
+}
+
+const listeners = new Set<() => void>();
+
+/** Runs `rebuild` now and after every change, for a list made from the Database's lists. */
+export function onReferenceChange(rebuild: () => void) {
+  listeners.add(rebuild);
+  rebuild();
+}
+
+export function notifyReferenceChange() {
+  for (const rebuild of listeners) rebuild();
+}
 
 const bs = (name: string) => `Bachelor of Science in ${name}`;
 const ab = (name: string) => `Bachelor of Arts in ${name}`;
 const performance = (instrument: string) => `Bachelor of Music in Performance, major in ${instrument}`;
 
-export const programsByCollege = {
+export const programsByCollege: Record<string, string[]> = {
   "Education High School": [],
   "Junior High School": [],
   "Senior High School": [
@@ -98,17 +132,34 @@ export const programsByCollege = {
     `${bs("Tourism Management")}, major in Recreation and Leisure Management`,
     `${bs("Tourism Management")}, major in Travel Operation and Service Management`,
   ],
-} as const satisfies Record<string, readonly string[]>;
+};
 
-export type College = keyof typeof programsByCollege;
+/**
+ * Programs a college no longer offers (retired under Administrative → Database). New entries can't
+ * pick them, but people who already have one keep it, and their accounts still save with it.
+ */
+export const retiredProgramsByCollege: Record<string, string[]> = {};
 
-export const colleges = (Object.keys(programsByCollege) as College[]).sort((a, b) => a.localeCompare(b));
+/** Names programs had before they were renamed, by college, each to the program's current name. */
+export const formerProgramNames: Record<string, Record<string, string>> = {};
 
-/** Every academic unit with a Local Comelec, including the three high schools. */
+/** A program as it's called now: records saved before a rename keep the old name. */
+export const currentProgramName = (college: string | null | undefined, program: string) => (college ? formerProgramNames[college]?.[program] : undefined) ?? program;
+
+/** A college or faculty's name. Kept as an alias of string for the many places that name it. */
+export type College = string;
+
+/** Colleges and faculties with a Local Comelec, including the three high schools: what students pick from. */
+export const colleges: string[] = Object.keys(programsByCollege).sort((a, b) => a.localeCompare(b));
+
+/** Every academic unit with a Local Comelec, including the three high schools. The same list as `colleges`. */
 export const comelecUnits: readonly string[] = colleges;
 
+/** Every academic unit, with or without a Local Comelec: event organizers and letter destinations. */
+export const academicUnits: string[] = [...colleges, "Graduate School", "Graduate School of Law", "Institute of Religion"].sort((a, b) => a.localeCompare(b));
+
 /** Each unit's short name, as the commission writes it: what lists show in place of the full name. */
-export const unitAbbreviations: Readonly<Record<string, string>> = {
+export const unitAbbreviations: Record<string, string> = {
   "Alfredo M. Velayo College of Accountancy": "AMV",
   "College of Architecture": "ARCHI",
   "Faculty of Arts and Letters": "AB",
@@ -132,7 +183,33 @@ export const unitAbbreviations: Readonly<Record<string, string>> = {
   "Senior High School": "SHS",
   "Junior High School": "JHS",
   "Education High School": "EHS",
+  "Graduate School": "GS",
+  "Graduate School of Law": "GSL",
+  "Institute of Religion": "IR",
 };
+
+/** Other short names a unit goes by: searched, and listed after the abbreviation in letter destinations. */
+export const collegeSearchAliases: Record<string, string[]> = {
+  "College of Architecture": ["ARKI"],
+  "Faculty of Civil Law": ["CIVIL LAW", "LAW"],
+  "College of Commerce and Business Administration": ["COMMERCE", "COM"],
+  "Faculty of Engineering": ["ENGG"],
+  "Faculty of Medicine and Surgery": ["MED"],
+  "Conservatory of Music": ["MUS"],
+  "College of Nursing": ["NUR"],
+  "Faculty of Pharmacy": ["FOP", "PHA"],
+  "Faculty of Sacred Theology": ["THEO"],
+  "College of Science": ["SCI"],
+  "Graduate School of Law": ["GS Law"],
+};
+
+/** Search aliases stay internal; choices and saved answers keep their full names. */
+export function filterCollegeOptions(options: readonly string[], query: string): readonly string[] {
+  const search = query.trim().toLowerCase();
+  return options.filter(option => option.toLowerCase().includes(search)
+    || Boolean(unitAbbreviations[option]?.toLowerCase().includes(search))
+    || Boolean(collegeSearchAliases[option]?.some(alias => alias.toLowerCase().includes(search))));
+}
 
 
 /**
@@ -144,16 +221,18 @@ export const APPLICATION_RETENTION_DAYS = 60;
 /** The oldest submission time still kept, as an ISO string for queries. */
 export const retentionCutoff = (now = Date.now()) => new Date(now - APPLICATION_RETENTION_DAYS * 86_400_000).toISOString();
 
-const collegeYearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", "5": "5th year", swis: "SWIS" } as const;
+const collegeYearLevels = { "1": "1st year", "2": "2nd year", "3": "3rd year", "4": "4th year", swis: "SWIS" } as const;
+const architectureYearLevels = { ...collegeYearLevels, "5": "5th year" } as const;
 const juniorGrades = { "7": "Grade 7", "8": "Grade 8", "9": "Grade 9", "10": "Grade 10" } as const;
 const seniorGrades = { "11": "Grade 11", "12": "Grade 12" } as const;
 /** All stored levels, for display; forms use yearLevelsFor for the selected school. */
-export const yearLevels = { ...collegeYearLevels, ...juniorGrades, ...seniorGrades } as const;
+export const yearLevels = { ...architectureYearLevels, ...juniorGrades, ...seniorGrades } as const;
 
-export const programLocked = (college: string | null | undefined) => college === "Education High School" || college === "Junior High School";
+/** A school whose students have no program to pick (EHS and JHS): a known college with an empty program list. */
+export const programLocked = (college: string | null | undefined) => Boolean(college) && Object.hasOwn(programsByCollege, college!) && programsByCollege[college!].length === 0;
 
 export function yearLevelsFor(college: string | null | undefined): Readonly<Record<string, string>> {
-  return college === "Junior High School" ? juniorGrades : college === "Senior High School" ? seniorGrades : collegeYearLevels;
+  return college === "Junior High School" ? juniorGrades : college === "Senior High School" ? seniorGrades : college === "College of Architecture" ? architectureYearLevels : collegeYearLevels;
 }
 
 export const isYearLevelFor = (college: string, level: string) => Object.hasOwn(yearLevelsFor(college), level);
@@ -286,17 +365,89 @@ const previousOfficeNames: Record<string, Record<string, string>> = {
   "College of Science": { "Deputy Head/Chief-of-Staff Officer": "Deputy Head" },
 };
 
-/** Recruitment follows each unit's offices, in directory order, without division grouping. */
-export function positionsForUnit(college = "") {
-  return (college ? (localRolesByCollege[college] ?? []) : centralRoles).map((role) => {
-    const position = recruitmentPosition(role);
-    const previousRole = previousOfficeNames[college]?.[role];
-    return previousRole ? { ...position, id: recruitmentPosition(previousRole).id } : position;
-  });
+/** An Executive Board office in a unit, and the id its recruitment slots and applications are saved under. */
+export type UnitPosition = { id: string; name: string };
+
+/** The id a new office gets: its recruitment position's, so an office added back finds its old slots. */
+export const positionIdFor = (name: string) => recruitmentPosition(name).id;
+
+/**
+ * Each unit's Executive Board offices in rank order. "" is the Central Comelec; a Local unit is its
+ * college's name. Ids stay the same when an office is renamed, so its slots and applicants follow it.
+ */
+export const unitPositions: Record<string, UnitPosition[]> = Object.fromEntries(["", ...Object.keys(localRolesByCollege)].map((unit) => [
+  unit,
+  (unit ? localRolesByCollege[unit] : centralRoles).map((name) => ({ id: positionIdFor(previousOfficeNames[unit]?.[name] ?? name), name })),
+]));
+
+/** Which role in an office a recruitment opening is for. */
+export type OpeningKind = "board" | "associate" | "added";
+
+/**
+ * One role in one office that recruitment can open: the office's Executive Board seat, an Executive
+ * Associate in it, or a role the unit added under Administrative → Database → Roles.
+ * `position` and `role` are what the account gets when the applicant is onboarded.
+ */
+export type RecruitmentOpening = {
+  id: string;
+  label: string;
+  officeId: string;
+  office: string;
+  kind: OpeningKind;
+  roleName: string;
+  position: "executive-board" | "executive-associate" | "deputy";
+  role: string;
+};
+
+/**
+ * The id an opening's slots and applications are saved under. An Executive Associate keeps the
+ * office's own id, which is what every opening was before roles were split out, so older counts and
+ * applications still refer to it. The board seat and added roles add a suffix.
+ */
+export const openingId = (officeId: string, kind: OpeningKind, addedId = "") => (kind === "associate" ? officeId : `${officeId}:${kind === "board" ? "board" : addedId}`);
+
+/** The roles a unit recruits into each office: the board seat, Executive Associates, then its added roles. */
+export function recruitRolesFor(college = "") {
+  // The Central Comelec has no Deputies, so a Central role based on Deputy can't be recruited.
+  const added = (customRolesByUnit[college] ?? []).filter((role) => role.name.trim() && (college || role.position !== "deputy"));
+  return [
+    { kind: "board" as const, id: "board", name: accountPositions["executive-board"] },
+    { kind: "associate" as const, id: "associate", name: accountPositions["executive-associate"] },
+    ...added.map((role) => ({ kind: "added" as const, id: role.id, name: role.name, position: role.position })),
+  ];
+}
+
+/**
+ * Every opening in a unit ("" is the Central Comelec), office by office in rank order. Labels name
+ * the role, then the office: "Executive Associate to the Chairperson". A board seat is the office
+ * itself: "Chairperson".
+ */
+export function openingsForUnit(college = ""): RecruitmentOpening[] {
+  const roles = recruitRolesFor(college);
+  return (unitPositions[college] ?? []).flatMap(({ id: officeId, name: office }) => roles.map((role): RecruitmentOpening => {
+    const base = { officeId, office, kind: role.kind, roleName: role.name, id: openingId(officeId, role.kind, role.id) };
+    if (role.kind === "board") return { ...base, label: office, position: "executive-board", role: office };
+    if (role.kind === "associate") return { ...base, label: `${role.name} to the ${office}`, position: "executive-associate", role: `Office of the ${office}` };
+    return { ...base, label: `${role.name} to the ${office}`, position: role.position, role: role.name };
+  }));
+}
+
+/** The openings an applicant can pick from, and every screen names an application's position by. */
+export const positionsForUnit = openingsForUnit;
+
+/**
+ * The position an application or interview booking is for, as its unit's office is called now.
+ * Applications save the label they were sent with, so an office renamed under Administrative →
+ * Database is looked up by its id; one no longer in the unit keeps its saved label.
+ */
+export function currentPositionLabel(body: string | null | undefined, college: string | null | undefined, positionId: string | null | undefined, saved: string) {
+  if (!positionId) return saved;
+  return positionsForUnit(body === "local" ? college ?? "" : "").find((position) => position.id === positionId)?.label ?? saved;
 }
 
 /** All current offices, used by recruitment slot coverage tests. */
-export const positions = [...new Set([...centralRoles, ...Object.values(localRolesByCollege).flat()])].map(recruitmentPosition);
+export const positions: Array<{ id: string; label: string; role: string }> = [];
+onReferenceChange(() => replaceArray(positions, [...new Map(Object.keys(unitPositions).flatMap((unit) => positionsForUnit(unit)).map((position) => [position.id, position])).values()]));
 
 /** Open slots per position id. */
 export type SlotCounts = Record<string, number>;

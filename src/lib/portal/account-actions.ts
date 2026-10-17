@@ -6,13 +6,13 @@ import { z } from "zod";
 import { email as emailField, personName } from "@/lib/forms/fields";
 import { studentNumberPattern } from "@/lib/forms/input";
 import { canSeeCollege, isBuiltInEmail, requireEditor, type PortalUser } from "@/lib/auth/session";
-import { sameAccountUnit, detailsFor, facebookHref, fullName, isCentralRepresentative, isLocalChairperson, isRoleFor, officialName, positionsFor, programsOf, toSummary, upperName } from "@/lib/data/accounts";
+import { sameAccountUnit, detailsFor, facebookHref, fullName, isCentralRepresentative, isLocalChairperson, isRoleFor, officialName, positionsFor, programsOf, retiredProgramsOf, toSummary, upperName } from "@/lib/data/accounts";
 import { conflictState, readGuard, saveGuarded } from "@/lib/data/edit-guard";
 import { getAccount } from "@/lib/data/queries";
 import { isMissingColumn, store } from "@/lib/data/store";
 import { comelecUnits, positionsForUnit, isYearLevelFor, yearLevelsFor } from "@/lib/applications/options";
 import { getApplication } from "@/lib/applications/admin";
-import { officeOf } from "@/lib/data/accounts";
+import { markOfferJoined } from "@/lib/applications/offer-store";
 import { accountAffiliations, accountPositions, affiliations, type AccountAffiliation, type AccountKind, type AccountPosition, type PortalAccount } from "@/lib/data/types";
 import { checkUpload, deleteUpload, hasFile, saveUpload } from "@/lib/data/uploads";
 import { accountAccessEmail, accountAddedEmail, accountChanges, accountRemovedEmail, accountUpdatedEmail, changesAccess } from "@/lib/notifications/account-emails";
@@ -63,8 +63,10 @@ const personalSchema = z
     if (needs.program && !isYearLevelFor(value.college, value.yearLevel)) issue("yearLevel", "Pick their year level.");
     if (needs.studentNumber && !studentNumberPattern.test(value.studentNumber)) issue("studentNumber", "Use their 10-digit student number.");
     if (needs.college === "required" ? !isUnit(value.college) : needs.college === "optional" && value.college !== "" && !isUnit(value.college)) return issue("college", "Pick their college or faculty from the list.");
+    // A retired program stays valid for whoever already has it.
     const programs = programsOf(value.college);
-    if (needs.program && programs.length > 0 && !programs.includes(value.program)) issue("program", value.program ? "Pick a program from their college’s list." : "Pick their program.");
+    const retired = retiredProgramsOf(value.college).includes(value.program);
+    if (needs.program && programs.length > 0 && !programs.includes(value.program) && !retired) issue("program", value.program ? "Pick a program from their college’s list." : "Pick their program.");
   });
 
 const officialSchema = z
@@ -117,7 +119,7 @@ function personalFields(data: Personal): AccountFields {
     position: data.position,
     role: needs.role ? data.role : "",
     college,
-    program: needs.program && programsOf(college).length > 0 ? data.program : null,
+    program: needs.program && (programsOf(college).length > 0 || retiredProgramsOf(college).includes(data.program)) ? data.program || null : null,
     facebookUrl: data.facebookUrl ? facebookHref(data.facebookUrl) : null,
   };
 }
@@ -222,6 +224,8 @@ async function addAccount(manager: PortalUser, formData: FormData): Promise<Form
   }
   // Told that they've been added, unless they added themselves.
   if (formData.get("notifyEmail") === "on" && added.email !== manager.email) later(() => sendAutomatic("account-added", () => accountAddedEmail(toSummary(added), actorOf(manager))));
+  // Onboarded, or added by hand: an acceptance offer from this unit is taken.
+  await markOfferJoined(added.email, { preferredBody: fields.affiliation, college: fields.college ?? "" });
   refresh();
 }
 
@@ -243,7 +247,6 @@ export async function onboardApplication(id: string): Promise<FormState> {
 
   const position = positionsForUnit(application.preferredBodyId === "local" ? application.college : "").find((item) => item.id === application.positionId);
   if (!position) return { error: "This application’s position is no longer available. Add their account under Accounts instead." };
-  const role = officeOf(position.role);
   const formData = new FormData();
   for (const [key, value] of Object.entries({
     kind: "personal",
@@ -255,8 +258,8 @@ export async function onboardApplication(id: string): Promise<FormState> {
     yearLevel: Object.entries(yearLevelsFor(application.college)).find(([key, label]) => application.yearLevel === key || application.yearLevel === label)?.[0] ?? "",
     studentNumber: application.studentNumber,
     affiliation: application.preferredBodyId,
-    position: "executive-associate",
-    role,
+    position: position.position,
+    role: position.role,
     college: application.college,
     program: application.program,
     facebookUrl: application.facebookUrl,

@@ -1479,13 +1479,13 @@ textarea.portal-setting-textarea { height: auto; line-height: 1.6; max-width: 56
 .portal-visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
 
 /* The application form's college picker (components/combobox.tsx), in portal styling */
-.portal-field .combobox { position: relative; }
-.portal-field .combobox input[role="combobox"] { padding-right: 40px; }
+.portal-field .combobox { min-width: 0; position: relative; }
+.portal-field .combobox input[role="combobox"] { min-width: 0; overflow: hidden; padding-right: 48px; text-overflow: ellipsis; }
 .portal-field .combobox input:disabled { cursor: not-allowed; opacity: .55; }
 .portal-field .combobox.is-pick-only input { caret-color: transparent; cursor: pointer; }
 .portal-field .combobox-toggle { align-items: center; background: none; border: 0; bottom: 0; color: var(--p-muted); cursor: pointer; display: flex; justify-content: center; padding: 0; position: absolute; right: 0; top: 0; width: 40px; }
 .portal-field .combobox-toggle:disabled { cursor: not-allowed; opacity: .5; }
-.portal-field .combobox-toggle svg { transition: transform .2s ease; }
+.portal-field .combobox-toggle svg { flex: none; transition: transform .2s ease; }
 .portal-field .combobox.is-open .combobox-toggle svg { transform: rotate(180deg); }
 .portal-field .combobox-list { background: var(--p-glass), var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 14px; box-shadow: var(--p-shadow-pop); left: 0; list-style: none; margin: 6px 0 0; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; padding: 6px; position: absolute; right: 0; top: 100%; z-index: 10; }
 .portal-field .combobox-list li { border-radius: 9px; cursor: pointer; font-size: 13px; line-height: 1.35; padding: 9px 11px; }
@@ -1751,6 +1751,7 @@ html:has(.portal-registrant-dialog[open]) { overflow: hidden; }
 .portal-search .portal-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 .portal-table-foot { align-items: center; border-top: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; padding: 12px 20px; }
 .portal-table-foot p { color: var(--p-faint); font-size: 11px; margin: 0; }
+.portal-table-foot .portal-participant-capacity { color: var(--p-soft); font-variant-numeric: tabular-nums; margin-left: auto; text-align: right; }
 .portal-pager { display: flex; gap: 6px; }
 .portal-pager .portal-button:disabled { cursor: default; opacity: .35; }
 .portal-table td.is-nowrap { white-space: nowrap; }
@@ -2384,10 +2385,16 @@ button.portal-list-review:focus-visible { outline: 2px solid var(--p-gold-edge);
 .recruitment-slots-summary small { font-size: 16px; font-weight: 400; color: var(--p-muted); }
 .recruitment-slots-summary span { font-size: 12px; color: var(--p-muted); }
 .recruitment-slots-form .portal-recruitment { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; margin-top: 20px; }
-.recruitment-position { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: 12px; min-height: 82px; padding: 17px 0; border-bottom: 1px solid var(--p-line); }
-.recruitment-position:last-child { border-bottom: 0; }
-.recruitment-position-label { display: flex; flex-direction: column; gap: 6px; }
-.recruitment-position-label label { font-size: 13px; line-height: 1.5; cursor: pointer; }
+/* Offices, each with a counter per role it recruits. */
+.recruitment-office { padding: 16px 0 6px; border-top: 1px solid var(--p-line); }
+.recruitment-office:first-child { padding-top: 0; border-top: 0; }
+.recruitment-office-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.recruitment-office-head h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--p-bright); }
+.recruitment-office-head span { font-size: 11.5px; font-weight: 500; color: var(--p-muted); font-variant-numeric: tabular-nums; }
+.recruitment-office-head span.is-open { color: var(--p-ok-ink); }
+.recruitment-position { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: 12px; min-height: 60px; padding: 10px 0 10px 14px; border-left: 1px solid var(--p-line); }
+.recruitment-position-label { display: flex; flex-direction: column; gap: 4px; }
+.recruitment-position-label label { font-size: 13px; font-weight: 500; line-height: 1.5; cursor: pointer; }
 .recruitment-position-label span { font-size: 11px; color: var(--p-muted); }
 .recruitment-position-label span.is-open { color: var(--p-ok-ink); }
 .recruitment-position-count input { text-align: center; font-variant-numeric: tabular-nums; }
@@ -2889,8 +2896,10 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
 .portal-deployment-status-box > .portal-dropdown { flex: none; width: 200px; }
 .portal-deployment .portal-segment svg { display: block; }
 .portal-deployment-settings-head { border-bottom: 1px solid var(--p-line); flex-wrap: wrap; gap: 16px; margin-bottom: 24px; padding-bottom: 20px; }
+.portal-deployment .portal-form-links { margin-left: auto; max-width: 100%; }
 .portal-deployment-settings-title { color: var(--p-bright); font-size: 22px; font-weight: 600; letter-spacing: -.02em; line-height: 1.25; margin: 0; }
 .portal-deployment-settings-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin-left: auto; }
+.portal-deployment-autosave { align-items: center; display: inline-flex; font-variant-numeric: tabular-nums; gap: 6px; }
 .portal-deployment-settings-actions .portal-settings-dirty:empty { display: none; }
 @media (max-width: 600px) {
   .portal-deployment-settings-actions { width: 100%; }
@@ -2900,7 +2909,7 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
   .portal-deployment .portal-form-actions { flex-wrap: wrap; justify-content: flex-end; }
   .portal-event-form-link { flex-wrap: wrap; gap: 12px; }
   .portal-event-form-link-content { flex-basis: calc(100% - 50px); }
-  .portal-event-form-link > button { margin-left: 50px; }
+  .portal-event-form-link > button, .portal-event-form-link > .portal-form-links { margin-left: 50px; }
   .portal-deployment-status-box > .portal-dropdown { width: 100%; }
 }
 

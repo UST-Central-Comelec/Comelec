@@ -36,6 +36,7 @@ function endpoint({ closed = false, insertError = null, uploadFailureAt = -1, ex
     }),
   };
   const route = load("src/app/api/polpar/route.ts", {
+    "@/lib/reference/store": { ensureReferenceData: async () => {} },
     "@/lib/applications/period": period,
     "@/lib/periods/store": { getUnitPeriod: async () => ({ mode: closed ? "closed" : "open", closesAt: null, graceEndsAt: null }) },
     "@/lib/periods/kinds": { unitFromKey: (college) => ({ organizer: college ? "local" : "central", college: college || null }) },
@@ -68,6 +69,13 @@ function request({ data = payload, missing = [], spoof = false, origin = "http:/
 
 (async () => {
   assert(schema.partyRegistrationSchema.safeParse(payload).success);
+  const formatted = schema.partyRegistrationSchema.parse({ ...payload, partyName: "test party", headquarters: "TEST HEADQUARTERS", petitionSignatory: { ...signatory, position: "party PRESIDENT" } });
+  assert.equal(formatted.partyName, "TEST PARTY");
+  assert.equal(formatted.headquarters, "Test Headquarters");
+  assert.equal(formatted.petitionSignatory.position, "Party President");
+  assert.equal(formatted.contactPerson, "TEST REPRESENTATIVE");
+  assert.equal(formatted.officers[0].studentNumber, officer.studentNumber);
+  assert.equal(formatted.email, payload.email);
   assert(!schema.partyRegistrationSchema.safeParse({ ...payload, headquarters: "" }).success);
   assert(schema.partyRegistrationSchema.safeParse({ ...payload, unit: options.comelecUnits[0], headquarters: "" }).success);
   assert(!schema.partyRegistrationSchema.safeParse({ ...payload, petitionDate: "2024-01-01" }).success);

@@ -10,6 +10,7 @@ function load(file, dependencies = {}, cache = new Map()) {
   const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   new Function('require', 'module', 'exports', source)(name => {
     if (name in dependencies) return dependencies[name];
+    if (name.endsWith('.css')) return {};
     if (name.startsWith('@/')) { const target = `src/${name.slice(2)}.ts`; return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     if (name.startsWith('.')) { const target = path.resolve(path.dirname(file), `${name}.ts`); return load(fs.existsSync(target) ? target : `${target}x`, dependencies, cache); }
     return require(name);
@@ -18,6 +19,16 @@ function load(file, dependencies = {}, cache = new Map()) {
   return compiled.exports;
 }
 const rsvp = load('src/lib/events/rsvp.ts');
+const { colleges, unitAbbreviations, filterCollegeOptions } = load('src/lib/applications/options.ts');
+for (const college of colleges) {
+  assert.ok(filterCollegeOptions(colleges, ` ${unitAbbreviations[college].toLowerCase()} `).includes(college), 'Abbreviation searches return full college names');
+}
+assert.deepEqual(filterCollegeOptions(colleges, 'CICS'), ['College of Information and Computing Sciences']);
+assert.deepEqual(filterCollegeOptions(colleges, 'FOP'), ['Faculty of Pharmacy']);
+assert.deepEqual(filterCollegeOptions(colleges, 'PHARMA'), ['Faculty of Pharmacy']);
+assert.deepEqual(filterCollegeOptions(colleges, 'information and computing'), ['College of Information and Computing Sciences']);
+assert.deepEqual(filterCollegeOptions(colleges, 'unknown college'), []);
+assert.deepEqual(filterCollegeOptions(['Other organization', 'External school'], 'school'), ['External school'], 'Other combobox options keep their usual text search');
 const definition = rsvp.defaultRsvpDefinition;
 const editor = load('src/lib/events/form-editor.ts');
 const committees = definition.steps.find(step => step.id === 'rsvp_committees');
@@ -57,6 +68,8 @@ const formUi = load('src/components/events/rsvp-form.tsx', {
   '../application-form-ui.css': {},
   '@/components/portal/toast': { toast: () => {} },
   '@/components/combobox': { Combobox: props => ({ type: 'college-picker', props }) },
+  '@/components/use-form-draft': { useFormDraft: () => ({ restoredAt: null, endsAt: null, expired: false, clear: () => {}, startOver: () => {} }) },
+  '@/components/draft-notice': { DraftNotice: () => null },
 });
 function walk(node) {
   if (!node || typeof node !== 'object') return [];
@@ -125,6 +138,7 @@ let duplicate = false;
 let verifiedPass = null;
 const emailChecks = []; let emailCheckFails = false;
 const actions = load('src/lib/events/rsvp-actions.ts', {
+  '@/lib/reference/store': { ensureReferenceData: async () => {} },
   '@/lib/forms/email-domain': { emailDomainProblem: async email => email.endsWith('@nomail.test') ? 'nomail.test can’t receive email. Check the spelling of the address.' : null },
   './verification': { readEventPass: async () => verifiedPass },
   'next/headers': { headers: async () => new Headers() },

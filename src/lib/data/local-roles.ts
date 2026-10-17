@@ -2,7 +2,8 @@
 // Keep the Central Representative account key used by En Banc and account validation.
 import { CENTRAL_REPRESENTATIVE } from "./types";
 
-export const localRolesByCollege: Record<string, readonly string[]> = {
+// The defaults: Administrative → Database edits each unit's offices (src/lib/reference/data.ts).
+export const localRolesByCollege: Record<string, string[]> = {
   "Alfredo M. Velayo College of Accountancy": [
     "Chairperson",
     "Vice Chairperson",
@@ -311,3 +312,11 @@ export const localRolesByCollege: Record<string, readonly string[]> = {
     CENTRAL_REPRESENTATIVE,
   ],
 };
+
+/**
+ * Roles a unit adds under Administrative → Database → Roles, for its own accounts only, beside the
+ * five every unit has. Each opens the same tabs as the role in `position`, and an account that
+ * holds one has its name as both position and role. "" is the Central Comelec.
+ */
+export type CustomRole = { id: string; name: string; position: "executive-associate" | "deputy" };
+export const customRolesByUnit: Record<string, CustomRole[]> = {};

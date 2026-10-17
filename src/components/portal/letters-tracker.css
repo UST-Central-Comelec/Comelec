@@ -20,8 +20,8 @@
 .portal-letters-table :is(th, td):last-child { padding-left: 12px; }
 .portal-letter-control { font-family: var(--font-geist-mono), monospace; font-size: 12px; }
 .portal-letter-copy { background: none; border: 0; border-radius: 2px; color: inherit; cursor: pointer; font: inherit; margin-inline: -6px; padding: 2px 6px; text-align: left; transition: background-color .15s ease, box-shadow .15s ease; }
-.portal-letter-copy:hover { background: rgba(var(--p-ink),.1); box-shadow: 0 0 0 4px rgba(var(--p-ink),.1); color: var(--p-text); text-decoration: none; }
-.portal-letter-copy:focus-visible { border-radius: 2px; outline: 2px solid var(--p-gold-edge); outline-offset: 4px; }
+.portal-letter-copy:hover, .portal-letter-event:hover { background: rgba(var(--p-ink),.1); box-shadow: 0 0 0 4px rgba(var(--p-ink),.1); color: var(--p-text); text-decoration: none; }
+.portal-letter-copy:focus-visible, .portal-letter-event:focus-visible { border-radius: 2px; outline: 2px solid var(--p-gold-edge); outline-offset: 4px; }
 /* Status and label colours, picked per item under Secretariat → Settings. */
 .is-tone-blue { --tone: #7ba4f8; }
 .is-tone-gold { --tone: var(--p-gold-mark); }
@@ -153,5 +153,8 @@
 .portal-event-documents > .portal-page-head h2 { color: var(--p-bright); font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 0; }
 
 .portal-letters-selector { margin: 20px 0; }
-.portal-letter-event { color: var(--p-muted); display: block; font-size: 12px; line-height: 1.5; margin-top: 5px; text-decoration: underline; text-underline-offset: 3px; }
-.portal-letter-event:hover { color: var(--p-text); }
+.portal-letters-selector .portal-filters > a { align-items: center; display: inline-flex; gap: 7px; }
+.portal-letter-event { border-radius: 2px; color: var(--p-muted); display: block; font-size: 12px; line-height: 1.5; margin-inline: -6px; margin-top: 5px; max-width: 100%; padding: 2px 6px; text-decoration: underline; text-underline-offset: 3px; transition: background-color .15s ease, box-shadow .15s ease; width: fit-content; }
+@media (prefers-reduced-motion: reduce) {
+  .portal-letter-event { transition: none; }
+}

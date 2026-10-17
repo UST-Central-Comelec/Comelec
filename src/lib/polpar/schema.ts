@@ -1,30 +1,31 @@
 import { z } from "zod";
-import { containsEmoji } from "@/lib/forms/input";
+import { containsEmoji, titleCaseText } from "@/lib/forms/input";
 import { email as emailField, mobileNumber, personName, studentNumber } from "@/lib/forms/fields";
 import { comelecUnits } from "@/lib/applications/options";
 
 const text = z.string().trim().min(1, "Complete this field.").max(250, "Use 250 characters or fewer.").refine((value) => !containsEmoji(value), "Emoji aren’t allowed in this field.");
+const titledText = text.transform(titleCaseText);
 // People's names, student numbers, mobile numbers and emails follow the rules every form does (src/lib/forms/fields.ts).
 const name = personName("Complete this field.", 120);
 const date = z.iso.date("Enter a valid date.");
 const email = emailField();
 const student = studentNumber();
 const mobile = mobileNumber();
-const signatory = z.object({ fullName: name, position: text });
-const officer = z.object({ position: text, fullName: name, college: text, studentNumber: student, contactNumber: mobile, email, recruitedAt: date });
+const signatory = z.object({ fullName: name, position: titledText });
+const officer = z.object({ position: titledText, fullName: name, college: titledText, studentNumber: student, contactNumber: mobile, email, recruitedAt: date });
 const member = officer.omit({ position: true, email: true });
-const alumni = z.object({ fullName: name, college: text, yearGraduated: z.string().regex(/^\d{4}$/, "Enter a four-digit graduation year."), contactNumber: mobile });
-const affiliate = z.object({ name: text, college: text, contactPerson: name, contactNumber: mobile, email });
+const alumni = z.object({ fullName: name, college: titledText, yearGraduated: z.string().regex(/^\d{4}$/, "Enter a four-digit graduation year."), contactNumber: mobile });
+const affiliate = z.object({ name: titledText, college: titledText, contactPerson: name, contactNumber: mobile, email });
 export const conformeSchema = z.object({
-  fullName: name, college: text, studentNumber: student, signedOn: date,
+  fullName: name, college: titledText, studentNumber: student, signedOn: date,
   witness1Name: name, witness1Date: date, witness2Name: name, witness2Date: date,
 });
 export type Conforme = z.infer<typeof conformeSchema>;
 export const partyRegistrationFields = z.object({
   unit: z.string().refine((value) => value === "central" || comelecUnits.includes(value), "Select a commission unit."),
-  partyName: text,
+  partyName: text.transform(value => value.toLocaleUpperCase("en-PH")),
   establishedAt: date,
-  headquarters: z.string().trim().max(500).refine((value) => !containsEmoji(value), "Emoji aren’t allowed in this field."),
+  headquarters: z.string().trim().max(500).refine((value) => !containsEmoji(value), "Emoji aren’t allowed in this field.").transform(titleCaseText),
   contactPerson: name,
   contactNumber: mobile,
   email,

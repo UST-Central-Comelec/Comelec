@@ -224,6 +224,7 @@ const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
   "@/components/action-icons": icons,
   "@/lib/portal/letters-return": load("src/lib/portal/letters-return.ts"),
   "@/lib/portal/directory-return": load("src/lib/portal/directory-return.ts"),
+  "@/lib/portal/secretariat-return": load("src/lib/portal/secretariat-return.ts"),
 });
 const allTabs = groups.flatMap(group => group.tabs.map(tab => tab.key));
 const boardNav = renderToStaticMarkup(React.createElement(PortalNav, { tabs: allTabs, collapsed: false, showAccessControl: true }));

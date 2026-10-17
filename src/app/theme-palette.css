@@ -1,4 +1,4 @@
-:root { --ui-button-radius: 6px; --ui-evaluation-status: #3689eb; }
+:root { --ui-button-radius: 6px; --ui-button-black: #040408; --ui-button-on-black: #f3f1eb; --ui-evaluation-status: #3689eb; }
 
 /* A field that needs fixing before a form can be sent (src/components/form-validation.tsx): a red
    edge on the field, and a tooltip that stays dark in both themes, like every tooltip here. */

@@ -176,7 +176,7 @@ body:has(.site-header.is-visible) .ev-side { top: calc(var(--ev-header) + 24px);
 .ev-field input[name="lastName"], .ev-field input[name="firstName"], .ev-field input[name="middleInitial"] { text-transform: uppercase; }
 /* The college, program and year pickers (src/components/combobox.tsx), in this page's colours */
 .ev-field .combobox { position: relative; }
-.ev-field .combobox input[role="combobox"] { padding-right: 44px; }
+.ev-field .combobox input[role="combobox"] { padding-right: 52px; }
 .ev-field .combobox.is-pick-only input { caret-color: transparent; cursor: pointer; }
 .ev-field .combobox-toggle { align-items: center; background: none; border: 0; bottom: 0; color: var(--ev-muted); cursor: pointer; display: flex; height: auto; justify-content: center; padding: 0; position: absolute; right: 0; top: 0; width: 44px; }
 .ev-field .combobox-toggle:disabled { cursor: not-allowed; opacity: .5; }

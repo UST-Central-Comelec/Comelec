@@ -42,8 +42,6 @@ const builder = load('src/components/portal/event-form-editor.tsx', {
   '@dnd-kit/sortable': { SortableContext: props => ({ type: 'sortable', props }), sortableKeyboardCoordinates: () => {}, useSortable: () => sortable, verticalListSortingStrategy: {} },
   '@dnd-kit/utilities': { CSS: { Translate: { toString: () => undefined } } },
   './event-form-editor.css': {},
-  // The view toggle's icons animate; its sliding control is what's checked here.
-  './form-editor-view-toggle': { FormEditorViewToggle: ({ mode, onChange }) => ({ type: 'view-switch', props: { label: 'Editor view', active: mode, onChange, items: [{ key: 'forms', label: 'Forms editor' }, { key: 'preview', label: 'Preview form' }] } }) },
   './dropdown': { Dropdown: props => ({ type: 'dropdown', props }) },
   './multi-dropdown': { MultiDropdown: props => ({ type: 'multi', props }) },
   './sliding-filters': { SlidingFilterButtons: props => ({ type: 'view-switch', props }) },
@@ -57,20 +55,14 @@ function walk(node) {
   return [node, ...walk(node.props?.children)];
 }
 let draft = structuredClone(defaultRsvpDefinition);
-let previewed = null;
 let editorProps = { defaultValue: defaultRsvpDefinition };
-function render() { counts = {}; return walk(builder.EventFormEditor({ title: 'RSVP Form', value: draft, onChange: value => { draft = value; }, allowRating: false, renderPreview: definition => { previewed = definition; return { type: 'preview-marker', props: {} }; }, ...editorProps })); }
+function render() { counts = {}; return walk(builder.EventFormEditor({ title: 'RSVP Form', value: draft, onChange: value => { draft = value; }, allowRating: false, ...editorProps })); }
 const text = node => JSON.stringify(node.props?.children ?? '');
 const findButton = label => render().find(node => node.type === 'button' && (node.props['aria-label'] === label || text(node).includes(label)));
 
-// The two views: the Forms editor first, and a Preview of the public form from the draft.
-const viewSwitch = render().find(node => node.type === 'view-switch');
-assert.deepEqual(viewSwitch.props.items.map(item => item.key), ['forms', 'preview']);
-assert.equal(viewSwitch.props.active, 'forms');
-viewSwitch.props.onChange('preview');
-assert.ok(render().some(node => node.type === 'preview-marker'));
-assert.equal(previewed, draft, 'The preview shows the unsaved draft');
-render().find(node => node.type === 'view-switch').props.onChange('forms');
+// Editing stays in the editor; respondent View Mode has its own page.
+assert.equal(render().some(node => node.props?.label === 'Editor view'), false, 'No inline editor/preview switch remains');
+assert.ok(findButton('Add step'), 'The question editor is always available');
 
 // Steps: new ones go before the Acknowledgement; the consent and acknowledgement can't be moved or deleted.
 findButton('Add step').props.onClick();
@@ -125,6 +117,12 @@ emailSwitch.props.onChange({ target: { checked: false } });
 assert.equal(draft.steps.at(-1).acknowledgement.email, false);
 assert.ok(render().some(node => text(node).includes('Off: no email')), 'The switch says the email is off');
 
+// Reset is locked independently of field editing when the event has no unsaved edits.
+editorProps.resetDisabled = true;
+assert.equal(findButton('Reset to default').props.disabled, true, 'Unchanged events lock Reset');
+editorProps.resetDisabled = false;
+assert.equal(findButton('Reset to default').props.disabled, false, 'Unsaved edits unlock Reset');
+
 // Reset puts the starting form back.
 findButton('Reset to default').props.onClick();
 findButton('Reset form').props.onClick();
@@ -154,5 +152,5 @@ const store = load('src/lib/events/evaluation-store.ts', {
   assert.equal(writes[0].require_google, true, "Editing questions preserves authentication settings");
   assert.equal(writes[0].steps.at(-2).title, 'Follow-up', 'Added steps sit before the Acknowledgement');
   assert.equal(writes[0].steps.at(-1).kind, 'acknowledgement');
-  console.log('Form editor checks passed: Forms editor and Preview, steps before the Acknowledgement, retyping, checkbox limits, Conditional follow-ups, consent and acknowledgement steps, reset, public questions, dynamic definitions, required answer validation, and deployment preservation.');
+  console.log('Form editor checks passed: question editor, steps before the Acknowledgement, retyping, checkbox limits, Conditional follow-ups, consent and acknowledgement steps, reset, public questions, dynamic definitions, required answer validation, and deployment preservation.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

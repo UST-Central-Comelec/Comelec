@@ -21,7 +21,7 @@ function load(file, mocks = {}) {
   return mod.exports;
 }
 const exportsModule = load('src/lib/portal/directory-export.ts');
-const row = { id: 'one', name: 'Peña, María “Ana”', position: 'executive-board', unit: 'Central Comelec', role: 'Chairperson', college: '', program: '', yearLevel: '', email: 'maria@ust.edu.ph', facebookUrl: '', photoUrl: null, studentNumber: '001234', contactNumber: null, chamberRole: null, declarations: [], manageable: false };
+const row = { id: 'one', name: 'Peña, María “Ana”', position: 'executive-board', positionName: 'Executive Board', unit: 'Central Comelec', role: 'Chairperson', college: '', program: '', yearLevel: '', email: 'maria@ust.edu.ph', facebookUrl: '', photoUrl: null, studentNumber: '001234', contactNumber: null, chamberRole: null, declarations: [], manageable: false };
 (async () => {
   const csv = exportsModule.directoryCsv([{ ...row, name: '=HYPERLINK("unsafe")' }]);
   assert.ok(csv.startsWith('\ufeff"Position","Name"'));

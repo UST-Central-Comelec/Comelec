@@ -8,10 +8,10 @@ import { saveSurvey, type SurveyResult } from "@/lib/surveys/actions";
 import { Field } from "./portal-form";
 import { Dropdown } from "./dropdown";
 import { ViewOnly } from "./view-only";
-import { EventFormEditor, FormEditorViewToggle, useFormEditorMode } from "./event-form-editor";
+import { EventFormEditor } from "./event-form-editor";
 import { SlidingFilterButtons } from "./sliding-filters";
 import { scrollToElement } from "@/lib/scroll";
-import { SurveyAnswer } from "./survey-answer";
+import { FormViewModeButton } from "./form-view-mode-button";
 import { toast } from "./toast";
 import { EditConflict, EditPresence } from "./edit-guard";
 import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
@@ -27,7 +27,6 @@ export function SurveyEditor({ initial, section, readOnly = false, guard }: { in
   const formRef = useRef<HTMLFormElement>(null);
   const editorRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState<"details" | "form">(section === "form" ? "form" : "details");
-  const { mode, pickMode } = useFormEditorMode();
   const [saved, setSaved] = useState<SurveyValues>(initial ? { title: initial.title, description: initial.description, status: initial.status, definition: initial.definition } : { title: "", description: "", status: "draft", definition: defaultSurveyDefinition });
   const [draft, setDraft] = useState(saved);
   const [expected, setExpected] = useState(initial?.updatedAt ?? null);
@@ -69,7 +68,7 @@ export function SurveyEditor({ initial, section, readOnly = false, guard }: { in
   return <section ref={editorRef} className="portal-card portal-survey-editor">
     {(section === "new" || questions) && <div className="portal-event-editor-bar">
       {section === "new" && <SlidingFilterButtons active={tab} label="Survey editor tabs" items={[{ key: "details", label: "Details" }, { key: "form", label: "Survey Form" }]} onChange={next => { setTab(next); requestAnimationFrame(() => { if (editorRef.current) scrollToElement(editorRef.current); }); }} />}
-      {tab === "form" && <div className="portal-event-editor-view"><FormEditorViewToggle mode={mode} onChange={pickMode} /></div>}
+      {tab === "form" && <div className="portal-event-editor-view"><FormViewModeButton draft={{ kind: "survey", name: draft.title || "Survey", description: draft.description, definition: draft.definition }} /></div>}
     </div>}
     <EditPresence guard={guard} />
     <form ref={formRef} id={id} className="portal-form" onSubmit={submit} noValidate>
@@ -85,7 +84,7 @@ export function SurveyEditor({ initial, section, readOnly = false, guard }: { in
     </form>
     {questions && <div hidden={tab !== "form"}>
       {locked && <p className="portal-survey-locked" role="status">The questions are locked because this survey has responses. Add a new survey to ask different questions.</p>}
-      <EventFormEditor acknowledgementDelivery="page" title="Survey questions" value={draft.definition} defaultValue={locked ? undefined : defaultSurveyDefinition} disabled={readOnly || pending || locked} onChange={definition => setDraft({ ...draft, definition })} viewMode={mode} actions={readOnly ? undefined : actions(true)} renderPreview={definition => <SurveyAnswer key={JSON.stringify(definition)} preview id="preview" title={draft.title || "Survey"} description={draft.description} updatedAt="" definition={definition} />} />
+      <EventFormEditor acknowledgementDelivery="page" title="Survey questions" value={draft.definition} defaultValue={locked ? undefined : defaultSurveyDefinition} disabled={readOnly || pending || locked} onChange={definition => setDraft({ ...draft, definition })} actions={readOnly ? undefined : actions(true)} />
     </div>}
     {!readOnly && tab === "details" && <footer className="portal-settings-foot"><span className="portal-settings-dirty">{initial && dirty ? "Unsaved changes" : ""}</span>{actions()}</footer>}
   </section>;

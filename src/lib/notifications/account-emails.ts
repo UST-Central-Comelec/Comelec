@@ -1,6 +1,7 @@
+import { positionName } from "@/lib/data/accounts";
 import "server-only";
 
-import { accountAffiliations, accountKinds, accountPositions, chamberRoles, isCommissionerPosition, type AccountSummary } from "@/lib/data/types";
+import { accountAffiliations, accountKinds, chamberRoles, isCommissionerPosition, type AccountSummary } from "@/lib/data/types";
 import type { Email } from "@/lib/email/send";
 import { COMMISSION, button, details, detailsText, divider, escape, greetingName, heading, note, paragraph, shell, siteUrl, status, strong, type Details } from "@/lib/email/template";
 import { formatExpiry } from "@/lib/portal/expiry";
@@ -34,7 +35,7 @@ export const accountRows = (account: Account): Details => [
   ["Account", account.kind === "official" ? accountKinds.official : ""],
   ["Serves in", accountAffiliations[account.affiliation]],
   ["College or faculty", account.college ?? ""],
-  ["Position", account.kind === "official" ? "" : accountPositions[account.position]],
+  ["Position", account.kind === "official" ? "" : positionName(account)],
   ["Role", account.role],
   ["Program", account.program ?? ""],
   ["Student number", account.studentNumber ?? ""],
@@ -46,7 +47,7 @@ const changed = (label: string, before: string, after: string): Details => (befo
 
 /** What differs between an account before and after a save, as rows: "Role: Chairperson (was Vice Chairperson)". Empty when nothing did. */
 export function accountChanges(before: Compared, after: Compared): Details {
-  const position = (account: Compared) => (account.kind === "official" ? "" : accountPositions[account.position]);
+  const position = (account: Compared) => (account.kind === "official" ? "" : positionName(account));
   // Every Local Chairperson is in the chamber; without one of its two roles, as a member.
   const chamber = (account: Compared) => (account.chamberRole ? chamberRoles[account.chamberRole] : "Member");
   return [

@@ -1,5 +1,6 @@
 "use server";
 
+import { ensureReferenceData } from "@/lib/reference/store";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -58,6 +59,7 @@ async function readDeclarations(formData: FormData): Promise<Declaration[] | nul
 }
 
 export async function submitAccessRequest(_state: AccessRequestState, formData: FormData): Promise<AccessRequestState> {
+  await ensureReferenceData();
   // Hidden field that people never see. Bots that fill it get a normal-looking success.
   if (text(formData, "website")) return { submitted: true };
 
@@ -223,10 +225,11 @@ export async function forgetAccessVerification() {
  * and the request goes to the Executive Board like any other.
  */
 export async function loadJoinProfile(referenceCode: string): Promise<{ profile: JoinProfile } | { error: string }> {
+  await ensureReferenceData();
   const pass = await readAccessPass();
   if (!pass) return { error: "Verify your UST account first." };
   const profile = isSupabaseConfigured() ? await findJoinProfile(referenceCode, pass.email) : null;
   return profile
     ? { profile }
-    : { error: `We couldn’t find an accepted application for ${pass.email}. If you applied with another UST account, use that one. Otherwise, fill in your details; your request will go to the Executive Board for review.` };
+    : { error: `We couldn’t find an open acceptance for ${pass.email}. An offer that was declined, or not answered within 14 days, can’t be used to join. If you applied with another UST account, use that one. Otherwise, fill in your details; your request will go to the Executive Board for review.` };
 }

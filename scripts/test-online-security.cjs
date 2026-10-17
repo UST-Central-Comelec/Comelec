@@ -21,7 +21,7 @@ const query = { select() { return this; }, eq() { return this; }, gte() { return
 const { presenceProfile, findOnline } = load('src/lib/portal/presence-store.ts', {
   'server-only': {},
   '@/lib/applications/options': { unitAbbreviations: {} },
-  '@/lib/data/accounts': { toSummary: value => value, describeRole: value => value.role },
+  '@/lib/data/accounts': { toSummary: value => value, describeRole: value => value.role, positionName: value => ({ deputy: 'Deputy', 'executive-board': 'Executive Board' })[value.position] },
   '@/lib/auth/session': { isLocal: value => value.affiliation === 'local', isBuiltInEmail: () => false, canSeeCollege: (viewer, college) => viewer.affiliation !== 'local' || viewer.college === college },
   '@/lib/data/store': { store: { get: async () => account } },
   '@/lib/data/types': { accountPositions: { deputy: 'Deputy' }, accountAffiliations: { local: 'Local Comelec' } },

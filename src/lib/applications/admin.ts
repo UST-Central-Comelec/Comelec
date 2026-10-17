@@ -7,14 +7,15 @@ import { store } from "@/lib/data/store";
 import { applicantName } from "./name";
 import { getApplicationEmailLogs, type ApplicationEmailLog } from "./email-log";
 import { describeSlot, type InterviewMode, type InterviewSlot } from "./interview-format";
-import { isConflictId, preferredBodies, retentionCutoff, yearLevels, type DeclaredConflict } from "./options";
+import { currentPositionLabel, isConflictId, preferredBodies, retentionCutoff, yearLevels, type DeclaredConflict } from "./options";
+import { isOfferResponse, offerStateOf, type OfferState } from "./offer";
 
 export type PreferredBody = keyof typeof preferredBodies;
 
 // Applications as the portal sees them: everything the applicant sent, including contact details.
 // Stored in public.applications (supabase/migrations/0004, 0005, 0013 and 0014).
 
-export { applicationStatuses, statusTag, isApplicationStatus, type ApplicationStatus } from "./status";
+export { applicationStatuses, shownStatus, statusTag, isApplicationStatus, type ApplicationStatus } from "./status";
 import { isApplicationStatus, type ApplicationStatus } from "./status";
 
 export type ApplicationRecord = {
@@ -50,6 +51,8 @@ export type ApplicationRecord = {
   status: ApplicationStatus;
   statusUpdatedAt: string | null;
   statusUpdatedBy: string | null;
+  /** The acceptance offer (supabase/migrations/0088): open until `expiresAt`, or how it was answered and when. */
+  offer: { state: OfferState; expiresAt: string | null; respondedAt: string | null };
   emailLogs: ApplicationEmailLog[];
   emailLogsAvailable: boolean;
   submittedAt: string;
@@ -89,7 +92,7 @@ function toRecord(row: Row): ApplicationRecord {
     preferredBody: preferredBodies[value("preferred_body") as keyof typeof preferredBodies] ?? value("preferred_body"),
     preferredBodyId: value("preferred_body"),
     division: value("division"),
-    position: value("position"),
+    position: currentPositionLabel(value("preferred_body"), value("college"), value("position_id"), value("position")),
     positionId: value("position_id"),
     cvUrl: value("cv_url"),
     registrationFormUrl: (row.registration_form_url as string | null) ?? null,
@@ -103,6 +106,11 @@ function toRecord(row: Row): ApplicationRecord {
     status: isApplicationStatus(row.status) ? row.status : "pending",
     statusUpdatedAt: (row.status_updated_at as string | null) ?? null,
     statusUpdatedBy: (row.status_updated_by as string | null) ?? null,
+    offer: {
+      state: offerStateOf(value("status"), isOfferResponse(row.offer_response) ? row.offer_response : null, (row.offer_expires_at as string | null) ?? null),
+      expiresAt: (row.offer_expires_at as string | null) ?? null,
+      respondedAt: (row.offer_responded_at as string | null) ?? null,
+    },
     emailLogs: [],
     emailLogsAvailable: false,
     submittedAt: value("created_at"),

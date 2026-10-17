@@ -1,6 +1,7 @@
 "use client";
 
 import { CloseIcon as ActionCloseIcon, SaveIcon as ActionSaveIcon } from "@/components/action-icons";
+import { destinationOffices } from "@/lib/letters/offices";
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { eventDocumentSettings, isOfficialEventDocument } from "@/lib/events/document-numbering";
@@ -51,7 +52,8 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
   const letterTypes = eventActions ? tracker.types.filter(type => !isOfficialEventDocument(type.name)) : tracker.types;
   const statusOptions = settings.statuses.map(status => ({ value: status.name, label: status.name }));
   const labelOptions = settings.labels.map(label => ({ value: label.name, label: label.name }));
-  const officeNames = settings.offices.map(office => office.name);
+  // Administrative → Database's offices, then each unit's Dean and Regent. Secretariat → Settings shows the same list.
+  const officeNames = destinationOffices;
   const blank: LetterValues = { ...emptyLetter, type: letterTypes[0]?.name ?? "", status: settings.statuses[0]?.name ?? "" };
   const previewNumber = eventActions?.previewNumber ?? (minutes ? getMinuteNumberPreview : getLetterNumberPreview);
   const saveRecord = eventActions?.saveRecord ?? (minutes ? saveMinute : saveLetter);

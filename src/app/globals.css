@@ -291,12 +291,13 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .track-result > header { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
 .track-result > header span { color: var(--muted); display: block; font-size: 12px; }
 .track-result > header strong { display: block; font-size: 20px; font-weight: 600; margin-top: 2px; }
-.track-status { border-radius: 3px; font-size: 12px; font-weight: 600; padding: 5px 12px; }
-.track-result > header .track-status { color: var(--ink); display: inline-block; font-size: 12px; }
-.track-status.is-pending { background: var(--cream); }
-.track-status.is-reviewing { background: var(--ui-surface-highlight, #fdf3d6); }
-.track-result > header .track-status.is-accepted, .track-status.is-accepted { background: #1f8a4c; color: #fff; }
-.track-result > header .track-status.is-declined, .track-status.is-declined { background: #efe7e5; color: #8a2a1f; }
+/* Where a submission stands: a solid dot in the tone's colour, and neutral words. */
+.track-status { align-items: center; display: inline-flex; font-size: 12px; font-weight: 600; gap: 7px; }
+.track-result > header .track-status { color: var(--ink); display: inline-flex; font-size: 13px; }
+.track-status::before { background: var(--muted); border-radius: 50%; content: ""; flex: none; height: 6px; width: 6px; }
+.track-status:is(.is-pending, .is-reviewing)::before { background: var(--gold); }
+.track-status.is-accepted::before { background: var(--ap-ok, #1f8a4c); }
+.track-status.is-declined::before { background: var(--ap-danger, #b42318); }
 .track-timeline { display: flex; list-style: none; margin: 0; padding: 0; }
 .track-timeline li { align-items: center; color: var(--muted); display: flex; flex: 1; font-size: 13px; font-weight: 500; gap: 8px; position: relative; }
 .track-timeline li:not(:last-child)::after { background: var(--line); content: ""; flex: 1; height: 2px; margin: 0 12px 0 4px; }
@@ -426,11 +427,11 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .apply-form-error { font-size: 13px; margin: 0; }
 .apply-field.has-error :is(input:not([type="radio"]):not([type="checkbox"]), select, textarea) { border-color: var(--ap-danger, #b42318); }
 
-.combobox { position: relative; }
-.combobox input[role="combobox"] { padding-right: 42px; }
+.combobox { min-width: 0; position: relative; }
+.combobox input[role="combobox"] { min-width: 0; overflow: hidden; padding-right: 50px; text-overflow: ellipsis; }
 .combobox-toggle { align-items: center; background: none; border: 0; color: var(--muted); cursor: pointer; display: flex; height: 46px; justify-content: center; position: absolute; right: 0; top: 0; width: 42px; }
 .combobox-toggle:disabled { cursor: not-allowed; opacity: .5; }
-.combobox-toggle svg { transition: transform .2s ease; }
+.combobox-toggle svg { flex: none; transition: transform .2s ease; }
 .combobox.is-open .combobox-toggle svg { transform: rotate(180deg); }
 .combobox-list { background: var(--ap-surface, #fff); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 18px 40px rgba(0,0,0,.12); left: 0; list-style: none; margin: 6px 0 0; max-height: 290px; overflow-y: auto; overscroll-behavior: contain; padding: 6px; position: absolute; right: 0; top: 100%; z-index: 5; }
 /* Each block of a step is a layer of its own (the entrance animation makes it one), so an open list would slide under the blocks
@@ -461,7 +462,11 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .apply-choice-text small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .apply-choices.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .apply-choices.is-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.apply-choices.is-positions { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.apply-choices.is-positions { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+/* The apply form's positions, grouped under each office. */
+.apply-office { display: grid; gap: 8px; }
+.apply-office + .apply-office { margin-top: 10px; }
+.apply-office-name { color: var(--muted); font-size: 12.5px; font-weight: 500; }
 .apply-choice.is-full { background: transparent; border-style: dashed; cursor: not-allowed; opacity: .6; }
 .apply-choice.is-full:hover { border-color: var(--line); }
 .apply-choice.is-full::after { display: none; }
@@ -473,12 +478,26 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .apply-note { background: var(--cream); border-radius: var(--radius-md); font-size: 14px; line-height: 1.6; margin: 0; padding: 14px 18px; }
 /* View mode: a strip replaces the site header, and there's no footer. */
 body.view-mode { padding-top: 0; }
-.view-mode-strip { align-items: center; background: var(--gold); color: var(--ui-text, #1d1c1b); display: flex; font-size: 14px; gap: 10px; line-height: 1.4; min-height: 44px; padding: 8px clamp(16px, 5vw, 96px); position: sticky; top: 0; z-index: 10; }
+.view-mode-strip { align-items: center; background: var(--gold); color: var(--ui-button-black); display: grid; font-size: 14px; line-height: 1.4; min-height: 54px; position: sticky; top: 0; z-index: 10; }
+.view-mode-strip-inner { box-sizing: border-box; margin-inline: auto; max-width: var(--site-max); padding: 12px clamp(16px, 5vw, 96px); width: 100%; }
+.view-mode-strip-inner p { margin: 0; }
 .view-mode-strip strong { font-weight: 600; }
-.view-mode-strip > svg { flex: none; }
-.view-mode-exit { align-items: center; display: inline-flex; flex: none; font-weight: 600; gap: 4px; margin-left: auto; text-decoration: underline; text-underline-offset: 3px; }
-.view-mode-strip:hover .view-mode-exit { text-decoration-thickness: 2px; }
-.view-mode-strip:focus-visible { outline: 2px solid var(--ui-text, #1d1c1b); outline-offset: -4px; }
+.view-mode-exit { align-items: center; background: var(--ui-button-black); border: 1px solid var(--ui-button-black); border-radius: var(--ui-button-radius); color: var(--ui-button-on-black); display: inline-grid; font-size: 13px; font-weight: 600; gap: 6px; grid-auto-flow: column; height: 38px; justify-content: center; left: 8px; padding: 0 10px; position: absolute; text-decoration: none; transition: filter .15s ease; }
+.view-mode-exit:hover { filter: brightness(.94); }
+.view-mode-exit:active { transform: translateY(1px); }
+.view-mode-exit:focus-visible { outline: 2px solid var(--ui-button-black); outline-offset: 3px; }
+.view-mode-strip .view-mode-theme { --sh-text: var(--ui-button-on-black); --sh-gold: var(--gold); --sh-line-strong: var(--ui-button-black); background: var(--ui-button-black); border-color: var(--ui-button-black); color: var(--ui-button-on-black); position: absolute; right: 8px; }
+.view-mode-strip .view-mode-theme:hover { background: var(--ui-button-black); color: var(--gold); }
+@media (max-width: 1279px) {
+  .view-mode-strip { grid-template-columns: auto minmax(0, 1fr) auto; padding-top: 8px; row-gap: 4px; }
+  .view-mode-exit { grid-column: 1; margin-left: 8px; position: static; }
+  .view-mode-strip .view-mode-theme { grid-column: 3; margin-right: 8px; position: static; }
+  .view-mode-strip-inner { grid-column: 1 / -1; grid-row: 2; padding-block: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-mode-exit { transition: none; }
+  .view-mode-exit:active { transform: none; }
+}
 .view-mode .apply-page { min-height: calc(100vh - 44px); }
 .apply-view-mode { align-items: flex-start; background: var(--ui-surface-highlight, #fff8e1); border: 1px solid rgba(var(--ui-accent-rgb, 212,160,23),.45); border-radius: var(--radius-md); color: var(--ink); display: flex; font-size: 14px; gap: 10px; line-height: 1.6; margin: 0; padding: 12px 16px; }
 .apply-view-mode svg { color: var(--ui-accent-mark, #8a6500); flex: none; margin-top: 3px; }
@@ -495,6 +514,27 @@ body.view-mode { padding-top: 0; }
 .apply-privacy-rights svg { color: var(--muted); flex: none; margin-top: 3px; }
 .apply-privacy h4 { font-size: 14px; font-weight: 600; margin: 6px 0 4px; }
 .apply-privacy.has-error { border-color: var(--ap-danger, #b42318); }
+/* The Data Privacy Statement on the Consent step, as on the event forms (EventConsentStatement in event-form-ui.tsx). */
+.apply-privacy .ev-consent-statement { border-bottom: 1px solid var(--line); padding-bottom: 24px; }
+.apply-privacy .ev-consent-statement > header { margin-bottom: 18px; }
+.apply-privacy .ev-consent-statement h3 { color: var(--ink); font-size: 17px; line-height: 1.4; margin: 0 0 2px; }
+.apply-privacy .ev-consent-statement .ev-field-hint { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+.apply-privacy .ev-privacy-clauses { align-items: start; gap: 12px; grid-template-columns: 1fr; }
+.apply-privacy .ev-privacy-clause { background: var(--cream); display: block; padding: 0; }
+.apply-privacy .ev-privacy-clause > summary { align-items: center; cursor: pointer; display: flex; gap: 12px; list-style: none; padding: 16px 18px; }
+.apply-privacy .ev-privacy-clause > summary::-webkit-details-marker { display: none; }
+.apply-privacy .ev-privacy-clause > summary:focus-visible { border-radius: 14px; outline: 2px solid var(--gold); outline-offset: 3px; }
+.apply-privacy .ev-privacy-clause > summary h4 { color: var(--ink); flex: 1; font-size: 14px; font-weight: 600; line-height: 1.5; margin: 0; min-width: 0; }
+.apply-privacy .ev-consent-chevron { color: var(--muted); flex: none; transition: transform .2s cubic-bezier(.22, 1, .36, 1); }
+.apply-privacy .ev-privacy-clause[open] .ev-consent-chevron { transform: rotate(180deg); }
+.apply-privacy .ev-privacy-clause-body { padding: 0 18px 18px; }
+.apply-privacy .ev-privacy-clause p { font-size: 13.5px; line-height: 1.65; overflow-wrap: anywhere; }
+.apply-privacy .ev-privacy-clause p + p { margin-top: 10px; }
+.apply-privacy .ev-privacy-clause strong { color: var(--ink); font-weight: 600; }
+/* The consent box, as on the event forms: a bordered card, its box beside the first line. */
+.apply-privacy > .apply-consent { align-items: center; border-color: var(--line); font-weight: 500; padding: 16px; }
+.apply-privacy > .apply-consent .apply-required { margin: 0 0 0 4px; }
+@media (prefers-reduced-motion: reduce) { .apply-privacy .ev-consent-chevron { transition: none; } }
 .apply-field.has-error .apply-choice { border-color: var(--ap-danger, #b42318); }
 
 .apply-review { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -662,8 +702,6 @@ body.view-mode { padding-top: 0; }
 /* What can't be said with a token. :where() keeps each of these exactly as strong as the rule it restates. */
 :where(:root:not([data-theme="light"])) .apply-result-code { background: var(--ap-pick); border: 1px solid var(--ap-pick-edge); color: var(--ink); }
 :where(:root:not([data-theme="light"])) .apply-result-code span { color: var(--muted); }
-:where(:root:not([data-theme="light"])) .apply-page .track-status.is-reviewing { background: rgba(var(--ui-accent-rgb, 254,195,12),.14); color: var(--ui-accent-soft, #ffe28a); }
-:where(:root:not([data-theme="light"])) .apply-page .track-status.is-declined { background: rgba(255,107,125,.12); color: #ff9aa6; }
 :where(:root:not([data-theme="light"])) .apply-page .interview-day.has-slots:hover { background: rgba(255,255,255,.12); }
 :where(:root:not([data-theme="light"])) .apply-page .apply-steps .is-upcoming .apply-step-index { background: rgba(255,255,255,.14); color: #a3a1ac; }
 :where(:root:not([data-theme="light"])) .apply-page .apply-view-mode { background: rgba(var(--ui-accent-rgb, 254,195,12),.08); }
@@ -725,4 +763,30 @@ body.view-mode { padding-top: 0; }
 .track-edit-request .button-primary:disabled { opacity: .5; }
 .track-edit-changes { color: var(--ink); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
 .track-edit-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
-.track-edit-cancel { background: var(--ap-surface); border: 1px solid var(--line); border-radius: var(--ui-button-radius); color: var(--ink); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; padding: 10px 16px; }
+.track-edit-cancel, .track-button-ghost { background: var(--ap-surface); border: 1px solid var(--line); border-radius: var(--ui-button-radius); color: var(--ink); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; padding: 10px 16px; }
+.track-button-ghost { min-height: 40px; transition: background-color .15s ease, border-color .15s ease; }
+.track-button-ghost:not(:disabled):hover { background: rgba(var(--ap-ink-rgb, 29,28,27), .06); }
+.track-button-ghost:not(:disabled):active, .track-decline-confirm:not(:disabled):active { transform: translateY(1px); }
+.track-button-ghost:disabled, .track-decline-confirm:disabled { cursor: progress; opacity: .5; }
+.track-button-ghost:focus-visible, .track-decline-confirm:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* An open acceptance on the tracker: Join the Commission, or Decline after a confirmation. */
+.track-offer { border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; padding-top: 20px; }
+.track-offer-prompt { color: var(--ink); font-size: 15px; font-weight: 500; line-height: 1.6; margin: 0; }
+.track-offer-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
+.apply-page .track-offer .button-primary { border: 0; font-size: 13px; min-height: 40px; padding: 10px 18px; }
+
+/* The confirmation before declining: the Apply family's own surface, over a blurred veil. */
+.track-dialog { animation: track-dialog-in .22s cubic-bezier(.22, 1, .36, 1) both; background: var(--ap-surface, #fff); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px -24px rgba(0,0,0,.55); color: var(--ink); font-family: var(--font-sans), system-ui, sans-serif; inset: 0; margin: auto; max-width: min(480px, calc(100vw - 32px)); padding: 28px; position: fixed; }
+.track-dialog::backdrop { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); background: color-mix(in srgb, var(--paper, #030305) 70%, transparent); }
+.track-dialog h2 { font-size: 21px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; margin: 0 0 10px; }
+.track-dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 10px; }
+.track-dialog p strong { color: var(--ink); font-weight: 600; }
+.track-dialog .apply-form-error { color: var(--ap-danger, #b42318); margin-top: 4px; }
+.track-dialog-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+/* Like the portal's delete and dismiss controls: solid ink, red on hover or focus. */
+.track-decline-confirm { background: var(--ap-solid, var(--ink)); border: 0; border-radius: var(--ui-button-radius); color: var(--ap-on-solid, #fff); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; min-height: 40px; padding: 10px 16px; transition: background-color .15s ease; }
+.track-decline-confirm:not(:disabled):is(:hover, :focus-visible) { background: var(--ap-danger, #b42318); }
+html:has(.track-dialog[open]) { overflow: hidden; }
+@keyframes track-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .track-dialog { animation: none; } .track-button-ghost, .track-decline-confirm { transition: none; } }

@@ -1,6 +1,6 @@
 "use client";
 import { AddIcon as ActionAddIcon } from "@/components/action-icons";
-import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { DndContext, KeyboardSensor, MeasuringStrategy, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -10,22 +10,8 @@ import { acknowledgementTags, fieldKinds, type Acknowledgement, type EditorDefin
 import { findField, insertFields, isFixedStep, keepsOrder, patchStep, placeField, placeStep, removeStep } from "@/lib/events/form-flow";
 import { FieldEditor, fieldProblem, hasChoices, IconButton, kindIcons, plural } from "./form-field-editor";
 import { formTools, MAX_STEPS, newId, StepSettings, type FormTools } from "./form-editor-tools";
-import { FormEditorViewToggle } from "./form-editor-view-toggle";
 import { toast } from "./toast";
 import "./event-form-editor.css";
-
-export type Mode = "forms" | "preview";
-const MODE_KEY = "comelec:form-editor-mode";
-const noSubscribe = () => () => {};
-const readMode = (): Mode | null => { try { return localStorage.getItem(MODE_KEY) === "preview" ? "preview" : null; } catch { return null; } };
-export function useFormEditorMode() {
-  const stored = useSyncExternalStore(noSubscribe, readMode, () => null);
-  const [picked, setPicked] = useState<Mode | null>(null);
-  function pickMode(next: Mode) { setPicked(next); try { localStorage.setItem(MODE_KEY, next); } catch { /* Storage is optional. */ } }
-  return { mode: picked ?? stored ?? "forms", pickMode };
-}
-
-export { FormEditorViewToggle };
 
 const stepKey = (id: string) => `step:${id}`;
 const fieldKey = (id: string) => `field:${id}`;
@@ -33,36 +19,32 @@ const fieldKey = (id: string) => `field:${id}`;
 const pinned = (step: EditorStep) => isFixedStep(step) || step.builtin === 0;
 
 /**
- * The editor behind the RSVP and Evaluation forms, with a Preview of the form as respondents see it.
+ * The editor behind the RSVP and Evaluation forms, for configuring questions and steps.
  * Steps run down the left and the open step's questions on the right, each one a summary line until
  * opened. Steps and questions are reordered by dragging their grips (or with the keyboard); a
  * question dropped on a step in the list moves there. Every form starts with the Data Privacy
  * Consent and ends with the Acknowledgement (what respondents see, and are emailed, after).
  */
-export function EventFormEditor({ title, value, onChange, disabled = false, allowRating = true, defaultValue, onReset, actions, renderPreview, viewMode, acknowledgementDelivery = "page-and-email" }: {
+export function EventFormEditor({ title, value, onChange, disabled = false, resetDisabled = false, allowRating = true, defaultValue, onReset, actions, headerActions, acknowledgementDelivery = "page-and-email" }: {
   title: string;
   acknowledgementDelivery?: "page" | "page-and-email";
   value: EditorDefinition;
   onChange: (value: EditorDefinition) => void;
   disabled?: boolean;
+  resetDisabled?: boolean;
   allowRating?: boolean;
   defaultValue?: EditorDefinition;
   /** Called after a reset, for settings that live outside the definition. */
   onReset?: () => void;
-  /** The page's own buttons (Cancel and Save), kept beside Reset at the top. */
+  /** The page's own buttons (Cancel and Save), kept on the right side of the footer. */
   actions?: ReactNode;
-  /** The public form, drawn from the definition being edited. */
-  renderPreview?: (definition: EditorDefinition) => ReactNode;
-  viewMode?: Mode;
+  headerActions?: ReactNode;
 }) {
-  // The view last used is remembered on this browser; the server's page starts on the Forms editor.
-  const { mode: localMode, pickMode } = useFormEditorMode();
-  const mode: Mode = renderPreview ? viewMode ?? localMode : "forms";
   const [confirmReset, setConfirmReset] = useState(false);
   const [resets, setResets] = useState(0);
   const total = value.steps.reduce((sum, item) => sum + item.fields.filter(field => field.kind !== "content" && field.kind !== "image").length, 0);
   function reset() {
-    if (!defaultValue) return;
+    if (!defaultValue || disabled || resetDisabled) return;
     onChange(defaultValue);
     onReset?.();
     setConfirmReset(false);
@@ -70,33 +52,32 @@ export function EventFormEditor({ title, value, onChange, disabled = false, allo
   }
 
   return (
-    <section className={`form-builder${mode === "preview" ? " is-preview" : ""}`} aria-label={`${title} editor`}>
+    <section className="form-builder" aria-label={`${title} editor`}>
       <header className="form-builder-head">
         <div>
           <h2>{title}</h2>
           <p>{plural(value.steps.length, "step")} · {plural(total, "question")}</p>
         </div>
         <div className="form-builder-head-actions">
-          {!confirmReset && renderPreview && viewMode === undefined && <FormEditorViewToggle mode={mode} onChange={pickMode} />}
-          {defaultValue && (confirmReset ? (
-            <div className="form-builder-reset" role="group" aria-label="Confirm reset">
-              <span>Put back the default steps and questions? Your changes and added questions are removed when you save.</span>
-              <button className="portal-button is-small" type="button" onClick={reset}>Reset form</button>
-              <button className="portal-button is-small is-ghost" type="button" onClick={() => setConfirmReset(false)}>Keep editing</button>
-            </div>
-          ) : (
-            <button className="portal-button is-small is-ghost" type="button" disabled={disabled} onClick={() => setConfirmReset(true)}><RotateCcw size={14} aria-hidden="true" />Reset to default</button>
-          ))}
-          {actions && !confirmReset && <><span className="form-builder-head-rule" aria-hidden="true" />{actions}</>}
+          {headerActions}
         </div>
       </header>
 
-      {mode === "preview" && renderPreview ? (
-        <div className="form-preview">
-          <p className="form-preview-note"><Eye size={14} aria-hidden="true" />A preview of the unsaved form. Answers here aren’t sent, and every step can be visited.</p>
-          <div className="form-preview-frame">{renderPreview(value)}</div>
+      <FormsView acknowledgementDelivery={acknowledgementDelivery} key={resets} title={title} value={value} onChange={onChange} disabled={disabled} allowRating={allowRating} />
+      {(defaultValue || actions) && <footer className="portal-form-footer form-builder-footer">
+        <div className="form-builder-footer-reset">
+          {defaultValue && (confirmReset ? (
+            <div className="form-builder-reset" role="group" aria-label="Confirm reset">
+              <span>Put back the default steps and questions? Your changes and added questions are removed when you save.</span>
+              <button className="portal-button" type="button" disabled={disabled || resetDisabled} onClick={reset}>Reset form</button>
+              <button className="portal-button is-ghost" type="button" onClick={() => setConfirmReset(false)}>Keep editing</button>
+            </div>
+          ) : (
+            <button className="portal-button is-ghost portal-form-reset" type="button" disabled={disabled || resetDisabled} onClick={() => setConfirmReset(true)}><RotateCcw size={14} aria-hidden="true" />Reset to default</button>
+          ))}
         </div>
-      ) : <FormsView acknowledgementDelivery={acknowledgementDelivery} key={resets} title={title} value={value} onChange={onChange} disabled={disabled} allowRating={allowRating} />}
+        {actions}
+      </footer>}
     </section>
   );
 }

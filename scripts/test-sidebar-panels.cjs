@@ -27,6 +27,7 @@ const { PortalNav, trail } = load("src/components/portal/portal-nav.tsx", {
   "@/components/action-icons": icons,
   "@/lib/portal/letters-return": load("src/lib/portal/letters-return.ts"),
   "@/lib/portal/directory-return": load("src/lib/portal/directory-return.ts"),
+  "@/lib/portal/secretariat-return": load("src/lib/portal/secretariat-return.ts"),
 });
 const props = { tabs: ["dashboard", "charters/constitution", "charters/elections-code", "documents/archive", "accounts"], collapsed: false, showAccessControl: false, onExpand: () => expanded++ };
 function walk(node) {

@@ -11,10 +11,12 @@ import { PartyRegistrationForm } from "@/components/polpar/registration-form";
 import { PageBanner } from "@/components/page-banner";
 import "../banner-page.css";
 import "./party-registration.css";
+import { ensureReferenceData } from "@/lib/reference/store";
 
 export const metadata: Metadata = { title: "Political Party Registration" };
 
 export default async function PartyRegistrationPage({ searchParams }: PageProps<"/party-registration">) {
+  await ensureReferenceData();
   // Every unit opens and closes its own from the portal (PolPaR → Settings), so read them on every request.
   await connection();
   const periods = await listUnitPeriodsForSite("party-registration");

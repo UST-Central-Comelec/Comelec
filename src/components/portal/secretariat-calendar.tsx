@@ -122,7 +122,7 @@ type Selection = { anchor: string; start: string; end: string };
 /** `updatedAt`: when the highlight being edited was last saved, so a save doesn’t silently replace someone else’s. */
 type HighlightDraft = { id: string | null; start: string; end: string; kind: HighlightKind; color: HighlightColor; label: string; updatedAt?: string };
 type UnitFilter = "all" | "central" | `unit:${string}`;
-const unitFilters: Array<[UnitFilter, string]> = [
+const unitFilterList = (): Array<[UnitFilter, string]> => [
   ["all", "All units"],
   ["central", "Central Comelec"],
   ...comelecUnits.map((college): [UnitFilter, string] => [`unit:${college}`, unitAbbreviations[college] ? `${college} (${unitAbbreviations[college]})` : college]),
@@ -139,6 +139,7 @@ export function SecretariatCalendar({ today, entries, data, readOnly, canAddEven
   loadError: string | null;
 }) {
   const unitLabelId = useId();
+  const unitFilters = unitFilterList();
   const [month, setMonth] = useState(today.slice(0, 7));
   const [direction, setDirection] = useState(0);
   const [view, setView] = useState<"month" | "agenda">("month");
@@ -318,7 +319,7 @@ export function SecretariatCalendar({ today, entries, data, readOnly, canAddEven
           <div className="cal-toolbar-tools">
             <div className="portal-field cal-units">
               <span id={unitLabelId} className="portal-visually-hidden">Whose events</span>
-              <Combobox key={unitFilter} name="calendar-unit" options={unitFilters.map(([, label]) => label)} value={unitFilters.find(([value]) => value === unitFilter)![1]} onChange={label => {
+              <Combobox key={unitFilter} name="calendar-unit" options={unitFilters.map(([, label]) => label)} value={unitFilters.find(([value]) => value === unitFilter)?.[1] ?? "All units"} onChange={label => {
                 const choice = unitFilters.find(([, text]) => text === label);
                 if (choice) setUnitFilter(choice[0]);
               }} labelledBy={unitLabelId} placeholder="Search unit or abbreviation…" filterOptions={rankUnitLabels} emptyText="No matching unit." />

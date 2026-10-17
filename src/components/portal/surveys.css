@@ -6,7 +6,6 @@
 .portal-survey-editor > [hidden] { display: none; }
 .portal-survey-editor .portal-event-editor-bar { margin-bottom: 4px; }
 .portal-survey-editor .portal-form-section > legend { margin: 0; }
-.portal-survey-editor .form-preview-frame { background: transparent; border: 0; border-radius: 0; padding: 0; }
 .portal-shell .ev-form-preview:has(.portal-survey-form) { max-width: none; width: 100%; }
 .portal-survey-form { border: 1px solid var(--p-line); border-radius: var(--p-radius); overflow: hidden; }
 .portal-survey-form-banner { background: var(--p-onyx); color: var(--ui-text-on-dark); padding: 24px clamp(18px, 3vw, 32px); }
@@ -36,3 +35,8 @@
 
 .portal-surveys .portal-row-actions > a.portal-list-review { background: transparent; border: 0; border-radius: 0; color: var(--p-soft); display: inline-flex; padding: 0; }
 .portal-surveys a.portal-row-title:hover { text-decoration: none !important; }
+
+.view-mode .portal-survey-form { --p-line: var(--ev-line); --p-radius: 20px; --p-bright: var(--ev-bright); --p-surface-2: var(--ev-raised); --p-soft: var(--ev-soft); --p-ok-ink: var(--ev-text); }
+.view-mode .portal-survey-answer .portal-settings-foot { align-items: center; border-top: 1px solid var(--ev-line); display: flex; flex-wrap: wrap; justify-content: space-between; margin-top: 24px; padding-top: 20px; }
+
+.view-mode .portal-survey-form-banner { display: none; }

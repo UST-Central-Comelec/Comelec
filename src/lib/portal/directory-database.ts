@@ -1,5 +1,6 @@
 import { yearLevelsFor } from "@/lib/applications/options";
-import { accountPositions, chamberRoles, describeAffiliation, type AccountSummary, type DirectoryEntry } from "@/lib/data/types";
+import { positionName } from "@/lib/data/accounts";
+import { chamberRoles, describeAffiliation, type AccountSummary, type DirectoryEntry } from "@/lib/data/types";
 import type { DirectoryDatabaseRow } from "@/components/portal/directory-database";
 import { canManageAccount, type Manager } from "./account-scope";
 
@@ -9,7 +10,7 @@ export function filterDirectoryDatabase(people: DirectoryDatabaseRow[], unit: st
   const terms = normalize(query).split(/\s+/).filter(Boolean);
   return people.filter(person => {
     if (unit && person.unit !== unit) return false;
-    const text = normalize([person.name, person.unit, person.college, person.role, accountPositions[person.position], person.chamberRole ? chamberRoles[person.chamberRole] : ""].join(" "));
+    const text = normalize([person.name, person.unit, person.college, person.role, person.positionName, person.chamberRole ? chamberRoles[person.chamberRole] : ""].join(" "));
     return terms.every(term => text.includes(term));
   });
 }
@@ -27,7 +28,7 @@ export function directoryDatabaseRows(people: DirectoryEntry[], accounts: Accoun
         : person.name;
       return {
         id: person.id, name, unit: describeAffiliation(person.affiliation, person.college),
-        position: person.position, role: person.role, college: person.college ?? "", program: person.program ?? "",
+        position: person.position, positionName: positionName(person), role: person.role, college: person.college ?? "", program: person.program ?? "",
         yearLevel: account?.yearLevel ? (yearLevelsFor(person.college)[account.yearLevel] ?? "") : "",
         email: person.email, facebookUrl: person.facebookUrl ?? "", photoUrl: person.photoUrl,
         studentNumber: reach ? account?.studentNumber ?? "" : null,

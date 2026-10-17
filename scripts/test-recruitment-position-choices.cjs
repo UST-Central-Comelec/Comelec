@@ -1,7 +1,7 @@
 // Run with: node scripts/test-recruitment-position-choices.cjs
 /* eslint-disable @typescript-eslint/no-require-imports -- Test the form without a Next.js server. */
 const assert = require("node:assert/strict");
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const path = require("node:path");
 const ts = require("typescript");
 const React = require("react");
@@ -29,6 +29,8 @@ const hooks = {
   useId: () => `test-${cursor++}`,
 };
 const emptyComponent = () => null;
+// The banner's session slot is looked up once hydrated; there's no banner here.
+global.document ??= { getElementById: () => null };
 const mocks = {
   react: hooks,
   "next/link": emptyComponent,
@@ -41,6 +43,8 @@ const mocks = {
   "@/components/facebook-profile-input": { FacebookProfileInput: emptyComponent },
   "@/components/interview-picker": { InterviewPicker: emptyComponent },
   "@/components/lucide-animated/download": { DownloadIcon: emptyComponent },
+  "@/components/use-form-draft": { useFormDraft: () => ({ restoredAt: null, endsAt: null, expired: false, clear: () => {}, startOver: () => {} }) },
+  "@/components/draft-notice": { DraftExpired: emptyComponent, DraftStrip: emptyComponent },
 };
 const cache = new Map();
 function load(file) {
@@ -52,9 +56,11 @@ function load(file) {
   const compiled = { exports: {} };
   new Function("require", "module", "exports", source)((name) => {
     if (Object.hasOwn(mocks, name)) return mocks[name];
-    if (name.startsWith("@/")) return load(`src/${name.slice(2)}.ts`);
+    if (name.endsWith(".css")) return {};
+    const source = (base) => (existsSync(`${base}.ts`) ? `${base}.ts` : `${base}.tsx`);
+    if (name.startsWith("@/")) return load(source(`src/${name.slice(2)}`));
     if (name === "./portal-form") return mocks["@/components/portal/portal-form"];
-    if (name.startsWith(".")) return load(path.resolve(path.dirname(file), `${name}.ts`));
+    if (name.startsWith(".")) return load(source(path.resolve(path.dirname(file), name)));
     return require(name);
   }, compiled, compiled.exports);
   cache.set(file, compiled.exports);
@@ -250,13 +256,13 @@ states = []; cursor = 0;
 const pharmacyUnit = "Faculty of Pharmacy";
 const recruitment = RecruitmentForm({ action: () => {}, slots: { "ea-finance-officer": 3 }, unit: pharmacyUnit });
 const markup = text(recruitment);
-assert.match(markup, /Executive Assistant to the Finance Head/);
-assert.match(markup, /Executive Assistant to the Internal Public Information Officer/);
-assert.match(markup, /Executive Assistant to the External Public Information Officer/);
+assert.match(markup, /Executive Associate to the Finance Head/);
+assert.match(markup, /Executive Associate to the Internal Public Information Officer/);
+assert.match(markup, /Executive Associate to the External Public Information Officer/);
 assert.doesNotMatch(markup, /Division|recruitment-division/);
 assert.equal(field(recruitment, "slots-ea-finance-officer").props.value, "3");
 assert.equal((markup.match(/type="number"/g) ?? []).length, positionsForUnit(pharmacyUnit).length);
-const pharmacyPosition = positionsForUnit(pharmacyUnit).find((choice) => choice.role === "Internal Public Information Officer");
+const pharmacyPosition = positionsForUnit(pharmacyUnit).find((choice) => choice.office === "Internal Public Information Officer" && choice.kind === "associate");
 const pharmacyProps = { ...base, preset: { body: "local", college: pharmacyUnit }, bodies: { central: true, colleges: [pharmacyUnit] }, unitSlots: { [pharmacyUnit]: { [pharmacyPosition.id]: 1, "ea-public-information-officer": 4 } } };
 states = [3]; tree = render(pharmacyProps);
 assert.ok(field(tree, "position", pharmacyPosition.id));

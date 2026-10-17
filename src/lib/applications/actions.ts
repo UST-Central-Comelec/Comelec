@@ -1,6 +1,8 @@
 "use server";
 
+import { ensureReferenceData } from "@/lib/reference/store";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { personNamePattern } from "@/lib/forms/input";
 import { after } from "next/server";
 import { getEvent } from "@/lib/events/queries";
@@ -22,16 +24,19 @@ import { openBodies } from "@/lib/periods/summary";
 import { createAdminClient } from "@/lib/supabase/server";
 import { describeAnswers, interviewLater, type AnswerSection } from "./answers";
 import { clearApplyPageCache } from "./apply-cache";
-import { applicationNoticeEmail, confirmationEmail } from "./emails";
+import { applicationNoticeEmail, confirmationEmail, offerDeclinedEmail } from "./emails";
+import { isOfferResponse, offerStateOf, type OfferState } from "./offer";
+import { declineOffer } from "./offer-store";
+import { joinCommissionUrl } from "./onboarding";
 import { sendApplicationEmail } from "./email-log";
 import { describeSlot, type InterviewMode } from "./interview-format";
 import { applicantName, isMiddleNameColumnMissing } from "./name";
 import { getOpenSlots } from "./interviews";
-import { positionsForUnit, preferredBodies, retentionCutoff, yearLevels } from "./options";
+import { currentPositionLabel, positionsForUnit, preferredBodies, retentionCutoff, yearLevels } from "./options";
 import { newReferenceCode, parseReferenceCode } from "./reference";
 import { applicationFields, checkFields, closedBodyError, declaredConflicts, readApplication, type ApplicationField } from "./schema";
 import { getSlots } from "./slots";
-import { existingCommissionAccount } from "./account-eligibility";
+import { existingCommissionAccount, hasUnitAccount } from "./account-eligibility";
 import { getCommissionAccounts } from "./account-lookup";
 import { clearPass, readPass } from "./verification";
 
@@ -56,13 +61,20 @@ type TrackedApplicationRow = {
   preferred_body: string;
   division: string;
   position: string;
+  position_id: string | null;
   college: string;
   program: string;
   year_level: string;
   interview_slots: unknown;
+  email: string;
+  student_number: string;
+  offer_response?: string | null;
+  offer_expires_at?: string | null;
+  offer_responded_at?: string | null;
 };
 
 export async function submitApplication(_state: ApplicationState, formData: FormData): Promise<ApplicationState> {
+  await ensureReferenceData();
   // Hidden field that people never see. Bots that fill it get a normal-looking success.
   if (text(formData, "website")) return { submitted: true };
 
@@ -143,6 +155,10 @@ export async function submitApplication(_state: ApplicationState, formData: Form
     if (error?.message.includes("interview_slot_full")) {
       return { error: "Check the highlighted fields.", fieldErrors: { interviewSlot: "That time just filled up. Pick another." } };
     }
+    // The database's check of a declined or lapsed offer's 60-day wait (0088).
+    if (error?.message.includes("application_hold")) {
+      return { error: "Check the highlighted fields.", fieldErrors: { preferredBody: "You declined this unit’s offer, or let it lapse, less than 60 days ago. Contact the commission to be considered sooner." } };
+    }
     if (error?.message.includes("commission_account_exists")) {
       return { error: "Check the highlighted fields.", fieldErrors: { preferredBody: values.preferredBody === "central" ? "You already have a Central Commission Account." : `You already have a Local Commission Account in ${values.college}.` } };
     }
@@ -209,7 +225,11 @@ export type TrackedApplication = {
   program: string;
   yearLevel: string;
   interview: string | null;
+  /** The acceptance offer: open until `expiresAt` (none for acceptances sent before offers had a deadline), or how it was answered. */
+  offer: TrackedOffer;
 };
+
+export type TrackedOffer = { state: OfferState; expiresAt: string | null; respondedAt: string | null; joinUrl: string | null };
 
 /** A portal access request (PA- code), as its requester sees it when tracking. */
 export type TrackedAccessRequest = {
@@ -325,42 +345,106 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
     return { entered, lookupStamp: crypto.randomUUID(), accessRequest: { editRequest: await pendingSubmissionEditRequest("access", request.id).catch(() => null), referenceCode: code, name, email, status, submittedAt, role, college, program, yearLevel } };
   }
 
-  const readTrackedApplication = (withMiddleName: boolean) => {
-    const columns = "id, reference_code, first_name, middle_initial, last_name, status, created_at, preferred_body, division, position, college, program, year_level, interview_slots(starts_at, duration_minutes, mode, location)";
+  try {
+    const data = await findTrackedApplication(referenceCode, isStudentNumber ? studentNumber : lastNamePattern, isStudentNumber);
+    // Same message either way, so the form doesn't reveal which half was wrong.
+    if (!data) return { error: "We couldn’t find an application with that reference code and student number or last name. Check both and try again.", entered };
+    return { entered, lookupStamp: crypto.randomUUID(), application: await toTrackedApplication(data) };
+  } catch (error) {
+    console.error("Couldn’t look up application:", error instanceof Error ? error.message : error);
+    return { error: "Something went wrong looking up your application. Please try again.", entered };
+  }
+}
+
+/** A CC- application by its reference code and student number or last name (`identity`, escaped for ilike), within its 60 days. */
+async function findTrackedApplication(referenceCode: string, identity: string, isStudentNumber: boolean) {
+  // The position is shown as its unit's office is called now (Administrative → Database).
+  await ensureReferenceData();
+  const read = (withMiddleName: boolean, withOffer: boolean) => {
+    const columns = `id, reference_code, first_name, middle_initial, last_name, email, student_number, status, created_at, preferred_body, division, position, position_id, college, program, year_level, ${withOffer ? "offer_response, offer_expires_at, offer_responded_at, " : ""}interview_slots(starts_at, duration_minutes, mode, location)`;
     const query = createAdminClient()
       .from("applications")
       .select<string>(withMiddleName ? `middle_name, ${columns}` : columns)
       .eq("reference_code", referenceCode)
       .gte("created_at", retentionCutoff());
-    return (isStudentNumber ? query.eq("student_number", studentNumber) : query.ilike("last_name", lastNamePattern)).maybeSingle().overrideTypes<TrackedApplicationRow | null, { merge: false }>();
+    return (isStudentNumber ? query.eq("student_number", identity) : query.ilike("last_name", identity)).maybeSingle().overrideTypes<TrackedApplicationRow | null, { merge: false }>();
   };
-  let result = await readTrackedApplication(true);
-  if (isMiddleNameColumnMissing(result.error)) result = await readTrackedApplication(false);
-  const { data, error } = result;
-
-  if (error) {
-    console.error("Couldn’t look up application:", error.message);
-    return { error: "Something went wrong looking up your application. Please try again.", entered };
+  let withMiddleName = true;
+  let withOffer = true;
+  let result = await read(withMiddleName, withOffer);
+  // Before migrations 0033 and 0088.
+  for (let attempt = 0; attempt < 2 && result.error; attempt++) {
+    if (isMiddleNameColumnMissing(result.error)) withMiddleName = false;
+    else if (result.error.message.includes("offer_")) withOffer = false;
+    else break;
+    result = await read(withMiddleName, withOffer);
   }
-  // Same message either way, so the form doesn't reveal which half was wrong.
-  if (!data) return { error: "We couldn’t find an application with that reference code and student number or last name. Check both and try again.", entered };
+  if (result.error) throw new Error(result.error.message);
+  return result.data;
+}
 
+async function toTrackedApplication(data: TrackedApplicationRow): Promise<TrackedApplication> {
+  let state = offerStateOf(data.status, isOfferResponse(data.offer_response) ? data.offer_response : null, data.offer_expires_at ?? null);
+  // Added under Accounts or onboarded, but not marked yet: their offer was taken.
+  if (state === "open" && hasUnitAccount(await getCommissionAccounts(data.email).catch(() => undefined), data.preferred_body, data.college)) state = "joined";
   return {
-    entered,
-    lookupStamp: crypto.randomUUID(),
-    application: {
-      editRequest: await pendingSubmissionEditRequest("application", data.id).catch(() => null),
-      referenceCode: data.reference_code,
-      name: applicantName(data),
-      status: data.status as ApplicationStatus,
-      submittedAt: data.created_at,
-      preferredBody: preferredBodies[data.preferred_body as keyof typeof preferredBodies] ?? data.preferred_body,
-      division: data.division,
-      position: data.position,
-      college: data.college,
-      program: data.program,
-      yearLevel: yearLevels[data.year_level as keyof typeof yearLevels] ?? data.year_level,
-      interview: interviewOf(data.interview_slots),
-    },
+    editRequest: await pendingSubmissionEditRequest("application", data.id).catch(() => null),
+    referenceCode: data.reference_code,
+    name: applicantName(data),
+    status: data.status as ApplicationStatus,
+    submittedAt: data.created_at,
+    preferredBody: preferredBodies[data.preferred_body as keyof typeof preferredBodies] ?? data.preferred_body,
+    division: data.division,
+    position: currentPositionLabel(data.preferred_body, data.college, data.position_id, data.position),
+    college: data.college,
+    program: data.program,
+    yearLevel: yearLevels[data.year_level as keyof typeof yearLevels] ?? data.year_level,
+    interview: interviewOf(data.interview_slots),
+    offer: { state, expiresAt: data.offer_expires_at ?? null, respondedAt: data.offer_responded_at ?? null, joinUrl: state === "open" ? joinCommissionUrl(data.reference_code) : null },
   };
+}
+
+export type DeclineState = { error?: string; application?: TrackedApplication } | undefined;
+
+/**
+ * Decline an acceptance offer from the tracker, with the same reference code and student number or
+ * last name that found it. The application is no longer accepted, its slot goes back to the unit,
+ * and they can apply to that unit again after 60 days, or sooner if the unit accepts them again.
+ */
+export async function declineAcceptance(_state: DeclineState, formData: FormData): Promise<DeclineState> {
+  const reference = parseReferenceCode(text(formData, "reference").toUpperCase());
+  const identity = text(formData, "identity").toUpperCase().trim().replace(/\s+/g, " ");
+  const studentNumber = identity.replace(/\s+/g, "");
+  const isStudentNumber = /^\d{10}$/.test(studentNumber);
+  if (!reference || reference.prefix !== "CC" || (!isStudentNumber && !personNamePattern.test(identity))) return { error: "Track your application again before declining." };
+
+  const limited = rateLimit(`decline:${clientIp(await headers())}`, limits.track.limit, limits.track.windowMs);
+  if (!limited.ok) return { error: `Too many attempts from this network. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.` };
+  if (!isSupabaseConfigured()) return { error: "Declining isn’t available online right now. Reply to your acceptance email, or write to comelec@ust.edu.ph." };
+
+  try {
+    const found = await findTrackedApplication(reference.code, isStudentNumber ? studentNumber : identity.replace(/[\\%_]/g, "\\$&"), isStudentNumber);
+    if (!found) return { error: "We couldn’t match that reference code and identity. Track your application again." };
+    const before = await toTrackedApplication(found);
+    if (before.offer.state === "joined") return { error: "You’ve already joined the Commission, so this offer can’t be declined here. To step down, contact the commission.", application: before };
+    if (before.offer.state !== "open") return { error: "This offer is no longer open, so there’s nothing to decline.", application: before };
+
+    const result = await declineOffer({ id: found.id, email: found.email, preferredBody: found.preferred_body, college: found.college, referenceCode: found.reference_code });
+    if (result === "unavailable") return { error: "Declining isn’t available online yet. Reply to your acceptance email, or write to comelec@ust.edu.ph." };
+    const updated = await findTrackedApplication(reference.code, found.student_number, true);
+    const application = updated ? await toTrackedApplication(updated) : before;
+    if (result === "closed") return { error: "This offer changed while you were deciding. Check where it stands below.", application };
+
+    // Its slot is free again for the unit to fill.
+    clearApplyPageCache();
+    revalidatePath("/apply");
+    revalidatePath("/portal/recruitment/applications");
+    revalidatePath("/portal/recruitment/slots");
+    const concern = concernOf(found.preferred_body, found.college);
+    after(() => emailUnit("offer-declined", concern, (to) => offerDeclinedEmail(to, { id: found.id, name: applicantName(found), firstName: found.first_name, email: found.email, referenceCode: found.reference_code, position: application.position, division: found.division, concern })));
+    return { application };
+  } catch (error) {
+    console.error("Couldn’t decline the offer:", error instanceof Error ? error.message : error);
+    return { error: "Couldn’t decline the offer. Try again, or write to comelec@ust.edu.ph." };
+  }
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { personDisplayName } from "@/lib/forms/display-name";
-import { colleges } from "@/lib/applications/options";
+import { colleges, onReferenceChange } from "@/lib/applications/options";
 import { acknowledgementOf, defaultAcknowledgementStep, defaultPrivacyStep, editorDefinitionSchema, identityAnswer, isBlock, privacyConsent, respondentEmail, type EditorDefinition, type EditorField, type EditorStep, type FormAnswers } from "./form-editor";
 import { resolveFlow } from "./form-flow";
 import { requestKinds, type RequestKind, type RequestStatus } from "./options";
@@ -135,7 +135,7 @@ const text = (id: string, label: string, extra: Partial<EditorField> = {}): Edit
 const name = (id: string, label: string, identity?: EditorField["identity"]) => text(id, label, { rules: { uppercase: true, letters: true }, ...(identity ? { identity } : {}) });
 const choice = (id: string, kind: "radio" | "dropdown" | "checkbox", label: string, options: string[], extra: Partial<EditorField> = {}): EditorField => ({ id, label, prompt: "", kind, required: true, options, ...extra });
 const legacyUstTypes = ["Organization — College-based", "Organization — University-wide", "Council — Central Student Council", "Council — Local", "Commission — Central Comelec", "Commission — Local Comelec", "Admin", "Other UST Affiliation"];
-const ustAffiliationFields: EditorField[] = [
+const ustAffiliationFields = (): EditorField[] => [
   choice("rsvp_ust_type", "radio", "UST affiliation", ["Organization", "Council", "Commission", "Admin, Adviser", "Other UST affiliation"], { branches: [["rsvp_org_scope"], ["rsvp_council_scope"], ["rsvp_commission_scope"], ["rsvp_admin_office", "rsvp_role"], ["rsvp_other_affiliation", "rsvp_role"]] }),
   choice("rsvp_org_scope", "radio", "Organization type", ["University-wide", "College-based"], { branches: [["rsvp_org_name", "rsvp_role"], ["rsvp_org_name", "rsvp_role"]] }),
   text("rsvp_org_name", "Organization name", { identity: "organization" }),
@@ -159,7 +159,7 @@ const startingRsvpDefinition: EditorDefinition = { steps: [
   ]),
   step("rsvp_affiliation", "Affiliation", [
     choice("rsvp_affiliation", "radio", "Affiliation", ["University of Santo Tomas", "External"], { identity: "affiliation", branches: [["rsvp_ust_type", "rsvp_committees", "rsvp_resources"], ["rsvp_external_type"]] }),
-    ...ustAffiliationFields,
+    ...ustAffiliationFields(),
     choice("rsvp_external_type", "radio", "External affiliation", externalTypes, { branches: [["rsvp_external_org", "rsvp_external_school", "rsvp_role"], [], []] }),
     text("rsvp_external_org", "Organization / Affiliation"),
     text("rsvp_external_school", "School / University", { required: false }),
@@ -247,6 +247,10 @@ function arrangeRsvpSteps(definition: EditorDefinition): EditorDefinition {
 }
 
 export const defaultRsvpDefinition = arrangeRsvpSteps(startingRsvpDefinition);
+// The college question offers the Database's colleges as they're saved.
+onReferenceChange(() => {
+  for (const field of defaultRsvpDefinition.steps.flatMap(item => item.fields)) if (field.id === "rsvp_college") field.options = [...colleges];
+});
 
 /**
  * Forms saved before every question became editable (locked `builtin` steps, or `standard` questions
@@ -284,12 +288,12 @@ export function normalizeRsvpDefinition(definition: EditorDefinition | null | un
           if (!hasRoleOther) return [field, text("rsvp_role_other", "Please specify how you are attending")];
         }
         if (upgradeAffiliation && field.id === "rsvp_ust_type") {
-          const root = { ...field, kind: "radio" as const, options: ustAffiliationFields[0].options, branches: ustAffiliationFields[0].branches };
+          const root = { ...field, kind: "radio" as const, options: ustAffiliationFields()[0].options, branches: ustAffiliationFields()[0].branches };
           if (field.notes) root.notes = ["", "", "", field.notes[6] ?? "", field.notes[7] ?? ""];
           // Keep customized follow-ups on the matching subtype, in their original forward order.
           root.branches = root.branches?.map((targets, index) => index === 3 ? ["rsvp_admin_office", ...(field.branches?.[6] ?? ["rsvp_role"])] : index === 4 ? field.branches?.[7] ?? targets : targets);
           root.branches = root.branches?.map(keptTargets);
-          const subtypes = ustAffiliationFields.filter(item => addedIds.has(item.id)).map(item => {
+          const subtypes = ustAffiliationFields().filter(item => addedIds.has(item.id)).map(item => {
             const previous = item.id === "rsvp_org_scope" ? [1, 0] : item.id === "rsvp_council_scope" ? [3, 2] : item.id === "rsvp_commission_scope" ? [5, 4] : undefined;
             return previous ? { ...item, branches: previous.map((index, choice) => keptTargets(field.branches?.[index] ?? item.branches?.[choice] ?? [])), ...(field.notes ? { notes: previous.map(index => field.notes?.[index] ?? "") } : {}) } : item;
           });

@@ -1,10 +1,10 @@
 import "server-only";
 import { unitAbbreviations } from "@/lib/applications/options";
 
-import { describeRole, toSummary } from "@/lib/data/accounts";
+import { describeRole, positionName, toSummary } from "@/lib/data/accounts";
 import { builtInUser, canSeeCollege, isBuiltInEmail, isLocal, type PortalUser } from "@/lib/auth/session";
 import { store } from "@/lib/data/store";
-import { accountAffiliations, accountPositions, type PortalAccount } from "@/lib/data/types";
+import { accountAffiliations, type PortalAccount } from "@/lib/data/types";
 import { signature } from "@/lib/security/signed-token";
 import { createAdminClient } from "@/lib/supabase/server";
 import { ONLINE_WINDOW_MS, RECENT_WINDOW_MS, presenceUnit, type PresencePerson, type PresenceProfile, type RealtimeInfo } from "./presence";
@@ -67,7 +67,7 @@ export async function presenceProfile(viewer: PortalUser, accountId: string): Pr
     name: profile.name,
     avatarUrl: data.avatar_url ?? null,
     college: profile.affiliation === "central" ? "University of Santo Tomas" : profile.college,
-    position: accountPositions[profile.position],
+    position: positionName(profile),
     role: profile.kind === "official" ? "Official Account" : profile.role || "Not assigned",
     unit: accountAffiliations[profile.affiliation],
     email: normal(profile.email),

@@ -12,12 +12,14 @@ import { resolveFlow } from "@/lib/events/form-flow";
 import { evaluationAcknowledgement, evaluationDefinition, evaluationResponseSettings, type EvaluationSettings } from "@/lib/events/evaluation";
 import { checkEvaluationProfile, submitEvaluation, type EvaluationProfileState } from "@/lib/events/evaluation-actions";
 import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
+import { DraftNotice } from "@/components/draft-notice";
+import { useFormDraft } from "@/components/use-form-draft";
 
 function Requirement({ required }: { required: boolean }) { return required ? <span className="ev-evaluation-required" aria-label="required">*</span> : <span className="ev-evaluation-optional">Optional</span>; }
 
 /**
  * The event evaluation: the Data Privacy Consent, the profile lookup (or an anonymous response), then
- * the organizer's questions. `preview` (the portal's Preview form) sends nothing, checks no
+ * the organizer's questions. `preview` (View Mode) sends nothing, checks no
  * registration, lets every step be visited, and can show the acknowledgement.
  */
 export function EvaluationForm({ eventId, eventName, settings, preview = false }: { eventId: string; eventName: string; settings: EvaluationSettings; preview?: boolean }) {
@@ -45,6 +47,21 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
   const [customError, setCustomError] = useState("");
   const [showAcknowledgement, setShowAcknowledgement] = useState(false);
   const setAnswer = (id: string, value: string | string[]) => setAnswers(current => ({ ...current, [id]: value }));
+
+  // Answers stay on this device until sent, through a reload or a dropped connection.
+  const draft = useFormDraft({
+    key: preview ? null : `evaluation:${eventId}`,
+    form: formRef,
+    state: { stepId, answers, anonymous, referenceCode },
+    restore: (saved) => {
+      setAnswers(saved.answers ?? {});
+      setAnonymous(Boolean(saved.anonymous));
+      setReferenceCode(saved.referenceCode ?? "");
+      if (saved.stepId) setStepId(saved.stepId);
+    },
+  });
+  const { clear: clearDraft } = draft;
+  useEffect(() => { if (state.success || state.alreadySubmitted) clearDraft(); }, [state.success, state.alreadySubmitted, clearDraft]);
 
   useEffect(() => {
     if (!moved.current) return;
@@ -133,9 +150,10 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
   );
 
   return (
-    <form ref={formRef} action={action} onSubmit={onSubmit} className="apply-form ev-form ev-steps-form ev-evaluation-form ev-application-form" noValidate aria-busy={busy}>
+    <form ref={formRef} action={action} onSubmit={onSubmit} className="apply-form ev-form ev-steps-form ev-evaluation-form ev-application-form" noValidate data-validation={preview ? "off" : undefined} aria-busy={busy}>
       <EventFormTracker steps={steps} current={step} acknowledgement={definition.steps.at(-1)?.title ?? "Acknowledgement"} label="Evaluation steps" preview={preview} busy={busy} onStep={go} onAcknowledgement={() => setShowAcknowledgement(true)} />
       <div className="apply-body ev-form-body">
+        <DraftNotice draft={draft} buttonClassName="ev-button is-ghost is-small" actionClassName="ev-button is-primary" />
         <div className="apply-body-head" key={`heading-${current.id}`}>
           <span>Step {step + 1} of {steps.length + 1}</span><h2 ref={headingRef} tabIndex={-1}>{current.title}</h2>
           {current.description && <p>{current.description}</p>}

@@ -31,11 +31,10 @@ assert.equal(settings.controlNumber("CC-{YYYY}", 1234, new Date("2026-06-01T00:0
 
 const edited = clone(defaults);
 edited.letters.types.push({ id: "new-type", name: "  Endorsement   Letter ", format: "UST:CC-{YYY}-END-  ", autoIncrement: true, universityIssued: false });
-edited.offices[0].name = " Office of the  Rector ";
 const parsed = settings.secretariatSettingsSchema.parse(edited);
 assert.equal(parsed.letters.types.at(-1).name, "Endorsement Letter", "Names are trimmed and spaces collapsed");
 assert.equal(parsed.letters.types.at(-1).format, "UST:CC-{YYY}-END", "Trailing hyphens are dropped, since -001 is appended");
-assert.equal(parsed.offices[0].name, "Office of the Rector");
+assert.equal("offices" in parsed, false, "Destination offices come from the Database, not these settings");
 
 const broken = clone(defaults);
 broken.letters.types[1].name = "request letter";
@@ -57,9 +56,8 @@ next.statuses[0].name = "Initial";
 next.labels = next.labels.filter(label => label.name !== "Print");
 next.letters.types = next.letters.types.filter(type => type.name !== "Excuse Letter");
 next.remarkPresets = next.remarkPresets.filter(preset => preset.name !== "Send to email").concat({ id: "re-added", name: "Send to email" });
-next.offices[1].name = "Office of the Vice Rector";
 assert.deepEqual(settings.settingsChanges(defaults, next), {
-  renamed: [{ kind: "status", from: "Draft", to: "Initial" }, { kind: "office", from: defaults.offices[1].name, to: "Office of the Vice Rector" }],
+  renamed: [{ kind: "status", from: "Draft", to: "Initial" }],
   removed: [{ kind: "letterType", name: "Excuse Letter" }, { kind: "label", name: "Print" }],
 }, "Renames and removals are found by id; an item added back under the same name keeps its records");
 

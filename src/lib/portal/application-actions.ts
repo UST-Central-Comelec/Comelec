@@ -9,6 +9,8 @@ import { resultEmail } from "@/lib/applications/emails";
 import { sendApplicationEmail } from "@/lib/applications/email-log";
 import { concernOf } from "@/lib/notifications/concern";
 import { acceptanceEmail } from "@/lib/applications/onboarding";
+import { offerExpiry } from "@/lib/applications/offer";
+import { openOffer } from "@/lib/applications/offer-store";
 import { getOnboarding } from "@/lib/applications/onboarding-store";
 import { text } from "./form";
 
@@ -42,13 +44,16 @@ export async function updateApplicationStatus(id: string, formData: FormData) {
   let notice = `application-${status}`;
   if ((status === "accepted" || status === "declined") && formData.get("notify") === "on") {
     const application = await getApplication(id);
+    // An acceptance is an offer, open for 14 days from this email: the email says until when, and that's saved once it's gone.
+    const offerExpiresAt = offerExpiry();
     // The Central Comelec's result, or the applicant's college's Local Comelec's: by where they asked to serve.
     const sent = application ? await sendApplicationEmail(id, status === "accepted" ? "accepted" : "rejected", async () => {
-      const applicant = { ...application, concern: concernOf(application.preferredBodyId, application.college) };
+      const applicant = { ...application, offerExpiresAt, concern: concernOf(application.preferredBodyId, application.college) };
       return status === "accepted"
         ? acceptanceEmail(applicant, await getOnboarding(application.preferredBodyId === "local" ? application.college : "", true))
         : resultEmail(applicant, false);
     }) : "failed";
+    if (sent === "sent" && status === "accepted") await openOffer(id, offerExpiresAt);
     // "off": that email is switched off under Email Sender → Automatic, so the box that was ticked couldn't send it.
     notice += sent === "sent" ? "-emailed" : sent === "off" ? "-email-off" : "-email-failed";
   }

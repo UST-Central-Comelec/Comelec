@@ -2,7 +2,7 @@ import { ViewIcon as ActionViewIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { applicationStatuses, listApplications, statusTag } from "@/lib/applications/admin";
+import { listApplications, shownStatus } from "@/lib/applications/admin";
 import { getUnitSlots } from "@/lib/applications/slots";
 import { unitAbbreviations } from "@/lib/applications/options";
 import { canOpen, isLocal, requireAccess } from "@/lib/auth/session";
@@ -67,8 +67,8 @@ export default async function PortalApplicationsPage({ searchParams }: PageProps
               position: application.position,
               college: application.college,
               collegeAbbreviation: unitAbbreviations[application.college] ?? application.college,
-              statusLabel: applicationStatuses[application.status],
-              statusTone: statusTag[application.status],
+              statusLabel: shownStatus(application.status, application.offer.state).label,
+              statusTone: shownStatus(application.status, application.offer.state).tone,
             }))}
           />
         </section>

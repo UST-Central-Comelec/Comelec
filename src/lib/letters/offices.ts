@@ -1,5 +1,10 @@
-/** Destination choices shared by the modal and server-side validation. */
-export const universityOffices = [
+import { academicUnits, collegeSearchAliases, onReferenceChange, replaceArray, unitAbbreviations } from "@/lib/applications/options";
+
+/**
+ * University offices letters go to. The default: Administrative → Database → Admin Offices edits
+ * it (src/lib/reference/data.ts).
+ */
+const startingOffices = [
   "Office of the Rector (OR)",
   "Office of the Vice-Rector (OVR)",
   "Office of the Vice-Rector for Academic Affairs (OVRAA)",
@@ -62,10 +67,11 @@ export const universityOffices = [
   "The Varsitarian",
   "Boletín Eclesiástico de Filipinasa",
   "Philippiniana Sacra",
-] as const;
+];
+export const universityOffices: string[] = [...startingOffices];
 
-/** Letter destinations include academic units even when they have no Local Comelec unit. */
-export const letterFacultiesAndColleges = [
+/** How letter destinations wrote the academic units before they came from the Database, to read old records. */
+const previousLetterUnits = [
   "UST–Alfredo M. Velayo College of Accountancy (AMV)",
   "College of Architecture (ARKI)",
   "Faculty of Arts and Letters (AB)",
@@ -92,20 +98,35 @@ export const letterFacultiesAndColleges = [
   "Senior High School (SHS)",
   "Junior High School (JHS)",
   "Education High School (EHS)",
-] as const;
-export const destinationOffices: readonly string[] = [
-  ...universityOffices,
-  ...letterFacultiesAndColleges.map(unit => `Dean of the ${unit}`),
-  ...letterFacultiesAndColleges.map(unit => `Regent of the ${unit}`),
 ];
+
+/** A unit as a letter destination names it: "College of Science (COS, SCI)". */
+export const letterUnitName = (unit: string) => {
+  const short = [unitAbbreviations[unit], ...(collegeSearchAliases[unit] ?? [])].filter(Boolean);
+  return short.length ? `${unit} (${short.join(", ")})` : unit;
+};
+
+/** Letter destinations include academic units even when they have no Local Comelec unit. */
+export const letterFacultiesAndColleges: string[] = [];
+/** Every suggested destination: the offices, then each unit's Dean and Regent. */
+export const destinationOffices: string[] = [];
+onReferenceChange(() => {
+  replaceArray(letterFacultiesAndColleges, academicUnits.map(letterUnitName));
+  replaceArray(destinationOffices, [
+    ...universityOffices,
+    ...letterFacultiesAndColleges.map(unit => `Dean of the ${unit}`),
+    ...letterFacultiesAndColleges.map(unit => `Regent of the ${unit}`),
+  ]);
+});
 
 /** Keep previously saved destinations selectable after names and abbreviations are updated. */
 export function normalizeDestinationOffice(value: string): string {
-  for (const unit of letterFacultiesAndColleges) {
-    const previousName = unit.replace(/ \([^)]*\)$/, "").replace(/^UST–/, "");
-    for (const role of ["Dean", "Regent"]) {
-      if (value === `${role} of the ${previousName}`) return `${role} of the ${unit}`;
-    }
+  for (const role of ["Dean", "Regent"]) {
+    if (!value.startsWith(`${role} of the `)) continue;
+    const named = value.slice(`${role} of the `.length);
+    const bare = named.replace(/ \([^)]*\)$/, "").replace(/^UST–/, "");
+    const unit = academicUnits.find(item => item === bare);
+    if (unit && (named === bare || previousLetterUnits.includes(named))) return `${role} of the ${letterUnitName(unit)}`;
   }
   return value;
 }

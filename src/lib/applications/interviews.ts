@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { InterviewMode, InterviewSlot } from "./interview-format";
 import { applicantName, isMiddleNameColumnMissing } from "./name";
-import { divisions, yearLevels, type DivisionId } from "./options";
+import { currentPositionLabel, divisions, yearLevels, type DivisionId } from "./options";
 
 // Interview slots, stored in public.interview_slots (supabase/migrations/0006_interview_slots.sql).
 
@@ -53,7 +53,7 @@ export async function getSlotsForPortal(college = ""): Promise<AdminInterviewSlo
   // One round trip: each slot comes with who booked it (via applications.interview_slot_id).
   const readSlots = (withMiddleName: boolean) => createAdminClient()
     .from("interview_slots")
-    .select(`*, applications(id, first_name, ${withMiddleName ? "middle_name, " : ""}middle_initial, last_name, reference_code, position, email, facebook_url, college, program, year_level)`)
+    .select(`*, applications(id, first_name, ${withMiddleName ? "middle_name, " : ""}middle_initial, last_name, reference_code, position, position_id, preferred_body, email, facebook_url, college, program, year_level)`)
     .eq("college", college)
     .gte("starts_at", today.toISOString())
     .order("starts_at");
@@ -70,7 +70,7 @@ export async function getSlotsForPortal(college = ""): Promise<AdminInterviewSlo
         id: booking.id as string,
         name: applicantName({ first_name: booking.first_name as string, middle_name: booking.middle_name as string | null, middle_initial: booking.middle_initial as string | null, last_name: booking.last_name as string }),
         referenceCode: booking.reference_code as string,
-        position: booking.position as string,
+        position: currentPositionLabel(booking.preferred_body as string, booking.college as string, booking.position_id as string, (booking.position as string) ?? ""),
         lastName: (booking.last_name as string) ?? "",
         firstName: (booking.first_name as string) ?? "",
         middleName: (booking.middle_name as string) || (booking.middle_initial as string) || "",

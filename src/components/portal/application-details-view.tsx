@@ -9,7 +9,8 @@ import { Notice, noticeToast } from "@/components/portal/notice";
 import { toast } from "./toast";
 import type { ApplicationRecord } from "@/lib/applications/admin";
 import { applicantDisplayName } from "@/lib/applications/name";
-import { applicationStatuses, statusTag } from "@/lib/applications/status";
+import { applicationStatuses, shownStatus } from "@/lib/applications/status";
+import { OFFER_DAYS, REAPPLY_DAYS, formatOfferDate } from "@/lib/applications/offer";
 import { ApplicationQualifications } from "./application-qualifications";
 import { ApplicationRetentionCountdown } from "./application-retention-countdown";
 import { interviewModes, slotDate, slotTimeRange } from "@/lib/applications/interview-format";
@@ -65,6 +66,9 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
 
   const setStatus = updateApplicationStatus.bind(null, application.id);
   const decided = application.status === "accepted" || application.status === "declined";
+  // They declined, or didn't answer in time: accepting them again opens a new offer and lifts their wait to apply again.
+  const reofferable = application.offer.state === "declined" || application.offer.state === "lapsed";
+  const shown = shownStatus(application.status, application.offer.state);
   const interview = application.interviewDetails;
 
   function showNotice(key: string | undefined) {
@@ -175,7 +179,8 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
 
   const logItems = [
     { at: application.submittedAt, action: "Application submitted" },
-    ...(application.statusUpdatedAt ? [{
+    // A declined or lapsed offer's own entry below says what happened, at the same moment.
+    ...(application.statusUpdatedAt && !reofferable ? [{
       at: application.statusUpdatedAt,
       action: `Marked “${applicationStatuses[application.status]}”${application.statusUpdatedBy ? ` by ${application.statusUpdatedBy}` : ""}`,
     }] : []),
@@ -183,11 +188,15 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
       at: email.sentAt,
       action: email.kind === "acknowledgement" ? "Acknowledgement email successfully sent" : `Result email successfully sent (${email.kind === "accepted" ? "Accepted" : "Rejected"})`,
     })),
+    ...(application.offer.respondedAt && application.offer.state !== "open" && application.offer.state !== "none" ? [{
+      at: application.offer.respondedAt,
+      action: { joined: "Joined the Commission", declined: `Offer declined by the applicant; they can apply again after ${REAPPLY_DAYS} days`, lapsed: `Offer lapsed: not answered within ${OFFER_DAYS} days; they can apply again after ${REAPPLY_DAYS} days` }[application.offer.state],
+    }] : []),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   return (
     <article className="portal-registrant-receipt portal-application-receipt">
-      <ReviewModalHeader titleId={modalTitleId} name={applicantDisplayName(application)} date={formatDate(application.submittedAt)} dateAside={<ApplicationRetentionCountdown submittedAt={application.submittedAt} />} reference={application.referenceCode} status={<span className={`portal-tag ${statusTag[application.status]} portal-application-status-tag`}>{application.status === "pending" ? "Pending" : applicationStatuses[application.status]}</span>} />
+      <ReviewModalHeader titleId={modalTitleId} name={applicantDisplayName(application)} date={formatDate(application.submittedAt)} dateAside={<ApplicationRetentionCountdown submittedAt={application.submittedAt} />} reference={application.referenceCode} status={<span className={`portal-tag ${shown.tone} portal-application-status-tag`} title={application.offer.state === "open" && application.offer.expiresAt ? `Offer open until ${formatOfferDate(application.offer.expiresAt)}` : undefined}>{application.status === "pending" ? "Pending" : shown.label}</span>} />
       <ReviewModalToolbar label="Applicant details view" active={view} onChange={setView} items={[
           { key: "details", label: "Application Details" },
           { key: "qualifications", label: "Qualifications" },
@@ -198,6 +207,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
             <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("accepted")} disabled={full}><Check size={15} /> Accept</button>
             <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("declined")}><X size={15} /> Reject</button>
           </div>}
+          {reofferable && <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("accepted")} disabled={full}><Check size={15} /> Accept again</button>}
           <button type="button" className="portal-registrant-action-button" disabled={deleting || onboarding} onClick={() => confirmationDialog.current?.showModal()}><ActionDeleteIcon size={15} aria-hidden="true" />Delete application</button>
           {application.status === "accepted" && <button type="button" className="portal-registrant-action-button portal-application-onboard" disabled={!canOnboard || onboarding || onboarded || deleting} title={!canOnboard ? "Account management access is required to onboard applicants." : undefined} onClick={onboard}>{onboarding ? "Onboarding…" : onboarded ? "Onboarded" : "Onboard"}</button>}
         </> : undefined} />
@@ -241,7 +251,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
         }}
       >
         <h2 id={statusTitleId}>{proposedStatus === "accepted" ? "Accept" : "Reject"} application?</h2>
-        <p id={statusDescriptionId}>Mark <strong>{applicantDisplayName(application)}</strong>’s application as {proposedStatus === "accepted" ? "accepted" : "rejected"}?{proposedStatus === "accepted" && " This will take one of the position’s slots."}</p>
+        <p id={statusDescriptionId}>Mark <strong>{applicantDisplayName(application)}</strong>’s application as {proposedStatus === "accepted" ? "accepted" : "rejected"}?{proposedStatus === "accepted" && " This will take one of the position’s slots."}{proposedStatus === "accepted" && reofferable && ` It opens a new ${OFFER_DAYS}-day offer and lifts their wait to apply again.`}</p>
         <form action={confirmStatus} className="portal-application-result-confirmation" aria-busy={updatingStatus}>
           <input type="hidden" name="status" value={proposedStatus} />
           <label className="portal-check">

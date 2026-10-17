@@ -1,4 +1,5 @@
 import "server-only";
+import { ensureReferenceData } from "@/lib/reference/store";
 
 import { cookies } from "next/headers";
 import { ACCOUNT_COOKIE } from "@/lib/portal/account-selection";
@@ -169,6 +170,8 @@ export const getPortalUser = cache(async (): Promise<PortalUser | null> => {
   // Always per-request: never let a portal page be prerendered, even before Supabase is configured.
   await connection();
   if (!isSupabaseConfigured()) return null;
+  // The Database's lists (colleges, positions, roles), in place before access or any page reads them.
+  await ensureReferenceData();
   const { data } = await (await createAuthClient()).auth.getClaims();
   const email = data?.claims.email;
   if (typeof email !== "string" || !isGoogleSession(data?.claims)) return null;

@@ -1,0 +1,82 @@
+/* The session notice at the top of a long form (draft-notice.tsx). Neutral in every family and
+   theme: it takes the form's own text colour, with a hairline and a faint well drawn from it. In the
+   last minutes only the icon and the countdown turn red. The "session ended" dialog stays dark in
+   both themes, like the tooltips. Tokens: theme-palette.css. */
+
+.draft-notice {
+	align-items: center;
+	animation: draft-notice-in .22s cubic-bezier(.22, 1, .36, 1) both;
+	background: color-mix(in srgb, currentColor 4%, transparent);
+	border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+	border-radius: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	font-family: var(--font-sans), system-ui, sans-serif;
+	font-size: 10px;
+	font-weight: 400;
+	gap: 10px 12px;
+	line-height: 1.45;
+	margin: 0 0 18px;
+	padding: 10px 12px 10px 14px;
+}
+.draft-notice > svg { flex: none; height: 10px; opacity: .75; width: 10px; }
+.draft-notice p { flex: 1 1 160px; font-size: 10px; font-weight: 400; margin: 0; }
+.draft-notice button { flex: none; font-size: 10px; font-weight: 400; margin-left: auto; }
+
+.draft-notice-timer {
+	flex: none;
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	min-width: 4ch;
+	text-align: right;
+}
+.draft-notice.is-warn > svg, .draft-notice.is-warn .draft-notice-timer { color: var(--ui-danger); opacity: 1; }
+.draft-notice p + .draft-notice-timer + button { margin-left: 0; }
+
+/* The session in a title strip (DraftStrip): the banner's countdown, at the right, with a short
+   note under it. The strip is always dark; everything takes its text colour. */
+.draft-strip { align-items: flex-end; display: flex; flex: none; flex-direction: column; gap: 8px; margin-left: auto; }
+.draft-strip.is-warn .apply-countdown strong, .draft-strip.is-warn .draft-strip-note svg { color: var(--ui-danger); }
+.draft-strip-note { align-items: center; color: color-mix(in srgb, currentColor 72%, transparent); display: flex; flex-wrap: wrap; font-family: var(--font-sans), system-ui, sans-serif; font-size: 10px; font-weight: 400; gap: 4px 6px; justify-content: flex-end; line-height: 1.4; margin: 0; text-align: right; }
+.draft-strip-note svg { flex: none; height: 10px; width: 10px; }
+.draft-strip-note button { background: none; border: 0; color: currentColor; cursor: pointer; font: inherit; font-weight: 400; padding: 0; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; transition: color .15s ease; }
+.draft-strip-note button:hover { color: var(--ui-accent); }
+.draft-strip-note button:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 3px; border-radius: 2px; }
+@media (max-width: 900px) {
+	.draft-strip { align-items: stretch; margin-left: 0; }
+	.draft-strip-note { justify-content: flex-start; text-align: left; }
+}
+
+.draft-expired {
+	animation: draft-notice-in .22s cubic-bezier(.22, 1, .36, 1) both;
+	background: var(--ui-tip-bg);
+	border: 1px solid var(--ui-tip-line);
+	border-radius: 14px;
+	box-shadow: var(--ui-tip-shadow);
+	color: var(--ui-tip-text);
+	font-family: var(--font-sans), system-ui, sans-serif;
+	max-width: min(440px, calc(100vw - 32px));
+	inset: 0;
+	margin: auto;
+	position: fixed;
+	padding: 28px;
+}
+.draft-expired::backdrop {
+	-webkit-backdrop-filter: blur(12px);
+	backdrop-filter: blur(12px);
+	background: color-mix(in srgb, var(--ui-tip-bg) 72%, transparent);
+}
+.draft-expired > svg { opacity: .8; }
+.draft-expired h2 { font-size: 21px; font-weight: 600; letter-spacing: -.01em; margin: 12px 0 8px; }
+.draft-expired p { color: color-mix(in srgb, var(--ui-tip-text) 72%, transparent); font-size: 14px; line-height: 1.55; margin: 0; }
+.draft-expired-actions { display: flex; justify-content: flex-end; margin-top: 22px; }
+html:has(.draft-expired[open]) { overflow: hidden; }
+
+@keyframes draft-notice-in {
+	from { opacity: 0; transform: translateY(6px); }
+	to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.draft-notice, .draft-expired { animation: none; }
+}

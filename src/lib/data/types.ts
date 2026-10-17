@@ -38,8 +38,11 @@ export const CHAIRPERSON = "Chairperson";
 export const CENTRAL_REPRESENTATIVE = "Central Representative";
 export const DEPUTY = "Deputy";
 
-/** The Central Comelec's Executive Board, in order of rank. All of them sit in En Banc. */
-export const centralRoles = [
+/**
+ * The Central Comelec's Executive Board, in order of rank. All of them sit in En Banc. The default:
+ * Administrative → Database edits it (src/lib/reference/data.ts).
+ */
+export const centralRoles: string[] = [
   CHAIRPERSON,
   "Vice Chairperson",
   "Secretary to the Executive",
@@ -50,13 +53,13 @@ export const centralRoles = [
   "Operations Officer",
   "Public Information Officer",
   "Deputy Head",
-] as const;
+];
 
 /**
  * A Local Comelec's Executive Board: the same, plus the college's Central Representative (one per
  * college, shown under En Banc). Local Chairpersons make up the Chamber of Chairpersons.
  */
-export const localRoles = [...centralRoles, CENTRAL_REPRESENTATIVE] as const;
+export const localRoles: readonly string[] = [...centralRoles, CENTRAL_REPRESENTATIVE];
 
 /** A Local Chairperson's role in the Chamber of Chairpersons, besides being a member. */
 export const chamberRoles = {
@@ -70,13 +73,13 @@ export const chamberRoles = {
  * Commissioners are students: Executive Board, Executive Associate or Deputy. Advisers and Admins
  * aren't: they have no role, program or student ID, and they read the portal without changing it.
  */
-export const accountPositions = {
+export const accountPositions: { "executive-board": string; "executive-associate": string; deputy: string; adviser: string; admin: string } = {
   "executive-board": "Executive Board",
   "executive-associate": "Executive Associate",
   deputy: "Deputy",
   adviser: "Adviser",
   admin: "Admin",
-} as const;
+};
 
 /** The positions commissioners hold, which Request access offers. */
 export const commissionerPositions = ["executive-board", "executive-associate", "deputy"] as const satisfies readonly (keyof typeof accountPositions)[];

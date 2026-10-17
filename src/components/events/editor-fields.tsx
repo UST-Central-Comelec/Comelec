@@ -211,13 +211,13 @@ function Question({ field, value, onChange, verify, span, error, statusHint, err
       })}</div>
     </fieldset>;
   }
-  if (field.kind === "dropdown" && portalPickers) return <fieldset className={fieldset}>{legend}<div className="apply-field ev-field"><Dropdown name={field.id} value={text} onChange={onChange} options={field.options.map(value => ({ value, label: value }))} required={field.required} labelledBy={`${field.id}-label`} /></div><Hint field={field} /></fieldset>;
   if (field.kind === "dropdown" && field.id === "rsvp_college") return (
     <fieldset className={fieldset}>{legend}
       <div className="apply-field ev-field"><Combobox name={field.id} options={field.options} value={text} onChange={onChange} placeholder="Type or pick your college" required={field.required} labelledBy={`${field.id}-label`} /></div>
       <Hint field={field} />
     </fieldset>
   );
+  if (field.kind === "dropdown" && portalPickers) return <fieldset className={fieldset}>{legend}<div className="apply-field ev-field"><Dropdown name={field.id} value={text} onChange={onChange} options={field.options.map(value => ({ value, label: value }))} required={field.required} labelledBy={`${field.id}-label`} /></div><Hint field={field} /></fieldset>;
   if (field.kind === "dropdown") return (
     <fieldset className={fieldset}>{legend}
       <label className="apply-field ev-field"><span className="ev-sr-only">{field.label}</span><select name={field.id} required={field.required} value={text} onChange={event => onChange(event.target.value)}><option value="">Select an option</option>{field.options.map(option => <option key={option}>{option}</option>)}</select></label>

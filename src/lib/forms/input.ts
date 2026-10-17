@@ -20,6 +20,9 @@ export function withoutEmoji(value: string) {
 
 export const containsEmoji = (value: string) => withoutEmoji(value) !== value;
 
+/** Capitalize words in ordinary text without changing its spacing or punctuation. */
+export const titleCaseText = (value: string) => value.toLocaleLowerCase("en-PH").replace(/(^|[\s/–—-])(\p{L})/gu, (_, separator: string, letter: string) => separator + letter.toLocaleUpperCase("en-PH"));
+
 /** A name as it's typed: capitals, letters and single spaces only. A space can trail while the next word is typed. */
 export const cleanPersonName = (value: string) => withoutEmoji(value).replace(/[^\p{L}\p{M} ]/gu, "").replace(/^ +/, "").replace(/ {2,}/g, " ").toLocaleUpperCase("en-PH");
 /** A name as it's saved: the same, without the trailing space. */

@@ -77,6 +77,7 @@ const admin = load("src/lib/applications/admin.ts", {
   "./interview-format": format,
   "./options": options,
   "./status": load("src/lib/applications/status.ts"),
+  "./offer": load("src/lib/applications/offer.ts"),
 });
 const interviews = load("src/lib/applications/interviews.ts", { ...common, "./name": name, "./interview-format": format, "./options": options });
 const actions = load("src/lib/applications/actions.ts", {
@@ -89,6 +90,8 @@ const actions = load("src/lib/applications/actions.ts", {
   "./name": name,
   "./options": options,
   "./reference": load("src/lib/applications/reference.ts"),
+  "./offer": load("src/lib/applications/offer.ts"),
+  "@/lib/reference/store": { ensureReferenceData: async () => {} },
 }, true);
 
 async function test() {
@@ -124,7 +127,9 @@ async function test() {
   const trackingRequests = requests.filter(request => request.single && request.filters.some(([field]) => field === "reference_code"));
   assert.equal(trackingRequests.length, 2);
   assert.ok(trackingRequests.every(request => request.filters.some(([field, value]) => field === "student_number" && value === "2026000001")));
-  assert.ok(trackingRequests.every(request => !request.columns.includes("email") && !request.columns.includes("cv_url")));
+  assert.ok(trackingRequests.every(request => !request.columns.includes("cv_url")));
+  // The email is read on the server for the offer checks (joined, decline hold); it never reaches the tracker.
+  assert.ok(!JSON.stringify(tracked).includes("@") && !Object.hasOwn(tracked.application, "email"), "Tracking never returns the applicant’s email");
 
   // Updated schemas read the new fields and email rows without needing a cached relationship.
   missingNames = false;

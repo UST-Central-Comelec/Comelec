@@ -8,7 +8,7 @@ import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { CopyIcon as Copy, CloseIcon as X } from "@/components/action-icons";
 import { dateParts, daysOf, formatDayLabel, formatMonth, monthCells, monthsBetween } from "@/lib/events/format";
-import { comelecUnits, unitAbbreviations } from "@/lib/applications/options";
+import { academicUnits, unitAbbreviations } from "@/lib/applications/options";
 import { FACEBOOK_PAGE } from "@/lib/content";
 import { venueModes } from "@/lib/events/options";
 import { SignUp, StatusTag } from "./event-parts";
@@ -20,7 +20,6 @@ const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 type Tab = "upcoming" | "past";
 // The application choices cover undergraduate and first professional degrees. Event
 // organizers also include UST's graduate schools and any unit present in the listings.
-const academicUnits = [...comelecUnits, "Graduate School", "Graduate School of Law"];
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 const subscribeToHash = (notify: () => void) => {
   window.addEventListener("hashchange", notify);

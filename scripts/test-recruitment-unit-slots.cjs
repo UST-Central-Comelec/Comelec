@@ -28,16 +28,17 @@ const slots = load("src/lib/applications/slots.ts", {
 const { localRolesByCollege } = load("src/lib/data/local-roles.ts", { "./types": load("src/lib/data/types.ts") });
 for (const [unit, roles] of Object.entries(localRolesByCollege)) {
   const choices = options.positionsForUnit(unit);
-  assert.deepEqual(choices.map((choice) => choice.role), roles);
+  assert.deepEqual([...new Set(choices.map((choice) => choice.office))], roles);
+  assert.deepEqual(choices.filter((choice) => choice.officeId === choices[0].officeId).map((choice) => choice.kind), ["board", "associate"], `${unit} recruits each office's board seat and Executive Associates`);
   assert.equal(new Set(choices.map((choice) => choice.id)).size, choices.length, `${unit} has unique slot ids`);
 }
 const pharmacy = options.positionsForUnit("Faculty of Pharmacy");
-assert.equal(pharmacy.find((choice) => choice.id === "ea-finance-officer").role, "Finance Head");
-assert.ok(pharmacy.some((choice) => choice.role === "Internal Public Information Officer"));
-assert.ok(pharmacy.some((choice) => choice.role === "External Public Information Officer"));
-assert.ok(!pharmacy.some((choice) => choice.role === "Deputy Head"));
-assert.ok(!options.positionsForUnit("College of Rehabilitation Sciences").some((choice) => choice.role === "Deputy Head"));
-assert.equal(options.positionsForUnit("College of Science").find((choice) => choice.id === "ea-deputy-head").role, "Deputy Head/Chief-of-Staff Officer");
+assert.equal(pharmacy.find((choice) => choice.id === "ea-finance-officer").office, "Finance Head");
+assert.ok(pharmacy.some((choice) => choice.office === "Internal Public Information Officer"));
+assert.ok(pharmacy.some((choice) => choice.office === "External Public Information Officer"));
+assert.ok(!pharmacy.some((choice) => choice.office === "Deputy Head"));
+assert.ok(!options.positionsForUnit("College of Rehabilitation Sciences").some((choice) => choice.office === "Deputy Head"));
+assert.equal(options.positionsForUnit("College of Science").find((choice) => choice.id === "ea-deputy-head").office, "Deputy Head/Chief-of-Staff Officer");
 
 let user = { affiliation: "local", college, readOnly: false, position: "executive-board", email: "manager@ust.edu.ph" };
 const actions = load("src/lib/portal/recruitment-actions.ts", {

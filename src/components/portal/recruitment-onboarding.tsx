@@ -25,7 +25,7 @@ export function RecruitmentOnboarding({ settings, unit, readOnly }: { settings: 
   const hydrated = useHydrated();
   const buttons = draft.buttons.map(({ title, url }) => ({ title, url }));
   const dirty = draft.messengerUrl !== settings.messengerUrl || JSON.stringify(buttons) !== JSON.stringify(settings.buttons);
-  const position = positionsForUnit(unit)[0];
+  const position = positionsForUnit(unit).find((opening) => opening.kind === "associate");
   const preview = acceptanceEmail({ email: "applicant@ust.edu.ph", firstName: "Juan", position: position?.label ?? "Commissioner", positionId: position?.id, division: "", referenceCode: "PREVIEW", concern: concernOf(unit ? "local" : "central", unit) }, { messengerUrl: draft.messengerUrl, buttons: buttons.filter(button => button.title.trim() && button.url.trim()) }, LOGO_PATH);
   const changeButton = (index: number, field: "title" | "url", value: string) => setDraft(current => ({ ...current, buttons: current.buttons.map((button, i) => i === index ? { ...button, [field]: value } : button) }));
 

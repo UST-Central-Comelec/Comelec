@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { BUILT_IN_ID, canOpen, requirePortalUser } from "@/lib/auth/session";
-import { describeRole, detailsFor } from "@/lib/data/accounts";
+import { describeRole, detailsFor, positionName } from "@/lib/data/accounts";
 import { getAccount } from "@/lib/data/queries";
-import { accountAffiliations, accountKinds, accountPositions, describeAffiliation } from "@/lib/data/types";
+import { accountAffiliations, accountKinds, describeAffiliation } from "@/lib/data/types";
 import { yearLevels } from "@/lib/applications/options";
 import { accessLevels, tabGroups } from "@/lib/portal/access";
 
@@ -66,7 +66,7 @@ export default async function MyAccountPage() {
             <div><dt>UST email</dt><dd>{account.email}</dd></div>
             {needs.studentNumber && <div><dt>Student ID</dt><dd>{account.studentNumber ?? <span className="portal-muted">Not set</span>}</dd></div>}
             <div><dt>Affiliation</dt><dd>{accountAffiliations[me.affiliation]}</dd></div>
-            <div><dt>Position</dt><dd>{accountPositions[me.position]}</dd></div>
+            <div><dt>Position</dt><dd>{positionName(me)}</dd></div>
             {needs.role && <div><dt>Role</dt><dd>{account.role || <span className="portal-muted">Not set, so you aren’t in the Directory yet</span>}</dd></div>}
             {needs.college !== "none" && <div><dt>College or faculty</dt><dd>{account.college ?? <span className="portal-muted">Not set</span>}</dd></div>}
             {needs.program && <div><dt>Program</dt><dd>{account.program ?? <span className="portal-muted">Not set</span>}</dd></div>}

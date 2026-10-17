@@ -90,3 +90,60 @@
   .ev .ev-application-form .ev-button, .ev .ev-application-form .ev-button svg { transition: none; }
   .ev .ev-application-form .ev-consent-chevron { transition: none; }
 }
+
+/* Event registration (registration-form.tsx): the RSVP's layout, the tracker across the page and the
+   step in one bordered group, with the event's card beside it. Fields keep their twelve-column sizes. */
+.ev .ev-register-main { display: flex; flex: 1; flex-direction: column; gap: 32px; min-width: 0; }
+.ev .ev-application-form .apply-body.ev-register-body.has-side { align-items: start; display: grid; gap: clamp(28px, 3.4vw, 56px); grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); }
+.ev .ev-register-body.has-side > .ev-register-main { min-height: 100%; }
+.ev .ev-registration-form .ev-register-group.ev-group { gap: 24px 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.ev .ev-registration-form .ev-register-group.ev-group > * { grid-column: 1 / -1; margin: 0; min-width: 0; }
+.ev .ev-registration-form .ev-register-group.ev-group > .is-3 { grid-column: span 3; }
+.ev .ev-registration-form .ev-register-group.ev-group > .is-4 { grid-column: span 4; }
+.ev .ev-registration-form .ev-register-group.ev-group > .is-6 { grid-column: span 6; }
+.ev .ev-registration-form .ev-register-group.ev-group > .is-9 { grid-column: span 9; }
+.ev .ev-registration-form .ev-register-group .ev-field-label { color: var(--ev-text); font-size: 13px; }
+.ev .ev-registration-form .ev-choice { font-size: 14px; min-height: 52px; padding: 14px 16px; }
+.ev .ev-registration-form .ev-checklist { border: 0; display: grid; gap: 12px; }
+.ev .ev-registration-form .ev-checklist > li { background: rgba(var(--ev-ink), .025); border: 1px solid var(--ev-line-strong); border-radius: 14px; padding: 16px; transition: background-color .15s ease, border-color .15s ease; }
+.ev .ev-registration-form .ev-checklist > li.is-on { background: rgba(var(--ev-ink), .04); border-color: rgba(var(--ev-ink), .32); }
+.ev .ev-registration-form .ev-checklist > li > .ev-grid { gap: 20px 16px; padding: 18px 0 2px 32px; }
+.ev .ev-registration-form .ev-register-main > .ev-form-error { margin: -12px 0 0; }
+.ev .ev-registration-form .ev-evaluation-check.has-error { border-color: var(--ev-danger); }
+/* The Acknowledgement: the Apply form's receipt in the Events palette. */
+.ev .ev-register-receipt { display: flex; flex: 1; flex-direction: column; gap: 32px; }
+.ev .ev-register-receipt .apply-body-head h2 { font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -.03em; }
+.ev .ev-register-receipt .apply-body-head p { color: var(--ev-muted); font-size: 15px; max-width: 46em; }
+.ev .ev-register-receipt .apply-body-head strong { color: var(--ev-text); font-weight: 600; overflow-wrap: anywhere; }
+.ev .ev-register-result { border-radius: 22px; padding: clamp(20px, 3vw, 28px); }
+.ev .ev-register-result .apply-result-code { background: rgba(var(--ev-ink), .06); border: 1px solid var(--ev-line-strong); color: var(--ev-text); }
+.ev .ev-register-result .apply-result-code span { color: var(--ev-muted); }
+.ev .ev-register-result .apply-result-code button { background: var(--ev-action); border-radius: var(--ui-button-radius); color: var(--ev-on-action); transition: filter .15s ease; }
+.ev .ev-register-result .apply-result-code button:hover { filter: brightness(.94); }
+.ev .ev-register-result .apply-result-code button:active { transform: translateY(1px); }
+.ev .ev-register-result .apply-result-code button:focus-visible { outline-color: var(--ev-text); }
+.ev .ev-register-result :is(.apply-result-note, .apply-result-details dt) { color: var(--ev-muted); }
+.ev .ev-register-result .apply-result-details { border-color: var(--ev-line); }
+.ev .ev-register-result :is(.apply-result-note strong, .apply-result-details dd) { color: var(--ev-text); overflow-wrap: anywhere; }
+.ev .ev-register-result .apply-result-note a { color: var(--ev-text); text-decoration: underline; text-underline-offset: 3px; }
+.ev .ev-register-state { align-items: center; display: inline-flex; gap: 8px; }
+.ev .ev-register-state i { background: var(--ev-gold); border-radius: 50%; height: 6px; width: 6px; }
+.ev .ev-register-state.is-ok i { background: var(--ev-ok); }
+.ev .ev-register-receipt-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 14px; margin-left: auto; }
+.ev .ev-registration-form .ev-register-receipt .apply-nav .ev-button.is-ghost:not(.is-back) { border: 1px solid var(--ev-line-strong); padding: 10px 16px; }
+.ev .ev-registration-form .ev-register-main > :is(.ev-done, .ev-notice) { flex: none; }
+/* The site's light rule tints a card form's footer; this form has no card. */
+.ev .ev-registration-form.ev-form .apply-nav.ev-form-foot { background: none; border-radius: 0; }
+:where([data-theme="light"]) .ev .ev-register-result .apply-result-code { background: var(--ev-text); border-color: var(--ev-text); color: var(--ev-on-bright); }
+:where([data-theme="light"]) .ev .ev-register-result .apply-result-code span { color: var(--ev-on-bright-muted); }
+:where([data-theme="light"]) .ev .ev-registration-form :is(.ev-checklist > li:not(.is-on), .ev-choice:not(:has(input:checked))) { background: var(--ui-panel-tint); }
+@media (max-width: 980px) {
+  .ev .ev-application-form .apply-body.ev-register-body.has-side { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 680px) {
+  .ev .ev-registration-form .ev-register-group.ev-group > :is(.is-3, .is-4, .is-6, .is-9) { grid-column: 1 / -1; }
+  .ev .ev-registration-form .ev-checklist > li > .ev-grid { padding-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ev .ev-registration-form .ev-checklist > li, .ev .ev-register-result .apply-result-code button { transition: none; }
+}

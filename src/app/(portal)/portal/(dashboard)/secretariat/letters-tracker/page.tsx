@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LettersTracker } from "@/components/portal/letters-tracker";
+import { FileCheck2, FolderOpen } from "@/components/portal/portal-nav-icons";
 import { SlidingFilters } from "@/components/portal/sliding-filters";
 import { isLocal, requireAccess } from "@/lib/auth/session";
 import { canManageEvent } from "@/lib/events/access";
@@ -18,8 +19,8 @@ export default async function PortalSecretariatPage({ searchParams }: { searchPa
   const [records, settings] = await Promise.all([settle(eventPapers ? listEventPapers(scope) : listLetters(scope)), settle(getSecretariatSettings())]);
   const rows = (records.value ?? []).map(row => row.event ? { ...row, event: { ...row.event, editable: user.tabs.includes("events") && canManageEvent(user, row.event) } } : row);
   const selector = <SlidingFilters label="Letters Tracker view" active={eventPapers ? "event-papers" : "general"} items={[
-    { key: "general", href: "/portal/secretariat/letters-tracker", label: "General Letters" },
-    { key: "event-papers", href: "/portal/secretariat/letters-tracker?view=event-papers", label: "Event Papers" },
+    { key: "general", href: "/portal/secretariat/letters-tracker", label: <><FolderOpen size={15} aria-hidden="true" />General Letters</> },
+    { key: "event-papers", href: "/portal/secretariat/letters-tracker?view=event-papers", label: <><FileCheck2 size={15} aria-hidden="true" />Event Papers</> },
   ]} />;
   return <LettersTracker key={eventPapers ? "event-papers" : "general"} rows={rows} settings={settings.value?.settings ?? defaultSecretariatSettings} readOnly={user.readOnly} loadError={records.error ?? settings.error} preparerName={user.name || user.email} selector={selector} eventPapers={eventPapers} eventActions={eventPapers ? { previewNumber: getEventPaperNumberPreview, saveRecord: saveEventPaper, deleteRecord: deleteEventPaper, labelRecord: setEventPaperLabel } : undefined} />;
 }

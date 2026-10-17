@@ -11,6 +11,7 @@ import { isAccepting } from "@/lib/applications/period";
 import { getCommissionAccounts } from "@/lib/applications/account-lookup";
 import { readPass } from "@/lib/applications/verification";
 import type { InterviewSlot } from "@/lib/applications/interview-format";
+import { ensureReferenceData } from "@/lib/reference/store";
 
 export const metadata: Metadata = { title: "Become a Commissioner" };
 
@@ -36,6 +37,7 @@ async function loadInterviews(): Promise<InterviewSlot[]> {
 }
 
 export default async function ApplyPage({ searchParams }: PageProps<"/apply">) {
+  await ensureReferenceData();
   // Slot counts change from the portal, so read them on every request.
   await connection();
   // Every unit opens and closes its own recruitment (Recruitment → Settings). The form is here while

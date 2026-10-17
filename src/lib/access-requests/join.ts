@@ -1,15 +1,16 @@
 import "server-only";
 
+import { isOfferResponse, offerStateOf } from "@/lib/applications/offer";
 import { positionsForUnit, retentionCutoff } from "@/lib/applications/options";
-import { officeOf } from "@/lib/data/accounts";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { JoinProfile } from "./channel";
 
 // "Join the Commission", the first button in an acceptance email, opens Request access with
 // ?join=<the application's reference code>. Once the requester has verified their UST account with
 // Google, their accepted application fills in their profile, and the request is approved as soon as
-// it's sent. The link alone shows nothing: the application has to be accepted, still kept (60 days),
-// and sent from the very UST account that was just verified.
+// it's sent. The link alone shows nothing: the application has to be accepted, its offer still open
+// (not declined, and within its 14 days), still kept (60 days), and sent from the very UST account
+// that was just verified.
 
 type Row = Record<string, string | null>;
 
@@ -33,6 +34,9 @@ export async function findJoinProfile(referenceCode: string, email: string): Pro
   }
   if (!data) return null;
   const row = data as Row;
+  // Declined, or past its 14 days. (Before migration 0088 offers have no deadline.)
+  const offer = offerStateOf(value(row, "status"), isOfferResponse(row.offer_response) ? row.offer_response : null, row.offer_expires_at ?? null);
+  if (offer === "declined" || offer === "lapsed") return null;
   const affiliation = value(row, "preferred_body");
   if (affiliation !== "central" && affiliation !== "local") return null;
   const college = value(row, "college");
@@ -53,8 +57,8 @@ export async function findJoinProfile(referenceCode: string, email: string): Pro
     program: value(row, "program"),
     yearLevel: value(row, "year_level"),
     affiliation,
-    position: "executive-associate",
-    role: officeOf(office.role),
-    appliedFor: value(row, "position") || office.label,
+    position: office.position,
+    role: office.role,
+    appliedFor: office.label,
   };
 }

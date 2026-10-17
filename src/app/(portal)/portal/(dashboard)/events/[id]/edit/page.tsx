@@ -10,7 +10,6 @@ import { settle } from "@/lib/portal/settle";
 import { canManageEvent, isOwn } from "@/lib/events/access";
 import { getEvaluationSettings } from "@/lib/events/evaluation-store";
 import { stampFor } from "@/lib/data/edit-guard";
-import { siteUrl } from "@/lib/email/template";
 import { defaultRsvpDefinition } from "@/lib/events/rsvp";
 import { getRsvpSettings } from "@/lib/events/rsvp-store";
 import { ensureQrCodes } from "@/lib/events/qr-codes";
@@ -50,7 +49,6 @@ export default async function EditEventPage({ params }: PageProps<"/portal/event
           cancelHref={`/portal/events/${event.id}`}
           initial={{ name: event.name, summary: event.summary, background: event.background, eventDate: event.eventDate, endDate: event.endDate, ingressTime: event.ingressTime, startsTime: event.startsTime, endsTime: event.endsTime, egressTime: event.egressTime, venueMode: event.venueMode, venueType: event.venueType ?? (event.venueMode === "online" ? "online" : "in-campus"), natureOfActivity: event.natureOfActivity ?? "", venueDetails: event.venueDetails, openToStudents: event.openToStudents, openToExternals: event.openToExternals, openToAdmins: event.openToAdmins, openToInternal: event.openToInternal, collaborators: event.collaborators, otherCollaborators: event.otherCollaborators, minimumRegistrants: event.minimumRegistrants, maximumRegistrants: event.maximumRegistrants, registeredCount: event.registeredCount, registrationStatus: event.registrationStatus, requireGoogle: event.requireGoogle }}
           eventId={id}
-          baseUrl={siteUrl()}
           evaluationSettings={evaluationSettings}
           rsvpSettings={rsvpSettings}
           changeRequest={event.changeRequest}

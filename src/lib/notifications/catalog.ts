@@ -1,7 +1,7 @@
 import "server-only";
 
 import { accessDecisionEmail, accessReceivedEmail, accessRequestNoticeEmail } from "@/lib/access-requests/emails";
-import { applicationNoticeEmail, confirmationEmail, resultEmail } from "@/lib/applications/emails";
+import { applicationNoticeEmail, confirmationEmail, offerDeclinedEmail, resultEmail } from "@/lib/applications/emails";
 import { approvalRequestEmail, revisionPublishedEmail, revisionReturnedEmail, revisionSignedEmail, revisionSubmittedEmail, revisionWithdrawnEmail } from "@/lib/codes/emails";
 import type { RevisionSummary } from "@/lib/codes/options";
 import type { Email } from "@/lib/email/send";
@@ -52,8 +52,8 @@ const at = "2026-10-05T01:15:00.000Z";
 const by: Actor = { name: "Maria Santos", email: "maria.santos.sci@ust.edu.ph", role: "Chairperson, Central Comelec" };
 const unitAddresses = ["comelec@ust.edu.ph", "maria.santos.sci@ust.edu.ph", "andres.reyes.ab@ust.edu.ph"];
 
-const person = { email: "juan.delacruz.sci@ust.edu.ph", firstName: "JUAN PAOLO", referenceCode: "7K3MX" };
-const applicant = (concern: Concern) => ({ ...person, referenceCode: "CC-7K3M-9QXA", position: "Executive Assistant to the Chairperson", division: "Executive Division", concern });
+const person = { email: "juan.delacruz.sci@ust.edu.ph", firstName: "JUAN PAOLO", lastName: "DELA CRUZ", referenceCode: "7K3MX" };
+const applicant = (concern: Concern) => ({ ...person, referenceCode: "CC-7K3M-9QXA", position: "Executive Associate to the Chairperson", division: "", concern });
 const requester = (concern: Concern) => ({ ...person, referenceCode: "PA-4T8W-2HNC", concern });
 
 const aboutYou = {
@@ -64,13 +64,13 @@ const aboutYou = {
 const applicationAnswers = (concern: Concern) => [
   aboutYou,
   { title: "Qualifications", rows: [["Requirements", "Meets all four"], ["Other office", "None"], ["Party, fraternity or sorority", "None"], ["Political organization", "None"]] as Array<[string, string]> },
-  { title: "Position", rows: [["Serve in", isLocalConcern(concern) ? "Local Comelec" : "Central Comelec"], ["Division", "Executive Division"], ["Position", "Executive Assistant to the Chairperson"]] as Array<[string, string]> },
+  { title: "Position", rows: [["Serve in", isLocalConcern(concern) ? "Local Comelec" : "Central Comelec"], ["Position", "Executive Associate to the Chairperson"]] as Array<[string, string]> },
   { title: "Documents", rows: [["CV or résumé", "https://drive.google.com/file/d/1aBcD3fGhIjK/view"], ["Latest Registration Form", "https://drive.google.com/file/d/registration/view"], ["Letter of Intent", "https://drive.google.com/file/d/intent/view"], ["Recommendation Letter", "https://drive.google.com/file/d/1LmNoP7qRsTu/view"], ["Portfolio", "Not provided"], ["Latest Copy of Grades", "Not provided"]] as Array<[string, string]> },
 ];
 
 const requestAnswers = (concern: Concern) => [
   aboutYou,
-  { title: "Request", rows: [["Serves in", isLocalConcern(concern) ? "Local Comelec" : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Office of the Chairperson"], ["Access", "Commission Portal"]] as Array<[string, string]> },
+  { title: "Request", rows: [["Serves in", isLocalConcern(concern) ? "Local Comelec" : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Executive Associate to the Chairperson"], ["Access", "Commission Portal"]] as Array<[string, string]> },
 ];
 
 const account = (concern: Concern): Account => ({
@@ -81,7 +81,7 @@ const account = (concern: Concern): Account => ({
   affiliation: concern.unit,
   college: SAMPLE_COLLEGE,
   position: "executive-associate",
-  role: "Office of the Chairperson",
+  role: "Executive Associate to the Chairperson",
   program: "Bachelor of Science in Biology, major in Medical Biology",
   studentNumber: "2023123456",
 });
@@ -174,7 +174,7 @@ const event: CommissionEvent = {
   changeRequestedAt: null,
 };
 
-const requestRows = (concern: Concern): Array<[string, string]> => [["Name", "JUAN PAOLO R. DELA CRUZ"], ["UST email", person.email], ["Requested for", isLocalConcern(concern) ? `Local Comelec · ${SAMPLE_COLLEGE}` : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Office of the Chairperson"]];
+const requestRows = (concern: Concern): Array<[string, string]> => [["Name", "JUAN PAOLO R. DELA CRUZ"], ["UST email", person.email], ["Requested for", isLocalConcern(concern) ? `Local Comelec · ${SAMPLE_COLLEGE}` : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Executive Associate to the Chairperson"]];
 const unitOnly = (concern: Concern) => `${sentence(describeRecipients(concern))}, and nobody else`;
 const unitSample = (concern: Concern) => (isLocalConcern(concern) ? ["comelec.sci@ust.edu.ph", "ana.cruz.sci@ust.edu.ph"] : unitAddresses);
 const VOLUME = "Off to begin with. One goes to the whole Executive Board for every submission, so in a busy period it can use up the mailbox’s daily sending limit, and the receipts with it.";
@@ -192,7 +192,7 @@ export const automaticEmails: AutomaticGroup[] = [
         to: () => "The requester",
         byUnit: true,
         sample: (concern) =>
-          accessDecisionEmail(requester(concern), true, [["Name", "JUAN PAOLO R. DELA CRUZ"], ["UST email", person.email], ["Serves in", isLocalConcern(concern) ? `Local Comelec · ${SAMPLE_COLLEGE}` : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Office of the Chairperson"], ["Program", "Bachelor of Science in Biology, major in Medical Biology"], ["Student number", "2023123456"]]),
+          accessDecisionEmail(requester(concern), true, [["Name", "JUAN PAOLO R. DELA CRUZ"], ["UST email", person.email], ["Serves in", isLocalConcern(concern) ? `Local Comelec · ${SAMPLE_COLLEGE}` : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Executive Associate to the Chairperson"], ["Program", "Bachelor of Science in Biology, major in Medical Biology"], ["Student number", "2023123456"]]),
       },
       {
         id: "access-declined",
@@ -200,7 +200,7 @@ export const automaticEmails: AutomaticGroup[] = [
         when: "A request is declined under Accounts.",
         to: () => "The requester",
         byUnit: true,
-        sample: (concern) => accessDecisionEmail(requester(concern), false, [["Name", "JUAN PAOLO R. DELA CRUZ"], ["UST email", person.email], ["Requested for", isLocalConcern(concern) ? `Local Comelec · ${SAMPLE_COLLEGE}` : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Office of the Chairperson"]]),
+        sample: (concern) => accessDecisionEmail(requester(concern), false, [["Name", "JUAN PAOLO R. DELA CRUZ"], ["UST email", person.email], ["Requested for", isLocalConcern(concern) ? `Local Comelec · ${SAMPLE_COLLEGE}` : "Central Comelec"], ["Position", "Executive Associate"], ["Role", "Executive Associate to the Chairperson"]]),
       },
     ],
   },
@@ -227,6 +227,7 @@ export const automaticEmails: AutomaticGroup[] = [
       },
       { id: "application-accepted", name: "Application accepted", when: "An application is marked Accepted with “Email the applicant” ticked.", to: applicantOnly, byUnit: true, sample: (concern, onboarding) => resultEmail(applicant(concern), true, onboarding) },
       { id: "application-declined", name: "Application rejected", when: "An application is marked Rejected with “Email the applicant” ticked.", to: applicantOnly, byUnit: true, sample: (concern) => resultEmail(applicant(concern), false) },
+      { id: "offer-declined", name: "Offer declined, to the unit", when: "An accepted applicant chooses Decline in their acceptance email or on the tracker.", to: unitOnly, byUnit: true, sample: (concern) => offerDeclinedEmail(unitSample(concern), { ...applicant(concern), id: "00000000-0000-4000-8000-000000000000", name: "JUAN PAOLO R. DELA CRUZ" }) },
     ],
   },
   {
@@ -384,7 +385,7 @@ export const automaticEmails: AutomaticGroup[] = [
         when: "An account’s details are saved with something changed, by its owner or by whoever manages it; or a Local Chairperson is made Primus or Vicar.",
         to: owner,
         byUnit: true,
-        sample: (concern) => accountUpdatedEmail(account(concern), [["Position", "Executive Associate (was Deputy)"], ["Role", "Office of the Chairperson (was Deputy)"]], by, { access: true }),
+        sample: (concern) => accountUpdatedEmail(account(concern), [["Position", "Executive Associate (was Deputy)"], ["Role", "Executive Associate to the Chairperson (was Deputy)"]], by, { access: true }),
       },
       { id: "account-revoked", name: "Access revoked", when: "An account’s access is revoked under Accounts.", to: owner, byUnit: true, sample: (concern) => accountAccessEmail(account(concern), false, by) },
       { id: "account-restored", name: "Access restored", when: "An account’s access is restored under Accounts.", to: owner, byUnit: true, sample: (concern) => accountAccessEmail(account(concern), true, by) },

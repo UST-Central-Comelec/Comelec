@@ -1,4 +1,4 @@
-import { accountPositions, chamberRoles } from "@/lib/data/types";
+import { chamberRoles } from "@/lib/data/types";
 import { formatAccepted } from "@/lib/onboarding/documents";
 import type { DirectoryDatabaseRow } from "@/components/portal/directory-database";
 
@@ -6,7 +6,7 @@ export const directoryExportFormats = ["xlsx", "pdf", "csv", "json"] as const;
 export type DirectoryExportFormat = (typeof directoryExportFormats)[number];
 export const exportColumns = ["Position", "Name", "Photo", "Unit", "Role", "College or faculty", "Program", "Year level", "UST email", "Facebook", "Student number", "Mobile number", "Chamber role", "E-declarations"];
 export function directoryExportValues(person: DirectoryDatabaseRow): string[] {
-  return [accountPositions[person.position], person.name, person.photoUrl ?? "", person.unit, person.role, person.college, person.program, person.yearLevel, person.email, person.facebookUrl,
+  return [person.positionName, person.name, person.photoUrl ?? "", person.unit, person.role, person.college, person.program, person.yearLevel, person.email, person.facebookUrl,
     person.studentNumber ?? "Restricted", person.contactNumber ?? "Restricted", person.chamberRole ? chamberRoles[person.chamberRole] : "",
     person.declarations.map(item => `${item.title} — Accepted ${formatAccepted(item.acceptedAt)} · v${item.version}`).join("\n")];
 }

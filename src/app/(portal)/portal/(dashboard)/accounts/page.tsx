@@ -16,7 +16,7 @@ import { ViewOnlyTag } from "@/components/portal/view-only";
 import { comelecUnits, unitAbbreviations } from "@/lib/applications/options";
 import { listPendingAccessRequests } from "@/lib/access-requests/admin";
 import { allowed, builtInUser, isLocal, withPortalUser } from "@/lib/auth/session";
-import { accountStatusOf, detailsFor, listName } from "@/lib/data/accounts";
+import { accountStatusOf, detailsFor, listName, positionName } from "@/lib/data/accounts";
 import { getAccounts } from "@/lib/data/queries";
 import { accountAffiliations, accountPositions, type AccountSummary } from "@/lib/data/types";
 import { FULL_ACCESS } from "@/lib/portal/access";
@@ -72,7 +72,7 @@ const affiliationShort = (account: Pick<AccountSummary, "affiliation" | "college
 function Standing({ account }: { account: AccountSummary }) {
   return <div className="portal-account-standing">
     <AccountKindLabel kind={account.kind} />
-    {account.kind === "personal" && <small className="portal-muted">{accountPositions[account.position]}</small>}
+    {account.kind === "personal" && <small className="portal-muted">{positionName(account)}</small>}
   </div>;
 }
 

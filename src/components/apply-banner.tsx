@@ -58,6 +58,9 @@ export function PeriodStatus({ period, noun = "Applications" }: { period: Banner
   return <Countdown deadline={period.closesAt} closesLabel={period.closesLabel} noun={noun} />;
 }
 
+/** Where the Apply form puts its session countdown (use-form-draft.ts), at the strip's right. */
+export const SESSION_SLOT = "apply-session-slot";
+
 /** A title strip shared by the commissioner application, tracking page and portal preview. */
 export function ApplyBanner() {
   const isTracking = usePathname() === "/apply/track";
@@ -67,6 +70,7 @@ export function ApplyBanner() {
         <div className="apply-top-title">
           <h1>{isTracking ? <>Track <span>submission</span></> : <>Commissioner <span>application</span></>}</h1>
         </div>
+        {!isTracking && <div id={SESSION_SLOT} className="apply-top-session" />}
       </div>
     </header>
   );

@@ -1,14 +1,15 @@
 "use client";
 
-import { SaveIcon, ViewIcon, HideIcon } from "@/components/action-icons";
-import { useActionState, useId, useState } from "react";
+import { ViewIcon, HideIcon } from "@/components/action-icons";
+import { useId, useState } from "react";
 import { CheckCircle2, Clock3, LockKeyhole, CalendarClock, XCircle } from "lucide-react";
 import { registrationStatuses, registrationStatusHints, type RegistrationStatus } from "@/lib/events/options";
-import { rsvpFormPath, type RsvpSettings } from "@/lib/events/rsvp";
+import type { RsvpSettings } from "@/lib/events/rsvp";
 import type { EvaluationSettings } from "@/lib/events/evaluation";
-import { saveEventDeployment, type EventDeploymentState } from "@/lib/portal/event-actions";
+import type { PendingDeployment } from "@/lib/events/deployment";
+import { useDeploymentSchedule } from "./use-deployment-schedule";
 import { InfoTip, TitleWithInfo } from "./info-tip";
-import { EventRegistrationLink } from "./event-registration-link";
+import { EventFormLinks } from "./event-form-links";
 import { EventCapacityFields, EventCapacityTracker } from "./event-capacity";
 import { EventEvaluationTracker } from "./event-evaluation-tracker";
 import type { EventResponseCounts } from "@/lib/events/response-counts";
@@ -22,32 +23,29 @@ const deploymentForms = [{ key: "registration", label: "Registration Form" }, { 
 type DeploymentForm = typeof deploymentForms[number]["key"];
 const statusOrder: RegistrationStatus[] = ["open", "waitlist", "closed", "rescheduled", "cancelled"];
 
-export function EventDeployment({ eventId, baseUrl, published = true, registrationStatus, minimumRegistrants = 1, maximumRegistrants = null, registeredCount = 0, responseCounts = { rsvp: 0, evaluation: 0 }, requireGoogle = true, rsvp, evaluation, editable }: { eventId: string; baseUrl: string; published?: boolean; registrationStatus: RegistrationStatus; minimumRegistrants?: number; maximumRegistrants?: number | null; registeredCount?: number; responseCounts?: EventResponseCounts | null; requireGoogle?: boolean; rsvp: RsvpSettings | null; evaluation: EvaluationSettings; editable: boolean }) {
+export function EventDeployment({ eventId, eventName = "This event", baseUrl, published = true, registrationStatus, minimumRegistrants = 1, maximumRegistrants = null, registeredCount = 0, responseCounts = { rsvp: 0, evaluation: 0 }, requireGoogle = true, rsvp, evaluation, editable, scheduled: initialSchedule = null }: { eventId: string; eventName?: string; baseUrl: string; published?: boolean; registrationStatus: RegistrationStatus; minimumRegistrants?: number; maximumRegistrants?: number | null; registeredCount?: number; responseCounts?: EventResponseCounts | null; requireGoogle?: boolean; rsvp: RsvpSettings | null; evaluation: EvaluationSettings; editable: boolean; scheduled?: PendingDeployment | null }) {
   const id = useId();
   const [activeForm, setActiveForm] = useState<DeploymentForm>("registration");
-  const [saved, setSaved] = useState({ published, registrationStatus, minimumRegistrants: String(minimumRegistrants), maximumRegistrants: maximumRegistrants === null ? "" : String(maximumRegistrants), requireGoogle, rsvpEnabled: rsvp?.enabled ?? false, rsvpGoogle: rsvp?.require_google ?? false, evaluationEnabled: evaluation.enabled, evaluationGoogle: evaluation.requireGoogle ?? false, allowAnonymous: evaluation.allowAnonymous });
-  const [draft, setDraft] = useState(saved);
-  const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
-  const change = <K extends keyof typeof draft>(key: K, value: typeof draft[K]) => setDraft(previous => ({ ...previous, [key]: value }));
-  const [state, action, pending] = useActionState<EventDeploymentState, FormData>(async (previous, form) => {
-    const result = await saveEventDeployment(eventId, previous, form);
-    if (result.success) { const next = { ...draft, registrationStatus: result.registrationStatus ?? draft.registrationStatus }; setSaved(next); setDraft(next); }
-    return result;
-  }, {});
+  const { draft, saving, state, change, retry } = useDeploymentSchedule(eventId, {
+    published, registrationStatus, minimumRegistrants: String(minimumRegistrants), maximumRegistrants: maximumRegistrants === null ? "" : String(maximumRegistrants),
+    requireGoogle, rsvpEnabled: rsvp?.enabled ?? false, rsvpGoogle: rsvp?.require_google ?? false,
+    evaluationEnabled: evaluation.enabled, evaluationGoogle: evaluation.requireGoogle ?? false, allowAnonymous: evaluation.allowAnonymous,
+  }, initialSchedule, editable);
   useToast(state.error, "error", state);
-  useToast(state.success ? "Deployment settings saved." : null, "ok", state);
   const StatusIcon = statusIcons[draft.registrationStatus];
-  const visibilityHint = draft.published !== saved.published
-    ? draft.published ? "Will be visible on the website after saving." : "Will be hidden from the website after saving, including public form links."
+  const visibilityHint = draft.published !== published
+    ? draft.published ? "Will be visible on the website when the background update is applied." : "Will be hidden from the website when the background update is applied, including public form links."
     : draft.published ? "Visible on the website." : "Hidden from the website. Public form links are unavailable.";
 
-  const settingsActions = editable ? <div className="portal-deployment-settings-actions"><span className="portal-settings-dirty">{dirty ? "Unsaved changes" : ""}</span><div className="portal-form-actions">{dirty && <button className="portal-button is-ghost" type="button" disabled={pending} onClick={() => setDraft(saved)}>Discard</button>}<button className="portal-button" type="submit" disabled={pending || !dirty}><SaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty ? "Save Changes" : "Changes Saved"}</button></div></div> : null;
+  const settingsActions = editable && state.error ? <div className="portal-deployment-settings-actions">
+    <button className="portal-button is-ghost" type="button" disabled={saving} onClick={retry}>Try again</button>
+  </div> : null;
 
-  return <form className="portal-form portal-deployment" action={action} noValidate>
+  return <form className="portal-form portal-deployment" onSubmit={event => event.preventDefault()} noValidate>
     <section className="portal-card portal-deployment-overview">
       <div className="portal-deployment-column">
       <header className="portal-card-head"><TitleWithInfo as="h2" className="portal-card-title" info={visibilityHint}>Website visibility</TitleWithInfo>{!editable && <ViewOnlyTag />}</header>
-      <fieldset disabled={!editable || pending}>
+      <fieldset disabled={!editable}>
         <legend className="portal-visually-hidden">Website visibility</legend>
         <SlidingSegments active={draft.published} role="radiogroup" aria-label="Website visibility">
           {[true, false].map(visible => {
@@ -69,8 +67,8 @@ export function EventDeployment({ eventId, baseUrl, published = true, registrati
     </section>
     <section className="portal-card" hidden={activeForm !== "registration"}>
       <header className="portal-card-head portal-deployment-settings-head"><TitleWithInfo as="h2" className="portal-deployment-settings-title" info="Registration status controls whether people can sign up. Website visibility is controlled separately above. Closing registration doesn’t unpublish the event.">Registration Form</TitleWithInfo>{activeForm === "registration" && settingsActions}</header>
-      <EventRegistrationLink boxed label="Registration form" href={`${baseUrl}/events/${eventId}/register`} />
-      <fieldset disabled={!editable || pending}>
+      <EventFormLinks eventId={eventId} eventName={eventName} baseUrl={baseUrl} form="registration" qrDisabled={!editable} />
+      <fieldset disabled={!editable}>
         <legend className="portal-visually-hidden">Registration status</legend>
         <div className="portal-event-form-link portal-deployment-status-box" data-status={draft.registrationStatus}>
           <span className="portal-event-form-link-icon"><StatusIcon size={18} aria-hidden="true" /></span>
@@ -78,7 +76,7 @@ export function EventDeployment({ eventId, baseUrl, published = true, registrati
             <span id={`${id}-status-label`}>Registration status</span>
             <p>{registrationStatusHints[draft.registrationStatus]}</p>
           </div>
-          <Dropdown name="registrationStatus" value={draft.registrationStatus} onChange={value => change("registrationStatus", value as RegistrationStatus)} options={statusOrder.map(status => ({ value: status, label: registrationStatuses[status] }))} labelledBy={`${id}-status-label`} disabled={!editable || pending} invalid={!!state.fieldErrors?.registrationStatus} required />
+          <Dropdown name="registrationStatus" value={draft.registrationStatus} onChange={value => change("registrationStatus", value as RegistrationStatus)} options={statusOrder.map(status => ({ value: status, label: registrationStatuses[status] }))} labelledBy={`${id}-status-label`} disabled={!editable} invalid={!!state.fieldErrors?.registrationStatus} required />
         </div>
         <EventCapacityFields minimum={draft.minimumRegistrants} maximum={draft.maximumRegistrants} onMinimumChange={value => change("minimumRegistrants", value)} onMaximumChange={value => change("maximumRegistrants", value)} errors={state.fieldErrors} />
         <EventCapacityTracker registered={registeredCount} minimum={Number(draft.minimumRegistrants) || 1} maximum={draft.maximumRegistrants && Number(draft.maximumRegistrants) >= 1 ? Number(draft.maximumRegistrants) : null} />
@@ -89,19 +87,19 @@ export function EventDeployment({ eventId, baseUrl, published = true, registrati
     </section>
     <section className="portal-card" hidden={activeForm !== "rsvp"}>
       <header className="portal-card-head portal-deployment-settings-head"><h2 className="portal-deployment-settings-title">RSVP Form</h2>{activeForm === "rsvp" && settingsActions}</header>
-      <EventRegistrationLink boxed label="RSVP form" href={`${baseUrl}${rsvpFormPath(eventId)}`} />
-      <fieldset disabled={!editable || pending}>
+      <EventFormLinks eventId={eventId} eventName={eventName} baseUrl={baseUrl} form="rsvp" qrDisabled={!editable} />
+      <fieldset disabled={!editable}>
       <legend className="portal-visually-hidden">RSVP form settings</legend>
-      <FormAvailabilitySetting id={`${id}-rsvp-status`} name="rsvpEnabled" form="RSVP" enabled={draft.rsvpEnabled} onChange={value => change("rsvpEnabled", value)} disabled={!editable || pending} />
+      <FormAvailabilitySetting id={`${id}-rsvp-status`} name="rsvpEnabled" form="RSVP" enabled={draft.rsvpEnabled} onChange={value => change("rsvpEnabled", value)} disabled={!editable} />
       <input type="hidden" name="rsvpGoogleSetting" value="on" />
       <AuthenticationSetting id={`${id}-rsvp-google`} name="rsvpGoogleEnabled" checked={draft.rsvpGoogle} onChange={value => change("rsvpGoogle", value)} form="RSVP" />
-    </fieldset>{!rsvp && <p className="portal-muted">Save deployment settings to activate this form link.</p>}</section>
+    </fieldset>{!rsvp && <p className="portal-muted">Open this form above. Changes apply automatically.</p>}</section>
     <section className="portal-card" hidden={activeForm !== "evaluation"}>
       <header className="portal-card-head portal-deployment-settings-head"><h2 className="portal-deployment-settings-title">Evaluation Form</h2>{activeForm === "evaluation" && settingsActions}</header>
-      <EventRegistrationLink boxed label="Evaluation form" href={`${baseUrl}/events/${eventId}/evaluate`} />
-      <fieldset disabled={!editable || pending}>
+      <EventFormLinks eventId={eventId} eventName={eventName} baseUrl={baseUrl} form="evaluation" qrDisabled={!editable} />
+      <fieldset disabled={!editable}>
       <legend className="portal-visually-hidden">Evaluation form settings</legend>
-      <FormAvailabilitySetting id={`${id}-evaluation-status`} name="evaluationEnabled" form="Evaluation" enabled={draft.evaluationEnabled} onChange={value => change("evaluationEnabled", value)} disabled={!editable || pending} />
+      <FormAvailabilitySetting id={`${id}-evaluation-status`} name="evaluationEnabled" form="Evaluation" enabled={draft.evaluationEnabled} onChange={value => change("evaluationEnabled", value)} disabled={!editable} />
       <EventEvaluationTracker registered={registeredCount} counts={responseCounts} />
       <div className="portal-deployment-evaluation-options">
       <div className="portal-deployment-anonymous"><label className="portal-check"><input type="checkbox" name="allowAnonymous" checked={draft.allowAnonymous} onChange={event => change("allowAnonymous", event.target.checked)} /><span><strong>Allow anonymous feedback</strong></span></label><InfoTip>Works with required student authentication. Anonymous feedback saves no email, name, registration link or profile answers. Google verification only checks eligibility.</InfoTip></div>

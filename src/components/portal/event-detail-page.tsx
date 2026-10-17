@@ -23,6 +23,7 @@ import { ChangeRequestForm } from "@/components/portal/change-request-form";
 import { EventAnalyticsView } from "@/components/portal/event-analytics";
 import { EventStatusTag } from "@/components/portal/event-tags";
 import { EventOverview } from "@/components/portal/event-overview";
+import { getPendingDeployment } from "@/lib/events/deployment-store";
 import { EventDeployment } from "@/components/portal/event-deployment";
 import { getEventResponseCounts } from "@/lib/events/response-counts";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -72,6 +73,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
     settle(listLetters({ local: event.organizer === "local", college: event.college, eventId: event.id })),
     settle(getSecretariatSettings()),
   ]) : [null, null];
+  const scheduledDeployment = tab === "deployment" ? await settle(getPendingDeployment(id)) : null;
   const responseCounts = tab === "deployment" ? await settle(getEventResponseCounts(id)) : null;
   const registrations = seesInside && (tab === "responses" || tab === "analytics") ? await settle(listRegistrations(id)) : { value: [], error: null };
   const manages = canManageEvent(user, event);
@@ -157,9 +159,9 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
 
       {evaluation.error && <p className="portal-form-error" role="alert">{evaluation.error}</p>}
       {evaluationSettings?.error && <p className="portal-form-error" role="alert">{evaluationSettings.error}</p>}
-      {tab === "deployment" && (rsvpSettings?.error || evaluationSettings?.error
-        ? <p className="portal-form-error" role="alert">{rsvpSettings?.error || evaluationSettings?.error}</p>
-        : evaluationSettings?.value && <EventDeployment eventId={id} baseUrl={siteUrl()} published={event.published ?? true} registrationStatus={event.registrationStatus} minimumRegistrants={event.minimumRegistrants} maximumRegistrants={event.maximumRegistrants} registeredCount={event.registeredCount} responseCounts={responseCounts?.value ?? null} requireGoogle={event.requireGoogle} rsvp={rsvpSettings?.value ?? null} evaluation={evaluationSettings.value} editable={manages} />)}
+      {tab === "deployment" && (rsvpSettings?.error || evaluationSettings?.error || scheduledDeployment?.error
+        ? <p className="portal-form-error" role="alert">{rsvpSettings?.error || evaluationSettings?.error || scheduledDeployment?.error}</p>
+        : evaluationSettings?.value && <EventDeployment key={`${event.updatedAt}:${scheduledDeployment?.value?.error ?? ""}`} scheduled={scheduledDeployment?.value ?? null} eventId={id} eventName={event.name} baseUrl={siteUrl()} published={event.published ?? true} registrationStatus={event.registrationStatus} minimumRegistrants={event.minimumRegistrants} maximumRegistrants={event.maximumRegistrants} registeredCount={event.registeredCount} responseCounts={responseCounts?.value ?? null} requireGoogle={event.requireGoogle} rsvp={rsvpSettings?.value ?? null} evaluation={evaluationSettings.value} editable={manages} />)}
       {tab === "check-in" && (manages ? <EventCheckIn eventId={id} /> : <section className="portal-card"><p>Only officers who manage this event can record attendance.</p></section>)}
 
       {/* The unit's side of a request: what was asked, and the two ways to settle it. */}
@@ -228,7 +230,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
             {registrations.error ? (
               <p className="portal-form-error" role="alert">Couldn’t load the registrations. ({registrations.error})</p>
             ) : (
-              <EventResponsesTable rsvpActions={manages ? { update: updateRsvpResponse.bind(null, event.id), logistics: saveRsvpRequestDecisions.bind(null, event.id), remove: removeRsvpResponse.bind(null, event.id), resend: resendRsvpAcknowledgement.bind(null, event.id) } : undefined} rows={mergeParticipantRows(rows, rsvpResponses?.value ?? [], responses, editRequests?.value ?? [])} addressEdit={manages ? addressResponseEdit.bind(null, event.id) : undefined} evaluationQuestions={evaluationSettings?.value?.questions} resend={manages ? resendAcknowledgement.bind(null, event.id) : undefined} remove={manages ? removeRegistration.bind(null, event.id) : undefined} save={manages ? saveRequestDecisions.bind(null, event.id) : undefined} />
+              <EventResponsesTable maximumRegistrants={event.maximumRegistrants} rsvpActions={manages ? { update: updateRsvpResponse.bind(null, event.id), logistics: saveRsvpRequestDecisions.bind(null, event.id), remove: removeRsvpResponse.bind(null, event.id), resend: resendRsvpAcknowledgement.bind(null, event.id) } : undefined} rows={mergeParticipantRows(rows, rsvpResponses?.value ?? [], responses, editRequests?.value ?? [])} addressEdit={manages ? addressResponseEdit.bind(null, event.id) : undefined} evaluationQuestions={evaluationSettings?.value?.questions} resend={manages ? resendAcknowledgement.bind(null, event.id) : undefined} remove={manages ? removeRegistration.bind(null, event.id) : undefined} save={manages ? saveRequestDecisions.bind(null, event.id) : undefined} />
             )}
           </section>
 

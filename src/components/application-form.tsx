@@ -5,7 +5,8 @@ import { scrollToTop } from "@/lib/scroll";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Clock, Mail, ShieldCheck, Target, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { EventConsentStatement } from "@/components/events/event-form-ui";
 import { CopyIcon as Copy, ViewIcon as Eye } from "@/components/action-icons";
 import { submitApplication, type ApplicationState, type SubmittedApplication } from "@/lib/applications/actions";
 import { forgetApplicantVerification } from "@/lib/applications/verification-actions";
@@ -23,9 +24,13 @@ import { InterviewPicker } from "@/components/interview-picker";
 import { describeSlot, type InterviewSlot } from "@/lib/applications/interview-format";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
 import { describeAnswers, interviewLater, type AnswerSection, type AnswerSectionId } from "@/lib/applications/answers";
+import { useFormDraft } from "@/components/use-form-draft";
+import { SESSION_SLOT } from "@/components/apply-banner";
+import { createPortal } from "react-dom";
+import { DraftExpired, DraftStrip } from "@/components/draft-notice";
 
 const steps: Array<{ title: string; description: string; fields: ApplicationField[] }> = [
-  { title: "Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
+  { title: "Data Privacy Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
   { title: "Qualifications", description: "Confirm you meet the requirements to serve on the commission, and tell us about anything you’d have to give up to join.", fields: ["meetsUnits", "meetsGwa", "notRecentCandidate", "conflictOffice", "conflictOfficeDetail", "conflictParty", "conflictPartyDetail", "conflictPolitics", "conflictPoliticsDetail", "conflictPledge"] },
   { title: "About you", description: "Your name, how to reach you, and where you study.", fields: ["lastName", "firstName", "middleName", "studentNumber", "contactNumber", "email", "facebookUrl", "college", "program", "yearLevel"] },
   { title: "Position", description: "Where you’d like to serve and the position you’re applying for.", fields: ["preferredBody", "position"] },
@@ -262,14 +267,6 @@ function VerifiedBadge({ tooltip }: { tooltip?: string }) {
   );
 }
 
-/** The privacy statement's four parts, shown as tiles on the Consent step. */
-const privacySections: Array<{ icon: typeof ShieldCheck; title: string; text: string }> = [
-  { icon: ClipboardList, title: "What we collect", text: "Your full name, student number, mobile number, UST email, Facebook profile link, college, program and year level; your preferred body, position and interview time; and the links to your CV, latest registration form, letter of intent, recommendation letter, portfolio and latest copy of grades. To confirm you’re from UST, you’ll also sign in once with your UST Google account, which shares your name and UST email with us; we don’t keep that sign-in record." },
-  { icon: Target, title: "Why we collect it", text: "To evaluate your application, contact you about interviews and results, and keep a record of the commission’s recruitment." },
-  { icon: Users, title: "Who can see it", text: "Authorized commissioners and officers handling recruitment for the relevant unit, within their portal permissions. Service providers process information needed to operate the form, database and email delivery. See the full privacy statement for access and disclosure details." },
-  { icon: Clock, title: "How long we keep it", text: "We store it securely and delete your application automatically 60 days after you submit it." },
-];
-
 /** Why verification didn't complete, from ?verify= after Google sends the applicant back. */
 const verifyMessages: Record<string, string> = {
   "not-ust": "That wasn’t a UST account. Sign in with your @ust.edu.ph Google account to apply.",
@@ -373,6 +370,31 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   }, [step, moved]);
 
   const read = () => readApplication(new FormData(formRef.current ?? undefined));
+
+  // Answers stay on this device until sent, kept per verified account, so a reload or a dropped
+  // connection doesn't mean starting again and nobody else's answers come back on a shared computer.
+  const draft = useFormDraft({
+    key: !preview && verified?.email ? `apply:${verified.email.toLowerCase()}` : null,
+    form: formRef,
+    state: { step, reached, college, preferredBody, program, position, yearLevel, interviewSlot, conflictAnswers },
+    restore: (saved) => {
+      setCollege(saved.college ?? "");
+      setPreferredBody(saved.preferredBody ?? "");
+      setProgram(saved.program ?? "");
+      setPosition(saved.position ?? "");
+      setYearLevel(saved.yearLevel ?? "");
+      setInterviewSlot(saved.interviewSlot ?? "");
+      setConflictAnswers({ ...noConflictAnswers, ...saved.conflictAnswers });
+      setStep(Math.min(Math.max(1, saved.step ?? 1), lastStep));
+      setReached((current) => Math.max(current, Math.min(saved.reached ?? 1, lastStep)));
+      setMoved(true);
+    },
+    // The Review step and the step tracker read the answers from the fields.
+    onRestored: () => setValues(read()),
+  });
+  const { clear: clearDraft } = draft;
+  useEffect(() => { if (state?.submitted) clearDraft(); }, [state?.submitted, clearDraft]);
+  const sessionSlot = hydrated ? document.getElementById(SESSION_SLOT) : null;
 
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
 
@@ -571,6 +593,9 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
   return (
     <form ref={formRef} className="apply-form" onSubmit={onSubmit} onInput={(event) => clearError((event.target as HTMLInputElement).name)} noValidate data-validation={preview ? "off" : undefined}>
       {tracker}
+      <DraftExpired draft={draft} actionClassName="button-primary" />
+      {/* The session's countdown and its note go in the title strip above (apply-banner.tsx). */}
+      {sessionSlot && createPortal(<DraftStrip draft={draft} />, sessionSlot)}
 
       <div className={`apply-body${leaving ? " is-leaving" : ""}`} data-direction={direction}>
         <div className="apply-body-head" key={step}>
@@ -581,31 +606,11 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
 
         {/* Every step stays in the form so all answers are sent together; only the current one shows. */}
         <div className="apply-step" hidden={step !== 0}>
-          <section className={`apply-privacy${errors.consent ? " has-error" : ""}`} aria-labelledby="privacy-title">
-            <header className="apply-privacy-head">
-              <span className="apply-privacy-icon" aria-hidden="true"><ShieldCheck size={20} /></span>
-              <div>
-                <h3 id="privacy-title">Privacy statement</h3>
-                <span className="apply-privacy-law">Data Privacy Act of 2012 · Republic Act No. 10173</span>
-              </div>
-            </header>
-            <p className="apply-privacy-intro">The UST Central Commission on Elections (Central COMELEC) respects your privacy. This statement explains what we collect through this form and how we use it.</p>
-            <p className="apply-privacy-intro"><Link href="/privacy" target="_blank" rel="noreferrer">Read the full website and portal privacy statement</Link>.</p>
-            <div className="apply-privacy-grid">
-              {privacySections.map(({ icon: Icon, title, text }) => (
-                <div className="apply-privacy-item" key={title}>
-                  <span className="apply-privacy-item-icon" aria-hidden="true"><Icon size={17} /></span>
-                  <div>
-                    <h4>{title}</h4>
-                    <p>{text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="apply-privacy-rights"><Mail size={16} aria-hidden="true" /><span>You may ask to access, correct or delete your information, or withdraw your consent, by emailing <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link>.</span></p>
+          <section className={`apply-privacy${errors.consent ? " has-error" : ""}`} aria-label="Data Privacy Consent">
+            <EventConsentStatement id="apply-privacy" />
             <label className={`apply-consent${errors.consent ? " has-error" : ""}`}>
               {verified ? <><input type="checkbox" checked disabled readOnly /><input type="hidden" name="consent" value="on" /></> : <input name="consent" type="checkbox" required />}
-              <span><Required /> I have read this privacy statement and consent to the Central COMELEC collecting, using and processing my personal information for the purposes stated above.</span>
+              <span>I have read the UST Central Comelec Data Privacy Statement and consent to the collection and processing of my personal information for this application.<Required /></span>
             </label>
           </section>
           {errors.consent && <span className="apply-field-error">{errors.consent}</span>}
@@ -824,17 +829,26 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
           {selectedBody && openPositions.length > 0 && (
             <div className={`apply-field${errors.position ? " has-error" : ""}`} role="radiogroup" aria-label="Position to apply for">
               <span className="apply-field-label">Position to apply for<Required /></span>
-              <div className="apply-choices is-positions">
-                {openPositions.map(({ id: value, label }) => {
-                  const count = slots[value] ?? 0;
-                  return (
-                    <label className="apply-choice" key={value}>
-                      <input type="radio" name="position" value={value} checked={position === value} onChange={() => { setPosition(value); clearError("position"); }} />
-                      <span className="apply-choice-text"><strong>{label}</strong><span className="apply-slots">{slotLabel(count)}</span></span>
-                    </label>
-                  );
-                })}
-              </div>
+              {/* Office by office, each with the roles it's recruiting. */}
+              {[...new Set(openPositions.map((opening) => opening.officeId))].map((officeId) => {
+                const roles = openPositions.filter((opening) => opening.officeId === officeId);
+                return (
+                  <div className="apply-office" key={officeId} role="group" aria-label={roles[0].office}>
+                    <span className="apply-office-name">{roles[0].office}</span>
+                    <div className="apply-choices is-positions">
+                      {roles.map(({ id: value, label, roleName }) => {
+                        const count = slots[value] ?? 0;
+                        return (
+                          <label className="apply-choice" key={value}>
+                            <input type="radio" name="position" value={value} aria-label={label} checked={position === value} onChange={() => { setPosition(value); clearError("position"); }} />
+                            <span className="apply-choice-text"><strong>{roleName}</strong><span className="apply-slots">{slotLabel(count)}</span></span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
               {errors.position && <span className="apply-field-error">{errors.position}</span>}
             </div>
           )}
@@ -855,7 +869,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
             <Field label="Recommendation Letter" error={errors.endorsementUrl} span={12} optional>
               <input name="endorsementUrl" type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
-            <Field label="Portfolio" hint="Optional, but required for public information and creatives positions." error={errors.portfolioUrl} span={12} optional={!portfolio}>
+            <Field label="Portfolio" error={errors.portfolioUrl} span={12} optional={!portfolio}>
               <input name="portfolioUrl" required={portfolio} type="url" inputMode="url" placeholder="https://drive.google.com/…" maxLength={500} />
             </Field>
             <Field label="Latest Copy of Grades" error={errors.gradesUrl} span={12} optional>

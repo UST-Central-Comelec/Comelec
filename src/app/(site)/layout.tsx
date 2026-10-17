@@ -8,6 +8,8 @@ import { CookieNotice } from "@/components/cookie-notice";
 import { FormInputGuard } from "@/components/form-input-guard";
 import { FormValidation } from "@/components/form-validation";
 import { ScrollKeeper } from "@/components/scroll-keeper";
+import { ReferenceData } from "@/components/reference-data";
+import { getReferenceData } from "@/lib/reference/store";
 import { SiteFooter } from "@/components/site-footer";
 import type { Featured } from "@/components/featured-carousel";
 import type { NavStatus, PeriodReading } from "@/components/nav/nav-data";
@@ -84,7 +86,7 @@ function reading(period: ApplicationPeriod): PeriodReading {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Every unit opens and closes its own; the menu says each is open while any unit has it open.
-  const [{ periods, news, documents }, settings] = await Promise.all([getSiteMenuData(), getSiteSettingsForSite()]);
+  const [{ periods, news, documents }, settings, lists] = await Promise.all([getSiteMenuData(), getSiteSettingsForSite(), getReferenceData()]);
   const applicationPeriod = combinePeriods(periods.filter((period) => period.kind === "recruitment"));
   const candidacyPeriod = combinePeriods(periods.filter((period) => period.kind === "candidacy"));
   const partyPeriod = combinePeriods(periods.filter((period) => period.kind === "party-registration"));
@@ -98,6 +100,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <FormInputGuard /><FormValidation /><ScrollKeeper />
         <SiteLoader />
+        <ReferenceData data={lists}>
         <SmoothScroll>
           <SiteHeader featured={featured} status={status} />
           {/* Before the page in the tab order, so a keyboard reaches it without crossing the whole page. */}
@@ -105,6 +108,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <SiteFooter status={status} />
         </SmoothScroll>
+        </ReferenceData>
       </body>
     </html>
   );

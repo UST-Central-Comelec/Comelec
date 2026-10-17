@@ -4,7 +4,10 @@ import { SaveIcon as ActionSaveIcon } from "@/components/action-icons";
 import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Lock, LockOpen } from "lucide-react";
 import { AddIcon as Plus, SearchIcon as Search, DeleteIcon as Trash2 } from "@/components/action-icons";
+import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
+import { destinationOffices } from "@/lib/letters/offices";
+import { SECRETARIAT_RETURN } from "@/lib/portal/secretariat-return";
 import { tones, toneLabels, type NamedItem, type RecordType, type SecretariatSettings, type ToneItem, type TrackerKind, type TrackerSettings } from "@/lib/letters/settings";
 import { saveSecretariatSettings } from "@/lib/portal/secretariat-settings-actions";
 import { toast } from "./toast";
@@ -13,7 +16,7 @@ import { SlidingFilterButtons } from "./sliding-filters";
 import "./letters-tracker.css";
 import "./secretariat-settings.css";
 
-type Tab = "letters" | "minutes" | "labels" | "statuses" | "remarks" | "offices";
+export type Tab = "letters" | "minutes" | "labels" | "statuses" | "remarks" | "offices";
 const tabItems: { key: Tab; label: string }[] = [
   { key: "letters", label: "Letters" },
   { key: "minutes", label: "Minutes of the Meetings" },
@@ -23,7 +26,7 @@ const tabItems: { key: Tab; label: string }[] = [
   { key: "offices", label: "Destination Offices" },
 ];
 /** The tab that shows the field a server error points at: "letters.types.3.format" → letters. */
-const tabOf = (path: string): Tab => ({ letters: "letters", minutes: "minutes", labels: "labels", statuses: "statuses", remarkPresets: "remarks", offices: "offices" } as const)[path.split(".")[0] as "letters"] ?? "letters";
+const tabOf = (path: string): Tab => ({ letters: "letters", minutes: "minutes", labels: "labels", statuses: "statuses", remarkPresets: "remarks" } as const)[path.split(".")[0] as "letters"] ?? "letters";
 const move = <Item,>(items: Item[], from: number, to: number) => {
   const next = [...items];
   next.splice(to, 0, ...next.splice(from, 1));
@@ -167,36 +170,49 @@ function TrackerPanel({ kind, tracker, errors, unlocked, onChange, onLock }: { k
   </>;
 }
 
-/** Labels, statuses, remark presets and offices: named items, some with a colour and an order. */
-function ListPanel<Item extends NamedItem | ToneItem>({ title, items, path, errors, noun, maxLength = 100, ordered, searchable, query = "", onQueryChange, onAdd, addDisabled, preview, onChange }: {
-  title: string; items: Item[]; path: string; errors: Record<string, string>; noun: string; maxLength?: number;
-  ordered?: boolean; searchable?: boolean; query?: string; onQueryChange?: (query: string) => void; onAdd?: () => void; addDisabled?: boolean; preview?: (item: ToneItem) => ReactNode; onChange: (items: Item[]) => void;
+/** Destination offices: the Database's list, shown here read-only so the two always match. */
+function OfficesPanel({ readOnly }: { readOnly: boolean }) {
+  const [query, setQuery] = useState("");
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = destinationOffices.filter(name => terms.every(term => name.toLowerCase().includes(term)));
+  const count = destinationOffices.length;
+  return <div className="portal-setting">
+    <div className="portal-setting-label"><span>Destination offices</span></div>
+    <div className="portal-setting-control">
+      <div className={`sec-list-tools${readOnly ? " is-search-only" : " has-button"}`}>
+        <span className="portal-setting-count" role="status">{terms.length ? `${shown.length} of ${count}` : `${count} ${count === 1 ? "office" : "offices"}`}</span>
+        <label className="portal-search sec-list-search">
+          <span className="portal-visually-hidden">Search destination offices</span>
+          <Search size={15} aria-hidden="true" />
+          <input className="portal-input" type="search" value={query} placeholder="Search destination offices" onChange={event => setQuery(event.target.value)} />
+        </label>
+        {!readOnly && <Link className="portal-button is-ghost" href={`/portal/database/offices?from=${SECRETARIAT_RETURN}`} title="Offices are added in Administrative → Database"><Plus size={15} aria-hidden="true" />Add office</Link>}
+      </div>
+      {shown.length ? <ul className="sec-offices">{shown.map(name => <li key={name}>{name}</li>)}</ul>
+        : <p className="portal-empty">{count ? "No office matches." : "No offices yet."}</p>}
+    </div>
+  </div>;
+}
+
+/** Labels, statuses and remark presets: named items, some with a colour and an order. */
+function ListPanel<Item extends NamedItem | ToneItem>({ title, items, path, errors, noun, ordered, preview, onChange }: {
+  title: string; items: Item[]; path: string; errors: Record<string, string>; noun: string;
+  ordered?: boolean; preview?: (item: ToneItem) => ReactNode; onChange: (items: Item[]) => void;
 }) {
   const id = useId();
-  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const shown = items.map((item, index) => ({ item, index })).filter(({ item }) => terms.every(term => item.name.toLowerCase().includes(term)));
   const listError = errors[path];
   return <div className="portal-setting">
     <div className="portal-setting-label"><span>{title}</span></div>
     <div className="portal-setting-control">
       {listError && <p className="portal-field-error">{listError}</p>}
-      {searchable && <div className="sec-list-tools">
-        <span className="portal-setting-count" role="status">{terms.length ? `${shown.length} of ${items.length}` : `${items.length} ${items.length === 1 ? noun : `${noun}s`}`}</span>
-        <label className="portal-search sec-list-search">
-          <span className="portal-visually-hidden">Search {title.toLowerCase()}</span>
-          <Search size={15} aria-hidden="true" />
-          <input className="portal-input" type="search" value={query} placeholder={`Search ${title.toLowerCase()}`} onChange={event => onQueryChange?.(event.target.value)} />
-        </label>
-        {onAdd && <div className="sec-row-actions"><button type="button" className="portal-icon-button" aria-label="Add office" title="Add office" disabled={addDisabled} onClick={onAdd}><Plus size={15} aria-hidden="true" /></button></div>}
-      </div>}
       {items.length === 0 && <p className="portal-empty">No {noun}s yet.</p>}
       <ol className="sec-list">
-        {shown.map(({ item, index }) => {
+        {items.map((item, index) => {
           const error = errors[`${path}.${index}.name`];
           const toned = "tone" in item ? item as ToneItem : null;
           return <li key={item.id} className={`sec-list-item${toned ? " has-tone" : ""}`}>
             <div className={`portal-field sec-list-name${error ? " has-error" : ""}`}>
-              <input value={item.name} maxLength={maxLength} placeholder={`${noun[0].toUpperCase()}${noun.slice(1)} name`} aria-label={`${noun[0].toUpperCase()}${noun.slice(1)} ${index + 1} name`} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-${item.id}` : undefined} autoFocus={!item.name} onChange={event => onChange(items.map(other => other.id === item.id ? { ...other, name: event.target.value } : other))} />
+              <input value={item.name} maxLength={100} placeholder={`${noun[0].toUpperCase()}${noun.slice(1)} name`} aria-label={`${noun[0].toUpperCase()}${noun.slice(1)} ${index + 1} name`} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-${item.id}` : undefined} autoFocus={!item.name} onChange={event => onChange(items.map(other => other.id === item.id ? { ...other, name: event.target.value } : other))} />
               {error && <span className="portal-field-error" id={`${id}-${item.id}`}>{error}</span>}
             </div>
             {toned && <div className="sec-tones" role="radiogroup" aria-label={`${item.name || noun} colour`}>
@@ -206,7 +222,7 @@ function ListPanel<Item extends NamedItem | ToneItem>({ title, items, path, erro
               </label>)}
             </div>}
             {toned && preview && <span className="sec-list-preview" aria-hidden="true">{preview(toned)}</span>}
-            <RowActions name={item.name} index={index} count={items.length} onMove={ordered && !terms.length ? to => onChange(move(items, index, to)) : undefined} onRemove={() => onChange(items.filter(other => other.id !== item.id))} />
+            <RowActions name={item.name} index={index} count={items.length} onMove={ordered ? to => onChange(move(items, index, to)) : undefined} onRemove={() => onChange(items.filter(other => other.id !== item.id))} />
           </li>;
         })}
       </ol>
@@ -214,12 +230,11 @@ function ListPanel<Item extends NamedItem | ToneItem>({ title, items, path, erro
   </div>;
 }
 
-export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, readOnly }: { initial: SecretariatSettings; updatedAt: string | null; readOnly: boolean }) {
+export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, readOnly, initialTab = "letters" }: { initial: SecretariatSettings; updatedAt: string | null; readOnly: boolean; initialTab?: Tab }) {
   const [saved, setSaved] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
-  const [tab, setTab] = useState<Tab>("letters");
-  const [officeQuery, setOfficeQuery] = useState("");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [unlocked, setUnlocked] = useState<Set<string>>(() => new Set());
   const [pending, startTransition] = useTransition();
@@ -271,12 +286,8 @@ export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, 
     labels: { label: "Add label", full: draft.labels.length >= 20, add: () => edit("labels", [...draft.labels, { id: newId(), name: "", tone: "blue" }]) },
     statuses: { label: "Add status", full: draft.statuses.length >= 20, add: () => edit("statuses", [...draft.statuses, { id: newId(), name: "", tone: "grey" }]) },
     remarks: { label: "Add remark", full: draft.remarkPresets.length >= 30, add: () => edit("remarkPresets", [...draft.remarkPresets, { id: newId(), name: "" }]) },
-    offices: { label: "Add office", full: draft.offices.length >= 500, add: () => {
-      setOfficeQuery("");
-      edit("offices", [{ id: newId(), name: "" }, ...draft.offices]);
-    } },
   };
-  const activeAdd = tab === "letters" || tab === "minutes" ? null : addItem[tab];
+  const activeAdd = tab === "letters" || tab === "minutes" || tab === "offices" ? null : addItem[tab];
 
   return <>
     <SlidingFilterButtons items={tabItems.map(item => ({ key: item.key, label: tabErrors.has(item.key) ? <>{item.label}<span className="sec-tab-error" aria-hidden="true" /><span className="portal-visually-hidden"> (needs attention)</span></> : item.label }))} active={tab} label="Settings section" onChange={setTab} />
@@ -291,9 +302,9 @@ export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, 
             onChange={items => edit("statuses", items)} />}
           {tab === "remarks" && <ListPanel title="Remark presets" noun="remark" path="remarkPresets" items={draft.remarkPresets} errors={errors} ordered
             onChange={items => edit("remarkPresets", items)} />}
-          {tab === "offices" && <ListPanel title="Destination offices" noun="office" path="offices" maxLength={300} items={draft.offices} errors={errors} searchable query={officeQuery} onQueryChange={setOfficeQuery} onAdd={readOnly ? undefined : addItem.offices.add} addDisabled={pending || !hydrated || addItem.offices.full}
-            onChange={items => edit("offices", items)} />}
         </fieldset>
+        {/* Outside the fieldset, so searching works for view-only readers too. */}
+        {tab === "offices" && <OfficesPanel readOnly={readOnly} />}
         {!readOnly && <footer className={`portal-settings-foot${dirty ? " is-dirty" : ""}`}>
           <span className="portal-settings-dirty" aria-live="polite">{dirty ? "Unsaved changes" : ""}</span>
           <div className="portal-form-actions">

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId, useState } from "react";
+import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 import { requestResponseEdit } from "@/lib/events/edit-request-actions";
 import { ArrowRight, Check, SquareCheck } from "lucide-react";
-import { trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication, type TrackedRegistration, type TrackedRsvp } from "@/lib/applications/actions";
+import { declineAcceptance, trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication, type TrackedRegistration, type TrackedRsvp } from "@/lib/applications/actions";
+import { OFFER_DAYS, REAPPLY_DAYS, formatOfferDate, reapplyFrom } from "@/lib/applications/offer";
 
 const statusLabels: Record<ApplicationStatus, string> = {
   pending: "Pending review",
@@ -16,7 +17,7 @@ const statusLabels: Record<ApplicationStatus, string> = {
 const statusNotes: Record<ApplicationStatus, string> = {
   pending: "We have your application and the commission is reviewing it. The result will show here, and we’ll reach out through your UST email.",
   reviewing: "We have your application and the commission is reviewing it. The result will show here, and we’ll reach out through your UST email.",
-  accepted: "Congratulations! The commission will contact you through your UST email with your next steps.",
+  accepted: "Congratulations! You’ve been accepted.",
   declined: "Thank you for applying. You weren’t selected this time, but we hope you’ll apply again in a future cycle.",
 };
 
@@ -50,7 +51,23 @@ function StatusTimeline({ result }: { result: string | null }) {
   );
 }
 
-function TrackedResult({ application, identity }: { application: TrackedApplication; identity: string }) {
+/** The status an applicant sees, with how they answered an acceptance. */
+function applicationStatus(application: TrackedApplication): { label: string; tone: ApplicationStatus; note: string } {
+  const { offer } = application;
+  const answered = offer.respondedAt ? formatOfferDate(offer.respondedAt) : null;
+  const again = `You can apply to the ${application.preferredBody} again from ${formatOfferDate(reapplyFrom(offer.respondedAt ?? Date.now()))}, or contact the commission to be considered sooner.`;
+  if (offer.state === "joined") return { label: "Joined", tone: "accepted", note: "You’ve joined the Commission. Sign in to the Commission Portal with your UST account." };
+  if (offer.state === "declined") return { label: "Offer declined", tone: "declined", note: `You declined this offer${answered ? ` on ${answered}` : ""}, and your slot went back to the unit. ${again}` };
+  if (offer.state === "lapsed") return { label: "Offer lapsed", tone: "declined", note: `This offer lapsed${answered ? ` on ${answered}` : ""}: it wasn’t answered within ${OFFER_DAYS} days, so it counts as declined. ${again}` };
+  const note = statusNotes[application.status];
+  return { label: statusLabels[application.status], tone: application.status, note: offer.state === "open" && offer.expiresAt ? `${note} Your offer is valid until ${formatOfferDate(offer.expiresAt)}.` : note };
+}
+
+function TrackedResult({ application: tracked, identity, askDecline, onAsked }: { application: TrackedApplication; identity: string; askDecline: boolean; onAsked: () => void }) {
+  const [declined, declineAction, declining] = useActionState(declineAcceptance, undefined);
+  const application = declined?.application ?? tracked;
+  const shown = applicationStatus(application);
+  const decided = application.status === "accepted" || application.status === "declined";
   return (
     <section className="track-result" aria-live="polite" aria-label="Your application">
       <header>
@@ -58,10 +75,13 @@ function TrackedResult({ application, identity }: { application: TrackedApplicat
           <span>Reference code</span>
           <strong>{application.referenceCode}</strong>
         </div>
-        <span className={`track-status is-${application.status}`}>{statusLabels[application.status]}</span>
+        <span className={`track-status is-${shown.tone}`}>{shown.label}</span>
       </header>
-      <StatusTimeline result={application.status === "accepted" || application.status === "declined" ? statusLabels[application.status] : null} />
-      <p className="track-note">{statusNotes[application.status]} For your privacy, your application is deleted 60 days after you submit it.</p>
+      <StatusTimeline result={decided ? shown.label : null} />
+      <p className="track-note">{shown.note} For your privacy, your application is deleted 60 days after you submit it.</p>
+      {application.offer.state === "open" && <OfferChoice application={application} identity={identity} askDecline={askDecline} onAsked={onAsked} action={declineAction} pending={declining} error={declined?.error} />}
+      {application.offer.state !== "open" && declined?.error && <p className="apply-form-error" role="alert">{declined.error}</p>}
+      {application.offer.state === "joined" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
       <dl className="apply-result-details">
         <div><dt>Name</dt><dd>{application.name}</dd></div>
         <div><dt>Submitted</dt><dd>{formatSubmitted(application.submittedAt)}</dd></div>
@@ -74,6 +94,64 @@ function TrackedResult({ application, identity }: { application: TrackedApplicat
         {application.interview && <div className="is-wide"><dt>Interview</dt><dd>{application.interview}</dd></div>}
       </dl>
       <ResponseEditRequest reference={application.referenceCode} identity={identity} existing={application.editRequest} />
+    </section>
+  );
+}
+
+/**
+ * An open acceptance: join, or decline after confirming. Opened from the acceptance email's Decline
+ * button (`askDecline`), the confirmation shows straight away.
+ */
+function OfferChoice({ application, identity, askDecline, onAsked, action, pending, error }: {
+  application: TrackedApplication;
+  identity: string;
+  askDecline: boolean;
+  onAsked: () => void;
+  action: (formData: FormData) => void;
+  pending: boolean;
+  error?: string;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const { offer } = application;
+
+  useEffect(() => {
+    if (!askDecline) return;
+    onAsked();
+    if (!dialog.current?.open) dialog.current?.showModal();
+  }, [askDecline, onAsked]);
+
+  const close = () => { if (!pending) dialog.current?.close(); };
+
+  return (
+    <section className="track-offer" aria-label="Your answer to the offer">
+      <p className="track-offer-prompt">To formally signify your acceptance of membership in the Commission, please confirm your decision by selecting one of the options below:</p>
+      <div className="track-offer-actions">
+        {offer.joinUrl && <a className="button-primary" href={offer.joinUrl}>Join the Commission <ArrowRight size={15} aria-hidden="true" /></a>}
+        <button type="button" className="track-button-ghost" onClick={() => dialog.current?.showModal()}>Decline</button>
+      </div>
+      <dialog
+        ref={dialog}
+        className="track-dialog"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        onCancel={(event) => { if (pending) event.preventDefault(); }}
+        onClick={(event) => { if (event.target === event.currentTarget) close(); }}
+      >
+        <h2 id={titleId}>Decline the offer?</h2>
+        <div id={descriptionId}>
+          <p>Are you sure you want to decline the offer? If you’re still undecided, your acceptance stays valid {offer.expiresAt ? <>for {OFFER_DAYS} days from your acceptance email, until <strong>{formatOfferDate(offer.expiresAt)}</strong></> : "until you answer"}.{offer.expiresAt && " After that, it’s declined automatically."}</p>
+          <p>Once you decline, your slot goes back to the unit, and you can apply to the {application.preferredBody} again after {REAPPLY_DAYS} days, from {formatOfferDate(reapplyFrom())}, or contact the commission.</p>
+        </div>
+        {error && <p className="apply-form-error" role="alert">{error}</p>}
+        <form action={action} className="track-dialog-actions">
+          <input type="hidden" name="reference" value={application.referenceCode} />
+          <input type="hidden" name="identity" value={identity} />
+          <button type="button" className="track-button-ghost" autoFocus disabled={pending} onClick={close}>Cancel</button>
+          <button type="submit" className="track-decline-confirm" disabled={pending}>{pending ? "Declining…" : "Decline offer"}</button>
+        </form>
+      </dialog>
     </section>
   );
 }
@@ -169,9 +247,22 @@ function ResponseEditRequest({ reference, identity, existing }: { reference: str
   </section>;
 }
 
-export function TrackApplication({ initialReference }: { initialReference: string }) {
+export function TrackApplication({ initialReference, initialIdentity = "", fromAcceptance = false }: { initialReference: string; initialIdentity?: string; fromAcceptance?: boolean }) {
   const [state, formAction, pending] = useActionState(trackApplication, undefined);
   const errors = state?.fieldErrors ?? {};
+  const form = useRef<HTMLFormElement>(null);
+  const looked = useRef(false);
+  // From an acceptance email's Decline button: confirm declining once the application is found.
+  const [askDecline, setAskDecline] = useState(fromAcceptance);
+  const asked = useCallback(() => setAskDecline(false), []);
+
+  // A link with both halves filled in looks itself up. The last name then leaves the address bar.
+  useEffect(() => {
+    if (looked.current || !initialReference || !initialIdentity) return;
+    looked.current = true;
+    form.current?.requestSubmit();
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [initialReference, initialIdentity]);
 
   return (
     <div className="apply-body track-body">
@@ -186,7 +277,7 @@ export function TrackApplication({ initialReference }: { initialReference: strin
 
       <hr className="track-divider" />
 
-      <form className="track-form" action={formAction} noValidate>
+      <form ref={form} className="track-form" action={formAction} noValidate>
         <label className={`apply-field${errors.reference ? " has-error" : ""}`}>
           <span className="apply-field-label">Reference code</span>
           <input name="reference" required key={`reference-${state?.entered?.reference}`} defaultValue={(state?.entered?.reference ?? initialReference).toUpperCase()} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="7K3MX or CC-7K3M-9QXA" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} />
@@ -194,7 +285,7 @@ export function TrackApplication({ initialReference }: { initialReference: strin
         </label>
         <label className={`apply-field${errors.identity ? " has-error" : ""}`}>
           <span className="apply-field-label">Student number or last name</span>
-          <input name="identity" required key={`identity-${state?.entered?.identity}`} defaultValue={state?.entered?.identity} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="2023123456 or DELA CRUZ" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={80} />
+          <input name="identity" required key={`identity-${state?.entered?.identity}`} defaultValue={state?.entered?.identity ?? initialIdentity.toUpperCase()} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="2023123456 or DELA CRUZ" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={80} />
           {errors.identity && <span className="apply-field-error">{errors.identity}</span>}
         </label>
         <button className="button-primary" type="submit" disabled={pending}>{pending ? "Looking up…" : <>Track <ArrowRight size={15} /></>}</button>
@@ -203,7 +294,7 @@ export function TrackApplication({ initialReference }: { initialReference: strin
       {state?.error && !state.application && !state.accessRequest && !state.registration && !state.rsvp && <p className="apply-form-error" role="alert">{state.error}</p>}
       {state?.rsvp && <TrackedCollaborator key={`${state.rsvp.referenceCode}:${state.lookupStamp ?? ""}`} rsvp={state.rsvp} identity={state.entered?.identity ?? ""} />}
       {state?.registration && <TrackedEvent key={`${state.registration.referenceCode}:${state.lookupStamp ?? ""}`} registration={state.registration} identity={state.entered?.identity ?? ""} />}
-      {state?.application && <TrackedResult key={`${state.application.referenceCode}:${state.lookupStamp ?? ""}`} application={state.application} identity={state.entered?.identity ?? ""} />}
+      {state?.application && <TrackedResult key={`${state.application.referenceCode}:${state.lookupStamp ?? ""}`} application={state.application} identity={state.entered?.identity ?? ""} askDecline={askDecline} onAsked={asked} />}
       {state?.accessRequest && <TrackedAccess key={`${state.accessRequest.referenceCode}:${state.lookupStamp ?? ""}`} request={state.accessRequest} identity={state.entered?.identity ?? ""} />}
 
       <p className="track-help">Lost your code? Email <Link href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</Link> from your UST email.</p>

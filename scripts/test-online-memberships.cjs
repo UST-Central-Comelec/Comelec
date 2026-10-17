@@ -27,7 +27,7 @@ const db = { from: () => {
 const presence = load('src/lib/portal/presence.ts');
 const api = load('src/lib/portal/presence-store.ts', {
   'server-only': {}, '@/lib/applications/options': { unitAbbreviations: { 'Faculty of Pharmacy': 'PHARMA' } },
-  '@/lib/data/accounts': { toSummary: account => account, describeRole: account => account.role },
+  '@/lib/data/accounts': { toSummary: account => account, describeRole: account => account.role, positionName: account => ({ deputy: 'Deputy', 'executive-board': 'Executive Board' })[account.position] },
   '@/lib/auth/session': { isBuiltInEmail: () => false, isLocal: account => account.affiliation === 'local', canSeeCollege: (viewer, college) => viewer.affiliation === 'central' || viewer.college === college },
   '@/lib/data/store': { store: { list: async () => accounts, get: async (_, id) => accounts.find(account => account.id === id) ?? null } },
   '@/lib/data/types': { accountAffiliations: { central: 'Central Comelec', local: 'Local Comelec' }, accountPositions: { 'executive-board': 'Executive Board' } },

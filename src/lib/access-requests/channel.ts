@@ -43,8 +43,8 @@ export type JoinProfile = {
   /** The year level's key ("1", "g11"), as the form submits it. */
   yearLevel: string;
   affiliation: "central" | "local";
-  position: "executive-associate";
+  position: "executive-board" | "executive-associate" | "deputy";
   role: string;
-  /** "Executive Assistant to the Chairperson", as they applied. */
+  /** "Executive Associate to the Chairperson", the office they applied to. */
   appliedFor: string;
 };

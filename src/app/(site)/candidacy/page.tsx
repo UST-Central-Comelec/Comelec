@@ -7,10 +7,12 @@ import { listUnitPeriodsForSite } from "@/lib/periods/store";
 import { combinePeriods, openUnits } from "@/lib/periods/summary";
 import { comelecUnits } from "@/lib/applications/options";
 import { sameUnit, unitFromParam } from "@/lib/periods/kinds";
+import { ensureReferenceData } from "@/lib/reference/store";
 
 export const metadata: Metadata = { title: "Filing of Candidacy" };
 
 export default async function CandidacyPage({ searchParams }: PageProps<"/candidacy">) {
+  await ensureReferenceData();
   // Every unit opens and closes its own from the portal (Filing of Candidacy → Settings), so read them on every request.
   await connection();
   const periods = await listUnitPeriodsForSite("candidacy");

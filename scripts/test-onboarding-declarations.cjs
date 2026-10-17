@@ -98,6 +98,7 @@ const db = {
 };
 let requestDocuments = documents.onboardingDocumentKeys.map((key) => ({ ...documents.defaultDocument(key), version: key === "recusal" ? 3 : 1 }));
 const actions = load("src/lib/access-requests/actions.ts", {
+  "@/lib/reference/store": { ensureReferenceData: async () => {} },
   "next/cache": { revalidatePath: () => {} },
   "next/headers": { headers: async () => new Headers() },
   "next/server": { after: (task) => task() },

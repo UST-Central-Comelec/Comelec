@@ -1,5 +1,5 @@
 import { affiliations, type Affiliation } from "@/lib/data/types";
-import { comelecUnits } from "@/lib/applications/options";
+import { comelecUnits, onReferenceChange, replaceArray } from "@/lib/applications/options";
 import type { PeriodKind } from "@/lib/periods/kinds";
 import type { VenueType } from "./activity-checklist";
 
@@ -44,10 +44,11 @@ export const audiences = {
 } as const;
 
 /** Stable keys for the collaborator checklist; other organizations are stored separately. */
-export const collaboratorUnits = [
+export const collaboratorUnits: Array<{ value: string; label: string }> = [];
+onReferenceChange(() => replaceArray(collaboratorUnits, [
   { value: "central", label: "Central Comelec" },
   ...comelecUnits.map(college => ({ value: college, label: `${college} Comelec Unit` })),
-];
+]));
 export const collaboratorLabel = (value: string) => collaboratorUnits.find(unit => unit.value === value)?.label ?? value;
 
 export type Audience = keyof typeof audiences;

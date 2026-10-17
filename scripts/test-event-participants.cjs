@@ -67,4 +67,23 @@ const details = walk(rowElement.type(rowElement.props));
 assert.ok(details.some(node => node.props?.response?.reference_code === 'RS-7K3M-9QXA'), 'The RSVP review header shows its own reference');
 assert.ok(details.some(node => node.type === 'i' && node.props.className === 'is-edit-request'), 'Pending edit requests display a yellow status dot');
 assert.ok(details.some(node => node.props?.response?.id === 'matched'), 'RSVP filter opens the step-based response review');
+// Footer capacity counts stay event-wide and exclude RSVP-only and anonymous response rows.
+function label(node) {
+  if (Array.isArray(node)) return node.map(label).join('');
+  if (node && typeof node === 'object') return label(node.props?.children);
+  return typeof node === 'string' || typeof node === 'number' ? String(node) : '';
+}
+const capacityRows = [...rows, { ...person, id: 'waiting', status: 'waitlisted' }];
+function capacity(maximumRegistrants, items = capacityRows) {
+  cursor = 0;
+  return walk(table.EventResponsesTable({ rows: items, maximumRegistrants }));
+}
+slots = [];
+const capacityText = nodes => label(nodes.find(node => node.props?.className === 'portal-participant-capacity'));
+assert.equal(capacityText(capacity(1)), 'Registrants: 1 / 1 · Waitlisted: 1', 'Full slots show a separate waitlist count');
+capacity(1).find(node => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: 'no-match' } });
+assert.equal(capacityText(capacity(1)), 'Registrants: 1 / 1 · Waitlisted: 1', 'Search does not change event totals');
+assert.equal(capacityText(capacity(10)), 'Registrants: 1 / 10', 'Waitlist count appears only when slots are full');
+assert.equal(capacityText(capacity(null)), 'Registrants: 1 / Unlimited');
+assert.equal(capacityText(capacity(10, [])), 'Registrants: 0 / 10', 'Empty tables still show capacity');
 console.log('Participant checks passed: merged identities, RSVP-only entries, anonymous evaluations, two views, default public registrants, response details, and pending edit request markers.');

@@ -1,4 +1,5 @@
 import { affiliationLabels, attendingChoices, requestKinds, sexes, type AffiliationChoice, type RequestKind, type Sex } from "./options";
+import { currentProgramName } from "@/lib/applications/options";
 import type { Registration } from "./registrations";
 
 // What an event's registrations add up to: how many signed up, and how their answers split, for the
@@ -78,7 +79,7 @@ export function analyze(registrations: Registration[]): EventAnalytics {
       .filter((item) => item.count > 0)
       .map((item) => ({ ...item, share: share(item.count) })),
     colleges: tally(registrations.filter((registration) => registration.affiliation === "ust-student").map((registration) => registration.college), total),
-    programs: tally(registrations.filter((registration) => registration.affiliation === "ust-student").map((registration) => registration.program), total),
+    programs: tally(registrations.filter((registration) => registration.affiliation === "ust-student").map((registration) => (registration.program ? currentProgramName(registration.college, registration.program) : registration.program)), total),
     offices: tally(registrations.filter((registration) => registration.affiliation === "ust-staff").map((registration) => registration.office), total),
     institutions: tally(registrations.filter((registration) => registration.affiliation === "other-institution" || registration.affiliation === "independent").map((registration) => (registration.institution && !/^n\/?a$/i.test(registration.institution.trim()) ? registration.institution : null)), total),
     attending: inOrder(Object.keys(attendingChoices) as Array<keyof typeof attendingChoices>, (key) => attendingChoices[key], (registration, key) => registration.attendingAs === key),

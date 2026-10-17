@@ -12,10 +12,12 @@ import { RegistrationShare } from "./registration-share";
 import { emailPattern } from "@/lib/forms/input";
 import { scrollToElement } from "@/lib/scroll";
 import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
+import { DraftNotice } from "@/components/draft-notice";
+import { useFormDraft } from "@/components/use-form-draft";
 
 /**
  * The collaborator RSVP, drawn from the editor's definition: every question an ordinary one, and a
- * conditional choice showing its follow-ups only while it's picked. `preview` (the portal's Preview
+ * conditional choice showing its follow-ups only while it's picked. `preview` (View Mode
  * form) sends nothing, lets every step be visited, and can show the acknowledgement. Laid out like the
  * Apply form: the tracker across the top, then the step's heading, its questions in one bordered group
  * (short answers side by side), and Back and Continue under a rule.
@@ -39,6 +41,19 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
   const index = Math.max(0, steps.findIndex(item => item.id === stepId));
   const current = steps[index];
   const last = index === steps.length - 1;
+
+  // Answers stay on this device until sent, through a reload or a dropped connection.
+  const draft = useFormDraft({
+    key: preview ? null : `rsvp:${eventId}:${token}`,
+    form: formRef,
+    state: { stepId, values },
+    restore: (saved) => {
+      setValues(saved.values ?? {});
+      if (saved.stepId) setStepId(saved.stepId);
+    },
+  });
+  const { clear: clearDraft } = draft;
+  useEffect(() => { if (state.success) clearDraft(); }, [state.success, clearDraft]);
 
   const respondent = respondentEmail(definition, keptAnswers(definition, values)).trim().toLowerCase();
   const emailQuestion = definition.steps.flatMap(step => step.fields).find(field => field.identity === "email" && typeof values[field.id] === "string" && String(values[field.id]).trim().toLowerCase() === respondent)
@@ -101,13 +116,14 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
     </div>
   );
   if (!current) return null;
-  return <form className="apply-form ev-form ev-steps-form ev-evaluation-form ev-rsvp-form ev-application-form" ref={formRef} action={action} noValidate aria-busy={pending} onSubmit={event => {
+  return <form className="apply-form ev-form ev-steps-form ev-evaluation-form ev-rsvp-form ev-application-form" ref={formRef} action={action} noValidate data-validation={preview ? "off" : undefined} aria-busy={pending} onSubmit={event => {
     if (preview || !last || !validStep()) { event.preventDefault(); if (!preview && !last && validStep()) go(index + 1); }
   }}>
     <input type="hidden" name="answers" value={JSON.stringify(values)} />
     <div className="ev-honeypot" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
     <EventFormTracker steps={steps} current={index} acknowledgement={definition.steps.at(-1)?.title ?? "Acknowledgement"} label="RSVP steps" preview={preview} busy={pending} onStep={go} onAcknowledgement={() => setShowAcknowledgement(true)} />
     <div className="apply-body ev-form-body">
+      <DraftNotice draft={draft} buttonClassName="ev-button is-ghost is-small" actionClassName="ev-button is-primary" />
       <div className="apply-body-head" key={`heading-${current.id}`}><span>Step {index + 1} of {steps.length + 1}</span><h2 ref={headingRef} tabIndex={-1}>{current.title}</h2>{current.description && <p>{current.description}</p>}</div>
       <fieldset className="apply-group ev-group ev-rsvp-group ev-animated-fields" data-active="true" disabled={pending} key={current.id}>
         <legend className="ev-sr-only">{current.title}</legend>

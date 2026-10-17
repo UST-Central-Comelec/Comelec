@@ -111,6 +111,8 @@ export const tabGroups = [
     section: null,
     tabs: [
       { key: "accounts", label: "Accounts", local: true },
+      // Official accounts edit it, a Local one only its own unit's lists (src/lib/reference/data.ts).
+      { key: "database", label: "Database", local: true },
       { key: "statistics", label: "Statistics", local: false },
       { key: "maintenance", label: "Maintenance", local: false },
       { key: "logs", label: "Logs", local: false },

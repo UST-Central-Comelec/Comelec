@@ -1,5 +1,8 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { queueDeployment, cancelDeployment } from "@/lib/events/deployment-store";
+import type { PendingDeployment } from "@/lib/events/deployment";
 import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
@@ -16,7 +19,7 @@ import { formatTime } from "@/lib/events/format";
 import { requestDecisionStatus, isRequestKind, registrationStatuses, type DecisionsResult, type RegistrationStatus, type RequestKind } from "@/lib/events/options";
 import { defaultRsvpDefinition, rsvpDefinitionSchema, committeeLimitSchema, rsvpFormPath } from "@/lib/events/rsvp";
 import { evaluationSettingsSchema } from "@/lib/events/evaluation";
-import { getEvaluationSettings, writeEvaluationContent, writeEvaluationSettings } from "@/lib/events/evaluation-store";
+import { getEvaluationSettings, writeEvaluationContent } from "@/lib/events/evaluation-store";
 import { getRsvpSettings, writeRsvpDefinition, writeRsvpSettings } from "@/lib/events/rsvp-store";
 import { getEvent, setChangeRequest } from "@/lib/events/queries";
 import { ensureQrCodes } from "@/lib/events/qr-codes";
@@ -302,7 +305,7 @@ export async function saveRequestDecisions(eventId: string, registrationId: stri
   return { saved: changes.length, email, to: registration.email };
 }
 
-export type EventDeploymentState = { error?: string; fieldErrors?: Record<string, string>; success?: boolean; registrationStatus?: RegistrationStatus };
+export type EventDeploymentState = { error?: string; fieldErrors?: Record<string, string>; success?: boolean; registrationStatus?: RegistrationStatus; scheduled?: PendingDeployment };
 
 /** Deployment changes never replace the evaluation questionnaire or RSVP invitation token. */
 export async function saveEventDeployment(id: string, _state: EventDeploymentState, form: FormData): Promise<EventDeploymentState> {
@@ -320,16 +323,39 @@ export async function saveEventDeployment(id: string, _state: EventDeploymentSta
     const evaluation = await getEvaluationSettings(id);
     const settings = evaluationSettingsSchema.safeParse({ ...evaluation, ...(form.has("evaluationGoogleSetting") ? { requireGoogle: form.get("evaluationGoogleEnabled") === "on" } : {}), enabled: form.get("evaluationEnabled") === "on", allowAnonymous: form.get("allowAnonymous") === "on" });
     if (!settings.success) return { error: "Add at least one valid evaluation question in Edit event before accepting responses." };
-    if (!await store.update("events", id, { ...(capacity?.success ? capacity.data : {}), registrationStatus: parsed.data.registrationStatus, ...(parsed.data.publicationStatus ? { published: parsed.data.publicationStatus === "published" } : {}), ...(form.has("googleSetting") ? { requireGoogle: form.get("googleEnabled") === "on" } : {}) }, user.email)) return { error: "This event no longer exists." };
-    await writeRsvpSettings(id, form.get("rsvpEnabled") === "on", undefined, form.has("rsvpGoogleSetting") ? form.get("rsvpGoogleEnabled") === "on" : undefined);
-    await writeEvaluationSettings(id, settings.data);
-    refresh(id);
-    return { success: true, registrationStatus: (await getEvent(id))?.registrationStatus };
+    const metadata = z.object({ clientId: z.uuid(), revision: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER) }).safeParse({ clientId: form.get("clientId") ?? randomUUID(), revision: form.get("revision") ?? 1 });
+    if (!metadata.success) return { error: "Couldn’t schedule the changes. Reload the page and try again." };
+    const scheduled = await queueDeployment(id, {
+      published: parsed.data.publicationStatus ? parsed.data.publicationStatus === "published" : event.published ?? true,
+      registrationStatus: parsed.data.registrationStatus,
+      minimumRegistrants: String(capacity?.success ? capacity.data.minimumRegistrants : event.minimumRegistrants ?? 1),
+      maximumRegistrants: String((capacity?.success ? capacity.data.maximumRegistrants : event.maximumRegistrants) ?? ""),
+      requireGoogle: form.has("googleSetting") ? form.get("googleEnabled") === "on" : event.requireGoogle ?? true,
+      rsvpEnabled: form.get("rsvpEnabled") === "on",
+      rsvpGoogle: form.has("rsvpGoogleSetting") ? form.get("rsvpGoogleEnabled") === "on" : (await getRsvpSettings(id))?.require_google ?? false,
+      evaluationEnabled: settings.data.enabled, evaluationGoogle: settings.data.requireGoogle ?? false,
+      allowAnonymous: settings.data.allowAnonymous,
+    }, { evaluationQuestions: settings.data.questions, evaluationSteps: settings.data.steps ?? null }, user.email, metadata.data.clientId, metadata.data.revision);
+    return { success: true, scheduled };
   } catch (error) {
     unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Couldn’t schedule deployment changes. Try again." };
+  }
+}
+
+
+export async function discardEventDeployment(id: string, version: string): Promise<EventDeploymentState> {
+  const user = await requireEditor("events");
+  const event = await getEvent(id);
+  if (!event) return { error: "This event no longer exists." };
+  if (!canManageEvent(user, event)) return notYours(user) ?? {};
+  if (!z.uuid().safeParse(version).success) return { error: "Reload the page and try again." };
+  try {
+    if (!await cancelDeployment(id, version)) return { error: "The scheduled changes were applied or changed by someone else. Reload the page." };
     refresh(id);
-    if (error instanceof Error && error.message.includes("published")) return { error: "Apply the event_publication migration in Supabase, then save deployment settings again." };
-    if (error instanceof Error && /minimum_registrants|maximum_registrants/.test(error.message)) return { error: "Apply the event_registration_capacity migration in Supabase, then save deployment settings again." };
-    return { error: "Couldn’t save all deployment settings. Check the RSVP and evaluation migrations, then try again." };
+    return { success: true };
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Couldn’t discard the scheduled changes. Try again." };
   }
 }

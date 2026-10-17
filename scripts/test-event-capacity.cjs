@@ -23,6 +23,7 @@ for(const value of [{minimumRegistrants:0},{minimumRegistrants:2,maximumRegistra
 (async()=>{
  const deliveries=[];
  const registration = load('src/lib/events/actions.ts', {
+   '@/lib/reference/store': { ensureReferenceData: async () => {} },
    'next/headers': { headers: async()=>new Headers() }, 'next/cache': { revalidatePath: ()=>{} },
    '@/lib/notifications/notify': { sendAutomatic: async(kind, send)=>{deliveries.push(kind);send();return 'sent'} },
    '@/lib/security/rate-limit': {clientIp:()=>'',limits:{eventRegister:{}},rateLimit:()=>({ok:true})},

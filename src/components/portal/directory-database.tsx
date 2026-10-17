@@ -6,7 +6,7 @@ import { DirectoryFiltersContext } from "./directory-workspace";
 import { SearchIcon as Search } from "@/components/action-icons";
 import { filterDirectoryDatabase } from "@/lib/portal/directory-database";
 import { comelecUnits } from "@/lib/applications/options";
-import { accountPositions, chamberRoles, describeAffiliation, type AccountPosition, type ChamberRole } from "@/lib/data/types";
+import { chamberRoles, describeAffiliation, type AccountPosition, type ChamberRole } from "@/lib/data/types";
 import { formatAccepted, type Declaration } from "@/lib/onboarding/documents";
 import { Dropdown } from "./dropdown";
 import { MemberAvatar } from "./member-avatar";
@@ -18,6 +18,8 @@ export type DirectoryDatabaseRow = {
   name: string;
   unit: string;
   position: AccountPosition;
+  /** The role as the portal names it: an added role by its own name. */
+  positionName: string;
   role: string;
   college: string;
   program: string;
@@ -33,7 +35,7 @@ export type DirectoryDatabaseRow = {
 };
 
 const columns = ["Position", "Name", "Photo", "Unit", "Role", "College or faculty", "Program", "Year level", "UST email", "Facebook", "Student number", "Mobile number", "Chamber role", "E-declarations"];
-const unitOptions = [
+const unitOptions = () => [
   { value: "", label: "All units" },
   { value: describeAffiliation("central", null), label: "Central Comelec Unit" },
   ...comelecUnits.map(college => ({ value: describeAffiliation("local", college), label: college })),
@@ -56,7 +58,7 @@ export function DirectoryDatabase({ people }: { people: DirectoryDatabaseRow[] }
           <Search size={15} aria-hidden="true" />
           <input className="portal-input" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search name, unit, role or position…" autoComplete="off" spellCheck={false} />
         </label>
-        <Dropdown label="Filter by unit" value={unit} onChange={setUnit} options={unitOptions} />
+        <Dropdown label="Filter by unit" value={unit} onChange={setUnit} options={unitOptions()} />
       </div>
       <div className="portal-table-wrap directory-database-scroll" tabIndex={0} role="region" aria-label="Directory table, scroll to see all columns">
         <table className="portal-table directory-database-table">
@@ -74,7 +76,7 @@ export function DirectoryDatabase({ people }: { people: DirectoryDatabaseRow[] }
           <tbody>
             {shown.length ? shown.map(person => (
               <tr key={person.id}>
-                <td>{accountPositions[person.position]}</td>
+                <td>{person.positionName}</td>
                 <th scope="row">{person.manageable ? <Link className="portal-row-title" href={`/portal/accounts/${person.id}`}>{person.name}</Link> : person.name}</th>
                 <td><MemberAvatar photoUrl={person.photoUrl} /></td>
                 <td>{person.unit}</td>

@@ -50,6 +50,7 @@ const actions = load("src/lib/portal/account-actions.ts", {
   "@/lib/data/queries": { getAccount: async () => null },
   "@/lib/applications/options": options,
   "@/lib/applications/admin": { getApplication: async () => application },
+  "@/lib/applications/offer-store": { markOfferJoined: async () => {} },
   "@/lib/data/types": types,
   "@/lib/data/uploads": { hasFile: () => false },
   "@/lib/notifications/account-emails": {},
@@ -96,9 +97,9 @@ async function main() {
   assert.equal(rows.length, 3);
   assert.ok((await actions.onboardApplication("applicant")).fieldErrors.email, "A second account in the same Local unit must be blocked");
   assert.equal(rows.length, 3);
-  const eligibility = load("src/lib/applications/account-eligibility.ts");
+  const eligibility = load("src/lib/applications/account-eligibility.ts", { "./offer": load("src/lib/applications/offer.ts") });
   const lookup = load("src/lib/applications/account-lookup.ts", {
-    "server-only": {}, "@/lib/data/accounts": accounts, "@/lib/data/store": { store },
+    "server-only": {}, "@/lib/data/accounts": accounts, "@/lib/data/store": { store }, "./offer-store": { getReapplyHolds: async () => [] },
   });
   const localOnly = await lookup.getCommissionAccounts(" SECOND@UST.EDU.PH ");
   assert.equal(eligibility.existingCommissionAccount(localOnly, "central", application.college), null);

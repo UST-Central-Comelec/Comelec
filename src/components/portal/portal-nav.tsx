@@ -12,6 +12,7 @@ import { navigationTabKeys, tabGroups, tabHref, type TabKey } from "@/lib/portal
 import type { AttentionCounts } from "@/lib/portal/attention-types";
 import { directoryReturnHref } from "@/lib/portal/directory-return";
 import { fromLettersTracker, LETTERS_TRACKER_HREF } from "@/lib/portal/letters-return";
+import { fromSecretariatSettings, SECRETARIAT_OFFICES_HREF } from "@/lib/portal/secretariat-return";
 /** `item` is the top bar's word for one of the tab's own pages, such as an application under Applications ("Edit" if not given). */
 type Tab = { key: TabKey | "access-control"; href: string; label: string; icon: Icon; item?: string };
 /** A main tab opens its own sidebar panel. */
@@ -116,6 +117,8 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
   const directoryReturn = isActive("/portal/accounts", pathname) && tabs.includes("members") ? directoryReturnHref(searchParams.get("returnTo")) : null;
   // An event opened from the Letters Tracker returns there.
   const lettersReturn = pathname.startsWith("/portal/events/") && fromLettersTracker(searchParams.get("from")) && tabs.includes("secretariat/letters-tracker");
+  // The Database opened from Secretariat → Settings returns there.
+  const secretariatReturn = isActive("/portal/database", pathname) && fromSecretariatSettings(searchParams.get("from")) && tabs.includes("secretariat/settings");
   const shown = openSections(tabs, showAccessControl);
   const entries = shown.flatMap((section) => section.entries);
   const activeGroups = tabPaths(entries).find(({ tab }) => isActive(tab.href, pathname))?.groups ?? [];
@@ -193,6 +196,8 @@ export function PortalNav({ tabs, collapsed, showAccessControl = false, onExpand
               <>
                 {directoryReturn && selected.label === "Administrative" ? (
                   <Link className="portal-nav-back" href={directoryReturn} aria-label="Back to Directory" title={collapsed ? "Back to Directory" : undefined}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">Directory</span></Link>
+                ) : secretariatReturn && selected.label === "Administrative" ? (
+                  <Link className="portal-nav-back" href={SECRETARIAT_OFFICES_HREF} aria-label="Back to Secretariat" title={collapsed ? "Back to Secretariat" : undefined}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">Secretariat</span></Link>
                 ) : lettersReturn && selected.label === "Secretariat" ? (
                   <Link className="portal-nav-back" href={LETTERS_TRACKER_HREF} aria-label="Back to Letters Tracker" title={collapsed ? "Back to Letters Tracker" : undefined}><ChevronLeft size={17} aria-hidden="true" /><span className="portal-nav-label">Letters Tracker</span></Link>
                 ) : (

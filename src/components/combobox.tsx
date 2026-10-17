@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { filterCollegeOptions } from "@/lib/applications/options";
 
 /**
  * Text input with a filtered dropdown: type to narrow the list, or open it and pick. Only a value
@@ -36,10 +37,53 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
   const [up, setUp] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const collegeField = name === "college" || name === "rsvp_college";
+  const [collegePlaceholder, setCollegePlaceholder] = useState("Type or pick your College");
+
+  useEffect(() => {
+    if (!collegeField || query || disabled) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const hints = ["Type or pick your College", "Example: CICS, Pharmacy, FOP"];
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const sync = () => {
+      clearTimeout(timer);
+      if (motion.matches || document.hidden) {
+        setCollegePlaceholder(hints[0]);
+        return;
+      }
+      let hint = 0;
+      let length = 0;
+      let deleting = false;
+      setCollegePlaceholder("");
+      const step = () => {
+        length += deleting ? -1 : 1;
+        setCollegePlaceholder(hints[hint].slice(0, length));
+        let delay = deleting ? 35 : 65;
+        if (!deleting && length === hints[hint].length) {
+          deleting = true;
+          delay = 2000;
+        } else if (deleting && length === 0) {
+          hint = (hint + 1) % hints.length;
+          deleting = false;
+          delay = 300;
+        }
+        timer = setTimeout(step, delay);
+      };
+      timer = setTimeout(step, 300);
+    };
+    sync();
+    motion.addEventListener("change", sync);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      clearTimeout(timer);
+      motion.removeEventListener("change", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [collegeField, query, disabled]);
 
   const search = query.trim().toLowerCase();
-  const filter = (query: string) => filterOptions ? filterOptions(options, query) : options.filter(option => option.toLowerCase().includes(query));
-  const matches = pickOnly || !search || query === value ? options : filter(search);
+  const filter = (query: string) => (filterOptions ?? filterCollegeOptions)(options, query);
+  const matches = pickOnly || !search || (!freeText && query === value) ? options : filter(search);
 
   const choose = (option: string) => {
     onChange(option);
@@ -63,8 +107,26 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
     show();
   };
 
+  const hasSelectedOption = options.includes(value) && query.trim().toLowerCase() === value.toLowerCase();
+  const clearSelection = () => {
+    setQuery("");
+    onChange("");
+    setActive(0);
+    show();
+  };
+  const moveCaretToEnd = (input: HTMLInputElement) => {
+    if (!pickOnly && input.value) input.setSelectionRange(input.value.length, input.value.length);
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (pickOnly && !open && (event.key === "Enter" || event.key === " ")) {
+    if (event.key === "Backspace" && hasSelectedOption && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      clearSelection();
+    } else if (event.key === "Tab" && !event.shiftKey && open && !pickOnly) {
+      // Commit the first search result and let Tab move focus normally. Keep an existing
+      // selection when the field was only focused, without a new search.
+      if (matches[0] && (query !== value || !options.includes(value))) choose(matches[0]);
+    } else if (pickOnly && !open && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       setActive(Math.max(options.indexOf(value), 0));
       show();
@@ -95,24 +157,37 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
         aria-describedby={describedBy}
         aria-labelledby={labelledBy}
         value={query}
-        placeholder={placeholder}
+        placeholder={collegeField ? collegePlaceholder : placeholder}
         autoComplete="off"
         disabled={disabled}
         readOnly={pickOnly}
         onChange={(event) => {
+          // Phone keyboards may send an input event without a Backspace keydown.
+          const native = event.nativeEvent as InputEvent;
+          if (hasSelectedOption && native.inputType === "deleteContentBackward" && !native.isComposing) {
+            clearSelection();
+            return;
+          }
           const next = event.target.value;
           setQuery(next);
           if (!open) show();
           const typed = next.trim().toLowerCase();
           const exact = options.find((option) => option.toLowerCase() === typed);
-          // Typing a whole option chooses it, so Enter has to land on that option in the list about
-          // to be shown (the full list once the text is the choice itself), not on the first one.
-          const shown = !typed || next === exact ? options : filter(typed);
+          // Keep Enter on the exact match. Free-text fields still filter suggestions because their
+          // value follows every keystroke, including text that isn't a suggested option.
+          const shown = !typed || (!freeText && next === exact) ? options : filter(typed);
           setActive(exact ? shown.indexOf(exact) : 0);
           onChange(exact ?? (freeText ? next : ""));
         }}
-        onFocus={() => { if (!pickOnly) openList(); }}
-        onClick={() => (pickOnly && open ? setOpen(false) : openList())}
+        onFocus={(event) => {
+          moveCaretToEnd(event.currentTarget);
+          if (!pickOnly) openList();
+        }}
+        onClick={(event) => {
+          moveCaretToEnd(event.currentTarget);
+          if (pickOnly && open) setOpen(false);
+          else openList();
+        }}
         onBlur={() => {
           setOpen(false);
           const kept = freeText ? value.replace(/\s+/g, " ").trim() : value;

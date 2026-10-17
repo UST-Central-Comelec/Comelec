@@ -31,6 +31,10 @@ const actions = load('src/lib/portal/event-actions.ts', {
   '@/lib/data/edit-guard': { readGuard: () => ({ stamp: null, overwrite: null }), mergePlan: () => ({ write: [], clash: [], theirs: [] }), conflictState: async () => ({}), saveGuarded: async (_, id, row) => { calls.push(['update', id, row]); return { saved: true, merged: false }; } },
   '@/lib/data/store': { store: { create: async (_, row) => { calls.push(['create', row]); return { id: 'sample' }; }, update: async (_, id, row) => { calls.push(['update', id, row]); return true; }, remove: async (_, id) => { calls.push(['remove', id]); } } },
   '@/lib/events/queries': { getEvent: async () => ({ organizer: 'local', college: 'CICS' }) },
+  '@/lib/events/deployment-store': {
+    queueDeployment: async (id, values, seed) => { calls.push(['queue', id, values, seed]); return { values, version: '11111111-1111-4111-8111-111111111111', applyAt: new Date(Date.now()+60000).toISOString(), error: null }; },
+    cancelDeployment: async () => true,
+  },
   '@/lib/events/registrations': {}, '@/lib/events/emails': {}, '@/lib/notifications/notify': {},
   '@/lib/events/checklist-documents': { addChecklistDocuments: async () => 0 }, '@/lib/events/qr-codes': { ensureQrCodes: async id => { calls.push(['qr', id]); return {}; } },
   '@/lib/events/evaluation-store': { getEvaluationSettings: async () => storedEvaluation, writeEvaluationContent: async (...args) => { calls.push(['evaluation', ...args]); }, writeEvaluationSettings: async (...args) => { calls.push(['evaluation', ...args]); } },
@@ -56,8 +60,8 @@ const eventUi = load('src/components/portal/event-form.tsx', {
   './event-details-fields': { EventDetailsFields: Details },
   './info-tip': { InfoTip: () => null },
   './edit-guard': { EditPresence: () => null, EditConflict: () => null },
-  // The Forms/Preview choice is remembered in the browser; this check starts on the Forms editor.
-  './event-form-editor': { useFormEditorMode: () => ({ mode: 'forms', pickMode: () => {} }), FormEditorViewToggle: () => null },
+  // View Mode opens separately and never replaces the editor.
+  './form-view-mode-button': { FormViewModeButton: () => null },
   './portal-form': { usePortalForm: () => ({ state: undefined, pending: false, onSubmit: () => {}, errors: {} }), FormFooter: Footer },
 });
 function walk(node) { if (!node || typeof node !== 'object') return []; if (Array.isArray(node)) return node.flatMap(walk); return [node, ...walk(node.props?.children)]; }
@@ -81,19 +85,25 @@ const formNode = render().find(node => node.type === 'form');
 assert.equal(walk(formNode.props.children).some(node => node.type === Rsvp), false, 'RSVP preview cannot nest a second form');
 assert.equal(render().find(node => node.type === Footer).props.formId, formNode.props.id, 'Shared save button submits the event form from any tab');
 assert.equal(render().some(node => node.type === FormLinks), false, 'A new event has no form links yet');
-const linkFor = tab => { tabs().props.onChange(tab); cursor = 0; return walk(eventUi.EventForm({ action: () => {}, initial: { name: 'Sample', requireGoogle: true, registrationStatus: 'closed' }, submitLabel: 'Save', cancelHref: '/portal/events', eventId: 'sample', baseUrl: 'https://example.com' })).find(node => node.type === FormLinks).props; };
-assert.equal(linkFor('details').form, 'registration', 'Details links to the public registration form');
-assert.equal(linkFor('rsvp').form, 'rsvp');
-assert.deepEqual([linkFor('evaluation').form, linkFor('evaluation').eventId], ['evaluation', 'sample']);
+for (const tab of ['details', 'rsvp', 'evaluation']) {
+  tabs().props.onChange(tab);
+  cursor = 0;
+  const nodes = walk(eventUi.EventForm({ action: () => {}, initial: { name: 'Sample', requireGoogle: true, registrationStatus: 'closed' }, submitLabel: 'Save', cancelHref: '/portal/events', eventId: 'sample' }));
+  assert.equal(nodes.some(node => node.type === FormLinks), false, 'Edit Event has no Copy Link or QR Code controls');
+  assert.ok(nodes.filter(node => node.type === Rsvp || node.type === Evaluation).every(node => !node.props.headerActions), 'Editor headings have no sharing controls');
+}
 tabs().props.onChange('details');
 const deploymentUi = load('src/components/portal/event-deployment.tsx', {
-  react: { ...React, useId: () => 'deployment', useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}], useActionState: () => [{}, () => {}, false] },
-  '@/lib/portal/event-actions': { saveEventDeployment: () => {} },
-  './event-registration-link': { EventRegistrationLink: () => null },
+  react: { ...React, useRef: value => ({ current: value }), useEffect: () => {}, useCallback: fn => fn, useId: () => 'deployment', useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}], useActionState: () => [{}, () => {}, false] },
+  './event-form-links': { EventFormLinks: FormLinks },
+  './use-deployment-schedule': { useDeploymentSchedule: (_id, live, schedule) => ({ draft: schedule?.values ?? live, scheduled: schedule, remaining: 60, saving: false, state: {}, change() {}, discard() {}, retry() {} }) },
   './toast': { useToast: () => {} },
 });
 const deploymentNodes = walk(deploymentUi.EventDeployment({ eventId: 'sample', baseUrl: 'https://example.com', registrationStatus: 'closed', rsvp: null, evaluation: storedEvaluation, editable: false }));
-assert.deepEqual(deploymentNodes.filter(node => node.props?.href).map(node => node.props.href), ['https://example.com/events/sample/register', 'https://example.com/events/sample/rsvp-form', 'https://example.com/events/sample/evaluate']);
+const deploymentLinks = deploymentNodes.filter(node => node.type === FormLinks);
+assert.deepEqual(deploymentLinks.map(node => node.props.form), ['registration', 'rsvp', 'evaluation'], 'Every deployment form uses the shared Copy Link and QR Code controls');
+assert.ok(deploymentLinks.every(node => node.props.eventId === 'sample' && node.props.baseUrl === 'https://example.com'), 'Deployment links target this event');
+assert.ok(deploymentLinks.every(node => node.props.qrDisabled), 'Read-only viewers cannot manage QR codes');
 assert.equal(deploymentNodes.filter(node => node.type === 'fieldset').every(node => node.props.disabled), true, 'Read-only deployment controls are disabled');
 assert.equal(deploymentNodes.some(node => node.type === 'button'), false, 'Read-only viewers cannot save deployment');
 (async () => {
@@ -152,28 +162,29 @@ assert.equal(deploymentNodes.some(node => node.type === 'button'), false, 'Read-
   assert.ok((await actions.saveEventDeployment('sample', {}, invalidDeployment)).fieldErrors.registrationStatus);
   assert.equal(calls.length, 0);
   assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
-  assert.deepEqual(calls.find(call => call[0] === 'update')[2], { registrationStatus: 'open' }, 'Deployment leaves event details unchanged');
-  const evaluationWrite = calls.find(call => call[0] === 'evaluation')[2];
-  assert.deepEqual(evaluationWrite.questions, storedEvaluation.questions, 'Deployment preserves all questions');
-  assert.equal(evaluationWrite.enabled, true); assert.equal(evaluationWrite.allowAnonymous, true);
-  assert.ok(refreshed.includes('/portal/events/sample/deployment'));
+  assert.equal(calls.find(call => call[0] === 'queue')[2].registrationStatus, 'open', 'Deployment is scheduled instead of written live');
+  assert.equal(calls.some(call => ['update', 'settings', 'evaluation'].includes(call[0])), false, 'Scheduling never changes live settings');
+  const seed = calls.find(call => call[0] === 'queue')[3];
+  assert.deepEqual(seed.evaluationQuestions, storedEvaluation.questions, 'Missing forms can be seeded without overwriting existing questionnaires');
+  assert.equal(calls.find(call => call[0] === 'queue')[2].evaluationEnabled, true);
+  assert.equal(calls.find(call => call[0] === 'queue')[2].allowAnonymous, true);
   calls.length = 0;
   deployment.set('minimumRegistrants', '2'); deployment.set('maximumRegistrants', '1');
   assert.ok((await actions.saveEventDeployment('sample', {}, deployment)).fieldErrors.maximumRegistrants);
   assert.equal(calls.length, 0, 'Invalid capacity never writes deployment settings');
   deployment.set('maximumRegistrants', '20');
   assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
-  assert.equal(calls.find(call => call[0] === 'update')[2].minimumRegistrants, 2);
-  assert.equal(calls.find(call => call[0] === 'update')[2].maximumRegistrants, 20);
+  assert.equal(calls.find(call => call[0] === 'queue')[2].minimumRegistrants, '2');
+  assert.equal(calls.find(call => call[0] === 'queue')[2].maximumRegistrants, '20');
   deployment.delete('minimumRegistrants'); deployment.delete('maximumRegistrants');
   calls.length = 0;
   deployment.set('publicationStatus', 'unpublished');
   assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
-  assert.equal(calls.find(call => call[0] === 'update')[2].published, false, 'Unpublishing is saved independently of registration status');
+  assert.equal(calls.find(call => call[0] === 'queue')[2].published, false, 'Unpublishing is saved independently of registration status');
   calls.length = 0;
   deployment.set('publicationStatus', 'published');
   assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
-  assert.equal(calls.find(call => call[0] === 'update')[2].published, true);
+  assert.equal(calls.find(call => call[0] === 'queue')[2].published, true);
   calls.length = 0;
   deployment.set('publicationStatus', 'invalid');
   assert.ok((await actions.saveEventDeployment('sample', {}, deployment)).fieldErrors.publicationStatus);
@@ -183,13 +194,13 @@ assert.equal(deploymentNodes.some(node => node.type === 'button'), false, 'Read-
   deployment.set('rsvpGoogleSetting', 'on'); deployment.set('rsvpGoogleEnabled', 'on');
   deployment.set('evaluationGoogleSetting', 'on'); deployment.set('evaluationGoogleEnabled', 'on');
   assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
-  assert.equal(calls.find(call => call[0] === 'settings')[4], true, 'RSVP authentication saves independently');
-  assert.equal(calls.find(call => call[0] === 'evaluation')[2].requireGoogle, true);
+  assert.equal(calls.find(call => call[0] === 'queue')[2].rsvpGoogle, true, 'RSVP authentication saves independently');
+  assert.equal(calls.find(call => call[0] === 'queue')[2].evaluationGoogle, true);
   calls.length = 0;
   deployment.delete('rsvpGoogleEnabled'); deployment.delete('evaluationGoogleEnabled');
   assert.equal((await actions.saveEventDeployment('sample', {}, deployment)).success, true);
-  assert.equal(calls.find(call => call[0] === 'settings')[4], false, 'Unticking explicitly disables RSVP authentication');
-  assert.equal(calls.find(call => call[0] === 'evaluation')[2].requireGoogle, false);
+  assert.equal(calls.find(call => call[0] === 'queue')[2].rsvpGoogle, false, 'Unticking explicitly disables RSVP authentication');
+  assert.equal(calls.find(call => call[0] === 'queue')[2].evaluationGoogle, false);
   calls.length = 0; storedEvaluation = { enabled: false, allowAnonymous: false, questions: [] };
   assert.ok((await actions.saveEventDeployment('sample', {}, deployment)).error);
   assert.equal(calls.length, 0, 'Empty evaluation forms cannot be opened');

@@ -2,8 +2,8 @@
 // account with the fields older rows lack filled in. Free of server-only imports, so the account
 // forms can use it.
 
-import { localRolesByCollege } from "./local-roles";
-import { programsByCollege, type College } from "@/lib/applications/options";
+import { customRolesByUnit, localRolesByCollege, type CustomRole } from "./local-roles";
+import { programsByCollege, retiredProgramsByCollege, type College } from "@/lib/applications/options";
 import { readDeclarations } from "@/lib/onboarding/documents";
 import { CENTRAL_REPRESENTATIVE, CHAIRPERSON, DEPUTY, accountKinds, accountPositions, centralRoles, isAccountAffiliation, isAccountPosition, isViewerPosition, localRoles, type AccountAffiliation, type AccountKind, type AccountPosition, type AccountSummary, type Affiliation, type PortalAccount } from "./types";
 
@@ -21,7 +21,24 @@ export const officeOf = (boardRole: string) => `Office of the ${boardRole}`;
  */
 export const positionsFor = (affiliation: AccountAffiliation): readonly AccountPosition[] => (affiliation === "osa" ? ["admin"] : affiliation === "local" ? ["executive-board", "executive-associate", "deputy", "adviser"] : ["executive-board", "executive-associate", "adviser"]);
 
-/** The roles to pick from: the board's own, their offices for associates, and the one role a deputy has. Advisers and Admins have none. */
+/**
+ * The roles a unit added under Administrative → Database → Roles, for its own accounts only ("" is
+ * the Central Comelec). Each opens the same tabs as the role it's based on, which is the position
+ * it's saved under; the account's role is the added role's name.
+ */
+export const addedRolesFor = (affiliation: AccountAffiliation | "", college?: string | null): readonly CustomRole[] =>
+  affiliation === "central" ? customRolesByUnit[""] ?? [] : affiliation === "local" && college ? customRolesByUnit[college] ?? [] : [];
+
+/** The added role an account holds, if it holds one. */
+export const addedRoleOf = (account: Standing) => addedRolesFor(account.affiliation, account.college).find((added) => added.position === account.position && added.name === account.role);
+
+/** The role an account holds as the portal names it: an added role by its own name, else one of the five. */
+export const positionName = (account: Standing) => addedRoleOf(account)?.name ?? accountPositions[account.position];
+
+/**
+ * The seats to pick from: the board's own, their offices for associates, and the one a deputy has.
+ * Advisers and Admins have none. An added role is its own seat, so it isn't listed here.
+ */
 export function rolesFor(affiliation: AccountAffiliation, position: AccountPosition, college?: string | null): readonly string[] {
   if (affiliation === "osa" || isViewerPosition(position)) return [];
   if (position === "deputy") return [DEPUTY];
@@ -31,12 +48,16 @@ export function rolesFor(affiliation: AccountAffiliation, position: AccountPosit
 
 /** Whether `role` fits the position: one from its list, or none where the position has no roles. */
 export function isRoleFor(affiliation: AccountAffiliation, position: AccountPosition, role: string, college?: string | null) {
+  if (addedRoleOf({ affiliation, position, role, college })) return true;
   const roles = rolesFor(affiliation, position, college);
   return roles.length ? roles.includes(role) : role === "";
 }
 
 /** Degree programs and SHS strands; EHS and JHS have no program choices. */
 export const programsOf = (college: string | null | undefined): readonly string[] => programsByCollege[college as College] ?? [];
+
+/** Programs the college has retired: an account that already has one keeps it. */
+export const retiredProgramsOf = (college: string | null | undefined): readonly string[] => (college ? retiredProgramsByCollege[college] ?? [] : []);
 
 /**
  * Which details a personal account has, by position. Commissioners are students, with all of them.

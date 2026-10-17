@@ -23,7 +23,7 @@ export const applicationFields = z.object({
   // Optional: empty, or a Philippine mobile number.
   contactNumber: optionalMobileNumber(),
   email: email("Use a valid email address.", 120).refine((value) => value.endsWith("@ust.edu.ph"), "Use your @ust.edu.ph email."),
-  college: z.enum(colleges as [College, ...College[]], "Pick your college or faculty from the list."),
+  college: z.string().refine((value) => colleges.includes(value), "Pick your college or faculty from the list."),
   program: z.string().trim(),
   yearLevel: z.enum(keys(yearLevels), "Pick your year level."),
   facebookUrl: z.string().trim().max(300).regex(/^(https?:\/\/)?(www\.|m\.|web\.)?(facebook|fb)\.com\/\S+$/i, "Use your Facebook profile link, like facebook.com/yourname."),

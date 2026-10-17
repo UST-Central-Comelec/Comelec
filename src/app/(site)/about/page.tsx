@@ -6,6 +6,7 @@ import { getDirectory } from "@/lib/data/queries";
 import { accountPositions, chamberRoles, directoryGroups, type DirectoryEntry, type DirectoryGroup } from "@/lib/data/types";
 import "../banner-page.css";
 import "./about.css";
+import { ensureReferenceData } from "@/lib/reference/store";
 
 export const metadata: Metadata = { title: "About us" };
 
@@ -44,6 +45,7 @@ function MemberGrid({ members, group, showCollege }: { members: DirectoryEntry[]
 }
 
 export default async function AboutPage() {
+  await ensureReferenceData();
   const directory = await getDirectory();
   const groups = (Object.keys(directoryGroups) as DirectoryGroup[]).map((body) => ({ body, members: directory[body] })).filter((group) => group.members.length > 0);
 

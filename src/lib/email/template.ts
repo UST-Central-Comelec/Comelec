@@ -109,6 +109,17 @@ ${shown}
 export const button = (label: string, href: string) =>
   `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:6px 0 24px"><tr><td style="${fill(palette.gold)};border-radius:999px;padding:1px"><table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate"><tr><td style="${fill("#1a1a23", "#111118")};border-radius:999px"><a href="${escape(href)}" style="color:${palette.text};display:block;padding:12px 24px;text-decoration:none">${ink(`${escape(label)}&nbsp;&rarr;`, `color:${palette.text};font-size:14px;font-weight:600;line-height:1.2`)}</a></td></tr></table></td></tr></table>`;
 
+/** A pill whose edge is `edge`: gold for the main action, a hairline for the other choice. */
+const pill = (label: string, href: string, edge: string) =>
+  `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate"><tr><td style="${fill(edge)};border-radius:999px;padding:1px"><table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate"><tr><td style="${fill("#1a1a23", "#111118")};border-radius:999px"><a href="${escape(href)}" style="color:${palette.text};display:block;padding:12px 24px;text-decoration:none">${ink(label, `color:${palette.text};font-size:14px;font-weight:600;line-height:1.2`)}</a></td></tr></table></td></tr></table>`;
+
+/**
+ * Two answers side by side: the main one with the gold edge, the other with a hairline. They wrap
+ * onto two lines on a narrow screen, and stack where a mail app ignores inline blocks.
+ */
+export const choices = (main: { label: string; href: string }, other: { label: string; href: string }) =>
+  `<div style="font-size:0;line-height:0;margin:6px 0 12px">${[pill(`${escape(main.label)}&nbsp;&rarr;`, main.href, palette.gold), pill(escape(other.label), other.href, palette.lineStrong)].map((html) => `<div style="display:inline-block;margin:0 12px 12px 0;vertical-align:top">${html}</div>`).join("")}</div>`;
+
 /** A small pill with a dot: where something stands. */
 export function status(label: string, tone: "gold" | "ok" = "gold") {
   const back = tone === "ok" ? "#12291f" : "#2a220d";

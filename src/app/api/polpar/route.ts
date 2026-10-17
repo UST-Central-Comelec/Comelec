@@ -1,3 +1,4 @@
+import { ensureReferenceData } from "@/lib/reference/store";
 import { randomUUID } from "node:crypto";
 import { isAccepting } from "@/lib/applications/period";
 import { getUnitPeriod } from "@/lib/periods/store";
@@ -36,6 +37,7 @@ function matchesType(bytes: Buffer, type: string) {
 }
 
 export async function POST(request: Request) {
+  await ensureReferenceData();
   const origin = request.headers.get("origin");
   if (!origin || origin !== new URL(request.url).origin) return reply({ error: "Please submit through the registration page." }, 403);
   if (!isSupabaseConfigured() || !isR2Configured()) return reply({ error: "Online registration is unavailable. Please contact comelec@ust.edu.ph." }, 503);

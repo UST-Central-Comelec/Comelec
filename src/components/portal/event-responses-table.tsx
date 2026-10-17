@@ -341,7 +341,7 @@ function Registrant({ row, columns, evaluationQuestions, remove, save, resend, p
  * With `remove` and `save` (the unit that manages the event), a registration can be removed and what
  * it asked for under Logistics answered.
  */
-export function EventResponsesTable({ rows, evaluationQuestions, remove, save, resend, addressEdit, rsvpActions }: { rows: EventResponseRow[]; rsvpActions?: RsvpReviewActions; addressEdit?: AddressEdit; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
+export function EventResponsesTable({ rows, evaluationQuestions, remove, save, resend, addressEdit, rsvpActions, maximumRegistrants = null }: { rows: EventResponseRow[]; maximumRegistrants?: number | null; rsvpActions?: RsvpReviewActions; addressEdit?: AddressEdit; evaluationQuestions?: EvaluationQuestion[]; remove?: (registrationId: string) => Promise<void>; save?: Save; resend?: Resend }) {
   const [responseFilter, setResponseFilter] = useState<ResponseFilter>("registrants");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<"time" | "name">("time");
@@ -351,6 +351,10 @@ export function EventResponsesTable({ rows, evaluationQuestions, remove, save, r
   const summary = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
+
+  const totalRegistrants = rows.filter(row => row.registered !== false && row.status === "registered").length;
+  const waitlisted = rows.filter(row => row.registered !== false && row.status === "waitlisted").length;
+  const slotsFull = maximumRegistrants !== null && totalRegistrants >= maximumRegistrants;
 
   const filtered = rows.filter(row => matchesResponseFilter(row, responseFilter));
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -416,17 +420,16 @@ export function EventResponsesTable({ rows, evaluationQuestions, remove, save, r
         </div>
       )}
 
-      {matching.length > 0 && (
         <div className="portal-table-foot">
-          <p role="status">Showing {current * PAGE_SIZE + 1}–{current * PAGE_SIZE + shown.length} of {matching.length}{matching.length !== filtered.length ? ` (${filtered.length} in this view)` : ""}</p>
+          <p role="status">Showing {matching.length ? `${current * PAGE_SIZE + 1}–${current * PAGE_SIZE + shown.length}` : "0"} of {matching.length}{matching.length !== filtered.length ? ` (${filtered.length} in this view)` : ""}</p>
           {pages > 1 && (
             <div className="portal-pager">
               <button type="button" className="portal-button is-small is-ghost" disabled={current === 0} onClick={() => setPage(current - 1)}>Previous</button>
               <button type="button" className="portal-button is-small is-ghost" disabled={current >= pages - 1} onClick={() => setPage(current + 1)}>Next</button>
             </div>
           )}
+          <p className="portal-participant-capacity">Registrants: {totalRegistrants.toLocaleString()} / {maximumRegistrants === null ? "Unlimited" : maximumRegistrants.toLocaleString()}{slotsFull && <> · Waitlisted: {waitlisted.toLocaleString()}</>}</p>
         </div>
-      )}
     </>
   );
 }

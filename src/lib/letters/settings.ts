@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { destinationOffices } from "./offices";
 
 /**
  * Secretariat → Settings: what the Letters Tracker and Minutes of the Meetings offer. Saved as one
@@ -32,8 +31,6 @@ export type SecretariatSettings = {
   labels: ToneItem[];
   statuses: ToneItem[];
   remarkPresets: NamedItem[];
-  /** Suggestions only: a destination can be any office typed in the tracker. */
-  offices: NamedItem[];
 };
 
 /** Collapses runs of spaces and trims both ends, so pasted names don't carry stray spaces. */
@@ -60,7 +57,6 @@ export const defaultSecretariatSettings: SecretariatSettings = {
   labels: [toned("Priority", "red"), toned("Print", "green"), toned("Follow-up", "blue"), toned("Revise", "orange")],
   statuses: [toned("Draft", "blue"), toned("For Signing", "gold"), toned("Signed", "teal"), toned("Approved", "green"), toned("Discarded", "grey"), toned("Rejected", "red")],
   remarkPresets: ["Print hard copy (Colored) - copy for recipient", "Print hard copy (Monochrome) - copy as receiving copy", "Signed in Person (Wet Signature)", "Send to email"].map(name => ({ id: slug(name), name })),
-  offices: destinationOffices.map((name, index) => ({ id: `office-${index + 1}`, name })),
 };
 
 export type NumberMode = "auto" | "fixed" | "manual";
@@ -118,10 +114,9 @@ export const secretariatSettingsSchema = z.object({
   labels: list(tonedSchema("label"), "label", 0, 20),
   statuses: list(tonedSchema("status"), "status", 1, 20),
   remarkPresets: list(namedSchema("remark"), "remark", 0, 30),
-  offices: list(namedSchema("office").extend({ name: z.string().transform(cleanText).pipe(z.string().min(1, "Enter an office name.").max(300, "Keep the office name within 300 characters.")) }), "office", 0, 500),
 });
 
-export type SettingsChange = { kind: "letterType" | "minuteType" | "status" | "label" | "remark" | "office"; from: string; to: string };
+export type SettingsChange = { kind: "letterType" | "minuteType" | "status" | "label" | "remark"; from: string; to: string };
 export type SettingsRemoval = { kind: SettingsChange["kind"]; name: string };
 
 /** What saving `next` over `previous` does to records: names to carry over, and names that go. */
@@ -141,6 +136,5 @@ export function settingsChanges(previous: SecretariatSettings, next: Secretariat
   compare("status", previous.statuses, next.statuses);
   compare("label", previous.labels, next.labels);
   compare("remark", previous.remarkPresets, next.remarkPresets);
-  compare("office", previous.offices, next.offices);
   return { renamed, removed };
 }

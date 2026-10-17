@@ -75,7 +75,7 @@ export function PrivacyStatement({ portal = false, eventForm = false, idPrefix }
   return <div className={eventForm ? "apply-privacy-grid ev-privacy-clauses" : portal ? "portal-privacy-content" : "ck-body"}>
     {privacySections.map((section, index) => {
       const Icon = icons[index];
-      if (eventForm) return <details key={section.id} id={`${prefix}-${section.id}`} className="apply-privacy-item ev-privacy-clause" aria-labelledby={`${prefix}-${section.id}-title`}>
+      if (eventForm) return <details key={section.id} name={`${prefix}-clauses`} id={`${prefix}-${section.id}`} className="apply-privacy-item ev-privacy-clause" aria-labelledby={`${prefix}-${section.id}-title`}>
         <summary><span className="apply-privacy-item-icon" aria-hidden="true"><Icon size={17} /></span><h4 id={`${prefix}-${section.id}-title`}>{index + 1}. {section.label}</h4><ChevronDown className="ev-consent-chevron" size={16} aria-hidden="true" /></summary>
         <div className="ev-privacy-clause-body">{contents[index]}</div>
       </details>;

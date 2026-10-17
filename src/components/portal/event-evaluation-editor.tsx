@@ -2,9 +2,7 @@
 import type { ReactNode } from "react";
 import { FileText, LockKeyhole } from "lucide-react";
 import { defaultEvaluation, evaluationDefinition, evaluationFromDefinition, evaluationSections, ratingLabels, type EvaluationQuestion, type EvaluationResponse, type EvaluationSettings } from "@/lib/events/evaluation";
-import { EvaluationForm } from "@/components/events/evaluation-form";
-import { EventFormEditor, type Mode } from "./event-form-editor";
-import { FormPreview } from "./form-preview";
+import { EventFormEditor } from "./event-form-editor";
 import "./event-workflows.css";
 const when = (date: string) => new Date(date).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" });
 
@@ -28,15 +26,15 @@ export function EvaluationResponseDetails({ response, questions = [] }: { respon
   );
 }
 
-export function EventEvaluationEditor({ initial, editable, onChange, actions, viewMode, eventId = "preview", eventName = "This event" }: { eventId?: string; eventName?: string; initial: EvaluationSettings; editable: boolean; responses?: EvaluationResponse[]; embedded?: boolean; onChange?: (settings: EvaluationSettings) => void; actions?: ReactNode; viewMode?: Mode }) {
+export function EventEvaluationEditor({ initial, editable, onChange, actions, headerActions, resetDisabled }: { initial: EvaluationSettings; editable: boolean; responses?: EvaluationResponse[]; embedded?: boolean; onChange?: (settings: EvaluationSettings) => void; actions?: ReactNode; headerActions?: ReactNode; resetDisabled?: boolean }) {
   return <EventFormEditor
     actions={actions}
-    viewMode={viewMode}
+    headerActions={headerActions}
+    resetDisabled={resetDisabled}
     title="Evaluation Form"
     value={evaluationDefinition(initial)}
     defaultValue={evaluationDefinition(defaultEvaluation)}
     disabled={!editable || !onChange}
     onChange={definition => onChange?.(evaluationFromDefinition(definition, initial))}
-    renderPreview={definition => <FormPreview><EvaluationForm eventId={eventId} eventName={eventName} preview settings={{ ...evaluationFromDefinition(definition, initial), enabled: true }} /></FormPreview>}
   />;
 }

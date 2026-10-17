@@ -1,6 +1,6 @@
 // Shared by the sidebar and Access Control so every tab uses the same icon.
 import type { GroupLabel, TabKey } from "@/lib/portal/access";
-import { Grip, BookOpenText, Briefcase, Calendar, CalendarCheck, CalendarDays, ChartColumn, FolderPlus, MailCheck, Flag, Gavel, Hash, Inbox, LayoutDashboard, ListChecks, Radio, ScrollText, Send, Settings2, ShieldCheck, Stamp, Ticket, UserCog, UserRoundPlus, Users, Vote, Wrench, type PortalIcon as Icon } from "./portal-nav-icons";
+import { Database, Grip, BookOpenText, Briefcase, Calendar, CalendarCheck, CalendarDays, ChartColumn, FolderPlus, MailCheck, Flag, Gavel, Hash, Inbox, LayoutDashboard, ListChecks, Radio, ScrollText, Send, Settings2, ShieldCheck, Stamp, Ticket, UserCog, UserRoundPlus, Users, Vote, Wrench, type PortalIcon as Icon } from "./portal-nav-icons";
 
 export const tabIcons: Record<TabKey, Icon> = {
   dashboard: LayoutDashboard,
@@ -37,6 +37,7 @@ export const tabIcons: Record<TabKey, Icon> = {
   "candidacy/requirements": ListChecks,
   "candidacy/settings": Settings2,
   accounts: UserCog,
+  database: Database,
   maintenance: Wrench,
   logs: ScrollText,
 };

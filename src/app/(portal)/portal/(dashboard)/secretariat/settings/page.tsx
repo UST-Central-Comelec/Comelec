@@ -10,8 +10,10 @@ import { settle } from "@/lib/portal/settle";
 
 export const metadata: Metadata = { title: "Secretariat settings" };
 
-export default async function PortalSecretariatSettingsPage() {
+export default async function PortalSecretariatSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) {
   const user = await requireAccess("secretariat/settings");
+  // Back from the Database, Settings opens on Destination Offices.
+  const initialTab = (await searchParams).tab === "offices" ? "offices" : undefined;
   const { value, error } = await settle(getSecretariatSettings());
   const updated = value?.updatedAt && value.updatedBy ? `Last changed by ${value.updatedBy} · ${formatClosing(value.updatedAt)}` : null;
   return (
@@ -19,14 +21,14 @@ export default async function PortalSecretariatSettingsPage() {
       <header className="portal-page-head">
         <div>
           <p className="portal-eyebrow">Secretariat</p>
-          <TitleWithInfo info="What the Letters Tracker and Minutes of the Meetings offer: their types and how each type’s control number is made, plus the labels, statuses, remark presets and destination office suggestions they share. These settings apply to every unit.">Settings</TitleWithInfo>
+          <TitleWithInfo info="What the Letters Tracker and Minutes of the Meetings offer: their types and how each type’s control number is made, plus the labels, statuses and remark presets they share. These settings apply to every unit. Destination offices are shown as Administrative → Database lists them.">Settings</TitleWithInfo>
           {updated && <p className="portal-muted">{updated}</p>}
         </div>
         {user.readOnly && <ViewOnlyTag />}
       </header>
       {/* Editing is off when the saved settings couldn't be read, so defaults never overwrite them. */}
       {error && <p className="portal-form-error" role="alert">{error}</p>}
-      <SecretariatSettingsForm initial={value?.settings ?? defaultSecretariatSettings} updatedAt={value?.updatedAt ?? null} readOnly={user.readOnly || Boolean(error)} />
+      <SecretariatSettingsForm initial={value?.settings ?? defaultSecretariatSettings} updatedAt={value?.updatedAt ?? null} readOnly={user.readOnly || Boolean(error)} initialTab={initialTab} />
     </main>
   );
 }

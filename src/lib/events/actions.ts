@@ -1,5 +1,6 @@
 "use server";
 
+import { ensureReferenceData } from "@/lib/reference/store";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { sendAutomatic } from "@/lib/notifications/notify";
@@ -41,6 +42,7 @@ function closedMessage(event: CommissionEvent) {
  * verified (the pass from Google sign-in); everyone else under the email they typed.
  */
 export async function submitRegistration(eventId: string, _state: RegistrationState, formData: FormData): Promise<RegistrationState> {
+  await ensureReferenceData();
   // Hidden field that people never see. Bots that fill it get a normal-looking success.
   if (text(formData, "website")) return { submitted: true };
 

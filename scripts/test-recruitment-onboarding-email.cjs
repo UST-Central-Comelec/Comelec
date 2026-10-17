@@ -29,16 +29,24 @@ async function main() {
   const load = loader();
   const { acceptanceEmail, defaultOnboarding, onboardingSchema } = load("src/lib/applications/onboarding.ts");
   const { colleges } = load("src/lib/applications/options.ts");
-  const applicant = { email: "juan@ust.edu.ph", firstName: "JUAN", position: "Executive Assistant to the Chairperson", positionId: "ea-chairperson", division: "", referenceCode: "TEST-001", concern: { unit: "central" } };
+  const applicant = { email: "juan@ust.edu.ph", firstName: "JUAN", position: "Executive Associate to the Chairperson", positionId: "ea-chairperson", division: "", referenceCode: "TEST-001", concern: { unit: "central" } };
   const defaults = acceptanceEmail(applicant, defaultOnboarding());
   assert.match(defaults.html, /Join the Commission/);
   assert.match(defaults.text, /portal\/login\?join=/);
+  // Join or Decline, side by side, under the request to confirm; Decline opens the tracker with the details filled in.
+  assert.match(defaults.text, /To formally signify your acceptance of membership in the Commission, please confirm your decision by selecting one of the options below:/);
+  assert.doesNotMatch(defaults.text, /reach out soon/);
+  assert.match(defaults.html, />Decline</);
+  assert.ok(defaults.html.indexOf("Join the Commission") < defaults.html.indexOf(">Decline<"));
+  assert.match(acceptanceEmail({ ...applicant, lastName: "DELA CRUZ" }).text, /Decline: \S+\/apply\/track\?ref=TEST-001&last=DELA\+CRUZ&from=acceptance/);
+  assert.match(acceptanceEmail({ ...applicant, offerExpiresAt: "2026-10-31T04:00:00.000Z" }).text, /valid for 14 days, until October 31, 2026/);
   assert.doesNotMatch(defaults.html, /Join Messenger Group Chat/);
   const settings = { messengerUrl: "https://m.me/j/invite", buttons: [{ title: "Read <script>bad()</script>", url: "https://example.com/guide" }, { title: "Orientation", url: "https://example.com/orientation" }] };
   const email = acceptanceEmail(applicant, settings);
   assert.match(email.text, /Hi Juan/);
-  assert.match(email.html, /<strong[^>]*>Executive Assistant to the Chairperson<\/strong>/);
-  assert.match(email.html, /<strong[^>]*>Chairperson<\/strong>/);
+  assert.match(email.html, /<strong[^>]*>Executive Associate to the Chairperson<\/strong>/);
+  assert.match(email.text, /Position\W+Executive Associate to the Chairperson/);
+  assert.doesNotMatch(email.text, /Role/);
   assert.ok(email.html.indexOf("Join the Commission") < email.html.indexOf("Join Messenger Group Chat"));
   assert.ok(email.html.indexOf("Join Messenger Group Chat") < email.html.indexOf("Read &lt;script&gt;"));
   assert.ok(email.html.indexOf("Read &lt;script&gt;") < email.html.indexOf("Orientation"));
@@ -91,6 +99,7 @@ async function main() {
   let application = { ...applicant, preferredBodyId: "central", college: colleges[0] };
   const loadedUnits = [];
   const delivered = [];
+  const opened = [];
   const deliveryActions = loader({
     "next/cache": { revalidatePath() {} },
     "next/navigation": { redirect() { throw new Error("Unexpected redirect"); } },
@@ -99,17 +108,23 @@ async function main() {
     "@/lib/applications/apply-cache": { clearApplyPageCache() {} },
     "@/lib/applications/onboarding-store": { getOnboarding: async unit => { loadedUnits.push(unit); return settings; } },
     "@/lib/applications/email-log": { sendApplicationEmail: async (_id, kind, build) => { delivered.push({ kind, email: await build() }); return "sent"; } },
+    "@/lib/applications/offer-store": { openOffer: async (id, expiresAt) => opened.push({ id, expiresAt }) },
   })("src/lib/portal/application-actions.ts");
   const decision = (status, notify = "on") => { const data = new FormData(); data.set("status", status); data.set("notify", notify); return data; };
   assert.equal(await deliveryActions.updateApplicationStatus("applicant", decision("accepted")), "application-accepted-emailed");
   assert.equal(loadedUnits[0], "");
   assert.match(delivered[0].email.text, /Hi Juan/);
   assert.match(delivered[0].email.text, /https:\/\/example.com\/guide/);
+  // The 14 days start with the email, and the deadline saved is the one it states.
+  assert.equal(opened.length, 1);
+  assert.ok(Math.abs(new Date(opened[0].expiresAt).getTime() - Date.now() - 14 * 86_400_000) < 60_000);
+  assert.match(delivered[0].email.text, new RegExp(new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeZone: "Asia/Manila" }).format(new Date(opened[0].expiresAt))));
   application = { ...application, preferredBodyId: "local" };
   await deliveryActions.updateApplicationStatus("applicant", decision("accepted"));
   assert.equal(loadedUnits[1], colleges[0]);
   await deliveryActions.updateApplicationStatus("applicant", decision("declined"));
   assert.equal(delivered[2].kind, "rejected");
+  assert.equal(opened.length, 2, "A rejection opens no offer");
   assert.doesNotMatch(delivered[2].email.html, /Join Messenger Group Chat/);
   await deliveryActions.updateApplicationStatus("applicant", decision("accepted", "off"));
   assert.equal(delivered.length, 3, "An unticked notification must not send email");

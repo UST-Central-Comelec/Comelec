@@ -9,8 +9,8 @@ import { digitsOnly } from "@/lib/applications/numeric-input";
 import { Combobox } from "@/components/combobox";
 import { FacebookProfileInput } from "@/components/facebook-profile-input";
 import { comelecUnits, yearLevelsFor } from "@/lib/applications/options";
-import { detailsFor, officialName, positionsFor, programsOf } from "@/lib/data/accounts";
-import { accountAffiliations, accountKinds, accountPositions, type AccountAffiliation, type AccountKind, type AccountPosition, type AccountSummary } from "@/lib/data/types";
+import { detailsFor, officialName, positionsFor, programsOf, retiredProgramsOf } from "@/lib/data/accounts";
+import { accountAffiliations, accountKinds, type AccountAffiliation, type AccountKind, type AccountPosition, type AccountSummary } from "@/lib/data/types";
 import { canManageAccount, grantablePositions, type Manager } from "@/lib/portal/account-scope";
 import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import type { FormState } from "@/lib/portal/form";
@@ -79,7 +79,7 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
 
   const startAffiliation: AccountAffiliation = localManager && !fixedUnit ? "local" : initial.affiliation;
   const startPositions = grantablePositions(manager, startAffiliation);
-  const { affiliation: pickedAffiliation, setAffiliation, position, role, setRole, setPositionAndRole, options } = useRoleChoice({
+  const { affiliation: pickedAffiliation, setAffiliation, position, role, setRole, options, choice, choices, setChoice } = useRoleChoice({
     affiliation: startAffiliation,
     position: fixedUnit || startPositions.includes(initial.position) ? initial.position : (startPositions.at(-1) ?? ""),
     role: initial.role,
@@ -90,14 +90,13 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
   const affiliationOptions = (Object.keys(accountAffiliations) as AccountAffiliation[])
     .filter((value) => (official ? value !== "osa" : fixedUnit || value === affiliation || grantablePositions(manager, value).length > 0))
     .map((value) => ({ value, label: accountAffiliations[value] }));
-  const positionOptions = positionsFor(affiliation).map((value) => ({
-    value,
-    label: accountPositions[value],
-    disabled: !fixedUnit && !grantablePositions(manager, affiliation).includes(value),
-  }));
+  // The five, then the roles this unit added, each as grantable as the one it's based on.
+  const positionOptions = choices(positionsFor(affiliation), (value) => Boolean(fixedUnit) || grantablePositions(manager, affiliation).includes(value));
   const needs = position ? detailsFor(affiliation, position) : { role: true, studentNumber: true, program: true, college: "required" as const };
 
-  const programs = programsOf(college);
+  // A retired program stays a choice for the account that already has it, in that college.
+  const kept = initial.program && college === initial.college && retiredProgramsOf(college).includes(initial.program) ? [initial.program] : [];
+  const programs = [...programsOf(college), ...kept];
   const [program, setProgram] = useState(initial.program && programs.includes(initial.program) ? initial.program : "");
   const levels = yearLevelsFor(college);
   const [yearLevel, setYearLevel] = useState(initial.yearLevel && Object.hasOwn(levels, initial.yearLevel) ? initial.yearLevel : "");
@@ -218,12 +217,12 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
                 <span className="portal-field-label" id={positionLabel}>Position<InfoTip>{position ? positionHints[position] : "Pick their position."}</InfoTip></span>
                 {/* The Office for Student Affairs has one position, so there's nothing to pick. */}
                 <input type="hidden" name="position" value={position} />
-                <Dropdown labelledBy={positionLabel} value={position} onChange={(next) => setPositionAndRole(next as AccountPosition, "")} options={positionOptions} placeholder="Select position" disabled={fixedUnit || positionOptions.length < 2} />
+                <Dropdown labelledBy={positionLabel} value={choice} onChange={setChoice} options={positionOptions} placeholder="Select position" disabled={fixedUnit || positionOptions.length < 2} />
                 {errors.position && <span className="portal-field-error">{errors.position}</span>}
               </div>
               <Field
                 label="Role"
-                hint={!needs.role ? "Advisers and admins have no role. The Directory lists an adviser as “Adviser”." : position === "deputy" ? "Deputies have one role, so it’s filled in." : position === "executive-associate" ? "The board member’s office they serve in." : "Their seat on the Executive Board. This is how the Directory and the website’s About page list them."}
+                hint={choice !== position ? "This role is its own seat, so it’s filled in." : !needs.role ? "Advisers and admins have no role. The Directory lists an adviser as “Adviser”." : position === "deputy" ? "Deputies have one role, so it’s filled in." : position === "executive-associate" ? "The board member’s office they serve in." : "Their seat on the Executive Board. This is how the Directory and the website’s About page list them."}
                 error={errors.role}
               >
                 <RoleSelect name="role" position={position} role={role} options={options} onChange={setRole} />

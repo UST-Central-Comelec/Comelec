@@ -1,0 +1,85 @@
+/* Administrative → Database. Rows and actions reuse Secretariat → Settings (secretariat-settings.css). */
+/* Five tabs: they scroll sideways on a phone rather than wrap. */
+.db-subtabs { overflow-x: auto; scrollbar-width: none; }
+.db-subtabs::-webkit-scrollbar { display: none; }
+.db-subtabs a { flex: none; white-space: nowrap; }
+.db-settings { margin-top: 0; }
+/* The college picker sits in the card's header, beside the title. */
+.db-picker { flex: 1 1 340px; max-width: 460px; min-width: 0; }
+.db-settings.is-unpicked { padding-bottom: 22px; }
+
+/* A list opening under its picker: the card grows to fit it as it fades in. Another college's
+   list only fades in, since the card is already open. */
+.db-body { display: grid; grid-template-rows: 1fr; }
+.db-body > div { min-height: 0; overflow: hidden; }
+.db-body.is-expand { animation: db-expand .42s var(--p-ease) both; }
+.db-body.is-expand > div { animation: db-rise .42s var(--p-ease) both; }
+.db-body.is-fade > div { animation: db-rise .22s var(--p-ease) both; }
+@keyframes db-expand { from { grid-template-rows: 0fr; } to { grid-template-rows: 1fr; } }
+@keyframes db-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .db-body, .db-body > div { animation: none !important; } }
+.db-settings + .db-settings { margin-top: 18px; }
+.db-panel-head { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 18px; justify-content: space-between; padding: 22px 26px 0; }
+.db-panel-title { align-items: center; color: var(--p-bright); display: flex; font-size: 16px; font-weight: 600; gap: 4px; margin: 0; }
+.db-fields { display: grid; gap: 10px; padding: 16px 26px 24px; }
+
+.db-tools { align-items: center; display: flex; flex: 1 1 320px; gap: 12px; justify-content: flex-end; max-width: 520px; }
+.db-tools .portal-setting-count { color: var(--p-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.db-search { flex: 1 1 auto; max-width: none; min-width: 0; }
+.db-search .portal-input { height: var(--sec-list-control-height); }
+
+.db-rows { border: 1px solid var(--p-line); border-radius: 14px; display: grid; list-style: none; margin: 0; padding: 0; }
+.db-rows:empty { display: none; }
+.db-row { align-items: start; display: grid; gap: 8px 12px; padding: 10px 14px; }
+.db-row + .db-row { border-top: 1px solid var(--p-line); }
+.db-row .portal-icon-button { flex-basis: var(--sec-list-control-height); height: var(--sec-list-control-height); width: var(--sec-list-control-height); }
+.db-row .sec-row-actions { justify-content: flex-end; min-height: var(--sec-list-control-height); }
+.db-row:has(> .sec-row-actions > button[aria-label^="Delete"]:not(:disabled):is(:hover, :focus-visible)) .db-cell input { border-color: var(--p-danger); }
+.db-cell { gap: 5px; min-width: 0; }
+.db-cell input { height: var(--sec-list-control-height); padding-block: 9px !important; width: 100%; }
+.db-cell input.is-fixed { color: var(--p-soft); }
+
+.db-name-row { grid-template-columns: minmax(0, 1fr) auto; }
+.db-college-row { grid-template-columns: minmax(180px, 2fr) minmax(90px, .55fr) minmax(130px, 1fr) 104px auto; }
+.db-role-row { align-items: center; grid-template-columns: minmax(160px, 260px) minmax(0, 1fr); }
+/* A role a unit added: its name where the five have theirs, then what it opens. */
+.db-added-row { align-items: center; grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) auto; }
+.db-added-access { align-items: center; display: flex; gap: 6px 10px; min-width: 0; }
+.db-added-access .portal-dropdown { flex: 0 1 220px; min-width: 160px; }
+.db-added-access .portal-dropdown > button { width: 100%; }
+
+.db-grid-head { color: var(--p-muted); display: grid; font-size: 12px; font-weight: 500; gap: 8px 12px; padding: 0 15px; }
+.db-grid-head > span { align-items: center; display: flex; gap: 2px; }
+.db-check { align-items: center; cursor: pointer; display: flex; font-size: 13px; gap: 9px; min-height: var(--sec-list-control-height); }
+.db-check input { accent-color: var(--p-text); flex: none; height: 15px; margin: 0; width: 15px; }
+.db-position { display: grid; gap: 4px; min-width: 0; }
+.db-derived { color: var(--p-muted); font-size: 12px; line-height: 1.5; }
+.db-fixed { align-items: center; color: var(--p-muted); display: inline-flex; height: var(--sec-list-control-height); }
+
+/* The titles every unit has, listed above the unit's own. */
+
+/* View only: the saved lists, without empty-field hints or buttons that can't be used. */
+.db-fields:disabled input::placeholder { color: transparent; }
+.db-fields:disabled .sec-row-actions .portal-icon-button { display: none; }
+
+.db-load-error { margin-bottom: 18px; }
+
+/* Retired programs: below the offered ones, quieter. */
+.db-group-head { align-items: center; color: var(--p-muted); display: flex; font-size: 12.5px; font-weight: 500; gap: 2px; margin: 8px 0 -2px; }
+.db-rows.is-retired .db-cell input { color: var(--p-soft); }
+
+@media (max-width: 860px) {
+  .db-panel-head { padding: 18px 18px 0; }
+  .db-fields { padding: 14px 18px 20px; }
+  .db-tools { flex-basis: 100%; max-width: none; }
+  .db-grid-head { display: none; }
+  .db-college-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .db-college-row > :first-child { grid-column: 1 / -1; }
+  .db-college-row .sec-row-actions { justify-content: flex-end; }
+  .db-role-row, .db-added-row, .db-name-row { grid-template-columns: minmax(0, 1fr); }
+  .db-name-row .sec-row-actions { justify-content: flex-end; }
+  .db-picker { flex-basis: 100%; max-width: none; }
+  .db-added-row .sec-row-actions { justify-content: flex-end; }
+  .db-added-access { flex-wrap: wrap; }
+  .db-added-access .portal-dropdown { flex: 1 1 100%; }
+}

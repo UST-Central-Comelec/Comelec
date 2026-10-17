@@ -1,11 +1,12 @@
 "use client";
 import { DownloadIcon } from "@/components/lucide-animated/download";
-import { useEffect, useRef, useState } from "react";
-import { Check, FileText, QrCode, RefreshCw } from "lucide-react";
-import { CopyIcon as Copy } from "@/components/action-icons";
+import { useEffect, useId, useRef, useState } from "react";
+import { FileText, Link2, QrCode, RefreshCw } from "lucide-react";
+import { CloseIcon, CopyIcon as Copy } from "@/components/action-icons";
 import { getFormQr, regenerateFormQr } from "@/lib/portal/qr-actions";
 import { usePortalTheme } from "./portal-theme";
 import { toast } from "./toast";
+import "./event-form-editor.css";
 
 type Form = "registration" | "rsvp" | "evaluation";
 type Ink = "black" | "white";
@@ -14,41 +15,57 @@ const colors = { black: "#000000", white: "#ffffff" } as const;
 const formNames: Record<Form, string> = { registration: "Public registration form", rsvp: "RSVP form", evaluation: "Evaluation form" };
 const opposite = (color: Ink): Ink => color === "black" ? "white" : "black";
 
-/**
- * Beside the event editor's tabs: the link to the tab's form, a Copy button, and its QR code. The QR
- * panel opens under its button with the code, colour presets (starting from the portal's theme: black on
- * white in light mode, white on black in dark; every option can always be picked, and picking a colour
- * the other side already uses flips that side), downloads (PNG in the preset, PDF in
- * black on a Letter page at the largest size that fits) and Generate new, which retires the old code.
- */
-export function EventFormLinks({ eventId, eventName, baseUrl, form }: { eventId: string; eventName: string; baseUrl: string; form: Form }) {
+/** The form’s link card, with direct copying and a QR code dialog. */
+export function EventFormLinks({ eventId, eventName, baseUrl, form, qrDisabled = false }: { eventId: string; eventName: string; baseUrl: string; form: Form; qrDisabled?: boolean }) {
   const href = `${baseUrl}${form === "registration" ? `/events/${eventId}/register` : form === "rsvp" ? `/events/${eventId}/rsvp-form` : `/events/${eventId}/evaluate`}`;
+  const qrDialog = useRef<HTMLDialogElement>(null);
+  const [qrOpen, setQrOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const id = useId();
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: PointerEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key === "Escape" : !wrap.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", close);
-    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
-  }, [open]);
+  useEffect(() => () => {
+    if (copiedTimer.current !== null) clearTimeout(copiedTimer.current);
+  }, []);
 
   async function copy() {
-    try { await navigator.clipboard.writeText(href); setCopied(true); setTimeout(() => setCopied(false), 2000); toast("Link copied."); }
-    catch { toast("Couldn’t copy. Select the link and copy it manually.", "error"); }
+    try {
+      await navigator.clipboard.writeText(href);
+      setCopied(true);
+      if (copiedTimer.current !== null) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => {
+        setCopied(false);
+        copiedTimer.current = null;
+      }, 4000);
+      toast("Link copied.");
+    }
+    catch { toast("Couldn’t copy the link. Try again.", "error"); }
+  }
+
+  function openQr() {
+    if (qrDisabled) return;
+    setQrOpen(true);
+    qrDialog.current?.showModal();
   }
 
   return (
-    <div className="portal-form-links" ref={wrap}>
-      <span className="portal-form-links-label">Link:</span>
-      <a className="portal-form-links-url" href={href} target="_blank" rel="noopener" title={href}>{href.replace(/^https?:\/\//, "")}</a>
-      <button type="button" className="portal-button is-small is-ghost" onClick={copy} aria-live="polite">{copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}{copied ? "Copied" : "Copy"}</button>
-      <button type="button" className="portal-button is-small is-ghost" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(value => !value)}><QrCode size={14} aria-hidden="true" />QR Code</button>
-      {open && <QrPanel key={form} eventId={eventId} eventName={eventName} form={form} />}
+    <div className="portal-event-form-link">
+      <span className="portal-event-form-link-icon"><Link2 size={18} aria-hidden="true" /></span>
+      <div className="portal-event-form-link-content">
+        <span>{form === "registration" ? "Registration form" : formNames[form]} link</span>
+        <a href={href} target="_blank" rel="noopener noreferrer">{href}</a>
+      </div>
+      <div className="portal-form-links">
+        <button type="button" className="portal-button is-small is-ghost" onClick={copy}><Copy size={15} aria-hidden="true" /><span aria-live="polite">{copied ? "Link copied" : "Copy Link"}</span></button>
+        <button type="button" className="portal-button is-small is-ghost" aria-haspopup="dialog" aria-controls={`${id}-qr`} disabled={qrDisabled} onClick={openQr}><QrCode size={15} aria-hidden="true" />QR Code</button>
+      </div>
+      <dialog ref={qrDialog} id={`${id}-qr`} className="portal-registrant-confirmation portal-form-link-dialog" aria-labelledby={`${id}-qr-title`} onClose={() => setQrOpen(false)} onClick={event => { if (event.target === event.currentTarget) qrDialog.current?.close(); }}>
+        <header className="portal-form-link-dialog-head">
+          <h2 id={`${id}-qr-title`}>QR code</h2>
+          <button type="button" className="portal-icon-button" aria-label="Close QR code" autoFocus onClick={() => qrDialog.current?.close()}><CloseIcon size={16} aria-hidden="true" /></button>
+        </header>
+        {qrOpen && <QrPanel key={form} eventId={eventId} eventName={eventName} form={form} />}
+      </dialog>
     </div>
   );
 }
@@ -145,7 +162,7 @@ function QrPanel({ eventId, eventName, form }: { eventId: string; eventName: str
   }
 
   return (
-    <div className="portal-qr-panel" role="dialog" aria-label={`${formNames[form]} QR code`}>
+    <div className="portal-qr-panel">
       <p className="portal-qr-title"><strong>QR code</strong><span>{formNames[form]}</span></p>
       <div className={`portal-qr-preview is-${preset.paper} is-ink-${preset.ink}`} aria-label={url ? `QR code for ${url}` : "Loading the QR code"} role="img">
         {svg ? <span dangerouslySetInnerHTML={{ __html: svg }} /> : <span className="portal-qr-loading">{error ? "" : "Loading…"}</span>}

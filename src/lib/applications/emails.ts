@@ -105,6 +105,31 @@ export function confirmationEmail(applicant: Applicant, { interview, answers, su
   };
 }
 
+/**
+ * To the unit an accepted applicant declined: its official account and its Executive Board. The
+ * position's slot is free again, so it can accept someone else.
+ */
+export function offerDeclinedEmail(recipients: string[], application: Applicant & { id?: string; name: string }): Email {
+  const { concern } = application;
+  const local = isLocalConcern(concern);
+  const url = `${siteUrl()}/portal/recruitment/applications${application.id ? `/${application.id}` : ""}`;
+  const intro = `${greetingName(application.name)} declined the ${unitOf(concern)}’s offer for ${application.position}${local ? `, through the ${COMET}` : ""}. The position’s slot is free again, so you can accept someone else.`;
+  const wait = "They can apply to this unit again after 60 days. To take them sooner, accept their application again before it’s deleted.";
+  const rows: Details = [["Applicant", application.name], ["UST email", application.email], ["Position", application.position], ["Reference code", application.referenceCode]];
+  return {
+    to: recipients.join(", "),
+    subject: `${through("Offer declined", concern)}: ${application.position} (${application.referenceCode})`,
+    text: ["Hi,", intro, wait, detailsText(rows), `Open the application:\n${url}`, COMMISSION].join("\n\n"),
+    html: shell({
+      eyebrow: topicFor(TOPIC, concern),
+      title: "An offer was *declined*",
+      preheader: `${greetingName(application.name)} declined the offer for ${application.position}.`,
+      blocks: [highlight("Declined the offer", application.name, "name"), paragraph("Hi,"), paragraph(escape(intro)), paragraph(escape(wait)), details(rows), button("Open the application", url)],
+    }),
+    replyTo: { name: greetingName(application.name), address: application.email },
+  };
+}
+
 /** What the unit's notice names of whoever applied. `id` is the application's own, for the link to it in the portal. */
 export type NewApplication = Applicant & { id?: string; name: string; college: string; program: string };
 
