@@ -7,7 +7,7 @@ import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, Info } from "lucide-react";
-import { CopyIcon as Copy } from "@/components/action-icons";
+import { CopyIcon as Copy, EditIcon } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
 import { DraftExpired, DraftStrip } from "@/components/draft-notice";
 import { useFormDraft } from "@/components/use-form-draft";
@@ -18,7 +18,7 @@ import { useHydrated } from "@/components/portal/portal-form";
 import { RoleSelect, useRoleChoice } from "@/components/portal/role-field";
 import { forgetAccessVerification, loadJoinProfile, submitAccessRequest, type SubmittedAccessRequest } from "@/lib/access-requests/actions";
 import { ACCESS_CHANNEL, accessStatusMessages, type AccessMessage, type AccessProfile, type AccessStep, type JoinProfile } from "@/lib/access-requests/channel";
-import { checkAccessRequest, readAccessRequest } from "@/lib/access-requests/schema";
+import { checkAccessRequest, readAccessRequest, type AccessRequestValues } from "@/lib/access-requests/schema";
 import { colleges, programsByCollege, programLocked, yearLevelsFor, type College } from "@/lib/applications/options";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
 import { accountPositions, affiliations, commissionerPositions, describeAffiliation, type Affiliation } from "@/lib/data/types";
@@ -369,6 +369,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     // The position and role choices depend on the unit, so they follow once it's back.
     onRestored: () => {
       if (restoring.current?.choice) unit.setChoice(restoring.current.choice);
+      requestAnimationFrame(readSummary);
     },
   });
   const { clear: clearDraft } = draft;
@@ -414,7 +415,12 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     return Boolean(accepted[id]);
   };
 
+  // The profile as it will be sent, read from the form as the last step opens, for the review.
+  const [summary, setSummary] = useState<AccessRequestValues | null>(null);
+  const readSummary = () => { if (formRef.current) setSummary(readAccessRequest(new FormData(formRef.current))); };
+
   const goTo = (index: number) => {
+    if (index === LAST) readSummary();
     setMessage("");
     setStep(index);
     setFurthest((current) => Math.max(current, index));
@@ -624,6 +630,32 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
         {step === LAST && (
           <section className={`onboarding-review${busy ? " is-sealing" : ""}`} aria-label="What you’ve agreed to">
             <p className="portal-muted">{busy ? "Your agreements are sealed for sending. Confirm with Google to submit them." : application ? "Check what you’ve agreed to. Submitting asks you to sign in with Google once more; your account is then ready straight away." : "Check what you’ve agreed to. Submitting asks you to sign in with Google once more, then the Executive Board reviews your request."}</p>
+            {summary && profile && (
+              <div className="onboarding-summary">
+                <div className="onboarding-review-head">
+                  <h2>Profile and information</h2>
+                  <button type="button" className="portal-button is-ghost is-small" onClick={() => goTo(PROFILE)} disabled={busy}><EditIcon size={14} aria-hidden="true" /> Edit profile</button>
+                </div>
+                <dl>
+                  {([
+                    ["Name", signer || "—"],
+                    ["Student number", summary.studentNumber],
+                    ["UST email", profile.email],
+                    ["Mobile number", summary.contactNumber],
+                    ["Facebook", summary.facebookUrl],
+                    ["College or faculty", summary.college],
+                    ["Program", summary.program],
+                    ["Year level", yearLevelsFor(summary.college)[summary.yearLevel] ?? summary.yearLevel],
+                    ["Serves in", unit.affiliation ? describeAffiliation(unit.affiliation as Affiliation, summary.college) : summary.affiliation],
+                    ["Position", unit.position ? accountPositions[unit.position as keyof typeof accountPositions] : summary.position],
+                    ["Role", unit.role || summary.role],
+                  ] as [string, string][]).filter(([, value]) => value).map(([label, value]) => (
+                    <div key={label}><dt>{label}</dt><dd>{label === "UST email" ? <span className="portal-receipt-verified">{value} <VerifiedMark label="Verified with Google" /></span> : value}</dd></div>
+                  ))}
+                </dl>
+              </div>
+            )}
+            <div className="onboarding-review-head"><h2>Agreements</h2><span className="portal-muted">{documents.filter((item) => accepted[item.key]).length} of {documents.length} accepted</span></div>
             <ul>
               {documents.map((item, order) => (
                 <li key={item.key} style={{ "--seal-delay": `${order * 90}ms` } as CSSProperties}>
