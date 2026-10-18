@@ -13,6 +13,8 @@ export const tabIcons: Record<TabKey, Icon> = {
   "secretariat/calendar": Calendar,
   "apps/manual": BookOpenText,
   request: Ticket,
+  "request/create": FolderPlus,
+  "request/settings": Settings2,
   "documents/approval": Stamp,
   news: Radio,
   statistics: ChartColumn,
@@ -46,6 +48,7 @@ export const tabIcons: Record<TabKey, Icon> = {
 
 export const groupIcons: Record<GroupLabel, Icon> = {
   Services: Grip,
+  Requests: Ticket,
   Documents: FolderPlus,
   Charters: BookOpenText,
   Secretariat: Briefcase,

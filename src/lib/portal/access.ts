@@ -31,7 +31,11 @@ export const tabGroups = [
       { key: "apps/email", label: "Email", local: true },
     ],
   },
-  { label: null, section: null, tabs: [{ key: "request", label: "Requests", local: true }] },
+  { label: "Requests", section: null, tabs: [
+    { key: "request", label: "Approvals", local: true },
+    { key: "request/create", label: "Create Request", local: true },
+    { key: "request/settings", label: "Settings", local: false },
+  ] },
   {
     label: "Secretariat",
     section: "Committee",
@@ -303,6 +307,11 @@ export function normalizeTabOverrides(value: unknown): TabOverrides {
   }
   if (normalized["secretariat/minutes"] === undefined && normalized["secretariat/letters-tracker"] !== undefined) {
     normalized["secretariat/minutes"] = normalized["secretariat/letters-tracker"];
+  }
+  // New request tabs inherit explicit access to the original Requests queue.
+  if (normalized.request !== undefined) {
+    normalized["request/create"] ??= normalized.request;
+    if (!normalized.request) normalized["request/settings"] ??= false;
   }
   return normalized;
 }

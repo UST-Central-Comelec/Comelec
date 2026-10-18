@@ -184,7 +184,7 @@ function Saved({ event, kind, name, email, referenceCode, acknowledgement, edite
             <button type="button" onClick={copy}>{copied ? <><Check size={15} aria-hidden="true" />Copied</> : <><CopyIcon size={15} />Copy code</>}</button>
           </div>
         )}
-        {referenceCode && <p className="apply-result-note">Keep this code to track your registration with your last name.</p>}
+        {referenceCode && <p className="apply-result-note">Keep this code to track your registration with your student number or last name.</p>}
         <dl className="apply-result-details">
           {name && <div><dt>Registrant</dt><dd>{name}</dd></div>}
           {email && <div><dt>Email</dt><dd>{email}</dd></div>}

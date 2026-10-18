@@ -377,6 +377,7 @@ async function main() {
   const toasts = [];
   const dialog = { showModal: () => opened++, close() {} };
   const { LettersTracker } = load("src/components/portal/letters-tracker.tsx", {
+    "@/components/busy": { Busy: "busy" },
     react: { ...React, useCallback: callback => callback, useEffect: callback => { effect = callback; }, useId: () => "letters-test", useRef: () => ({ current: dialog }), useTransition: () => [false, callback => callback()], useState: initial => { const index = cursor++; if (!(index in state)) state[index] = initial; return [state[index], next => { state[index] = typeof next === "function" ? next(state[index]) : next; }]; } },
     "@/components/action-icons": new Proxy({}, { get: () => "action-icon" }),
     "./review-action-icon": { ReviewActionIcon: "review-action-icon" },

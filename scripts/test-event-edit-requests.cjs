@@ -28,7 +28,7 @@ let event = { id: 'event', organizer: 'local', college: 'Arts' };
 const writes = [], refreshed = [];
 const dbClient = { from(table) { return {
   insert(row) { writes.push({ table, row }); return { select: () => ({ single: async () => { if (collision) existing = { id: 'concurrent', ...row }; return { data: { id: 'new', ...row }, error: fail ? { code: 'error' } : collision ? { code: '23505' } : null }; } }) }; },
-  update(row) { const filters = {}; const query = { eq(key, value) { filters[key] = value; return query; }, async select() { writes.push({ table, row, filters }); return { data: [{ id: filters.id }], error: fail ? {} : null }; } }; return query; },
+  update(row) { const filters = {}; const query = { eq(key, value) { filters[key] = value; return query; }, async select() { writes.push({ table, row, filters }); return { data: [{ id: filters.id, registration_id: registrationId, ...row }], error: fail ? {} : null }; } }; return query; },
 }; } };
 const actions = load('src/lib/events/edit-request-actions.ts', {
   'server-only': {},
@@ -38,7 +38,7 @@ const actions = load('src/lib/events/edit-request-actions.ts', {
   '@/lib/auth/session': { requireEditor: async () => user },
   '@/lib/supabase/server': { createAdminClient: () => dbClient },
   '@/lib/security/rate-limit': { clientIp: () => 'local', limits: { track: { limit: 10, windowMs: 1000 } }, rateLimit: () => ({ ok: !limited }) },
-  './registrations': { findRegistrationByReference: async (code, surname) => code === 'ABCDE' && surname === 'DELA CRUZ' ? { id: registrationId, eventId: 'event' } : null },
+  './registrations': { getRegistration: async () => null, findRegistrationByReference: async (code, surname) => code === 'ABCDE' && surname === 'DELA CRUZ' ? { id: registrationId, eventId: 'event' } : null },
   './rsvp-store': { findRsvpByReference: async (code, surname) => code === reference && surname === 'DELA CRUZ' ? { id: rsvpId, event_id: 'event' } : null },
   './edit-requests': { pendingEventEditRequest: async () => existing },
   './queries': { getEvent: async () => event },
@@ -59,6 +59,12 @@ function form(code = reference, surname = 'DELA CRUZ', changes = 'Change arrival
   assert.deepEqual(writes.at(-1).row, { event_id: 'event', registration_id: null, rsvp_response_id: rsvpId, requested_changes: 'Change arrival time to 9 AM.' }, 'Targets are derived from the verified record');
   assert.ok(refreshed.includes('/portal/events/event/responses'));
   result = await actions.requestResponseEdit({}, form('ABCDE'));assert.equal(result.request.registration_id, registrationId);
+  for (const code of [reference, 'ABCDE']) {
+    const data = form(code); data.delete('changes');
+    const requested = await actions.requestResponseEdit({}, data);
+    assert.equal(requested.request.id, 'new', 'RSVP and registration requests need no description');
+    assert.equal(writes.at(-1).row.requested_changes, 'Requesting permission to edit this submission.');
+  }
   existing = result.request;const count = writes.length;
   assert.equal((await actions.requestResponseEdit({}, form('ABCDE'))).request.id, existing.id);
   assert.equal(writes.length, count, 'An existing pending request is reused');existing = null;

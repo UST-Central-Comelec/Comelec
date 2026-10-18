@@ -122,6 +122,23 @@ try {
   assert.ok(button("Back to all tabs"), "Return links respect Directory permission");
   searchParams = new URLSearchParams();
   assert.ok(button("Back to all tabs"), "Direct Accounts visits keep normal back navigation");
+  state = undefined;
+  pathname = "/portal";
+  props.tabs = ["dashboard", "request", "request/create", "request/settings"];
+  props.counts = { request: 3 };
+  button("Open Requests tabs, 3 items needing attention").props.onClick();
+  assert.deepEqual(links(), ["request", "request/create", "request/settings"]);
+  assert.deepEqual(render().filter(node => node.props?.tab).map(node => node.props.tab.label), ["Approvals", "Create Request", "Settings"]);
+  for (const [path, label] of [["/portal/request", "Approvals"], ["/portal/request/create", "Create Request"], ["/portal/request/settings", "Settings"]]) {
+    pathname = path;
+    assert.deepEqual(trail(path).map(item => item.label), ["Requests", label]);
+  }
+  props.tabs = ["dashboard", "request"];
+  pathname = "/portal/request";
+  assert.deepEqual(links(), ["request"], "Request subtabs respect separate permissions");
+  assert.equal(access.normalizeTabOverrides({ request: false })["request/create"], false);
+  assert.equal(access.normalizeTabOverrides({ request: false })["request/settings"], false);
+  assert.equal(access.normalizeTabOverrides({ request: true })["request/settings"], undefined, "Existing access does not grant Central settings to Local accounts");
   console.log("Sidebar panel checks passed: replacement, contextual Directory return, search, permissions, route changes, and collapsed controls.");
 } finally {
   if (originalFrame === undefined) delete global.requestAnimationFrame;

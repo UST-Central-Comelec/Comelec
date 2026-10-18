@@ -28,7 +28,7 @@
 .sf-status a:hover svg { color: var(--sh-gold); transform: translate(2px, -2px); }
 
 /* The navbar's five sections, a column each. The reticle locks on to the link being pointed at (or focused). */
-.sf-links { border-top: 1px solid var(--sh-line); display: grid; gap: 36px clamp(16px, 2vw, 32px); grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: clamp(40px, 4.5vw, 64px); padding-top: clamp(30px, 3vw, 40px); position: relative; }
+.sf-links { border-top: 1px solid var(--sh-line); display: grid; gap: 36px clamp(16px, 2vw, 32px); grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: clamp(40px, 4.5vw, 64px); padding-top: clamp(30px, 3vw, 40px); position: relative; }
 .sf-col .sh-label b { color: var(--sh-gold); font-variant-numeric: tabular-nums; font-weight: 500; }
 .sf-col ul { list-style: none; margin: 12px 0 0 -10px; padding: 0; }
 .sf-col a { color: rgba(243,241,235,.76); display: inline-block; font-size: 13.5px; letter-spacing: -.003em; line-height: 1.35; padding: 7px 10px; transition: color .12s ease; }

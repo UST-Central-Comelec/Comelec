@@ -41,7 +41,7 @@ export async function getPortalAttention(user: PortalUser): Promise<AttentionCou
       if (error) throw new Error(error.message);
       return count ?? 0;
     };
-    add("request", () => unitCount("filing_requests", "requested"));
+    add("request", async () => (await Promise.allSettled([unitCount("filing_requests", "requested"), unitCount("commission_requests", "requested")])).reduce((sum, result) => sum + (result.status === "fulfilled" ? result.value : 0), 0));
     add("petitions/case-docket", () => unitCount("petitions", "filed"));
     add("candidacy/campaign", async () => (await Promise.all([unitCount("campaign_materials", "submitted", "candidacy.college"), unitCount("campaign_activities", "submitted", "candidacy.college")])).reduce((a, b) => a + b, 0));
     const office = approverRoleOf(user);

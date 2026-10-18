@@ -2,7 +2,7 @@ import Link from "next/link";
 import { APPLICATION_RETENTION_DAYS } from "@/lib/applications/options";
 import { ChevronDown, ClipboardList, Clock, Cloud, LockKeyhole, Mail, ShieldCheck, Target, UserRound, Users } from "lucide-react";
 
-export const PRIVACY_UPDATED = "2026-10-06";
+export const PRIVACY_UPDATED = "2026-10-19";
 export const PRIVACY_CONTACT = "comelec@ust.edu.ph";
 export const privacySections = [
   { id: "scope", label: "Who this covers" },
@@ -49,7 +49,8 @@ export function PrivacyStatement({ portal = false, eventForm = false, idPrefix }
       <p>Supporting files remain subject to their owner’s sharing settings. A file shared with anyone who has its link may be accessible beyond the commission; limit access where the relevant submission instructions allow it.</p>
     </>,
     <>
-      <p><strong>Recruitment applications and portal access requests:</strong> the app applies a {APPLICATION_RETENTION_DAYS}-day retention period from submission. Records beyond that period are excluded from normal application and request views and are scheduled for database deletion.</p>
+      <p><strong>Recruitment applications and unapproved portal access requests:</strong> the app applies a {APPLICATION_RETENTION_DAYS}-day retention period from submission. Records beyond that period are excluded from normal application and request views and are scheduled for database deletion.</p>
+      <p><strong>Approved portal access requests:</strong> the approved request, account details and accepted agreements are retained as official and legal records of the Commission. They are excluded from the automatic {APPLICATION_RETENTION_DAYS}-day deletion.</p>
       <p><strong>Other records:</strong> event records, party registrations, portal accounts, messages, delivery history and read receipts do not currently have a fixed automatic deletion period in the app. Ask the commission about retention for your particular record or request deletion using the contact below.</p>
       <p>Account expiry or signing out does not automatically erase every related record. Removing an application or a document link does not delete a file in your own Google Drive, a delivered email, or a recipient’s downloaded copy. Those copies have separate retention and deletion arrangements.</p>
       <p>Retention and deletion requests are subject to any applicable requirement to preserve a record. If a record must be kept, the reason and applicable retention period should be explained in responding to your request.</p>

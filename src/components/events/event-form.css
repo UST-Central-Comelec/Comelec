@@ -41,7 +41,7 @@
 .ev .ev-application-form .ev-evaluation-check { border-radius: 14px; }
 .ev .ev-application-form .ev-event-choices { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .ev .ev-application-form .ev-event-choices > .ev-evaluation-check { margin: 0; }
-.ev .ev-application-form .ev-consent-statement { border-bottom: 1px solid var(--ev-line); margin: 0 0 24px; padding: 0 0 24px; }
+.ev .ev-application-form .ev-consent-statement { --privacy-hover-edge: var(--ev-line-strong); border-bottom: 1px solid var(--ev-line); margin: 0 0 24px; padding: 0 0 24px; }
 .ev .ev-application-form .apply-privacy-head { margin-bottom: 18px; }
 .ev .ev-application-form .ev-privacy-clause > summary { align-items: center; cursor: pointer; display: flex; gap: 12px; list-style: none; padding: 16px 18px; }
 .ev .ev-application-form .ev-privacy-clause > summary::-webkit-details-marker { display: none; }
@@ -53,6 +53,7 @@
 .ev .ev-application-form .apply-privacy-icon { background: rgba(var(--ev-ink), .04); border: 1px solid var(--ev-line); color: var(--ev-gold-mark); box-shadow: none; }
 .ev .ev-application-form .apply-privacy-law { color: var(--ev-muted); }
 .ev .ev-application-form .apply-privacy-updated { color: var(--ev-muted); }
+.ev .ev-application-form .apply-privacy-document { background: var(--ev-text); color: var(--ev-on-bright); }
 .ev .ev-application-form .ev-privacy-clauses { align-items: start; gap: 12px; grid-template-columns: 1fr; }
 .ev .ev-application-form .ev-privacy-clause { background: rgba(var(--ev-ink), .025); border-color: var(--ev-line); display: block; padding: 0; }
 .ev .ev-application-form .apply-privacy-item-icon { background: var(--ev-surface); border-color: var(--ev-line); color: var(--ev-soft); }

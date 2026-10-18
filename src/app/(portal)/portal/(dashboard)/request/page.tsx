@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CommissionRequestList, CommissionRequestLoadError } from "@/components/portal/commission-request-list";
+import type { CommissionRequest } from "@/lib/portal/commission-requests";
+import { listCommissionRequests, commissionRequestsMissing } from "@/lib/portal/commission-requests-store";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { SlidingFilters } from "@/components/portal/sliding-filters";
 import { requireAccess } from "@/lib/auth/session";
@@ -10,11 +13,14 @@ import { unitName } from "@/lib/party-portal/types";
 import { settle } from "@/lib/portal/settle";
 import "@/components/portal/filing-review.css";
 
-export const metadata: Metadata = { title: "Requests" };
+export const metadata: Metadata = { title: "Approvals" };
 
 const views = { waiting: "Waiting for you", upcoming: "Confirmed", past: "Past", all: "All" } as const;
 type View = keyof typeof views;
 const isView = (value: unknown): value is View => typeof value === "string" && Object.hasOwn(views, value);
+
+const inUnitView = (view: View, request: CommissionRequest, now = Date.now()) =>
+  view === "all" || (view === "waiting" ? request.status === "requested" : view === "upcoming" ? request.status === "confirmed" && Date.parse(request.ends_at) > now : request.status === "done" || request.status === "declined" || (request.status === "confirmed" && Date.parse(request.ends_at) <= now));
 
 const inView = (view: View, request: RequestRow, now = Date.now()) =>
   view === "all" || (view === "waiting" ? request.status === "requested" : view === "upcoming" ? request.status === "confirmed" && isOpenRequest(request, now) : request.status !== "requested" && !(request.status === "confirmed" && isOpenRequest(request, now)));
@@ -30,6 +36,8 @@ export default async function PortalRequestPage({ searchParams }: { searchParams
   const { show } = await searchParams;
   const view: View = isView(show) ? show : "waiting";
   const { value, error } = await settle(local && !user.college ? Promise.resolve([]) : listRequestsForUnit(local ? user.college : null));
+  const internal = await settle(listCommissionRequests(user));
+  const unitRequests = (internal.value ?? []).filter(request => inUnitView(view, request));
   const all = value ?? [];
   const rows = all.filter((request) => inView(view, request)).sort((a, b) => view === "waiting" || view === "upcoming" ? Date.parse(a.confirmedStart ?? a.startsAt) - Date.parse(b.confirmedStart ?? b.startsAt) : b.createdAt.localeCompare(a.createdAt));
   const count = (key: View) => all.filter((request) => inView(key, request)).length;
@@ -38,11 +46,13 @@ export default async function PortalRequestPage({ searchParams }: { searchParams
     <main className="portal-page is-wide fr-page">
       <header className="portal-page-head">
         <div>
-          <p className="portal-eyebrow">Portal</p>
-          <TitleWithInfo info="Consultations booked in the filing portal, and commissioners asked for at activities (a party’s assembly, a forum, an oath). Open one to confirm it with a time, a place and who goes, or to decline it with a reason. The filer is notified and emailed either way. Each has its own BC- or RC- ID.">Requests</TitleWithInfo>
+          <p className="portal-eyebrow">Requests</p>
+          <TitleWithInfo info="Requests sent between Comelec units, plus consultations booked in the filing portal, and commissioners asked for at activities (a party’s assembly, a forum, an oath). Open one to confirm it with a time, a place and who goes, or to decline it with a reason. The filer is notified and emailed either way. Each has its own BC- or RC- ID.">Approvals</TitleWithInfo>
           <p className="portal-muted">{local ? unitName(user.college ?? "") : "Every unit’s requests"}</p>
         </div>
       </header>
+      <section className="portal-card is-flush"><div className="fr-tools"><h2 className="portal-card-title">Unit-to-unit requests</h2><SlidingFilters label="Unit requests" active={view} items={(Object.keys(views) as View[]).map(key => ({ key, href: key === "waiting" ? "/portal/request" : `/portal/request?show=${key}`, label: views[key] }))} /></div>{internal.error ? commissionRequestsMissing(internal.error) ? <CommissionRequestLoadError /> : <p className="portal-form-error" role="alert">Couldn’t load unit requests. Reload the page.</p> : <CommissionRequestList requests={unitRequests} />}</section>
+      <h2 className="portal-card-title">Filing portal requests</h2>
       {error ? <p className="portal-form-error" role="alert">{isServicesMissing(error) ? "Requests need a database update first: apply supabase/migrations/20261018200000_filing_services_campaign.sql, then reload." : `Couldn’t load the requests. Reload the page. (${error})`}</p> : (
         <>
           <dl className="portal-kpis fr-kpis">
@@ -53,7 +63,7 @@ export default async function PortalRequestPage({ searchParams }: { searchParams
           </dl>
           <section className="portal-card is-flush">
             <div className="fr-tools">
-              <SlidingFilters label="Requests" active={view} items={(Object.keys(views) as View[]).map((key) => ({ key, href: key === "waiting" ? "/portal/request" : `/portal/request?show=${key}`, label: <>{views[key]} <small>{count(key)}</small></> }))} />
+              <SlidingFilters label="Approvals" active={view} items={(Object.keys(views) as View[]).map((key) => ({ key, href: key === "waiting" ? "/portal/request" : `/portal/request?show=${key}`, label: <>{views[key]} <small>{count(key)}</small></> }))} />
             </div>
             {rows.length ? (
               <div className="portal-table-wrap">

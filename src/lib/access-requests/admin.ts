@@ -96,13 +96,13 @@ export async function decideAccessRequest(id: string, status: Exclude<AccessRequ
   return data.length > 0;
 }
 
-/** Track lookup: the reference must match together with the student number or surname. */
+/** Approved requests remain trackable as official records; other requests have the 60-day limit. */
 export async function findAccessRequest(referenceCode: string, identity: string, isStudentNumber = true) {
   const query = createAdminClient()
     .from("access_requests")
     .select(columns)
     .eq("reference_code", referenceCode)
-    .gte("created_at", retentionCutoff());
+    .or(`status.eq.approved,created_at.gte.${retentionCutoff()}`);
   const pattern = identity.replace(/[\\%_]/g, "\\$&");
   const { data, error } = await (isStudentNumber ? query.eq("student_number", identity) : query.ilike("last_name", pattern)).maybeSingle();
   if (error) throw new Error(error.message);

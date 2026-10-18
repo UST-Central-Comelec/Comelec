@@ -36,7 +36,7 @@ export const hasOpenEditLink = (request: EventEditRequest | null | undefined) =>
 
 /**
  * What tracking shows: a request still waiting, or an accepted one whose link hasn't been used.
- * The caller has already matched this submission’s reference and surname.
+ * The caller has already matched this submission’s reference and surname or student number.
  */
 export async function openEventEditRequest(kind: EditLinkKind, id: string): Promise<EventEditRequest | null> {
   const pending = await pendingEventEditRequest(kind, id);
@@ -68,7 +68,7 @@ export async function releaseEditLink(requestId: string) {
   await createAdminClient().from("event_response_edit_requests").update({ edited_at: null }).eq("id", requestId);
 }
 
-/** The caller has already matched this submission’s reference and surname. */
+/** The caller has already matched this submission’s reference and surname or student number. */
 export async function pendingEventEditRequest(kind: "registration" | "rsvp", id: string): Promise<EventEditRequest | null> {
   const { data, error } = await createAdminClient().from("event_response_edit_requests").select("*").eq(kind === "rsvp" ? "rsvp_response_id" : "registration_id", id).eq("status", "pending").maybeSingle();
   if (error) throw new Error(unavailable);

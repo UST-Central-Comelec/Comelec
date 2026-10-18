@@ -286,8 +286,7 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
   const isLastName = identity.length > 0 && identity.length <= 80 && personNamePattern.test(identity);
   const fieldErrors: Record<string, string> = {};
   if (!parsed && !registrationCode) fieldErrors.reference = "Use your registration code, RS- RSVP code, CC- application code, or PA- access request code.";
-  const needsSurname = Boolean(registrationCode || parsed?.prefix === "RS");
-  if (needsSurname ? !isLastName : !isStudentNumber && !isLastName) fieldErrors.identity = needsSurname ? "Enter the last name you registered with." : "Enter your 10-digit student number or last name.";
+  if (!isStudentNumber && !isLastName) fieldErrors.identity = "Enter your 10-digit student number or last name.";
   if (Object.keys(fieldErrors).length) return { error: "Check the highlighted fields.", fieldErrors, entered };
   const referenceCode = registrationCode ?? parsed!.code;
   // Escape SQL pattern characters so surnames are matched exactly.
@@ -301,9 +300,9 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
 
   if (registrationCode) {
     try {
-      const registration = await findRegistrationByReference(registrationCode, lastNamePattern);
+      const registration = await findRegistrationByReference(registrationCode, isStudentNumber ? studentNumber : identity, isStudentNumber);
       const event = registration ? await getEvent(registration.eventId) : null;
-      if (!registration || !event) return { error: "We couldn’t find a registration with that reference code and last name. Check both and try again.", entered };
+      if (!registration || !event) return { error: "We couldn’t find a registration with that reference code and student number or last name. Check both and try again.", entered };
       return { entered, lookupStamp: crypto.randomUUID(), registration: {
         ...trackedEdit(await openEventEditRequest("registration", registration.id).catch(() => null)),
         referenceCode: registration.referenceCode,
@@ -326,9 +325,9 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
 
   if (parsed!.prefix === "RS") {
     try {
-      const response = await findRsvpByReference(referenceCode, identity);
+      const response = await findRsvpByReference(referenceCode, isStudentNumber ? studentNumber : identity, isStudentNumber);
       const event = response ? await getEvent(response.event_id) : null;
-      if (!response || !event) return { error: "We couldn’t find an RSVP with that reference code and last name. Check both and try again.", entered };
+      if (!response || !event) return { error: "We couldn’t find an RSVP with that reference code and student number or last name. Check both and try again.", entered };
       const person = rsvpRespondent(response.answers);
       const requests = isLegacyRsvp(response.answers)
         ? (response.answers.logisticalNeeds?.requests ?? []).map(kind => requestKinds[kind].short)

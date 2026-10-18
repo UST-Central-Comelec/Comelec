@@ -15,7 +15,7 @@ export function acknowledgementEmail(to: string, acknowledgement: Acknowledgemen
   const paragraphs = fill(acknowledgement.body).split(/\n{2,}/).map(text => text.trim()).filter(Boolean);
   const subject = fill(acknowledgement.subject);
   const trackingUrl = referenceCode ? `${siteUrl()}/apply/track?ref=${encodeURIComponent(referenceCode)}` : undefined;
-  const referenceNote = referenceCode ? `RSVP reference: ${referenceCode}. Track your RSVP using this code and your last name.` : undefined;
+  const referenceNote = referenceCode ? `RSVP reference: ${referenceCode}. Track your RSVP using this code and your student number or last name.` : undefined;
   const responseText = response.length ? ["Your response", ...response.map(([label, value]) => `${label}: ${value}`)] : [];
   const responseBlocks = response.length ? [paragraph("<strong>Your response</strong>"), ...response.map(([label, value]) => paragraph(`<strong>${escape(label)}</strong><br>${escape(value).replaceAll("\n", "<br>")}`))] : [];
   return {

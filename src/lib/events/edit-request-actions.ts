@@ -24,7 +24,7 @@ import { getEvent } from "./queries";
 import { canManageEvent } from "./access";
 
 export type EditRequestState = { request?: EventEditRequest | SubmissionEditRequest; error?: string; fieldErrors?: Record<string, string> };
-const changes = z.string().trim().min(1, "Describe what you want to change.").max(4000, "Keep your request under 4,000 characters.");
+const changes = z.string().trim().min(1, "Describe what you want to change.").max(4000, "Keep your request under 4,000 characters.").default("Requesting permission to edit this submission.");
 
 export async function requestResponseEdit(_state: EditRequestState, form: FormData): Promise<EditRequestState> {
   await ensureReferenceData();
@@ -33,10 +33,10 @@ export async function requestResponseEdit(_state: EditRequestState, form: FormDa
   const reference = String(form.get("reference") ?? "").trim().toUpperCase();
   const parsed = parseReferenceCode(reference);
   const registrationCode = /^[A-Z0-9]{5}$/.test(reference);
-  const requested = changes.safeParse(form.get("changes"));
+  const requested = changes.safeParse(form.get("changes") ?? undefined);
   if (!requested.success) return { fieldErrors: { changes: requested.error.issues[0].message } };
   const otherSubmission = parsed?.prefix === "CC" || parsed?.prefix === "PA";
-  if ((!surname.success && !(otherSubmission && number.success)) || (!registrationCode && !parsed)) return { error: "Track your submission again before requesting an edit." };
+  if ((!surname.success && !number.success) || (!registrationCode && !parsed)) return { error: "Track your submission again before requesting an edit." };
   if (!rateLimit(`event-response-edit:${clientIp(await headers())}`, limits.track.limit, limits.track.windowMs).ok) return { error: "Request Blocked by Security Protection - Unusual Traffic Detected. Please try again shortly." };
   try {
     if (otherSubmission) {
@@ -56,10 +56,11 @@ export async function requestResponseEdit(_state: EditRequestState, form: FormDa
       revalidatePath(kind === "application" ? "/portal/recruitment/applications" : "/portal/accounts");
       return { request: data as SubmissionEditRequest };
     }
-    const registration = registrationCode ? await findRegistrationByReference(reference, surname.data!) : null;
-    const rsvp = !registrationCode ? await findRsvpByReference(parsed!.code, surname.data!) : null;
+    const identity = number.success ? number.data : surname.data!;
+    const registration = registrationCode ? await findRegistrationByReference(reference, identity, number.success) : null;
+    const rsvp = !registrationCode ? await findRsvpByReference(parsed!.code, identity, number.success) : null;
     const record = registration ?? rsvp;
-    if (!record) return { error: "We couldn’t match that reference and last name. Track your submission again." };
+    if (!record) return { error: "We couldn’t match that reference and identity. Track your submission again." };
     const kind = registration ? "registration" : "rsvp";
     const eventId = registration ? registration.eventId : rsvp!.event_id;
     const existing = await pendingEventEditRequest(kind, record.id);

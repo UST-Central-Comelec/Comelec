@@ -197,9 +197,13 @@ export async function setRequestStatuses(registration: Registration, statuses: P
   return data.length > 0;
 }
 
-/** Public tracking requires both the public reference and an exact surname match. */
-export async function findRegistrationByReference(referenceCode: string, lastNamePattern: string): Promise<Registration | null> {
-  const { data, error } = await createAdminClient().from("event_registrations").select("*").eq("reference_code", referenceCode).ilike("last_name", lastNamePattern).maybeSingle();
+/**
+ * Public tracking requires the public reference and either an exact surname or the student number
+ * registered with.
+ */
+export async function findRegistrationByReference(referenceCode: string, identity: string, isStudentNumber = false): Promise<Registration | null> {
+  const query = createAdminClient().from("event_registrations").select("*").eq("reference_code", referenceCode);
+  const { data, error } = await (isStudentNumber ? query.eq("student_number", identity) : query.ilike("last_name", identity.replace(/[\\%_]/g, "\\$&"))).maybeSingle();
   if (error) throw new Error(`Couldn’t track the registration: ${error.message}`);
   return data ? toRegistration(data as Row) : null;
 }

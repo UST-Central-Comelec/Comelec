@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isNavItemAvailable, isCurrent, sections, two, type NavStatus } from "@/components/nav/nav-data";
+import { isNavItemAvailable, isCurrent, footerSections, two, type NavStatus } from "@/components/nav/nav-data";
 import { useReticle } from "@/components/nav/use-reticle";
 
 /**
- * The footer's links: the navbar's five sections, a column each, read from the same list (nav-data.ts)
- * so the two never drift apart. The navbar's reticle locks on to the link being pointed at or focused,
+ * The footer's complete directory, including filing services, read from nav-data.ts.
+ * The navbar's reticle locks on to the link being pointed at or focused,
  * and a green dot marks what's open right now, as in its menus.
  */
 export function FooterLinks({ status }: { status: NavStatus }) {
@@ -23,7 +23,7 @@ export function FooterLinks({ status }: { status: NavStatus }) {
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) lock(null); }}
     >
       <span ref={reticle} className="sh-reticle" aria-hidden="true" />
-      {sections.map((section, index) => (
+      {footerSections.map((section, index) => (
         <div className="sf-col" key={section.id}>
           <p className="sh-label" id={`sf-${section.id}`}><b>{two(index + 1)}</b>{section.label}</p>
           <ul aria-labelledby={`sf-${section.id}`}>

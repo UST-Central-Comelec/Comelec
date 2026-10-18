@@ -77,6 +77,7 @@ function openSections(open: readonly TabKey[], showAccessControl: boolean): Sect
   });
 }
 const isActive = (href: string, pathname: string) => {
+  if (href === "/portal/request" && /^\/portal\/request\/(create|settings)(\/|$)/.test(pathname)) return false;
   if (href === "/portal/accounts" && pathname.startsWith("/portal/accounts/access-control")) return false;
   return href === "/portal" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 };

@@ -12,15 +12,15 @@
 	display: flex;
 	flex-wrap: wrap;
 	font-family: var(--font-sans), system-ui, sans-serif;
-	font-size: 10px;
+	font-size: 14px;
 	font-weight: 400;
 	gap: 10px 12px;
 	line-height: 1.45;
 	margin: 0 0 18px;
 	padding: 10px 12px 10px 14px;
 }
-.draft-notice > svg { flex: none; height: 10px; opacity: .75; width: 10px; }
-.draft-notice p { flex: 1 1 160px; font-size: 10px; font-weight: 400; margin: 0; }
+.draft-notice > svg { flex: none; height: 18px; opacity: .75; width: 18px; }
+.draft-notice p { flex: 1 1 160px; font-size: 14px; font-weight: 400; margin: 0; }
 .draft-notice button { flex: none; font-size: 10px; font-weight: 400; margin-left: auto; }
 
 .draft-notice-timer {

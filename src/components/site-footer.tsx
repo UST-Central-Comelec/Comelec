@@ -9,7 +9,7 @@ import { FACEBOOK_PAGE } from "@/lib/content";
 /**
  * The footer on every public page, in the navbar's language (it wears the navbar's .sh tokens): the
  * same night sky and glass, the commission's line with its accent in the serif italic, what's open
- * right now, the navbar's five sections as columns (nav/footer-links.tsx), then the office and the
+ * right now, the full link directory and filing services (nav/footer-links.tsx), then the office and the
  * small print. Dark in both themes, like the navbar.
  *
  * Styled in src/app/(site)/footer.css.

@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileLock2 } from "lucide-react";
 import { PrivacyStatement, PRIVACY_UPDATED } from "@/components/privacy-statement";
 import "../application-form-ui.css";
 import "./event-form.css";
@@ -32,7 +32,7 @@ export function EventFormTracker({ steps, current, acknowledgement, label, previ
 
 export function EventConsentStatement({ id }: { id: string }) {
   return <section className="ev-consent-statement" aria-labelledby={`${id}-title`}>
-    <header className="apply-privacy-head"><FileText className="apply-privacy-document" size={24} strokeWidth={1.5} aria-hidden="true" /><div className="apply-privacy-heading">
+    <header className="apply-privacy-head"><span className="apply-privacy-document" aria-hidden="true"><FileLock2 size={22} strokeWidth={1.75} /></span><div className="apply-privacy-heading">
       <h3 id={`${id}-title`}>Data Privacy Statement</h3>
       <div className="apply-privacy-meta">
         <span className="apply-privacy-law">Data Privacy Act of 2012 · Republic Act No. 10173</span>

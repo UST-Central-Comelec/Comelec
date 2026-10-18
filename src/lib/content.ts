@@ -42,7 +42,7 @@ export const cometPillars = [
     copy: "Executive orders, memorandums and resolutions are published in a public archive, open to anyone. Applicants sign in with their UST Google account and follow their application with a reference code.",
     links: [
       { label: "Browse the archive", href: "/archive" },
-      { label: "Track an application", href: "/apply/track" },
+      { label: "Track your submission", href: "/apply/track" },
       { label: "Constitution", href: "/constitution" },
     ],
   },

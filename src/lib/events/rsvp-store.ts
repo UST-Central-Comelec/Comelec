@@ -34,13 +34,14 @@ export async function writeRsvpDefinition(eventId: string, definition: import(".
   if (error) throw new Error(unavailable);
 }
 
-/** Public lookup requires the reference and an exact surname; answers remain server-side. */
-export async function findRsvpByReference(referenceCode: string, lastName: string): Promise<(RsvpResponse & { event_id: string; reference_code: string }) | null> {
+/** Public lookup requires the reference and an exact surname or the student number given; answers remain server-side. */
+export async function findRsvpByReference(referenceCode: string, identity: string, isStudentNumber = false): Promise<(RsvpResponse & { event_id: string; reference_code: string }) | null> {
   const { data, error } = await createAdminClient().from("event_rsvp_responses").select("id,event_id,reference_code,answers,created_at").eq("reference_code", referenceCode).maybeSingle();
   if (error) throw new Error(unavailable);
   if (!data) return null;
   const response = data as RsvpResponse & { event_id: string; reference_code: string };
-  const surname = isLegacyRsvp(response.answers) ? response.answers.profile.lastName : identityAnswer(response.answers.definition, response.answers.values, "lastName");
+  const answer = (key: "lastName" | "studentNumber") => isLegacyRsvp(response.answers) ? String((response.answers.profile as Record<string, unknown>)[key] ?? "") : identityAnswer(response.answers.definition, response.answers.values, key);
+  if (isStudentNumber) return answer("studentNumber").replace(/\D/g, "") === identity ? response : null;
   const normalize = (value: string) => value.trim().replace(/\s+/g, " ").toUpperCase();
-  return normalize(surname) === normalize(lastName) ? response : null;
+  return normalize(answer("lastName")) === normalize(identity) ? response : null;
 }

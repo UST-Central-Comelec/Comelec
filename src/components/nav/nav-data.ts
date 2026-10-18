@@ -1,5 +1,5 @@
 import type { CodeKey } from "@/lib/codes/options";
-import { Building2, CalendarDays, ChartColumn, FileText, Flag, Gavel, Landmark, Lightbulb, MessageSquareWarning, Network, Newspaper, Radar, Scale, ScrollText, Stamp, UserPlus, Users, UsersRound, Vote, type LucideIcon } from "lucide-react";
+import { Building2, CalendarDays, ChartColumn, FileText, Flag, Gavel, Landmark, Lightbulb, LogIn, Mail, MessageSquareWarning, Network, Newspaper, Radar, Scale, ScrollText, Stamp, UserPlus, Users, UsersRound, Vote, type LucideIcon } from "lucide-react";
 
 // What the navbar links to (src/components/site-header.tsx): its five tabs and the menu under each,
 // the live readings along the menu's foot, and what the search knows about.
@@ -42,6 +42,13 @@ export type NavSection = {
 
 const contactDirectory = { label: "Contact Directory", href: "/about#contact" };
 
+const filingServiceItems: NavItem[] = [
+  { label: "Filing portal", href: "/filing", description: "Sign in with your UST account to manage your filings and service requests", icon: LogIn, keywords: "sign in login account party candidate documents" },
+  { label: "Book a consultation", href: "/filing/services/consultation", description: "Request an appointment with your Comelec unit", icon: CalendarDays, keywords: "appointment meeting booking" },
+  { label: "Request a commissioner", href: "/filing/services/commissioner", description: "Ask a commissioner to attend your activity", icon: UserPlus, keywords: "observer witness activity" },
+  { label: "File a petition", href: "/filing/services/petition", description: "Submit an election petition and follow its progress", icon: MessageSquareWarning, keywords: "cases concerns complaint protest report evidence" },
+];
+
 export const sections: NavSection[] = [
   {
     id: "news",
@@ -70,6 +77,7 @@ export const sections: NavSection[] = [
       { label: "Executive Orders", href: "/archive?type=executive-order", description: "Review official directives from the commission", icon: ScrollText, keywords: "eo directive" },
       { label: "Memorandums", href: "/archive?type=memorandum", description: "Read formal notices and election guidance", icon: FileText, keywords: "memo notice" },
       { label: "Resolutions", href: "/archive?type=resolution", description: "Browse adopted decisions and rulings", icon: Gavel, keywords: "decision ruling" },
+      { ...filingServiceItems[3], label: "Cases & Concerns" },
     ],
   },
   {
@@ -100,6 +108,7 @@ export const sections: NavSection[] = [
       { label: "Local Comelec", href: "/about#local-comelec", description: "Local election bodies serving each college", icon: Network, keywords: "college faculty unit" },
       { label: "En Banc", href: "/about#en-banc", description: "Meet the commission’s collective decision-making body", icon: Users },
       { label: "Chamber of Chairpersons", href: "/about#chamber-of-chairpersons", description: "The chairpersons of every college’s Local Comelec", icon: UsersRound },
+      { label: "Contact the commission", href: contactDirectory.href, description: "Find the commission’s contact details and email address", icon: Mail, keywords: "contact directory email office address" },
     ],
   },
   {
@@ -114,10 +123,16 @@ export const sections: NavSection[] = [
       { label: "Become a Commissioner", href: "/apply", description: "Join the commission and serve the Thomasian community", icon: UserPlus, status: "applications", keywords: "recruitment join volunteer" },
       { label: "Filing of Candidacy", href: "/candidacy", description: "File your candidacy for the student elections", icon: Vote, status: "candidacy", keywords: "run candidate coc certificate" },
       { label: "Political Party Registration", href: "/party-registration", description: "Register a political party with the commission", icon: Flag, status: "parties", keywords: "polpar" },
-      { label: "Track application", href: "/apply/track", description: "Check your application’s status with your reference code", icon: Radar, keywords: "status reference code" },
-      { label: "Cases & Concerns", href: "/about#contact", description: "Raise concerns and review election-related cases", icon: MessageSquareWarning, keywords: "complaint petition protest report" },
+      { label: "Track your submission", href: "/apply/track", description: "Track registrations, RSVPs, commissioner applications and portal access requests, or request an edit", icon: Radar, keywords: "status reference code registration rsvp application access request edit correction" },
+      filingServiceItems[0],
     ],
   },
+];
+
+/** The complete public footer directory, with filing services grouped in their own column. */
+export const footerSections: Pick<NavSection, "id" | "label" | "items">[] = [
+  ...sections.map(section => ({ ...section, items: section.items.filter(item => !filingServiceItems.some(service => service.href === item.href)) })),
+  { id: "services", label: "Services", items: filingServiceItems },
 ];
 
 /** The section whose pages `pathname` belongs to, if any. */
@@ -145,7 +160,7 @@ export const topSearches: Array<{ label: string; href: string; document?: CodeKe
   { label: "Official results", href: "/archive?type=proclamation" },
   { label: "Elections Code", href: "/elections-code", document: "elections-code" },
   { label: "Latest news", href: "/news" },
-  { label: "Cases & Concerns", href: "/about#contact" },
+  { label: "File a petition", href: "/filing/services/petition" },
   { label: "Contact the commission", href: "/about#contact" },
 ];
 
@@ -155,7 +170,7 @@ export const searchPrompts = ["Comelec", "election updates", "official results",
 type SearchEntry = NavItem & { section: string };
 
 /** Every menu link, for the search to look through. */
-const searchIndex: SearchEntry[] = sections.flatMap((section) => section.items.map((item) => ({ ...item, section: section.label })));
+const searchIndex: SearchEntry[] = footerSections.flatMap((section) => section.items.map((item) => ({ ...item, section: section.label })));
 
 /**
  * The menu links matching every word of `query`, best first: a word that starts the link's name

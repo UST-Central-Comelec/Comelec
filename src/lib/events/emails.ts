@@ -35,7 +35,7 @@ export function registrationEmail(registrant: Registrant, event: CommissionEvent
   const unit = comelecUnit(event.organizer, event.college);
   const rows: Details = [["Registration reference", registrant.referenceCode], ...eventDetails(event)];
   const trackUrl = `${siteUrl()}/apply/track?ref=${registrant.referenceCode}`;
-  const tracking = "Track your registration and logistics requests using this reference code and your last name.";
+  const tracking = "Track your registration and logistics requests using this reference code and your student number or last name.";
   const greeting = `Hi ${greetingName(registrant.firstName)},`;
   const registered = kind === "registered";
 

@@ -9,7 +9,7 @@ import { markOfferJoined } from "@/lib/applications/offer-store";
 // The account an approved access request becomes: on approval under Accounts, or straight away for
 // a request sent from an accepted applicant's "Join the Commission" link. Their email is already
 // verified: they proved it with Google twice to send the request. The onboarding declarations they
-// accepted go with it, and stay on the account after the request itself is deleted.
+// accepted go with it; the approved request and its declarations are kept as official records.
 
 export type RequestedAccount = {
   email: string;

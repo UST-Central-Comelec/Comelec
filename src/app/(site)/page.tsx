@@ -203,7 +203,7 @@ export default async function Home() {
               )}
               <div className="lp-card-actions">
                 {applications.open && <Link href="/apply" className="lp-button is-primary is-small">Apply now <ArrowUpRight size={15} aria-hidden="true" /></Link>}
-                <Link href="/apply/track" className="lp-button is-ghost is-small">Track an application <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                <Link href="/apply/track" className="lp-button is-ghost is-small">Track your submission <ArrowUpRight size={15} aria-hidden="true" /></Link>
               </div>
             </article>
 

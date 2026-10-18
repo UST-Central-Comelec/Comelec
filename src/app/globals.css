@@ -278,7 +278,7 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .apply-nav a.apply-back { align-items: center; display: inline-flex; gap: 6px; }
 
 /* Track application */
-.track-body { max-width: 880px; }
+/* The page and every result keep .apply-body's width and gutters, the same as the banner above and the rest of the site. */
 .track-divider { border: 0; border-top: 1px solid var(--line); margin: 0; width: 100%; }
 .track-types { display: flex; flex-wrap: wrap; gap: 10px 20px; list-style: none; margin: 14px 0 0; padding: 0; }
 .track-types li { align-items: center; color: var(--muted); display: flex; font-size: 13px; gap: 7px; line-height: 1.5; }
@@ -298,6 +298,7 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .track-copy:hover { background: rgba(var(--ap-ink-rgb, 29,28,27), .06); color: var(--ink); }
 .track-copy:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .track-head-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.track-edit-status { align-items: flex-end; display: flex; flex-direction: column; gap: 6px; }
 .apply-page .track-head-actions .track-action { border: 0; font-size: 13px; gap: 8px; min-height: 36px; padding: 8px 14px; }
 .track-button-ghost.is-small { align-items: center; display: inline-flex; gap: 7px; min-height: 34px; padding: 7px 13px; }
 /* Facts at a glance: label over value, in columns, between hairlines. */
@@ -309,6 +310,16 @@ body { background: var(--paper); color: var(--ink); padding-top: 78px; }
 .track-facts dd a { border-bottom: 1px solid var(--line); color: var(--ink); transition: border-color .15s ease; }
 .track-facts dd a:hover { border-color: var(--gold); }
 .track-facts dd .track-status { font-size: 14px; font-weight: 500; }
+.is-access-request .track-facts { column-gap: 32px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding-block: 0; row-gap: 0; }
+.is-access-request .track-facts > div { border-bottom: 1px solid var(--line); padding-block: 16px; }
+.is-access-request .track-facts > div:nth-last-child(-n + 2) { border-bottom: 0; }
+.is-access-request .track-facts dd { line-height: 1.6; }
+.is-access-request .track-foot { align-items: flex-start; line-height: 1.65; }
+.is-access-request .track-foot svg { margin-top: 4px; }
+@media (max-width: 600px) {
+  .is-access-request .track-facts { grid-template-columns: minmax(0, 1fr); }
+  .is-access-request .track-facts > div:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+}
 /* Sections: a title with a count on the right, then rows. */
 .track-section { display: flex; flex-direction: column; gap: 12px; }
 .track-section-head { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; }
@@ -661,6 +672,8 @@ body.view-mode { padding-top: 0; }
 	.apply-result, .track-result { padding: 18px; }
 	.track-head-actions, .track-head-actions > * { width: 100%; }
 	.track-head-actions > * { justify-content: center; }
+	.track-head-actions:has(.track-edit-status) { margin-left: auto; width: auto; }
+	.track-head-actions > .track-edit-status { width: auto; }
 	.track-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	.track-rows li { padding: 10px 14px; }
 	.apply-result-details { grid-template-columns: 1fr; }

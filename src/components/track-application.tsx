@@ -1,5 +1,6 @@
 "use client";
 
+import { ACCESS_REQUEST_RETENTION_NOTICE } from "@/lib/access-requests/retention";
 import Link from "next/link";
 import { useActionState, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { requestResponseEdit } from "@/lib/events/edit-request-actions";
@@ -99,9 +100,9 @@ function Reference({ code }: { code: string }) {
 /**
  * The shared frame of every tracked submission, laid out like a deployment page: what it is and its
  * reference on the left with the one action on the right, then the facts at a glance, then sections.
- * The edit request's button lives in the header; its form and its answer open as a section below the facts.
+ * Edit requests, their confirmation and their status stay in the header.
  */
-function TrackCard({ kind, label, reference, identity, edit, facts, lead, children, foot }: {
+function TrackCard({ kind, label, reference, identity, edit, facts, lead, children, foot, className = "" }: {
   kind: string;
   label: string;
   reference: string;
@@ -111,69 +112,37 @@ function TrackCard({ kind, label, reference, identity, edit, facts, lead, childr
   lead?: ReactNode;
   children?: ReactNode;
   foot?: string;
+  className?: string;
 }) {
-  const [editing, setEditing] = useState(false);
   const [state, action, pending] = useActionState(requestResponseEdit, {});
   const request = state.request ?? edit.existing;
   const editLink = edit.editUrl && request ? edit.editUrl : null;
   return (
-    <section className="track-result" aria-live="polite" aria-label={label}>
+    <section className={`track-result${className ? ` ${className}` : ""}`} aria-live="polite" aria-label={label}>
       <header className="track-head">
         <div className="track-head-main">
           <span className="track-kind">{kind}</span>
           <Reference code={reference} />
         </div>
         <div className="track-head-actions">
+          {request && <div className="track-edit-status" role="status" aria-label="Your edit request">
+            <span className="track-kind">{editLink ? "Edit request accepted" : "Edit request sent"}</span>
+            <Status tone={editLink ? "ok" : "gold"}>{editLink ? "Ready to edit" : "Waiting for review"}</Status>
+          </div>}
           {editLink
             ? <a className="button-primary track-action" href={editLink}>Edit your {edit.what}<ArrowRight size={15} aria-hidden="true" /></a>
-            : !request && !editing && <button type="button" className="track-button-ghost is-small" onClick={() => setEditing(true)}><EditIcon size={14} aria-hidden="true" />Request edit</button>}
+            : !request && <form action={action}>
+              <input type="hidden" name="reference" value={reference} />
+              <input type="hidden" name="identity" value={identity} />
+              <button type="submit" className="track-button-ghost is-small" disabled={pending}><EditIcon size={14} aria-hidden="true" />{pending ? <Busy>Requesting</Busy> : "Request edit"}</button>
+            </form>}
         </div>
       </header>
       {lead}
       <dl className="track-facts">{facts}</dl>
-      {request ? (
-        <section className="track-section" aria-label="Your edit request" role="status">
-          <div className="track-section-head">
-            <h3>Edit request</h3>
-            <Status tone={editLink ? "ok" : "gold"}>{editLink ? "Accepted" : "Waiting for review"}</Status>
-          </div>
-          <p className="track-note">{editLink
-            ? <>The organizers accepted your request. Open your {edit.what} to change your answers and send them again. Your reference code stays {reference}. The link works once, and we’ve also emailed it to you.</>
-            : "The team handling your submission will review the changes below."}</p>
-          <p className="track-edit-changes">{request.requested_changes}</p>
-        </section>
-      ) : editing && (
-        <EditRequestForm reference={reference} identity={identity} action={action} pending={pending} state={state} onCancel={() => setEditing(false)} />
-      )}
+      {state.error && <p className="apply-form-error" role="alert">{state.error}</p>}
       {children}
       {foot && <p className="track-foot"><Info size={13} aria-hidden="true" />{foot}</p>}
-    </section>
-  );
-}
-
-function EditRequestForm({ reference, identity, action, pending, state, onCancel }: {
-  reference: string;
-  identity: string;
-  action: (formData: FormData) => void;
-  pending: boolean;
-  state: Awaited<ReturnType<typeof requestResponseEdit>>;
-  onCancel: () => void;
-}) {
-  const [changes, setChanges] = useState("");
-  const id = useId();
-  return (
-    <section className="track-section track-edit-request" aria-label="Request changes to your response">
-      <div className="track-section-head"><h3>Request an edit</h3></div>
-      <form action={action}>
-        <input type="hidden" name="reference" value={reference} />
-        <input type="hidden" name="identity" value={identity} />
-        <label className="apply-field" htmlFor={id}><span className="apply-field-label">What would you like to change?</span>
-          <textarea id={id} name="changes" autoFocus value={changes} onChange={event => setChanges(event.target.value)} rows={4} required maxLength={4000} disabled={pending} aria-invalid={!!state.fieldErrors?.changes} aria-describedby={state.fieldErrors?.changes ? `${id}-error` : undefined} placeholder="Describe the answer to change and the correct information." />
-          {state.fieldErrors?.changes && <span className="apply-field-error" id={`${id}-error`}>{state.fieldErrors.changes}</span>}
-        </label>
-        {state.error && <p className="apply-form-error" role="alert">{state.error}</p>}
-        <div className="track-edit-actions"><button type="button" className="track-button-ghost" disabled={pending} onClick={onCancel}>Cancel</button><button type="submit" className="button-primary" disabled={pending}>{pending ? <Busy>Sending</Busy> : "Send edit request"}</button></div>
-      </form>
     </section>
   );
 }
@@ -298,11 +267,12 @@ function TrackedAccess({ request, identity }: { request: TrackedAccessRequest; i
   return (
     <TrackCard
       kind="Portal access request"
+      className="is-access-request"
       label="Your portal access request"
       reference={request.referenceCode}
       identity={identity}
       edit={{ existing: request.editRequest }}
-      foot="For your privacy, your request is deleted 60 days after you send it."
+      foot={ACCESS_REQUEST_RETENTION_NOTICE}
       lead={<>
         <StatusTimeline result={request.status === "pending" ? null : accessLabels[request.status]} />
         <p className="track-note">{accessNotes[request.status]}</p>
@@ -310,13 +280,13 @@ function TrackedAccess({ request, identity }: { request: TrackedAccessRequest; i
       </>}
       facts={<>
         <Fact label="Status"><Status tone={tone}>{accessLabels[request.status]}</Status></Fact>
-        <Fact label="Name">{request.name}</Fact>
         <Fact label="Submitted">{formatSubmitted(request.submittedAt)}</Fact>
+        <Fact label="Name">{request.name}</Fact>
+        <Fact label="UST email">{request.email}</Fact>
         <Fact label="Role">{request.role}</Fact>
-        <Fact label="UST email" wide>{request.email}</Fact>
+        <Fact label="Year level">{request.yearLevel}</Fact>
         <Fact label="College or faculty">{request.college}</Fact>
         <Fact label="Program">{request.program}</Fact>
-        <Fact label="Year level">{request.yearLevel}</Fact>
       </>}
     />
   );

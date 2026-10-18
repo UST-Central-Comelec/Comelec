@@ -47,6 +47,12 @@ function form(prefix,identity='DELA CRUZ',changes='Please correct my program.') 
  const result=await publicActions.requestResponseEdit({},form(prefix,identity));assert.equal(result.request.id,'new');
  assert.deepEqual(writes.at(-1).row,{application_id:prefix==='CC'?applicationId:null,access_request_id:prefix==='PA'?accessId:null,requested_changes:'Please correct my program.'});
  }
+ for(const prefix of ['CC','PA']) {
+ const data=form(prefix);data.delete('changes');
+ const result=await publicActions.requestResponseEdit({},data);
+ assert.equal(result.request.id,'new','An edit request needs no description');
+ assert.equal(writes.at(-1).row.requested_changes,'Requesting permission to edit this submission.');
+ }
  assert.ok(lookups.some(lookup=>lookup.table==='applications'&&'created_at'in lookup.filters),'Application identity matching enforces retention');
  const count=writes.length;
  for(const prefix of ['CC','PA']) {
