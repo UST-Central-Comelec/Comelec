@@ -8,7 +8,7 @@ import { startTransition, useActionState, useEffect, useRef, useState, useTransi
 import { ArrowLeft, ArrowRight, Check, Info } from "lucide-react";
 import { CopyIcon as Copy } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
-import { DraftNotice } from "@/components/draft-notice";
+import { DraftExpired, DraftStrip } from "@/components/draft-notice";
 import { useFormDraft } from "@/components/use-form-draft";
 import { FacebookProfileInput } from "@/components/facebook-profile-input";
 import { GoogleMark } from "@/components/portal/login-form";
@@ -161,7 +161,7 @@ function DocumentStep({ document, acceptedAt, read, onRead, onAccept }: { docume
   }, [read, onRead]);
 
   return (
-    <section className="onboarding-document" aria-label={document.title}>
+    <section className={`onboarding-document${read ? " is-read" : ""}`} aria-label={document.title}>
       <div className="onboarding-reader" ref={reader} tabIndex={0} aria-label={`${document.title}, full text`}>
         <LegalText body={document.body} />
         <span ref={end} className="onboarding-reader-end" aria-hidden="true" />
@@ -317,9 +317,13 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
   };
 
   // Answers stay on this device until sent, kept per verified account, through a reload or a dropped connection.
+  // Before the account is verified only the consent is kept (no personal details yet), under a key of its
+  // own; verifying carries it, and the session's clock, over to the account's.
   const restoring = useRef<{ choice?: string; role?: string } | null>(null);
+  const startKey = `request-access:start${join ? `:${join}` : ""}`;
   const draft = useFormDraft({
-    key: profile?.email ? `request-access:${profile.email.toLowerCase()}` : null,
+    key: profile?.email ? `request-access:${profile.email.toLowerCase()}` : startKey,
+    carry: profile?.email ? startKey : null,
     form: formRef,
     state: { step, furthest, accepted, read, college, program, yearLevel, affiliation: unit.affiliation, choice: unit.choice, role: unit.role },
     restore: (saved) => {
@@ -437,15 +441,20 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
 
       <div className="onboarding-main">
         <div className="onboarding-progress" aria-hidden="true"><span style={{ transform: `scaleX(${(step + 1) / onboardingSteps.length})` }} /></div>
-        <p className="portal-eyebrow">{joinLabel} · Step {step} of {LAST}</p>
-        <h1 ref={headingRef} tabIndex={-1}>{shown?.title ?? (current.id === "profile" ? (profile ? "Your profile" : "Verify your UST account") : "Review and submit")}</h1>
+        <header className="onboarding-head">
+          <div>
+            <p className="portal-eyebrow">{joinLabel} · Step {step} of {LAST}</p>
+            <h1 ref={headingRef} tabIndex={-1}>{shown?.title ?? (current.id === "profile" ? (profile ? "Your profile" : "Verify your UST account") : "Review and submit")}</h1>
+          </div>
+          <DraftStrip draft={draft} />
+        </header>
 
         {step === 0 && (join
           ? <StepNote>You’ve been accepted into the commission. Finish these steps to join: your profile is filled in from your application, and your access is approved as soon as you submit.</StepNote>
           : <StepNote>For Central and Local Comelec commissioners who don’t have an account yet. Read and agree to each step; the Executive Board reviews every request.</StepNote>)}
 
         {alert && <p className="portal-form-error portal-login-alert" role="alert">{alert}</p>}
-        <DraftNotice draft={draft} buttonClassName="portal-button is-ghost is-small" actionClassName="portal-button" />
+        <DraftExpired draft={draft} actionClassName="portal-button" />
 
         {shown && <DocumentStep key={shown.key} document={shown} acceptedAt={accepted[shown.key]} read={Boolean(read[shown.key])} onRead={() => setRead((was) => (was[shown.key] ? was : { ...was, [shown.key]: true }))} onAccept={(yes) => setAccepted((was) => { const nextAccepted = { ...was }; if (yes) nextAccepted[shown.key] = new Date().toISOString(); else delete nextAccepted[shown.key]; return nextAccepted; })} />}
 

@@ -134,10 +134,13 @@ export type FormDraft = {
 /**
  * Keeps a form's answers on this device for a session of SESSION_MINUTES from when it opens. `key` names the draft (null keeps nothing:
  * view mode, or once the form is sent); `state` is what the form holds in React state, and `restore`
- * puts it back. `onRestored` runs once the fields are filled in again.
+ * puts it back. `onRestored` runs once the fields are filled in again. `carry` names the draft kept
+ * before `key` was known (as before an account is verified): when `key` has none of its own, that one
+ * is taken over, clock and all, so the session runs on instead of starting again.
  */
-export function useFormDraft<T>({ key, form, state, restore, onRestored }: {
+export function useFormDraft<T>({ key, carry, form, state, restore, onRestored }: {
   key: string | null;
+  carry?: string | null;
   form: RefObject<HTMLFormElement | null>;
   state: T;
   restore: (state: T) => void;
@@ -186,18 +189,32 @@ export function useFormDraft<T>({ key, form, state, restore, onRestored }: {
     if (!key) return;
     sweep();
     cleared.current = false;
-    const stored = load<T>(key);
+    let stored = load<T>(key);
+    let carried = false;
+    if (!stored && carry && carry !== key) {
+      stored = load<T>(carry);
+      carried = Boolean(stored);
+      forgetFormDraft(carry);
+    }
     ready.current = key;
     // The session's clock starts as the form opens, or carries on from the one brought back.
     started.current = stored?.startedAt ?? Date.now();
     setStartedAt(started.current);
     setExpired(false);
     if (!stored) return;
+    // Carried over while the form is still open: what's on screen is newer, so only the clock goes on.
+    if (carried && touched.current) {
+      later();
+      return;
+    }
     touched.current = true;
+    if (carried) later();
     restoreRef.current(stored.state);
-    setRestoredAt(stored.savedAt);
+    if (!carried) setRestoredAt(stored.savedAt);
     setPending(stored.fields);
-  }, [key]);
+    // `carry` is read only as the key arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, later]);
 
   // Time's up: the answers go, and the form has to be started again.
   useEffect(() => {

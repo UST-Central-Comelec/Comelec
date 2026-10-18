@@ -1,23 +1,50 @@
 /* Onboarding: the steps of Request access on the sign-in page, and Legals → Documents → Onboarding. */
 
-/* Request access in steps: the step list on the left, the step on the right. */
-.portal-request.onboarding { align-items: start; display: grid; gap: 40px; grid-template-columns: 236px minmax(0, 1fr); }
+/* Request access in steps: a solid panel over the sky, the step list in a rail on the left, the step on
+   the right. The sign-in page is always dark, so the Night tokens hold. */
+.portal-login-card.is-request:has(.onboarding) { -webkit-backdrop-filter: blur(28px) saturate(140%); backdrop-filter: blur(28px) saturate(140%); background: linear-gradient(180deg, rgba(var(--p-ink), .045), rgba(var(--p-ink), .015) 320px), rgba(var(--p-base), .9); border-color: var(--p-line-strong); overflow: clip; padding: 0; }
+.portal-request.onboarding { align-items: stretch; display: grid; gap: 0; grid-template-columns: 272px minmax(0, 1fr); }
 .portal-login-card.is-request .portal-request.onboarding { display: grid; }
-.onboarding-main { display: flex; flex-direction: column; min-height: 100%; min-width: 0; }
-.onboarding-main > h1 { margin-bottom: 18px; }
-/* Focused on each new step so it's read out; it isn't a control, so it shows no ring. */
-.onboarding-main > h1:focus { outline: none; }
-.onboarding-main > .portal-login-lede { margin-bottom: 18px; }
+.onboarding-main { display: flex; flex-direction: column; min-height: 100%; min-width: 0; padding: 34px clamp(24px, 3vw, 44px) 28px; }
+.onboarding-main .portal-request-nav { margin-top: auto; }
+.onboarding-main > :is(.onboarding-document, .onboarding-note, .onboarding-review) { margin-top: 0; }
 
-.onboarding-steps { display: grid; gap: 18px; position: sticky; top: 8px; }
-.onboarding-step-group > p { color: var(--p-faint); font-size: 11.5px; font-weight: 500; margin: 0 0 6px 10px; }
+/* The step's name on the left, the session's countdown on the right. */
+.onboarding-head { align-items: flex-end; border-bottom: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 16px 24px; justify-content: space-between; margin-bottom: 22px; padding-bottom: 20px; }
+.onboarding-head > div:first-child { min-width: 0; }
+.onboarding-head .portal-eyebrow { margin-bottom: 10px; }
+.onboarding-head h1 { color: var(--p-bright); font-size: clamp(26px, 2.2vw, 32px); line-height: 1.15; margin: 0; max-width: 24em; }
+/* Focused on each new step so it's read out; it isn't a control, so it shows no ring. */
+.onboarding-head h1:focus { outline: none; }
+.onboarding-main .portal-login-lede { margin: 0 0 18px; }
+/* The banner's countdown (draft-notice.tsx), drawn in the portal's tokens. */
+.onboarding .apply-countdown { align-items: center; display: flex; flex: none; gap: 12px; }
+.onboarding .apply-countdown-label { color: var(--p-muted); font-size: 12px; font-weight: 500; }
+.onboarding .apply-countdown ol { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.onboarding .apply-countdown li { align-items: baseline; background: rgba(var(--p-ink), .06); border: 1px solid var(--p-line); border-radius: 8px; display: flex; gap: 3px; min-width: 58px; justify-content: center; padding: 6px 10px; }
+.onboarding .apply-countdown strong { color: var(--p-bright); font-size: 16px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.onboarding .apply-countdown small { color: var(--p-muted); font-size: 10.5px; font-weight: 500; }
+.onboarding .draft-strip { margin-left: 0; }
+.onboarding .draft-strip.is-warn .apply-countdown strong { color: var(--p-danger-ink); }
+.onboarding .draft-strip-note { color: var(--p-muted); font-size: 11.5px; }
+.onboarding .draft-strip-note svg { color: var(--p-gold-mark); height: 12px; width: 12px; }
+.onboarding .draft-strip.is-warn .draft-strip-note svg { color: var(--p-danger-ink); }
+.onboarding .draft-strip-note button:hover { color: var(--p-gold-mark); }
+
+/* The step list, in its own rail. */
+.onboarding-steps { align-content: start; background: rgba(var(--p-ink), .02); border-right: 1px solid var(--p-line); display: grid; gap: 22px; padding: 30px 16px; }
+.onboarding-step-group > p { color: var(--p-muted); font-size: 11.5px; font-weight: 550; margin: 0 0 8px 10px; }
 .onboarding-step-group ol { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
-.onboarding-step-group button { align-items: center; background: none; border: 0; border-radius: 6px; color: var(--p-muted); cursor: pointer; display: flex; font: inherit; font-size: 13px; font-weight: 500; gap: 10px; line-height: 1.3; padding: 7px 10px; text-align: left; transition: background-color .15s ease, color .15s ease; width: 100%; }
-.onboarding-step-group button:hover:not(:disabled) { background: rgba(var(--p-ink), .05); color: var(--p-text); }
+.onboarding-step-group li { position: relative; }
+/* A hairline joins one mark to the next. */
+.onboarding-step-group li + li::before { background: var(--p-line-strong); content: ""; height: 14px; left: 20px; position: absolute; top: -8px; width: 1px; }
+.onboarding-step-group button { align-items: center; background: none; border: 0; border-radius: 8px; color: var(--p-soft); cursor: pointer; display: flex; font: inherit; font-size: 13px; font-weight: 500; gap: 11px; line-height: 1.35; padding: 8px 10px; position: relative; text-align: left; transition: background-color .15s ease, color .15s ease; width: 100%; }
+.onboarding-step-group button:hover:not(:disabled) { background: rgba(var(--p-ink), .05); color: var(--p-bright); }
 .onboarding-step-group button:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 1px; }
-.onboarding-step-group button:disabled { color: var(--p-dim); cursor: default; }
-.onboarding-step-group button.is-current { background: rgba(var(--p-ink), .07); color: var(--p-bright); }
-.onboarding-step-mark { align-items: center; border: 1px solid var(--p-line-strong); border-radius: 999px; color: var(--p-soft); display: inline-flex; flex: none; font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 600; height: 20px; justify-content: center; width: 20px; }
+.onboarding-step-group button:disabled { color: var(--p-muted); cursor: default; }
+.onboarding-step-group button.is-current { background: rgba(var(--p-ink), .08); color: var(--p-bright); }
+.onboarding-step-mark { align-items: center; background: rgba(var(--p-base), 1); border: 1px solid var(--p-line-strong); border-radius: 999px; color: var(--p-soft); display: inline-flex; flex: none; font-size: 10.5px; font-variant-numeric: tabular-nums; font-weight: 600; height: 22px; justify-content: center; width: 22px; }
+.onboarding-step-group button:disabled .onboarding-step-mark { color: var(--p-muted); }
 .onboarding-step-group button.is-current .onboarding-step-mark { background: var(--p-gold); border-color: var(--p-gold); color: var(--p-on-action); }
 .onboarding-step-group button.is-done:not(.is-current) .onboarding-step-mark { background: var(--p-ok); border-color: var(--p-ok); color: #04140c; }
 
@@ -26,14 +53,16 @@
 .onboarding-progress span { background: var(--p-gold); display: block; height: 100%; transform-origin: left; transition: transform .42s var(--p-ease); }
 
 /* A word about the step: neutral, with the colour in its icon. */
-.onboarding-note { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 14px; color: var(--p-soft); display: flex; font-size: 13px; gap: 10px; line-height: 1.55; margin: 0 0 18px; padding: 12px 14px; }
+.onboarding-note { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 12px; color: var(--p-text); display: flex; font-size: 13.5px; gap: 10px; line-height: 1.55; margin: 0 0 18px; padding: 12px 14px; }
 .onboarding-note svg { color: var(--p-gold-mark); flex: none; margin-top: 2px; }
 
-/* A document to read, then agree to. */
-.onboarding-reader { background: rgba(var(--p-ink), .03); border: 1px solid var(--p-line); border-radius: 14px; max-height: min(54vh, 560px); overflow: auto; overscroll-behavior: contain; padding: 22px 24px 18px; }
+/* A document to read, then agree to. Until it's been read to the end, its foot fades out. */
+.onboarding-reader { background: rgba(var(--p-ink), .025); border: 1px solid var(--p-line); border-radius: 14px; max-height: min(52vh, 560px); overflow: auto; overscroll-behavior: contain; padding: 26px clamp(20px, 2.6vw, 34px) 22px; scrollbar-color: rgba(var(--p-ink), .22) transparent; scrollbar-width: thin; }
+.onboarding-document:not(.is-read) .onboarding-reader { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent); }
 .onboarding-reader:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
 .onboarding-reader.is-preview { max-height: none; }
 .onboarding-reader-end { display: block; height: 1px; }
+.onboarding-reader .portal-legal-text { max-width: 82ch; }
 .portal-legal-text { color: var(--p-text); font-size: 14px; line-height: 1.65; }
 .portal-legal-text h3 { color: var(--p-bright); font-size: 14.5px; font-weight: 600; margin: 22px 0 8px; }
 .portal-legal-text > :first-child { margin-top: 0; }
@@ -49,10 +78,12 @@
 .portal-legal-text .document-table { border-collapse: collapse; min-width: 100%; }
 .portal-legal-text :is(th, td) { border: 1px solid var(--p-line); padding: 8px 12px; vertical-align: top; }
 
-.onboarding-agree { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line-strong); border-radius: 14px; color: var(--p-text); cursor: pointer; display: flex; font-size: 14px; font-weight: 500; gap: 12px; line-height: 1.5; margin-top: 14px; padding: 14px 16px; }
-.onboarding-agree input { accent-color: var(--p-text); flex: none; height: 16px; margin: 3px 0 0; width: 16px; }
+.onboarding-agree { align-items: flex-start; background: var(--p-surface-2); border: 1px solid var(--p-line-strong); border-radius: 14px; color: var(--p-bright); cursor: pointer; display: flex; font-size: 14px; font-weight: 500; gap: 12px; line-height: 1.5; margin-top: 14px; padding: 15px 18px; transition: border-color .15s ease, background-color .15s ease; }
+.onboarding-agree:not(.is-locked):hover { background: rgba(var(--p-ink), .055); }
+.onboarding-agree:has(input:checked) { border-color: rgba(var(--p-ink), .34); }
+.onboarding-agree input { accent-color: var(--p-text); flex: none; height: 17px; margin: 2px 0 0; width: 17px; }
 .onboarding-agree small { color: var(--p-muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; margin-top: 4px; }
-.onboarding-agree.is-locked { color: var(--p-muted); cursor: default; }
+.onboarding-agree.is-locked { color: var(--p-soft); cursor: default; }
 
 /* Step 12: everything agreed to, with when. */
 .onboarding-review > p { margin: 0 0 14px; }
@@ -82,16 +113,22 @@
 .portal-declarations li span { color: var(--p-text); font-weight: 500; }
 .portal-declarations li small { color: var(--p-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
+@media (max-width: 1100px) {
+  .portal-request.onboarding { grid-template-columns: 236px minmax(0, 1fr); }
+}
 @media (max-width: 860px) {
   .portal-request.onboarding { gap: 0; grid-template-columns: minmax(0, 1fr); }
   .onboarding-steps { display: none; }
+  .onboarding-main { padding: 26px 20px 22px; }
   .onboarding-progress { display: block; }
+  .onboarding-head { align-items: stretch; flex-direction: column; }
+  .onboarding .apply-countdown { justify-content: space-between; }
   .onboarding-reader { max-height: 58vh; padding: 18px 16px 14px; }
   .onboarding-editor, .onboarding-preview { padding: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .onboarding-progress span, .onboarding-step-group button { transition: none; }
+  .onboarding-progress span, .onboarding-step-group button, .onboarding-agree { transition: none; }
 }
 
 /* Directory: a person's profile, opened from their name (directory-cards.tsx). */
