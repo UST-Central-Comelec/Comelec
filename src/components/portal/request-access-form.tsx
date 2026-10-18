@@ -7,7 +7,7 @@ import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, Info } from "lucide-react";
-import { CopyIcon as Copy, EditIcon } from "@/components/action-icons";
+import { CopyIcon as Copy } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
 import { DraftExpired, DraftStrip } from "@/components/draft-notice";
 import { useFormDraft } from "@/components/use-form-draft";
@@ -18,7 +18,7 @@ import { useHydrated } from "@/components/portal/portal-form";
 import { RoleSelect, useRoleChoice } from "@/components/portal/role-field";
 import { forgetAccessVerification, loadJoinProfile, submitAccessRequest, type SubmittedAccessRequest } from "@/lib/access-requests/actions";
 import { ACCESS_CHANNEL, accessStatusMessages, type AccessMessage, type AccessProfile, type AccessStep, type JoinProfile } from "@/lib/access-requests/channel";
-import { checkAccessRequest, readAccessRequest, type AccessRequestValues } from "@/lib/access-requests/schema";
+import { checkAccessRequest, readAccessRequest } from "@/lib/access-requests/schema";
 import { colleges, programsByCollege, programLocked, yearLevelsFor, type College } from "@/lib/applications/options";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
 import { accountPositions, affiliations, commissionerPositions, describeAffiliation, type Affiliation } from "@/lib/data/types";
@@ -227,6 +227,8 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
   const [furthest, setFurthest] = useState(0);
   const [accepted, setAccepted] = useState<Partial<Record<OnboardingDocumentKey, string>>>({});
   const [read, setRead] = useState<Partial<Record<OnboardingDocumentKey, boolean>>>({});
+  // When the profile was last completed, for the review.
+  const [profileDoneAt, setProfileDoneAt] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<AccessStep | null>(null);
   const [message, setMessage] = useState(initialStatus ? accessStatusMessages[initialStatus as keyof typeof accessStatusMessages] ?? "" : "");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -354,10 +356,11 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     key: profile?.email ? `request-access:${profile.email.toLowerCase()}` : startKey,
     carry: profile?.email ? startKey : null,
     form: formRef,
-    state: { step, furthest, accepted, read, college, program, yearLevel, affiliation: unit.affiliation, choice: unit.choice, role: unit.role },
+    state: { step, furthest, accepted, read, profileDoneAt, college, program, yearLevel, affiliation: unit.affiliation, choice: unit.choice, role: unit.role },
     restore: (saved) => {
       setAccepted(saved.accepted ?? {});
       setRead(saved.read ?? {});
+      setProfileDoneAt(saved.profileDoneAt ?? null);
       setCollege(saved.college ?? "");
       setProgram(saved.program ?? "");
       setYearLevel(saved.yearLevel ?? "");
@@ -369,7 +372,6 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     // The position and role choices depend on the unit, so they follow once it's back.
     onRestored: () => {
       if (restoring.current?.choice) unit.setChoice(restoring.current.choice);
-      requestAnimationFrame(readSummary);
     },
   });
   const { clear: clearDraft } = draft;
@@ -415,12 +417,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     return Boolean(accepted[id]);
   };
 
-  // The profile as it will be sent, read from the form as the last step opens, for the review.
-  const [summary, setSummary] = useState<AccessRequestValues | null>(null);
-  const readSummary = () => { if (formRef.current) setSummary(readAccessRequest(new FormData(formRef.current))); };
-
   const goTo = (index: number) => {
-    if (index === LAST) readSummary();
     setMessage("");
     setStep(index);
     setFurthest((current) => Math.max(current, index));
@@ -429,6 +426,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
   const next = () => {
     if (step === PROFILE && !checkProfile()) return;
     if (!complete(step)) return;
+    if (step === PROFILE) setProfileDoneAt(new Date().toISOString());
     goTo(Math.min(step + 1, LAST));
   };
 
@@ -630,37 +628,14 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
         {step === LAST && (
           <section className={`onboarding-review${busy ? " is-sealing" : ""}`} aria-label="What you’ve agreed to">
             <p className="portal-muted">{busy ? "Your agreements are sealed for sending. Confirm with Google to submit them." : application ? "Check what you’ve agreed to. Submitting asks you to sign in with Google once more; your account is then ready straight away." : "Check what you’ve agreed to. Submitting asks you to sign in with Google once more, then the Executive Board reviews your request."}</p>
-            {summary && profile && (
-              <div className="onboarding-summary">
-                <div className="onboarding-review-head">
-                  <h2>Profile and information</h2>
-                  <button type="button" className="portal-button is-ghost is-small" onClick={() => goTo(PROFILE)} disabled={busy}><EditIcon size={14} aria-hidden="true" /> Edit profile</button>
-                </div>
-                <dl>
-                  {([
-                    ["Name", signer || "—"],
-                    ["Student number", summary.studentNumber],
-                    ["UST email", profile.email],
-                    ["Mobile number", summary.contactNumber],
-                    ["Facebook", summary.facebookUrl],
-                    ["College or faculty", summary.college],
-                    ["Program", summary.program],
-                    ["Year level", yearLevelsFor(summary.college)[summary.yearLevel] ?? summary.yearLevel],
-                    ["Serves in", unit.affiliation ? describeAffiliation(unit.affiliation as Affiliation, summary.college) : summary.affiliation],
-                    ["Position", unit.position ? accountPositions[unit.position as keyof typeof accountPositions] : summary.position],
-                    ["Role", unit.role || summary.role],
-                  ] as [string, string][]).filter(([, value]) => value).map(([label, value]) => (
-                    <div key={label}><dt>{label}</dt><dd>{label === "UST email" ? <span className="portal-receipt-verified">{value} <VerifiedMark label="Verified with Google" /></span> : value}</dd></div>
-                  ))}
-                </dl>
-              </div>
-            )}
-            <div className="onboarding-review-head"><h2>Agreements</h2><span className="portal-muted">{documents.filter((item) => accepted[item.key]).length} of {documents.length} accepted</span></div>
             <ul>
-              {documents.map((item, order) => (
+              {/* The profile sits second, where its step is, among the documents. */}
+              {[...documents.slice(0, 1).map((item) => ({ key: item.key, title: item.title, at: accepted[item.key], version: item.version, verb: "Accepted", missing: "Not yet agreed to" })),
+                { key: "profile", title: "Profile and information", at: profileDoneAt ?? undefined, version: 1, verb: "Accomplished", missing: "Not yet filled in" },
+                ...documents.slice(1).map((item) => ({ key: item.key, title: item.title, at: accepted[item.key], version: item.version, verb: "Accepted", missing: "Not yet agreed to" }))].map((item, order) => (
                 <li key={item.key} style={{ "--seal-delay": `${order * 90}ms` } as CSSProperties}>
-                  <ReviewMark done={Boolean(accepted[item.key])} sealed={busy} order={order} />
-                  <span>{item.title}<small>{accepted[item.key] ? `${busy ? "Sealed" : "Accepted"} ${formatAccepted(accepted[item.key]!)} · version ${item.version}` : "Not yet agreed to"}</small></span>
+                  <ReviewMark done={Boolean(item.at)} sealed={busy} order={order} />
+                  <span>{item.title}<small>{item.at ? `${busy ? "Sealed" : item.verb} ${formatAccepted(item.at)} · version ${item.version}` : item.missing}</small></span>
                 </li>
               ))}
             </ul>

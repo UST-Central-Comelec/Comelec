@@ -121,16 +121,7 @@
 
 /* Step 12: everything agreed to, with when, in two columns. While it's being sent, each tick turns in
    turn into a red lock that snaps shut, and a red line runs down the list once: it's sealed. */
-.onboarding-review > p { margin: 0 0 20px; }
-/* Each part of the review under a small heading, with its action or count at the right. */
-.onboarding-review-head { align-items: center; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; margin: 0 0 12px; }
-.onboarding-review-head h2 { color: var(--p-bright); font-size: 15px; font-weight: 600; margin: 0; }
-.onboarding-review-head .portal-muted { font-size: 12.5px; font-variant-numeric: tabular-nums; }
-/* The profile as it will be sent: a neutral panel of label-and-value pairs, three across. */
-.onboarding-summary { background: var(--p-surface-2); border: 1px solid var(--p-line); border-radius: 14px; margin: 0 0 26px; padding: 16px 18px 18px; }
-.onboarding-summary dl { border-top: 1px solid var(--p-line); display: grid; gap: 14px 24px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding-top: 14px; }
-.onboarding-summary dt { color: var(--p-muted); font-size: 12px; font-weight: 500; }
-.onboarding-summary dd { color: var(--p-bright); font-size: 13.5px; font-weight: 550; margin: 3px 0 0; overflow-wrap: anywhere; }
+.onboarding-review > p { margin: 0 0 14px; }
 .onboarding-review ul { border-top: 1px solid var(--p-line); column-gap: 32px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; margin: 0 0 18px; padding: 0; position: relative; }
 .onboarding-review li { align-items: flex-start; border-bottom: 1px solid var(--p-line); display: flex; font-size: 13.5px; font-weight: 500; gap: 12px; padding: 11px 2px; transition: color .3s ease var(--seal-delay, 0ms); }
 .onboarding-review li small { color: var(--p-muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; margin-top: 2px; }
@@ -168,7 +159,6 @@
 
 @media (max-width: 1100px) {
   .portal-request.onboarding { grid-template-columns: 236px minmax(0, 1fr); }
-  .onboarding-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
   .portal-request.onboarding { gap: 0; grid-template-columns: minmax(0, 1fr); }
@@ -180,7 +170,7 @@
   .onboarding .draft-strip-note { text-align: left; }
   .onboarding .apply-countdown { justify-content: space-between; }
   .onboarding-reader { max-height: 58vh; padding: 18px 16px 14px; }
-  .onboarding-review ul, .onboarding-summary dl { grid-template-columns: minmax(0, 1fr); }
+  .onboarding-review ul { grid-template-columns: minmax(0, 1fr); }
   .onboarding-editor, .onboarding-preview { padding: 18px; }
 }
 
