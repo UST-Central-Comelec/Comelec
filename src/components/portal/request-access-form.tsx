@@ -149,7 +149,7 @@ function AccessReceipt({ result, onBack }: { result?: SubmittedAccessRequest; on
  * One document to agree to. Its tick box opens once the text has been scrolled to the end; a text
  * short enough to show whole counts as read.
  */
-function DocumentStep({ document, acceptedAt, read, onRead, onAccept }: { document: OnboardingDocument; acceptedAt?: string; read: boolean; onRead: () => void; onAccept: (accepted: boolean) => void }) {
+function DocumentStep({ document, signer, acceptedAt, read, onRead, onAccept }: { document: OnboardingDocument; signer: string; acceptedAt?: string; read: boolean; onRead: () => void; onAccept: (accepted: boolean) => void }) {
   const reader = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLSpanElement>(null);
 
@@ -163,7 +163,12 @@ function DocumentStep({ document, acceptedAt, read, onRead, onAccept }: { docume
   return (
     <section className={`onboarding-document${read ? " is-read" : ""}`} aria-label={document.title}>
       <div className="onboarding-reader" ref={reader} tabIndex={0} aria-label={`${document.title}, full text`}>
-        <LegalText body={document.body} />
+        <header className="legal-masthead">
+          <p>UST Central Commission on Elections</p>
+          <h2>{document.title}</h2>
+          <p>Version {document.version}{document.savedAt ? ` · Updated ${formatAccepted(document.savedAt)}` : ""}</p>
+        </header>
+        <LegalText body={document.body} signer={signer} />
         <span ref={end} className="onboarding-reader-end" aria-hidden="true" />
       </div>
       <label className={`onboarding-agree${read ? "" : " is-locked"}`}>
@@ -343,6 +348,17 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     },
   });
   const { clear: clearDraft } = draft;
+
+  // The name as typed on the profile, "LAST, FIRST MIDDLE", for the declarations that name the Member.
+  const [typedName, setTypedName] = useState<{ lastName: string; firstName: string; middleName: string } | null>(null);
+  const readName = () => {
+    if (!formRef.current) return;
+    const data = new FormData(formRef.current);
+    const field = (name: string) => tidyPersonName(String(data.get(name) ?? ""));
+    setTypedName({ lastName: field("lastName"), firstName: field("firstName"), middleName: field("middleName") });
+  };
+  const nameParts = typedName ?? (profile ? { lastName: tidyPersonName(application?.lastName ?? profile.lastName), firstName: tidyPersonName(application?.firstName ?? profile.firstName), middleName: tidyPersonName(application?.middleName ?? "") } : null);
+  const signer = nameParts?.lastName && nameParts.firstName ? `${nameParts.lastName}, ${[nameParts.firstName, nameParts.middleName].filter(Boolean).join(" ")}` : "";
   useEffect(() => { if (state?.submitted) clearDraft(); }, [state?.submitted, clearDraft]);
   // Then the role, once the position's roles are drawn.
   useEffect(() => {
@@ -414,7 +430,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
   const groups = [...new Set(onboardingSteps.map((item) => item.group))];
 
   return (
-    <form className="portal-request onboarding" ref={formRef} onSubmit={onSubmit} noValidate>
+    <form className="portal-request onboarding" ref={formRef} onSubmit={onSubmit} onInput={(event) => { if (["lastName", "firstName", "middleName"].includes((event.target as HTMLInputElement).name)) readName(); }} noValidate>
       {/* Hidden from people; bots that fill it in are ignored. */}
       <input className="portal-visually-hidden" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       {join && <input type="hidden" name="join" value={join} />}
@@ -456,7 +472,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
         {alert && <p className="portal-form-error portal-login-alert" role="alert">{alert}</p>}
         <DraftExpired draft={draft} actionClassName="portal-button" />
 
-        {shown && <DocumentStep key={shown.key} document={shown} acceptedAt={accepted[shown.key]} read={Boolean(read[shown.key])} onRead={() => setRead((was) => (was[shown.key] ? was : { ...was, [shown.key]: true }))} onAccept={(yes) => setAccepted((was) => { const nextAccepted = { ...was }; if (yes) nextAccepted[shown.key] = new Date().toISOString(); else delete nextAccepted[shown.key]; return nextAccepted; })} />}
+        {shown && <DocumentStep key={shown.key} document={shown} signer={signer} acceptedAt={accepted[shown.key]} read={Boolean(read[shown.key])} onRead={() => setRead((was) => (was[shown.key] ? was : { ...was, [shown.key]: true }))} onAccept={(yes) => setAccepted((was) => { const nextAccepted = { ...was }; if (yes) nextAccepted[shown.key] = new Date().toISOString(); else delete nextAccepted[shown.key]; return nextAccepted; })} />}
 
         {/* The profile stays mounted while other steps show, so its answers go with the form. */}
         <div hidden={step !== PROFILE}>
