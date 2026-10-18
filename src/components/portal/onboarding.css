@@ -62,7 +62,6 @@
 .onboarding-reader:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
 .onboarding-reader.is-preview { max-height: none; }
 .onboarding-reader-end { display: block; height: 1px; }
-.onboarding-reader .portal-legal-text { max-width: 82ch; }
 .portal-legal-text { color: var(--p-text); font-size: 14px; line-height: 1.65; }
 .portal-legal-text h3 { color: var(--p-bright); font-size: 14.5px; font-weight: 600; margin: 22px 0 8px; }
 .portal-legal-text > :first-child { margin-top: 0; }
