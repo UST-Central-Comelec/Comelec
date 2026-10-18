@@ -7,7 +7,7 @@ import { personNamePattern } from "@/lib/forms/input";
 import { after } from "next/server";
 import { getEvent } from "@/lib/events/queries";
 import { pendingSubmissionEditRequest, type SubmissionEditRequest } from "./edit-requests";
-import { pendingEventEditRequest, type EventEditRequest } from "@/lib/events/edit-requests";
+import { editLinkPath, hasOpenEditLink, openEventEditRequest, type EventEditRequest } from "@/lib/events/edit-requests";
 import { findRsvpByReference } from "@/lib/events/rsvp-store";
 import { isLegacyRsvp, rsvpRespondent } from "@/lib/events/rsvp";
 import { findRegistrationByReference } from "@/lib/events/registrations";
@@ -248,6 +248,8 @@ export type TrackedAccessRequest = {
 /** `entered` is what the applicant typed, so a failed lookup doesn't clear the form. */
 export type TrackedRegistration = {
   editRequest?: EventEditRequest | null;
+  /** The edit link, once the organizers accept an edit request, until it's used. */
+  editUrl?: string | null;
   referenceCode: string;
   name: string;
   status: RegistrationKind;
@@ -260,11 +262,19 @@ export type TrackedRegistration = {
 
 export type TrackedRsvp = {
   editRequest?: EventEditRequest | null;
+  /** The edit link, once the organizers accept an edit request, until it's used. */
+  editUrl?: string | null;
   referenceCode: string; name: string; submittedAt: string;
   eventId: string; eventName: string; eventDate: string;
   requests: string[];
 };
 export type TrackState = { lookupStamp?: string; rsvp?: TrackedRsvp; registration?: TrackedRegistration; error?: string; fieldErrors?: Record<string, string>; application?: TrackedApplication; accessRequest?: TrackedAccessRequest; entered?: { reference: string; identity: string } } | undefined;
+
+/** A tracked response's open edit request, with its edit link once accepted. The token stays out of the request itself. */
+function trackedEdit(request: EventEditRequest | null) {
+  if (!request) return { editRequest: null, editUrl: null };
+  return { editRequest: { ...request, edit_token: null }, editUrl: hasOpenEditLink(request) ? editLinkPath(request) : null };
+}
 
 export async function trackApplication(_state: TrackState, formData: FormData): Promise<TrackState> {
   const entered = { reference: text(formData, "reference").toUpperCase(), identity: text(formData, "identity").toUpperCase() };
@@ -295,7 +305,7 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
       const event = registration ? await getEvent(registration.eventId) : null;
       if (!registration || !event) return { error: "We couldn’t find a registration with that reference code and last name. Check both and try again.", entered };
       return { entered, lookupStamp: crypto.randomUUID(), registration: {
-        editRequest: await pendingEventEditRequest("registration", registration.id).catch(() => null),
+        ...trackedEdit(await openEventEditRequest("registration", registration.id).catch(() => null)),
         referenceCode: registration.referenceCode,
         name: registration.name,
         status: registration.status,
@@ -324,7 +334,7 @@ export async function trackApplication(_state: TrackState, formData: FormData): 
         ? (response.answers.logisticalNeeds?.requests ?? []).map(kind => requestKinds[kind].short)
         : Array.isArray(response.answers.values.rsvp_logistics) ? response.answers.values.rsvp_logistics : [];
       return { entered, lookupStamp: crypto.randomUUID(), rsvp: {
-        editRequest: await pendingEventEditRequest("rsvp", response.id).catch(() => null),
+        ...trackedEdit(await openEventEditRequest("rsvp", response.id).catch(() => null)),
         referenceCode: response.reference_code, name: person.name, submittedAt: response.created_at,
         eventId: event.id, eventName: event.name, eventDate: formatEventDates(event), requests,
       } };

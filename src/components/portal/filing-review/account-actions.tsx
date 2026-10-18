@@ -12,6 +12,7 @@ import { uppercaseInput, useHydrated } from "../portal-form";
 import { useToast } from "../toast";
 import { ConfirmAction, QuickAction } from "./confirm-action";
 import "../filing-review.css";
+import { Busy } from "@/components/busy";
 
 /** Corrects an account's profile in a dialog, over the version the page loaded (`seen`). */
 function EditAccount({ area, id, seen, profile }: { area: AccountsArea; id: string; seen: string; profile: ProfileSummary }) {
@@ -78,7 +79,7 @@ function EditAccount({ area, id, seen, profile }: { area: AccountsArea; id: stri
           </div>
           <div className="portal-registrant-confirmation-actions">
             <button type="button" className="portal-button is-ghost" autoFocus disabled={pending} onClick={() => dialog.current?.close()}>Cancel</button>
-            <button type="submit" className="portal-button" disabled={pending || !hydrated}><SaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save details"}</button>
+            <button type="submit" className="portal-button" disabled={pending || !hydrated}><SaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : "Save details"}</button>
           </div>
         </form>
       </dialog>
@@ -91,13 +92,13 @@ export function AccountActions({ area, id, seen, name, profile, suspended }: { a
   return (
     <div className="portal-head-actions">
       <EditAccount area={area} id={id} seen={seen} profile={profile} />
-      {!suspended && <QuickAction label="Sign out everywhere" pendingLabel="Signing out…" icon={<LogOut size={15} aria-hidden="true" />} buttonClassName="portal-button is-ghost" action={() => endFilingAccountSessions(area, id)} />}
+      {!suspended && <QuickAction label="Sign out everywhere" pendingLabel="Signing out" icon={<LogOut size={15} aria-hidden="true" />} buttonClassName="portal-button is-ghost" action={() => endFilingAccountSessions(area, id)} />}
       {suspended
-        ? <QuickAction label="Restore access" pendingLabel="Restoring…" icon={<RotateCcw size={15} aria-hidden="true" />} buttonClassName="portal-button is-ghost" action={() => restoreFilingAccount(area, id)} />
+        ? <QuickAction label="Restore access" pendingLabel="Restoring" icon={<RotateCcw size={15} aria-hidden="true" />} buttonClassName="portal-button is-ghost" action={() => restoreFilingAccount(area, id)} />
         : (
           <ConfirmAction label="Suspend" icon={<Ban size={15} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost" danger title={`Suspend ${name}?`}
             note={{ label: "Why it’s suspended", required: true, placeholder: "They’re emailed this." }}
-            confirmLabel="Suspend account" pendingLabel="Suspending…" action={(note) => suspendFilingAccount(area, id, note)}>
+            confirmLabel="Suspend account" pendingLabel="Suspending" action={(note) => suspendFilingAccount(area, id, note)}>
             They’re signed out at once and can’t sign in or file anything until you restore them. Their party membership and candidacy stay as they are. They’re emailed why.
           </ConfirmAction>
         )}
@@ -111,7 +112,7 @@ export function WithdrawCandidacyButton({ candidacyId, name }: { candidacyId: st
     <ConfirmAction label="Record withdrawal" icon={<Undo2 size={15} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost" danger
       title={`Withdraw ${name}’s candidacy?`}
       note={{ label: "What it rests on", required: true, placeholder: "Like: sworn declaration of withdrawal received on 20 October 2026." }}
-      confirmLabel="Withdraw candidacy" pendingLabel="Withdrawing…" action={(note) => withdrawCandidacyForCandidate(candidacyId, note)}>
+      confirmLabel="Withdraw candidacy" pendingLabel="Withdrawing" action={(note) => withdrawCandidacyForCandidate(candidacyId, note)}>
       Record it once the candidate has given the unit their sworn declaration of withdrawal. They’re emailed, and can file again while filing is open. This can’t be undone here.
     </ConfirmAction>
   );

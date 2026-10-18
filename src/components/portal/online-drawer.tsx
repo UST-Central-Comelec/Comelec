@@ -6,6 +6,7 @@ import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons"
 import { matchesPresenceSearch, MESSAGE_MAX, type PresencePerson } from "@/lib/portal/presence";
 import { useOnline, type Contact } from "./online-provider";
 import { OnlineProfile } from "./online-profile";
+import { Busy } from "@/components/busy";
 
 const timeFormat = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" });
 const clockFormat = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit" });
@@ -137,7 +138,7 @@ function PeopleSearch({ search, onSearchChange, dialog }: { search: string; onSe
 
 function List({ search }: { search: string }) {
   const { people, unit, session, openDrawer, isOnline, checkedAt: now, down } = useOnline();
-  if (!people) return <p className="portal-online-offline" role="status">Loading people…</p>;
+  if (!people) return <p className="portal-online-offline" role="status"><Busy>Loading people</Busy></p>;
   const searchResults = people.filter((person) => !person.you && matchesPresenceSearch(person, search));
   const online = searchResults.filter(isOnline);
   const earlier = searchResults.filter((person) => !isOnline(person));
@@ -211,7 +212,7 @@ function Conversation({ accountId }: { accountId: string }) {
         <p>{message.text}</p>
         <time dateTime={message.at}>{message.failed ? "Not sent" : clockFormat.format(new Date(message.at))}</time>
       </div>)}
-      {!here && <p className="portal-online-ended">{group ? "Connecting to the unit group…" : `${contact.name} isn’t in the portal now, so this chat has ended.`}</p>}
+      {!here && <p className="portal-online-ended">{group ? <Busy>Connecting to the unit group</Busy> : `${contact.name} isn’t in the portal now, so this chat has ended.`}</p>}
       <div ref={end} />
     </div>
     <form className="portal-online-compose" onSubmit={(event) => { event.preventDefault(); submit(); }}>

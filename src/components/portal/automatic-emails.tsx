@@ -7,6 +7,7 @@ import { RotateCcw } from "lucide-react";
 import type { FormState } from "@/lib/portal/form";
 import { isRequiredEmail, type EmailKey } from "@/lib/notifications/switches";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 /** One automatic email as the list shows it: its name, where its preview is, and whether it's on. */
 export type AutomaticItem = { key: EmailKey; name: string; href: string; on: boolean; byDefault: boolean; waiting: boolean };
@@ -75,7 +76,7 @@ export function AutomaticEmails({ action, groups, current, local, updated, child
                 ) : (
                   <>
                     <button type="button" className="portal-button is-ghost is-small" onClick={() => setOn(saved)} disabled={pending}>Discard</button>
-                    <button className="portal-button is-small" type="submit" disabled={pending || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save"}</button>
+                    <button className="portal-button is-small" type="submit" disabled={pending || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : "Save"}</button>
                   </>
                 )}
               </div>

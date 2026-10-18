@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { acknowledgementOf, identityAnswer, keptAnswers, respondentEmail, validateEditorAnswers, type EditorDefinition, type FormAnswers } from "@/lib/events/form-editor";
 import { resolveFlow } from "@/lib/events/form-flow";
-import { checkRsvpEmail, submitRsvp, type RsvpState } from "@/lib/events/rsvp-actions";
+import { checkRsvpEmail, resubmitRsvp, submitRsvp, type RsvpState } from "@/lib/events/rsvp-actions";
 import { defaultRsvpDefinition, normalizeRsvpDefinition, rsvpAcknowledgement } from "@/lib/events/rsvp";
 import { EditorFields } from "./editor-fields";
 import { FormAcknowledgement } from "./form-acknowledgement";
@@ -14,6 +14,7 @@ import { scrollToElement } from "@/lib/scroll";
 import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
 import { DraftNotice } from "@/components/draft-notice";
 import { useFormDraft } from "@/components/use-form-draft";
+import { Busy } from "@/components/busy";
 
 /**
  * The collaborator RSVP, drawn from the editor's definition: every question an ordinary one, and a
@@ -23,18 +24,20 @@ import { useFormDraft } from "@/components/use-form-draft";
  * (short answers side by side), and Back and Continue under a rule.
  */
 
-export function RsvpForm({ eventId, eventName, token, preview = false, definition: suppliedDefinition = defaultRsvpDefinition, registrationUrl }: { eventId: string; eventName: string; token: string; preview?: boolean; definition?: EditorDefinition; registrationUrl: string }) {
+/** `edit`: opened from an accepted edit request's link, with the response's answers to change and send again. */
+export function RsvpForm({ eventId, eventName, token, preview = false, definition: suppliedDefinition = defaultRsvpDefinition, registrationUrl, edit }: { eventId: string; eventName: string; token: string; preview?: boolean; definition?: EditorDefinition; registrationUrl: string; edit?: { token: string; values: FormAnswers; email: string } }) {
   const definition = normalizeRsvpDefinition(suppliedDefinition);
-  const [values, setValues] = useState<FormAnswers>({});
+  const [values, setValues] = useState<FormAnswers>(edit?.values ?? {});
   const [stepId, setStepId] = useState(definition.steps[0]?.id);
   const [showAcknowledgement, setShowAcknowledgement] = useState(false);
   const [emailCheck, setEmailCheck] = useState<{ email: string; available?: boolean; error?: string }>();
   const [emailRetry, setEmailRetry] = useState(0);
   const [customError, setCustomError] = useState("");
-  const [state, action, pending] = useActionState<RsvpState, FormData>(submitRsvp.bind(null, eventId, token), {});
+  const [state, action, pending] = useActionState<RsvpState, FormData>(edit ? resubmitRsvp.bind(null, eventId, edit.token) : submitRsvp.bind(null, eventId, token), {});
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const acknowledgement = acknowledgementOf(definition) ?? rsvpAcknowledgement;
+  const formAcknowledgement = acknowledgementOf(definition) ?? rsvpAcknowledgement;
+  const acknowledgement = state.edited ? { ...formAcknowledgement, title: "Your changes are saved.", message: "Your RSVP now has the answers you just sent, under the same reference code. The organizers can see them straight away." } : formAcknowledgement;
   const flow = resolveFlow(definition, values);
   const steps = flow.steps;
   // Followed by id, so a step appearing or going earlier in the form doesn't move the respondent.
@@ -44,7 +47,7 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
 
   // Answers stay on this device until sent, through a reload or a dropped connection.
   const draft = useFormDraft({
-    key: preview ? null : `rsvp:${eventId}:${token}`,
+    key: preview ? null : edit ? `rsvp:${eventId}:edit:${edit.token}` : `rsvp:${eventId}:${token}`,
     form: formRef,
     state: { stepId, values },
     restore: (saved) => {
@@ -61,7 +64,8 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
   const emailStep = steps.findIndex(step => step.fields.some(field => field.id === emailQuestion?.id));
   const emailStepId = steps[emailStep]?.id;
   const emailQuestionId = emailQuestion?.id;
-  const needsEmailCheck = !preview && !!respondent && emailPattern.test(respondent);
+  // Their own email, kept in an edit, is theirs already.
+  const needsEmailCheck = !preview && !!respondent && emailPattern.test(respondent) && respondent !== edit?.email.trim().toLowerCase();
   const checked = emailCheck?.email === respondent ? emailCheck : undefined;
   const duplicateEmail = needsEmailCheck && (checked?.available === false || state.duplicateEmail === respondent);
   const emailError = duplicateEmail ? "This email already has an RSVP submission." : needsEmailCheck ? checked?.error : undefined;
@@ -124,18 +128,19 @@ export function RsvpForm({ eventId, eventName, token, preview = false, definitio
     <EventFormTracker steps={steps} current={index} acknowledgement={definition.steps.at(-1)?.title ?? "Acknowledgement"} label="RSVP steps" preview={preview} busy={pending} onStep={go} onAcknowledgement={() => setShowAcknowledgement(true)} />
     <div className="apply-body ev-form-body">
       <DraftNotice draft={draft} buttonClassName="ev-button is-ghost is-small" actionClassName="ev-button is-primary" />
+      {edit && index === 0 && <p className="ev-callout">Your edit request was accepted. Your answers are filled in: change what you need to, then send them again on the last step. Your RSVP reference stays the same.</p>}
       <div className="apply-body-head" key={`heading-${current.id}`}><span>Step {index + 1} of {steps.length + 1}</span><h2 ref={headingRef} tabIndex={-1}>{current.title}</h2>{current.description && <p>{current.description}</p>}</div>
       <fieldset className="apply-group ev-group ev-rsvp-group ev-animated-fields" data-active="true" disabled={pending} key={current.id}>
         <legend className="ev-sr-only">{current.title}</legend>
         {current.kind === "privacy" && <EventConsentStatement id="rsvp-privacy" />}
-        <EditorFields fields={current.fields} visible={flow.visible} values={values} onChange={(id, value) => { if (id === emailQuestionId || definition.steps.flatMap(step => step.fields).some(field => field.id === id && field.kind === "email")) setEmailCheck(undefined); setValues(answers => ({ ...answers, [id]: value })); }} verify={{ eventId, target: "rsvp-form", preview }} fieldErrors={emailQuestion && emailError ? { [emailQuestion.id]: emailError } : undefined} fieldErrorHelp={emailQuestion && duplicateEmail ? { [emailQuestion.id]: <>To request a change or edit to your response, proceed here: <Link href="/apply/track">Tracking Application</Link>.</> } : undefined} fieldHints={emailQuestion && checkingEmail ? { [emailQuestion.id]: "Checking email…" } : undefined} columns sectionBreaks={{ rsvp_affiliation: "Affiliation", rsvp_attendance: "Attendance confirmation", rsvp_delegation: "Organization delegation" }} />
+        <EditorFields fields={current.fields} visible={flow.visible} values={values} onChange={(id, value) => { if (id === emailQuestionId || definition.steps.flatMap(step => step.fields).some(field => field.id === id && field.kind === "email")) setEmailCheck(undefined); setValues(answers => ({ ...answers, [id]: value })); }} verify={{ eventId, target: "rsvp-form", preview, locked: Boolean(edit) }} fieldErrors={emailQuestion && emailError ? { [emailQuestion.id]: emailError } : undefined} fieldErrorHelp={emailQuestion && duplicateEmail ? { [emailQuestion.id]: <>To request a change or edit to your response, proceed here: <Link href="/apply/track">Tracking Application</Link>.</> } : undefined} fieldHints={emailQuestion && checkingEmail ? { [emailQuestion.id]: <Busy>Checking email</Busy> } : undefined} columns sectionBreaks={{ rsvp_affiliation: "Affiliation", rsvp_attendance: "Attendance confirmation", rsvp_delegation: "Organization delegation" }} />
       </fieldset>
       {customError && <p className="ev-field-error" role="alert">{customError}</p>}
       {state.error && !state.duplicateEmail && <p className="ev-field-error" role="alert">{state.error}</p>}
       {checked?.error && index === emailStep && <button className="ev-button is-ghost" type="button" onClick={() => { setEmailCheck(undefined); setEmailRetry(value => value + 1); }}>Check email again</button>}
       <div className="apply-nav ev-form-foot ev-actions">
       {index > 0 && <button className="ev-button is-ghost" type="button" disabled={pending} onClick={() => go(index - 1)}><ArrowLeft size={15} />Back</button>}
-      {last ? preview ? <button className="ev-button is-primary" type="button" onClick={() => setShowAcknowledgement(true)}>See the acknowledgement<ArrowRight size={15} /></button> : <button className="ev-button is-primary" type="submit" disabled={pending || blockedHere}>{pending ? "Submitting…" : "Submit RSVP"}</button> : <button className="ev-button is-primary" type="button" disabled={pending || blockedHere} onClick={() => { if (preview || validStep()) go(index + 1); }}>Continue<ArrowRight size={15} /></button>}
+      {last ? preview ? <button className="ev-button is-primary" type="button" onClick={() => setShowAcknowledgement(true)}>See the acknowledgement<ArrowRight size={15} /></button> : <button className="ev-button is-primary" type="submit" disabled={pending || blockedHere}>{pending ? (edit ? <Busy>Sending</Busy> : <Busy>Submitting</Busy>) : edit ? "Send changes" : "Submit RSVP"}</button> : <button className="ev-button is-primary" type="button" disabled={pending || blockedHere} onClick={() => { if (preview || validStep()) go(index + 1); }}>Continue<ArrowRight size={15} /></button>}
       </div>
     </div>
   </form>;

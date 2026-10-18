@@ -20,6 +20,7 @@ import {
   petitionTypes, requestModes, requestStatusLabel, requestStatusTone, schoolDaysBetween, topicLabel, type FilingRequest, type OnBehalf, type Petition, type PetitionType, type RequestKind, type RequestMode,
 } from "@/lib/filing-portal/services";
 import "./documents.css";
+import { Busy } from "@/components/busy";
 
 // The filing portal's Services: the forms to book a consultation, ask for a commissioner and file a
 // petition, and the lists of what the account has asked and filed, with where each stands.
@@ -68,7 +69,7 @@ export function RequestForm({ kind, units, behalf }: { kind: RequestKind; units:
     <form className="portal-card portal-form pp-service-form" onSubmit={onSubmit} noValidate>
       <RequestFields key={state?.sentAt ?? 0} kind={kind} units={units} behalf={behalf} errors={state?.fieldErrors ?? {}} />
       <div className="pp-review-actions">
-        <button type="submit" className="portal-button" disabled={pending || !hydrated}><Send size={15} aria-hidden="true" />{pending ? "Sending…" : kind === "consultation" ? "Book consultation" : "Send request"}</button>
+        <button type="submit" className="portal-button" disabled={pending || !hydrated}><Send size={15} aria-hidden="true" />{pending ? <Busy>Sending</Busy> : kind === "consultation" ? "Book consultation" : "Send request"}</button>
       </div>
     </form>
   );
@@ -175,7 +176,7 @@ export function RequestList({ requests, cancellable, unitNames, empty }: { reque
             )}
             {cancellable.includes(request.id) && (
               <div className="pp-requirement-actions">
-                <DeleteButton label="Cancel request" prompt="Cancel this request?" confirmLabel="Yes, cancel" pendingLabel="Cancelling…" action={async () => report(await cancelMyRequest(request.id))} />
+                <DeleteButton label="Cancel request" prompt="Cancel this request?" confirmLabel="Yes, cancel" pendingLabel="Cancelling" action={async () => report(await cancelMyRequest(request.id))} />
                 <small className="pp-requirement-when">Sent {when(request.createdAt)}</small>
               </div>
             )}
@@ -289,7 +290,7 @@ export function PetitionForm({ units, draftKey }: { units: UnitOption[]; draftKe
         </label>
       </div>
       <div className="pp-review-actions">
-        <button type="submit" className="portal-button" disabled={pending || !hydrated}><Send size={15} aria-hidden="true" />{pending ? "Filing…" : "File petition"}</button>
+        <button type="submit" className="portal-button" disabled={pending || !hydrated}><Send size={15} aria-hidden="true" />{pending ? <Busy>Filing</Busy> : "File petition"}</button>
       </div>
     </form>
   );
@@ -330,7 +331,7 @@ export function PetitionList({ petitions, unitNames }: { petitions: Petition[]; 
           )}
           {(petition.status === "filed" || petition.status === "docketed") && (
             <div className="pp-requirement-actions">
-              <DeleteButton label="Withdraw petition" prompt="Withdraw this petition?" confirmLabel="Yes, withdraw" pendingLabel="Withdrawing…" action={async () => report(await withdrawMyPetition(petition.id))} />
+              <DeleteButton label="Withdraw petition" prompt="Withdraw this petition?" confirmLabel="Yes, withdraw" pendingLabel="Withdrawing" action={async () => report(await withdrawMyPetition(petition.id))} />
             </div>
           )}
         </li>

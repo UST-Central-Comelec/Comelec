@@ -157,3 +157,9 @@ html:has(.ev-share-dialog[open]) { overflow: hidden; }
 @keyframes ev-share-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ev .ev-share-dialog[open] { animation: none; } }
 @media (max-width: 480px) { .ev .ev-share-dialog { padding: 20px; } .ev .ev-share-dialog-actions .ev-button { flex: 1 1 auto; } }
+
+/* The registration birthday shares the portal calendar, with the Events family's tokens. */
+.ev-registration-birthday { --p-ink: var(--ev-ink); --p-surface: var(--ev-surface); --p-glass: var(--ev-glass); --p-line: var(--ev-line); --p-line-strong: var(--ev-line-strong); --p-text: var(--ev-text); --p-muted: var(--ev-muted); --p-faint: var(--ev-faint); --p-dim: var(--ev-dim); --p-placeholder: var(--ev-placeholder); --p-on-bright: var(--ev-on-bright); --p-gold-edge: var(--ev-gold-edge); --p-gold-ink: var(--ev-gold-mark); --p-danger: var(--ev-danger); --p-shadow-pop: var(--ev-shadow-pop); --p-field-active-bg: rgba(var(--ev-ink), .075); --p-field-active-edge: var(--ev-text); --p-field-active-lift: var(--ev-shadow); display: block; min-width: 0; }
+.ev-field .combobox-list .combobox-custom-heading { border-top: 1px solid var(--ev-line); border-radius: 0; color: var(--ev-muted); cursor: default; font-size: 12px; font-weight: 500; margin-top: 6px; padding-top: 12px; }
+.ev-field .combobox-list .combobox-custom-option { overflow-wrap: anywhere; }
+.ev-field .combobox-list .combobox-custom-option[aria-selected="true"] { background: var(--ev-text); color: var(--ev-on-bright); }

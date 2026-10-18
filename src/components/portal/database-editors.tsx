@@ -16,6 +16,7 @@ import { useHydrated } from "./portal-form";
 import { toast } from "./toast";
 import "./secretariat-settings.css";
 import "./database.css";
+import { Busy } from "@/components/busy";
 
 type Errors = Record<string, string>;
 
@@ -116,7 +117,7 @@ function Panel({ title, info, state, readOnly, onSave, picker, tools, addLabel, 
           <div className="portal-form-actions">
             {dirty && <button className="portal-button is-ghost" type="button" onClick={state.discard} disabled={pending}>Discard</button>}
             {onAdd && addLabel && <button className="portal-button is-ghost" type="button" disabled={pending || !hydrated || addDisabled} onClick={onAdd}><Plus size={15} aria-hidden="true" />{addLabel}</button>}
-            <button className="portal-button" type="submit" disabled={pending || !hydrated || !dirty}><SaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty ? "Save list" : "Saved"}</button>
+            <button className="portal-button" type="submit" disabled={pending || !hydrated || !dirty}><SaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : dirty ? "Save list" : "Saved"}</button>
           </div>
         </footer>}
         </div></div>

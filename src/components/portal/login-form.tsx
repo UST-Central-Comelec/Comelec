@@ -2,6 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 import { signInWithGoogle } from "@/lib/portal/auth-actions";
+import { Busy } from "@/components/busy";
 
 /** Google's "G", for buttons that start Google sign-in. */
 export function GoogleMark() {
@@ -21,7 +22,7 @@ function GoogleButton() {
   return (
     <button className="portal-button is-block is-google" type="submit" disabled={pending}>
       <GoogleMark />
-      {pending ? "Opening Google…" : "Sign in with Google"}
+      {pending ? <Busy>Opening Google</Busy> : "Sign in with Google"}
     </button>
   );
 }

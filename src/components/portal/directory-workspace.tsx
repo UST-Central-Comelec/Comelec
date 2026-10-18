@@ -10,6 +10,7 @@ import { LayoutDashboard, PanelLeft } from "./portal-nav-icons";
 import { SlidingFilters, type FilterItem } from "./sliding-filters";
 import { toast } from "./toast";
 import "./directory-database.css";
+import { Busy } from "@/components/busy";
 
 export const DirectoryFiltersContext = createContext<{
   unit: string; query: string; setUnit: (value: string) => void; setQuery: (value: string) => void;
@@ -88,7 +89,7 @@ export function DirectoryWorkspace({ view, items, manages, children }: { view: s
           const width = Math.min(260, window.innerWidth - 24);
           setPosition({ left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)), top: rect.bottom + 6 });
           panel.current?.showPopover();
-        }}><DownloadIcon size={15} aria-hidden="true" />{pending ? "Downloading…" : "Download"}<ChevronDown size={14} aria-hidden="true" /></button>
+        }}><DownloadIcon size={15} aria-hidden="true" />{pending ? <Busy>Downloading</Busy> : "Download"}<ChevronDown size={14} aria-hidden="true" /></button>
         {manages && <Link className="portal-button is-ghost" href={accountsHref}><UserCog size={15} strokeWidth={1.8} aria-hidden="true" />Manage accounts</Link>}
       </div>
       <div ref={panel} id={id} popover="auto" role="dialog" aria-label="Export options" className="directory-export-menu" style={{ ...position, maxHeight: `calc(100dvh - ${position.top + 12}px)` }} onToggle={event => setOpen(event.newState === "open")} onKeyDown={event => {

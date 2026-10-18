@@ -8,6 +8,7 @@ import { useToast } from "../toast";
 import { ConfirmAction } from "./confirm-action";
 import type { AnswerState } from "@/lib/filing-portal/services-review-actions";
 import "../filing-review.css";
+import { Busy } from "@/components/busy";
 
 // The commission's buttons on the filing portal's Services and a candidate's campaign: each opens
 // a dialog that says what will happen and takes the note the filer reads. What happened pops up on
@@ -85,7 +86,7 @@ export function ConfirmRequestDialog({ action, kind, mode, initial, changing }: 
           </div>
           <div className="portal-registrant-confirmation-actions">
             <button type="button" className="portal-button is-ghost" autoFocus disabled={pending} onClick={close}>Cancel</button>
-            <button type="submit" className="portal-button" disabled={pending}>{pending ? "Saving…" : changing ? "Save and email" : "Confirm and email"}</button>
+            <button type="submit" className="portal-button" disabled={pending}>{pending ? <Busy>Saving</Busy> : changing ? "Save and email" : "Confirm and email"}</button>
           </div>
         </form>
       </dialog>
@@ -96,7 +97,7 @@ export function ConfirmRequestDialog({ action, kind, mode, initial, changing }: 
 export function DeclineRequest({ action, kind }: { action: Act; kind: "consultation" | "commissioner" }) {
   return (
     <ConfirmAction label="Decline" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title={kind === "consultation" ? "Decline the consultation?" : "Decline the request?"}
-      note={{ label: "Why, for the filer", required: true, placeholder: "e.g. No commissioner is free then. Ask for another day." }} confirmLabel="Decline and email" pendingLabel="Declining…" danger action={action}>
+      note={{ label: "Why, for the filer", required: true, placeholder: "e.g. No commissioner is free then. Ask for another day." }} confirmLabel="Decline and email" pendingLabel="Declining" danger action={action}>
       The filer is emailed that it can’t go ahead, with your reason. They can ask again.
     </ConfirmAction>
   );
@@ -104,7 +105,7 @@ export function DeclineRequest({ action, kind }: { action: Act; kind: "consultat
 
 export function MarkRequestDone({ action }: { action: Act }) {
   return (
-    <ConfirmAction label="Mark done" icon={<CheckCircle2 size={14} aria-hidden="true" />} title="Mark it done?" note={{ label: "Note for the record", required: false }} confirmLabel="Mark done" pendingLabel="Saving…" action={action}>
+    <ConfirmAction label="Mark done" icon={<CheckCircle2 size={14} aria-hidden="true" />} title="Mark it done?" note={{ label: "Note for the record", required: false }} confirmLabel="Mark done" pendingLabel="Saving" action={action}>
       It moves to the past requests. The filer sees it’s done; no email is sent.
     </ConfirmAction>
   );
@@ -114,7 +115,7 @@ export function MarkRequestDone({ action }: { action: Act }) {
 export function PetitionActions({ status, docket, resolve, dismiss }: { status: "filed" | "docketed" | "resolved" | "dismissed"; docket: Act; resolve: Act; dismiss: Act }) {
   if (status === "resolved" || status === "dismissed") {
     return (
-      <ConfirmAction label="Reopen" icon={<RotateCcw size={14} aria-hidden="true" />} title="Reopen the petition?" note={{ label: "Why, for the filer", required: false }} confirmLabel="Reopen and email" pendingLabel="Reopening…" action={docket}>
+      <ConfirmAction label="Reopen" icon={<RotateCcw size={14} aria-hidden="true" />} title="Reopen the petition?" note={{ label: "Why, for the filer", required: false }} confirmLabel="Reopen and email" pendingLabel="Reopening" action={docket}>
         It goes back to being heard, and the filer is emailed. Resolve or dismiss it again when it’s decided.
       </ConfirmAction>
     );
@@ -122,14 +123,14 @@ export function PetitionActions({ status, docket, resolve, dismiss }: { status: 
   return (
     <span className="fr-actions">
       {status === "filed" && (
-        <ConfirmAction label="Docket" icon={<Gavel size={14} aria-hidden="true" />} buttonClassName="portal-button is-ok is-small" title="Docket the petition?" note={{ label: "What happens next, for the filer", required: false, placeholder: "e.g. The respondent is asked to answer by October 28." }} confirmLabel="Docket and email" pendingLabel="Docketing…" action={docket}>
+        <ConfirmAction label="Docket" icon={<Gavel size={14} aria-hidden="true" />} buttonClassName="portal-button is-ok is-small" title="Docket the petition?" note={{ label: "What happens next, for the filer", required: false, placeholder: "e.g. The respondent is asked to answer by October 28." }} confirmLabel="Docket and email" pendingLabel="Docketing" action={docket}>
           It’s taken up for hearing. Serve a copy on whoever it’s against, who answers in writing within five school days; decide within five school days of that answer (Elections Code, Article XII, Sections 5 and 6).
         </ConfirmAction>
       )}
-      <ConfirmAction label="Resolve" icon={<CheckCircle2 size={14} aria-hidden="true" />} title="Resolve the petition?" note={{ label: "The resolution", required: true, placeholder: "What the unit decided, and why" }} confirmLabel="Resolve and email" pendingLabel="Resolving…" action={resolve}>
+      <ConfirmAction label="Resolve" icon={<CheckCircle2 size={14} aria-hidden="true" />} title="Resolve the petition?" note={{ label: "The resolution", required: true, placeholder: "What the unit decided, and why" }} confirmLabel="Resolve and email" pendingLabel="Resolving" action={resolve}>
         The filer is emailed the resolution.
       </ConfirmAction>
-      <ConfirmAction label="Dismiss" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title="Dismiss the petition?" note={{ label: "Why", required: true, placeholder: "e.g. Filed after five school days, or without basis on its face" }} confirmLabel="Dismiss and email" pendingLabel="Dismissing…" danger action={dismiss}>
+      <ConfirmAction label="Dismiss" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title="Dismiss the petition?" note={{ label: "Why", required: true, placeholder: "e.g. Filed after five school days, or without basis on its face" }} confirmLabel="Dismiss and email" pendingLabel="Dismissing" danger action={dismiss}>
         The filer is emailed that it’s dismissed, with your reasons.
       </ConfirmAction>
     </span>
@@ -141,17 +142,17 @@ export function MaterialReview({ status, approve, changes, decline }: { status: 
   return (
     <span className="fr-actions">
       {status !== "approved" && (
-        <ConfirmAction label="Approve" icon={<CheckCircle2 size={14} aria-hidden="true" />} buttonClassName="portal-button is-ok is-small" title="Approve the material?" note={{ label: "Note for the candidate", required: false, placeholder: "e.g. Post only on the ground-floor bulletin board." }} confirmLabel="Approve and email" pendingLabel="Approving…" action={approve}>
+        <ConfirmAction label="Approve" icon={<CheckCircle2 size={14} aria-hidden="true" />} buttonClassName="portal-button is-ok is-small" title="Approve the material?" note={{ label: "Note for the candidate", required: false, placeholder: "e.g. Post only on the ground-floor bulletin board." }} confirmLabel="Approve and email" pendingLabel="Approving" action={approve}>
           The candidate can use it as approved, during the campaign period.
         </ConfirmAction>
       )}
       {status !== "changes" && (
-        <ConfirmAction label="Ask for changes" icon={<MessageSquareWarning size={14} aria-hidden="true" />} title="Ask for changes?" note={{ label: "What to change", required: true }} confirmLabel="Send back and email" pendingLabel="Sending…" action={changes}>
+        <ConfirmAction label="Ask for changes" icon={<MessageSquareWarning size={14} aria-hidden="true" />} title="Ask for changes?" note={{ label: "What to change", required: true }} confirmLabel="Send back and email" pendingLabel="Sending" action={changes}>
           The candidate revises it and sends it again. It can’t be used until it’s approved.
         </ConfirmAction>
       )}
       {status !== "declined" && (
-        <ConfirmAction label="Don’t approve" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title="Not approve the material?" note={{ label: "Why", required: true, placeholder: "e.g. Bigger than the Code allows for an independent candidate" }} confirmLabel="Don’t approve, and email" pendingLabel="Saving…" danger action={decline}>
+        <ConfirmAction label="Don’t approve" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title="Not approve the material?" note={{ label: "Why", required: true, placeholder: "e.g. Bigger than the Code allows for an independent candidate" }} confirmLabel="Don’t approve, and email" pendingLabel="Saving" danger action={decline}>
           It can’t be used in the campaign. The candidate is emailed your reason.
         </ConfirmAction>
       )}
@@ -164,12 +165,12 @@ export function ActivityReview({ status, approve, decline }: { status: string; a
   return (
     <span className="fr-actions">
       {status !== "approved" && (
-        <ConfirmAction label="Approve" icon={<CheckCircle2 size={14} aria-hidden="true" />} buttonClassName="portal-button is-ok is-small" title="Approve the activity?" note={{ label: "Note for the candidate", required: false }} confirmLabel="Approve and email" pendingLabel="Approving…" action={approve}>
+        <ConfirmAction label="Approve" icon={<CheckCircle2 size={14} aria-hidden="true" />} buttonClassName="portal-button is-ok is-small" title="Approve the activity?" note={{ label: "Note for the candidate", required: false }} confirmLabel="Approve and email" pendingLabel="Approving" action={approve}>
           It goes on their approved schedule.
         </ConfirmAction>
       )}
       {status !== "declined" && (
-        <ConfirmAction label="Don’t approve" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title="Not approve the activity?" note={{ label: "Why", required: true, placeholder: "e.g. It clashes with the mandatory debate" }} confirmLabel="Don’t approve, and email" pendingLabel="Saving…" danger action={decline}>
+        <ConfirmAction label="Don’t approve" icon={<Ban size={14} aria-hidden="true" />} buttonClassName="portal-button is-danger-ghost is-small" title="Not approve the activity?" note={{ label: "Why", required: true, placeholder: "e.g. It clashes with the mandatory debate" }} confirmLabel="Don’t approve, and email" pendingLabel="Saving" danger action={decline}>
           It can’t go ahead as planned. The candidate is emailed your reason.
         </ConfirmAction>
       )}

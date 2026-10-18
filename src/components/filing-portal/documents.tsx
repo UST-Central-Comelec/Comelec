@@ -9,6 +9,7 @@ import { toast } from "@/components/portal/toast";
 import { removeFilingFile, sendFilingDocument, sendReadyFilingDocuments, takeBackFilingDocument, type ActionResult } from "@/lib/filing-portal/document-actions";
 import { documentStatusLabel, documentStatusTone, isEditable, MAX_FILES_PER_REQUIREMENT, type FilingArea, type FilingDocument } from "@/lib/filing-portal/types";
 import "./documents.css";
+import { Busy } from "@/components/busy";
 
 // An application's documents, requirement by requirement: a party's (any member) or a candidacy's
 // (the candidate). Each has its template if there is one, its files, where its review stands and
@@ -99,7 +100,7 @@ export function FilingDocuments({ area, requirements, documents, open, unit }: {
                   <li key={file.path}>
                     <FileText size={15} aria-hidden="true" />
                     <span className="pp-file-name"><a href={`/filing/files/${area}/${document!.id}/${fileIndex}`} target="_blank" rel="noopener noreferrer">{file.name}</a><small>{megabytes(file.size)} · {file.uploadedBy}, {when(file.uploadedAt)}</small></span>
-                    {editable && <DeleteButton label="Remove" prompt="Remove this file?" confirmLabel="Yes, remove" pendingLabel="Removing…" action={async () => report(await removeFilingFile(area, requirement.id, file.path))} />}
+                    {editable && <DeleteButton label="Remove" prompt="Remove this file?" confirmLabel="Yes, remove" pendingLabel="Removing" action={async () => report(await removeFilingFile(area, requirement.id, file.path))} />}
                   </li>
                 ))}
               </ul>
@@ -110,7 +111,7 @@ export function FilingDocuments({ area, requirements, documents, open, unit }: {
               {editable && files.length < MAX_FILES_PER_REQUIREMENT && (
                 <label className={`portal-button is-ghost is-small pp-upload${busy ? " is-busy" : ""}`} aria-disabled={busy || undefined}>
                   <input className="portal-visually-hidden" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" disabled={Boolean(uploading)} aria-label={`Upload files for ${requirement.label}`} onChange={(event) => { const chosen = Array.from(event.currentTarget.files ?? []); event.currentTarget.value = ""; void upload(requirement.id, chosen); }} />
-                  <Upload size={14} aria-hidden="true" />{busy ? "Uploading…" : files.length ? "Add files" : "Upload files"}
+                  <Upload size={14} aria-hidden="true" />{busy ? <Busy>Uploading</Busy> : files.length ? "Add files" : "Upload files"}
                 </label>
               )}
               {editable && files.length > 0 && <button type="button" className="portal-button is-ghost is-small" disabled={pending} onClick={() => act(() => sendFilingDocument(area, requirement.id))}>Send for review</button>}
@@ -131,7 +132,7 @@ export function SendReadyButton({ area, count }: { area: FilingArea; count: numb
   return (
     <button type="button" className="portal-button" disabled={pending || count === 0} title={count === 0 ? "Upload a document’s files first" : undefined} onClick={() => startTransition(async () => report(await sendReadyFilingDocuments(area)))}>
       <Send size={15} aria-hidden="true" />
-      {pending ? "Sending…" : count ? `Send ${count} ready for review` : "Nothing ready to send"}
+      {pending ? <Busy>Sending</Busy> : count ? `Send ${count} ready for review` : "Nothing ready to send"}
     </button>
   );
 }

@@ -33,6 +33,10 @@
 .apply-privacy-icon { align-items: center; background: var(--ap-solid, var(--ink)); border-radius: 12px; color: var(--gold); display: inline-flex; flex: none; height: 42px; justify-content: center; width: 42px; }
 .apply-privacy-head h3 { font-size: 17px !important; }
 .apply-privacy-law { color: var(--muted); display: block; font-size: 12px; margin-top: 2px; }
+.apply-privacy-document { flex: none; opacity: .7; }
+.apply-privacy-heading { flex: 1; min-width: 0; }
+.apply-privacy-meta { align-items: baseline; display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; }
+.apply-privacy-updated { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
 .apply-privacy-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .apply-privacy-item { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-md); display: flex; gap: 14px; padding: 16px 18px; }
 .apply-privacy-item-icon { align-items: center; background: var(--ap-surface, var(--ui-panel)); border: 1px solid var(--line); border-radius: 50%; color: var(--ink); display: inline-flex; flex: none; height: 34px; justify-content: center; width: 34px; }

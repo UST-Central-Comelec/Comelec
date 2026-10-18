@@ -10,6 +10,7 @@ import { Dropdown } from "./dropdown";
 import { MultiDropdown } from "./multi-dropdown";
 import { compress } from "./photo-input";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 /** Everything a question can do to the form it's in; the editor builds these from form-flow.ts. */
 export type FieldOps = {
@@ -261,7 +262,7 @@ function ImageEditor({ item, ops, canMoveUp, canMoveDown, problem, id }: { item:
         {/* eslint-disable-next-line @next/next/no-img-element -- Uploaded form images are already shrunk to 1 MB in the browser. */}
         {item.image ? <img src={item.image.url} alt="" /> : <span><ImageIcon size={22} aria-hidden="true" />JPG, PNG or WebP. Large pictures are shrunk to fit.</span>}
         <div className="form-builder-image-actions">
-          <button type="button" className="portal-button is-small" disabled={busy} onClick={() => input.current?.click()}><Upload size={14} aria-hidden="true" />{busy ? "Uploading…" : item.image ? "Replace image" : "Upload image"}</button>
+          <button type="button" className="portal-button is-small" disabled={busy} onClick={() => input.current?.click()}><Upload size={14} aria-hidden="true" />{busy ? <Busy>Uploading</Busy> : item.image ? "Replace image" : "Upload image"}</button>
           <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={event => upload(event.target.files?.[0])} aria-label="Image file" />
         </div>
       </div>

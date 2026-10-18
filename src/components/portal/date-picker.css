@@ -8,6 +8,11 @@
 .portal-calendar > button:disabled:hover { border-color: var(--p-line-strong); }
 .portal-calendar.is-invalid > button, .portal-field.has-error .portal-calendar > button { border-color: var(--p-danger); }
 .portal-calendar > button > span.is-all { color: var(--p-text); }
+.portal-calendar.is-editable { display: block; position: relative; }
+.portal-calendar.is-editable > input { font-variant-numeric: tabular-nums; padding-right: 48px; width: 100%; }
+.portal-calendar.is-editable > button { background: transparent; border: 0; bottom: 0; box-shadow: none; height: 40px; justify-content: center; margin-block: auto; padding: 0; position: absolute; right: 4px; top: 0; width: 40px; }
+.portal-calendar.is-editable > button:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: -4px; }
+.portal-calendar.is-editable.is-invalid > input { border-color: var(--p-danger); }
 /* Custom calendar dropdown: matches the portal's field and popover controls. */
 .portal-dropdown.portal-calendar.is-open > button > svg { transform: none; }
 .portal-calendar-panel { background: var(--p-glass), var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 14px; box-shadow: var(--p-shadow-pop); box-sizing: border-box; color: var(--p-text); inset: auto; margin: 0; padding: 12px; position: fixed; overflow-y: auto; overscroll-behavior: contain; z-index: 60; }
@@ -16,10 +21,15 @@
 .portal-calendar-head > span { font-size: 14px; font-weight: 600; }
 .portal-calendar-panel button { background: none; border: 0; border-radius: 6px; color: var(--p-text); cursor: pointer; font: inherit; }
 .portal-calendar-head button { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+.portal-calendar-head .portal-calendar-month-button { flex: 1; font-size: 14px; font-weight: 600; width: auto; }
+.portal-calendar-jump { display: grid; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.portal-calendar-jump button { font-size: 13px; height: 44px; }
+.portal-calendar-jump button[aria-pressed="true"] { background: var(--p-text); color: var(--p-on-bright); }
 .portal-calendar-panel button:hover { background: rgba(var(--p-ink),.08); }
 .portal-calendar-panel button:focus-visible { outline: 2px solid var(--p-field-active-edge); outline-offset: 1px; }
 .portal-calendar-panel button:disabled { color: var(--p-dim); cursor: default; background: none; }
 .portal-calendar-grid { display: grid; gap: 3px; }
+.portal-calendar-grid[hidden] { display: none; }
 .portal-calendar-grid > [role="row"] { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 .portal-calendar-grid [role="columnheader"] { text-align: center; font-size: 11px; color: var(--p-muted); padding: 6px 0; }
 .portal-calendar-grid [role="gridcell"] { display: flex; min-width: 0; }
@@ -38,7 +48,6 @@
 .portal-calendar-grid button.is-selected[data-calendar-kind] { background: var(--p-text); color: var(--p-on-bright); }
 .portal-calendar-grid button[data-calendar-kind][aria-current="date"] { color: var(--p-calendar-on-highlight); }
 .portal-calendar-grid button.is-selected[data-calendar-kind][aria-current="date"] { color: var(--p-on-bright); }
-.portal-calendar-marker { background: var(--calendar-highlight); border: 1px solid var(--p-calendar-on-highlight); border-radius: 50%; bottom: 2px; height: 5px; left: calc(50% - 3px); position: absolute; width: 5px; }
 .portal-calendar-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; }
 .portal-calendar-legend > span { align-items: center; color: var(--p-soft); display: inline-flex; font-size: 11px; gap: 5px; }
 .portal-calendar-legend i { background: var(--calendar-highlight); border-radius: 50%; height: 6px; width: 6px; }

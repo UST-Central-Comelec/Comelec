@@ -8,6 +8,7 @@ import { toast } from "@/components/portal/toast";
 import { answerEndorsement } from "@/lib/candidacy/actions";
 import { markFilingNoticesRead } from "@/lib/filing-portal/actions";
 import { answerJoinRequest } from "@/lib/party-portal/actions";
+import { Busy } from "@/components/busy";
 
 type Result = { ok?: string; error?: string };
 const report = (result: Result) => { if (result.error) toast(result.error, "error"); else if (result.ok) toast(result.ok); };
@@ -17,18 +18,18 @@ function AnswerButtons({ name, approveLabel, approvingLabel, onAnswer }: { name:
   const [pending, startTransition] = useTransition();
   return (
     <span className="pp-request-actions">
-      <DeleteButton label="Decline" prompt={`Decline ${name}?`} confirmLabel="Yes, decline" pendingLabel="Declining…" tone="quiet" animatedIcon={false} icon={<CircleSlash size={14} aria-hidden="true" />} action={async () => report(await onAnswer(false))} />
-      <button type="button" className="portal-button is-ok is-small" disabled={pending} onClick={() => startTransition(async () => report(await onAnswer(true)))}><Check size={14} aria-hidden="true" />{pending ? approvingLabel : approveLabel}</button>
+      <DeleteButton label="Decline" prompt={`Decline ${name}?`} confirmLabel="Yes, decline" pendingLabel="Declining" tone="quiet" animatedIcon={false} icon={<CircleSlash size={14} aria-hidden="true" />} action={async () => report(await onAnswer(false))} />
+      <button type="button" className="portal-button is-ok is-small" disabled={pending} onClick={() => startTransition(async () => report(await onAnswer(true)))}><Check size={14} aria-hidden="true" />{pending ? <Busy>{approvingLabel}</Busy> : approveLabel}</button>
     </span>
   );
 }
 
 export function JoinRequestActions({ memberId, name }: { memberId: string; name: string }) {
-  return <AnswerButtons name={name} approveLabel="Approve" approvingLabel="Approving…" onAnswer={(approve) => answerJoinRequest(memberId, approve)} />;
+  return <AnswerButtons name={name} approveLabel="Approve" approvingLabel="Approving" onAnswer={(approve) => answerJoinRequest(memberId, approve)} />;
 }
 
 export function EndorsementActions({ candidacyId, name }: { candidacyId: string; name: string }) {
-  return <AnswerButtons name={name} approveLabel="Endorse" approvingLabel="Endorsing…" onAnswer={(endorse) => answerEndorsement(candidacyId, endorse)} />;
+  return <AnswerButtons name={name} approveLabel="Endorse" approvingLabel="Endorsing" onAnswer={(endorse) => answerEndorsement(candidacyId, endorse)} />;
 }
 
 /** Opening Notifications marks them read, so the sidebar's count goes. */

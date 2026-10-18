@@ -19,6 +19,7 @@ import { EmailPreview } from "./email-preview";
 import { InfoTip } from "./info-tip";
 import { useHydrated } from "./portal-form";
 import { useToast } from "./toast";
+import { Busy } from "@/components/busy";
 
 type Action = (state: EmailFormState, formData: FormData) => Promise<EmailFormState>;
 
@@ -234,16 +235,16 @@ export function EmailComposer({ action, testAction, people, units, reach, locked
             <span className="portal-confirm email-confirm">
               <span>Send to {countOf(recipients.length)} now? This can’t be undone.</span>
               <button className="portal-button is-ghost" type="button" disabled={pending} onClick={() => setArmed(false)}>Not yet</button>
-              <button className="portal-button" type="submit" disabled={pending}>{sending ? "Sending…" : "Yes, send"}</button>
+              <button className="portal-button" type="submit" disabled={pending}>{sending ? <Busy>Sending</Busy> : "Yes, send"}</button>
             </span>
           ) : (
             <div className="portal-form-actions">
               <button className="portal-button is-ghost" type="button" disabled={pending || !hydrated || !ready} onClick={test} title="Sends it only to you using the selected delivery options">
-                <FlaskConical size={15} aria-hidden="true" /> {testing ? "Sending test…" : "Send me a test"}
+                <FlaskConical size={15} aria-hidden="true" /> {testing ? <Busy>Sending test</Busy> : "Send me a test"}
               </button>
               <button className="portal-button" type="submit" disabled={pending || !hydrated || !ready || !recipients.length}>
                 {when === "later" ? <CalendarClock size={15} aria-hidden="true" /> : <Send size={15} aria-hidden="true" />}
-                {sending ? (when === "later" ? "Scheduling…" : "Sending…") : when === "later" ? (scheduledFor ? `Schedule for ${formatClosing(scheduledFor)}` : "Schedule") : `Send to ${countOf(recipients.length)}`}
+                {sending ? (when === "later" ? <Busy>Scheduling</Busy> : <Busy>Sending</Busy>) : when === "later" ? (scheduledFor ? `Schedule for ${formatClosing(scheduledFor)}` : "Schedule") : `Send to ${countOf(recipients.length)}`}
               </button>
             </div>
           )}

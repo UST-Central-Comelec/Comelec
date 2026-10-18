@@ -7,10 +7,11 @@ import { getFormQr, regenerateFormQr } from "@/lib/portal/qr-actions";
 import { usePortalTheme } from "./portal-theme";
 import { toast } from "./toast";
 import "./event-form-editor.css";
+import { Busy } from "@/components/busy";
 
 type Form = "registration" | "rsvp" | "evaluation";
 type Ink = "black" | "white";
-type Paper = "transparent" | "white" | "black";
+type Paper = "transparent" | "mono";
 const colors = { black: "#000000", white: "#ffffff" } as const;
 const formNames: Record<Form, string> = { registration: "Public registration form", rsvp: "RSVP form", evaluation: "Evaluation form" };
 const opposite = (color: Ink): Ink => color === "black" ? "white" : "black";
@@ -75,7 +76,7 @@ function QrPanel({ eventId, eventName, form }: { eventId: string; eventName: str
   const [error, setError] = useState("");
   const [svg, setSvg] = useState("");
   const theme = usePortalTheme();
-  const [preset, setPreset] = useState<{ ink: Ink; paper: Paper }>(() => theme === "light" ? { ink: "black", paper: "white" } : { ink: "white", paper: "black" });
+  const [preset, setPreset] = useState<{ ink: Ink; paper: Paper }>(() => ({ ink: theme === "light" ? "black" : "white", paper: "mono" }));
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState<"" | "png" | "pdf" | "new">("");
   const file = `${eventId}-${form}-qr`;
@@ -89,18 +90,12 @@ function QrPanel({ eventId, eventName, form }: { eventId: string; eventName: str
   useEffect(() => {
     if (!url) return;
     let live = true;
-    import("qrcode").then(({ default: QRCode }) => QRCode.toString(url, { type: "svg", margin: 2, errorCorrectionLevel: "M", color: { dark: colors[preset.ink], light: preset.paper === "transparent" ? "#0000" : colors[preset.paper] } })).then(markup => live && setSvg(markup), () => live && setError("Couldn’t draw the QR code."));
+    import("qrcode").then(({ default: QRCode }) => QRCode.toString(url, { type: "svg", margin: 2, errorCorrectionLevel: "M", color: { dark: colors[preset.ink], light: preset.paper === "transparent" ? "#0000" : colors[opposite(preset.ink)] } })).then(markup => live && setSvg(markup), () => live && setError("Couldn’t draw the QR code."));
     return () => { live = false; };
   }, [url, preset]);
 
   function choose(next: Partial<typeof preset>) {
-    const value = { ...preset, ...next };
-    // A code the colour of its background can't be scanned, so the side not just picked flips.
-    if (value.ink === value.paper) {
-      if (next.ink) value.paper = opposite(value.ink);
-      else value.ink = opposite(value.ink);
-    }
-    setPreset(value);
+    setPreset(current => ({ ...current, ...next }));
   }
   function save(blob: Blob, name: string) {
     const link = document.createElement("a");
@@ -114,7 +109,7 @@ function QrPanel({ eventId, eventName, form }: { eventId: string; eventName: str
     setBusy("png");
     try {
       const { default: QRCode } = await import("qrcode");
-      const data = await QRCode.toDataURL(url, { width: 1200, margin: 2, errorCorrectionLevel: "M", color: { dark: colors[preset.ink], light: preset.paper === "transparent" ? "#0000" : colors[preset.paper] } });
+      const data = await QRCode.toDataURL(url, { width: 1200, margin: 2, errorCorrectionLevel: "M", color: { dark: colors[preset.ink], light: preset.paper === "transparent" ? "#0000" : colors[opposite(preset.ink)] } });
       save(await (await fetch(data)).blob(), `${file}.png`);
     } finally { setBusy(""); }
   }
@@ -164,23 +159,23 @@ function QrPanel({ eventId, eventName, form }: { eventId: string; eventName: str
   return (
     <div className="portal-qr-panel">
       <p className="portal-qr-title"><strong>QR code</strong><span>{formNames[form]}</span></p>
-      <div className={`portal-qr-preview is-${preset.paper} is-ink-${preset.ink}`} aria-label={url ? `QR code for ${url}` : "Loading the QR code"} role="img">
-        {svg ? <span dangerouslySetInnerHTML={{ __html: svg }} /> : <span className="portal-qr-loading">{error ? "" : "Loading…"}</span>}
+      <div className={`portal-qr-preview is-${preset.paper === "mono" ? opposite(preset.ink) : "transparent"} is-ink-${preset.ink}`} aria-label={url ? `QR code for ${url}` : "Loading the QR code"} role="img">
+        {svg ? <span dangerouslySetInnerHTML={{ __html: svg }} /> : <span className="portal-qr-loading">{error ? "" : <Busy>Loading</Busy>}</span>}
       </div>
       {error && <p className="portal-form-error" role="alert">{error}</p>}
       <div className="portal-qr-presets">
         <Segment label="Code" value={preset.ink} options={[["black", "Black"], ["white", "White"]]} onChange={ink => choose({ ink })} />
-        <Segment label="Background" value={preset.paper} options={[["transparent", "Transparent"], ["white", "White"], ["black", "Black"]]} onChange={paper => choose({ paper })} />
+        <Segment label="Background" value={preset.paper} options={[["transparent", "Transparent"], ["mono", "Mono"]]} onChange={paper => choose({ paper })} />
       </div>
       {confirming ? (
         <div className="portal-qr-confirm" role="group" aria-label="Confirm a new QR code">
           <p>The current code stops working, including on anything already printed. Make a new one?</p>
-          <div><button type="button" className="portal-button is-small" disabled={busy === "new"} onClick={generate}>{busy === "new" ? "Making…" : "Generate new"}</button><button type="button" className="portal-button is-small is-ghost" onClick={() => setConfirming(false)}>Keep this one</button></div>
+          <div><button type="button" className="portal-button is-small" disabled={busy === "new"} onClick={generate}>{busy === "new" ? <Busy>Making</Busy> : "Generate new"}</button><button type="button" className="portal-button is-small is-ghost" onClick={() => setConfirming(false)}>Keep this one</button></div>
         </div>
       ) : (
         <div className="portal-qr-actions">
-          <button type="button" className="portal-button is-small" disabled={!svg || busy !== ""} onClick={downloadPng}><DownloadIcon size={14} aria-hidden="true" />{busy === "png" ? "Saving…" : "PNG"}</button>
-          <button type="button" className="portal-button is-small is-ghost" disabled={!url || busy !== ""} onClick={downloadPdf} title="Black code on a Letter page"><FileText size={14} aria-hidden="true" />{busy === "pdf" ? "Saving…" : "PDF"}</button>
+          <button type="button" className="portal-button is-small" disabled={!svg || busy !== ""} onClick={downloadPng}><DownloadIcon size={14} aria-hidden="true" />{busy === "png" ? <Busy>Saving</Busy> : "PNG"}</button>
+          <button type="button" className="portal-button is-small is-ghost" disabled={!url || busy !== ""} onClick={downloadPdf} title="Black code on a Letter page"><FileText size={14} aria-hidden="true" />{busy === "pdf" ? <Busy>Saving</Busy> : "PDF"}</button>
           <button type="button" className="portal-button is-small is-ghost" disabled={!url || busy !== ""} onClick={() => setConfirming(true)}><RefreshCw size={14} aria-hidden="true" />Generate new</button>
         </div>
       )}

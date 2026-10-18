@@ -15,6 +15,7 @@ import { useHydrated } from "./portal-form";
 import { SlidingFilterButtons } from "./sliding-filters";
 import "./letters-tracker.css";
 import "./secretariat-settings.css";
+import { Busy } from "@/components/busy";
 
 export type Tab = "letters" | "minutes" | "labels" | "statuses" | "remarks" | "offices";
 const tabItems: { key: Tab; label: string }[] = [
@@ -310,7 +311,7 @@ export function SecretariatSettingsForm({ initial, updatedAt: initialUpdatedAt, 
           <div className="portal-form-actions">
             {dirty && <button className="portal-button is-ghost" type="button" onClick={discard} disabled={pending}>Discard</button>}
             {activeAdd && <button className="portal-button is-ghost" type="button" disabled={pending || !hydrated || activeAdd.full} onClick={activeAdd.add}><Plus size={15} aria-hidden="true" />{activeAdd.label}</button>}
-            <button className="portal-button" type="submit" disabled={pending || !hydrated || !dirty}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty ? "Save settings" : "Saved"}</button>
+            <button className="portal-button" type="submit" disabled={pending || !hydrated || !dirty}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : dirty ? "Save settings" : "Saved"}</button>
           </div>
         </footer>}
       </form>

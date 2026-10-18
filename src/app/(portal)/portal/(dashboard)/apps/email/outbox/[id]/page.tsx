@@ -51,8 +51,8 @@ export default async function OutboxEmailPage({ params, searchParams }: PageProp
           <span className={`portal-tag portal-status-tag ${state.tone}`}>{state.label}</span>
           {!user.readOnly && waiting && email.scheduled && (
             <>
-              <ActionButton action={sendScheduledEmailNow.bind(null, email.id)} label="Send now" pendingLabel="Sending…" icon={<Send size={15} aria-hidden="true" />} />
-              <DeleteButton action={cancelScheduledEmail.bind(null, email.id)} label="Cancel email" prompt="Cancel this email? It won’t be sent." confirmLabel="Yes, cancel it" pendingLabel="Cancelling…" icon={<X size={15} aria-hidden="true" />} tone="quiet" />
+              <ActionButton action={sendScheduledEmailNow.bind(null, email.id)} label="Send now" pendingLabel="Sending" icon={<Send size={15} aria-hidden="true" />} />
+              <DeleteButton action={cancelScheduledEmail.bind(null, email.id)} label="Cancel email" prompt="Cancel this email? It won’t be sent." confirmLabel="Yes, cancel it" pendingLabel="Cancelling" icon={<X size={15} aria-hidden="true" />} tone="quiet" />
             </>
           )}
           {!user.readOnly && <Link className="portal-button is-ghost" href={`/portal/apps/email?from=${email.id}`}><CopyPlus size={15} aria-hidden="true" /> Use again</Link>}

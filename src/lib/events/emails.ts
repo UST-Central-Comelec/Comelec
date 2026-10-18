@@ -152,3 +152,35 @@ export function requestDecisionsEmail(registrant: Pick<Registrant, "email" | "fi
     }),
   };
 }
+
+type EditLinkPerson = { email: string; firstName: string; referenceCode: string; form: "registration" | "rsvp" };
+
+/** Sent when the organizers accept a request to edit a registration or RSVP: the private link to change it. */
+export function editLinkEmail(person: EditLinkPerson, event: Pick<CommissionEvent, "id" | "name">, editUrl: string, requested: string): Email {
+  const what = person.form === "rsvp" ? "collaborator RSVP" : "registration";
+  const greeting = `Hi ${greetingName(person.firstName)},`;
+  const intro = `The organizers of ${event.name} accepted your request to edit your ${what}. Open the link below to see your answers, change what you need to, and send them again.`;
+  const keep = `Your reference code stays ${person.referenceCode}. The link is only for you, and works once: after you send your changes, ask through tracking if you need another edit.`;
+  const trackUrl = `${siteUrl()}/apply/track?ref=${encodeURIComponent(person.referenceCode)}`;
+  const label = person.form === "rsvp" ? "Edit your RSVP" : "Edit your registration";
+  return {
+    to: person.email,
+    subject: `Edit request accepted: ${event.name}`,
+    text: [greeting, intro, `${label}: ${editUrl}`, `You asked to change:\n${requested}`, keep, `Track it: ${trackUrl}`, COMMISSION].join("\n\n"),
+    html: shell({
+      eyebrow: "Events",
+      title: "Edit request *accepted*",
+      preheader: `Edit your ${what} for ${event.name}.`,
+      blocks: [
+        highlight(person.form === "rsvp" ? "RSVP reference" : "Registration reference", person.referenceCode, "code"),
+        paragraph(escape(greeting)),
+        paragraph(escape(intro)),
+        button(label, editUrl),
+        paragraph("<strong>You asked to change</strong>"),
+        quote(requested),
+        paragraph(escape(keep)),
+        note(`Track your ${what} any time: ${link(trackUrl, "Tracking")}.`),
+      ],
+    }),
+  };
+}

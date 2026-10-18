@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { finishDocumentUpload, startDocumentUpload } from "@/lib/portal/document-upload-actions";
 import { Field } from "./portal-form";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 // Same limit as MAX_DOCUMENT_BYTES in src/lib/data/drive-upload.ts, which is server-only.
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -69,7 +70,7 @@ export function DriveFileField({ initialLink, error, canUpload }: { initialLink:
       {canUpload && (
         <Field label="Upload PDF" hint="Up to 25 MB. The file is stored in the commission’s Google Drive and shared as view-only." wide>
           <input type="file" accept="application/pdf" onChange={onChange} disabled={status.kind === "working"} />
-          {status.kind === "working" && <span className="portal-field-hint" aria-live="polite">Uploading… {status.percent}%</span>}
+          {status.kind === "working" && <span className="portal-field-hint" aria-live="polite"><Busy size={13}>Uploading {status.percent}%</Busy></span>}
         </Field>
       )}
       <Field

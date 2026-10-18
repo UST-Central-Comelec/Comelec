@@ -21,6 +21,7 @@ import { Dropdown } from "./dropdown";
 import { TitleWithInfo } from "./info-tip";
 import { useHydrated } from "./portal-form";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 /** The draft as it was last saved: which revision it is, and how many times it has been saved. */
 type Draft = { id: string; edits: number; at: string };
@@ -178,7 +179,7 @@ function SectionItem({ section, article, places, open, change, dispatch, focusRe
               <span className="portal-index">Under</span>
               <Dropdown size="pill" label="The article this section is under" options={places} value={article.id} onChange={(to) => to !== article.id && dispatch({ type: "section-send", id: section.id, to, undo: `${name} moved to ${places.find((place) => place.value === to)?.label ?? "another article"}` })} />
             </span>
-            <DeleteButton action={async () => dispatch({ type: "section-remove", id: section.id, undo: `${name} removed` })} label="Remove section" prompt={`Remove ${name}?`} confirmLabel="Yes, remove" pendingLabel="Removing…" icon={<Trash2 size={14} aria-hidden="true" />} />
+            <DeleteButton action={async () => dispatch({ type: "section-remove", id: section.id, undo: `${name} removed` })} label="Remove section" prompt={`Remove ${name}?`} confirmLabel="Yes, remove" pendingLabel="Removing" icon={<Trash2 size={14} aria-hidden="true" />} />
           </div>
         </div>
       )}
@@ -306,7 +307,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
     setActiveId((articles[at + 1] ?? articles[at - 1])?.id ?? null);
   };
 
-  const status = pending ? "Saving…" : dirty ? "Unsaved changes" : draft ? `Draft saved ${savedAt.format(new Date(draft.at))}` : "Nothing changed yet";
+  const status = pending ? <Busy>Saving</Busy> : dirty ? "Unsaved changes" : draft ? `Draft saved ${savedAt.format(new Date(draft.at))}` : "Nothing changed yet";
 
   return (
     <div className="code-editor">
@@ -345,7 +346,7 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
                 <div className="code-edit-article-tools">
                   <span className="portal-index">{active.sections.length} {active.sections.length === 1 ? "section" : "sections"}</span>
                   <button type="button" className="portal-button is-ghost is-small" disabled={active.sections.length === 0} onClick={() => dispatch({ type: "sections-renumber", article: active.id, undo: `${articleName(active)}’s sections renumbered` })} title="Number this article’s sections 1, 2, 3… in the order they’re in. A section that goes by a name is left as it is."><ListOrdered size={14} aria-hidden="true" /> Renumber sections</button>
-                  <DeleteButton action={async () => removeArticle(active)} label="Remove article" prompt={active.sections.length ? `Remove this article and its ${active.sections.length} ${active.sections.length === 1 ? "section" : "sections"}?` : "Remove this article?"} confirmLabel="Yes, remove" pendingLabel="Removing…" icon={<Trash2 size={14} aria-hidden="true" />} />
+                  <DeleteButton action={async () => removeArticle(active)} label="Remove article" prompt={active.sections.length ? `Remove this article and its ${active.sections.length} ${active.sections.length === 1 ? "section" : "sections"}?` : "Remove this article?"} confirmLabel="Yes, remove" pendingLabel="Removing" icon={<Trash2 size={14} aria-hidden="true" />} />
                 </div>
               </section>
 
@@ -400,8 +401,8 @@ export function CodeEditor({ code, base, initial, draft: savedDraft, note: saved
             {undo ? <>{undo.label}. <button type="button" className="code-edit-link" onClick={() => dispatch({ type: "undo" })}><Undo2 size={13} aria-hidden="true" /> Undo</button></> : status}
           </p>
           <div className="portal-form-actions">
-            {draft && <DeleteButton tone="quiet" action={() => discard(draft.id)} label="Discard draft" prompt={`Discard this draft? ${the[0].toUpperCase()}${the.slice(1)} stays as published.`} confirmLabel="Yes, discard" pendingLabel="Discarding…" />}
-            <button type="button" className="portal-button is-ghost" disabled={pending || !hydrated || !dirty} onClick={() => send("save")}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty || !draft ? "Save draft" : "Saved"}</button>
+            {draft && <DeleteButton tone="quiet" action={() => discard(draft.id)} label="Discard draft" prompt={`Discard this draft? ${the[0].toUpperCase()}${the.slice(1)} stays as published.`} confirmLabel="Yes, discard" pendingLabel="Discarding" />}
+            <button type="button" className="portal-button is-ghost" disabled={pending || !hydrated || !dirty} onClick={() => send("save")}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : dirty || !draft ? "Save draft" : "Saved"}</button>
             <button type="button" className="portal-button" disabled={pending || !hydrated || changes === 0} onClick={() => send("submit")}><Send size={15} aria-hidden="true" /> Send for approval</button>
           </div>
         </div>

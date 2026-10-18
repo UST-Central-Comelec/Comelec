@@ -19,6 +19,7 @@ import { ViewOnly, ViewOnlyTag } from "./view-only";
 import { toast } from "./toast";
 import { ReviewActionIcon } from "./review-action-icon";
 import "./event-form-editor.css";
+import { Busy } from "@/components/busy";
 
 export type RsvpReviewActions = {
   logistics: (id: string, stamp: string, decisions: Partial<Record<RequestKind, boolean>>) => Promise<RsvpResponseResult>;
@@ -144,13 +145,13 @@ export function RsvpResponseReview({ response, titleId, actions, onRemoved, onBu
       {!evaluating && !current && <p className="portal-muted">No response steps to display.</p>}
     </div>
     {!evaluating && <ReviewModalFooter leading={actions && <button type="button" className="portal-button is-danger-ghost portal-destructive-button" disabled={pending || requestBusy || !!conflict} onClick={() => ask("remove")}><ReviewActionIcon kind="remove" disabled={pending || requestBusy || !!conflict} />Remove</button>}>{actions ? editRequestActions ?? <>
-      <button type="button" className="portal-button is-ghost" disabled={pending || requestBusy || editing || !!conflict} onClick={() => run("resend")}><ReviewActionIcon kind="resend" disabled={pending || requestBusy || editing || !!conflict} />{pending && operation === "resend" ? "Sending…" : "Resend"}</button>
-      <button type="button" className="portal-button" disabled={pending || requestBusy || !!conflict || (editing && !dirty)} onClick={() => { if (decisionChanges.length) ask("logistics"); else if (editing) form.current?.requestSubmit(); else { setDraft(initial.values); setEditing(true); } }}><ReviewActionIcon kind="update" disabled={pending || requestBusy || !!conflict || (editing && !dirty)} />{pending && (operation === "update" || operation === "logistics") ? "Updating…" : "Update"}</button>
+      <button type="button" className="portal-button is-ghost" disabled={pending || requestBusy || editing || !!conflict} onClick={() => run("resend")}><ReviewActionIcon kind="resend" disabled={pending || requestBusy || editing || !!conflict} />{pending && operation === "resend" ? <Busy>Sending</Busy> : "Resend"}</button>
+      <button type="button" className="portal-button" disabled={pending || requestBusy || !!conflict || (editing && !dirty)} onClick={() => { if (decisionChanges.length) ask("logistics"); else if (editing) form.current?.requestSubmit(); else { setDraft(initial.values); setEditing(true); } }}><ReviewActionIcon kind="update" disabled={pending || requestBusy || !!conflict || (editing && !dirty)} />{pending && (operation === "update" || operation === "logistics") ? <Busy>Updating</Busy> : "Update"}</button>
     </> : <ViewOnlyTag />}</ReviewModalFooter>}
     <dialog ref={confirmDialog} className="portal-registrant-confirmation" aria-label={confirmation === "remove" ? "Remove RSVP registration" : confirmation === "logistics" ? "Update RSVP logistical decisions" : "Update RSVP response"} onClick={event => { if (event.target === event.currentTarget && !pending) confirmDialog.current?.close(); }} onCancel={event => { if (pending) event.preventDefault(); }}>
       <h2>{confirmation === "remove" ? "Remove RSVP registration?" : confirmation === "logistics" ? "Update logistical requests?" : "Update RSVP response?"}</h2>
       <p>{confirmation === "remove" ? <>Permanently remove <strong>{person.name}</strong>’s collaborator RSVP and its edit requests?</> : confirmation === "logistics" ? <>Save {decisionChanges.length} logistical decision{decisionChanges.length === 1 ? "" : "s"} for <strong>{person.name}</strong> and email them the changes?</> : <>Save the updated answers for <strong>{person.name}</strong> and send an acknowledgement to their email?</>}</p>
-      <div className="portal-registrant-confirmation-actions"><button type="button" className="portal-button is-ghost" autoFocus disabled={pending} onClick={() => confirmDialog.current?.close()}>Cancel</button><button type="button" className={`portal-button ${confirmation === "remove" ? "is-danger" : ""}`} disabled={pending} onClick={() => run(confirmation)}>{confirmation === "remove" ? <ActionDeleteIcon size={15} /> : <ActionSaveIcon size={15} />}{pending ? confirmation === "remove" ? "Removing…" : "Updating…" : confirmation === "remove" ? "Remove Registration" : "Update & Send Email"}</button></div>
+      <div className="portal-registrant-confirmation-actions"><button type="button" className="portal-button is-ghost" autoFocus disabled={pending} onClick={() => confirmDialog.current?.close()}>Cancel</button><button type="button" className={`portal-button ${confirmation === "remove" ? "is-danger" : ""}`} disabled={pending} onClick={() => run(confirmation)}>{confirmation === "remove" ? <ActionDeleteIcon size={15} /> : <ActionSaveIcon size={15} />}{pending ? confirmation === "remove" ? <Busy>Removing</Busy> : <Busy>Updating</Busy> : confirmation === "remove" ? "Remove Registration" : "Update & Send Email"}</button></div>
     </dialog>
   </>;
 }

@@ -52,6 +52,7 @@ export const emailDefaults = {
   "event-waitlisted": true,
   "event-changes": true,
   "event-request": true,
+  "event-edit-link": true,
   "setting-recruitment": true,
   "setting-filings": true,
   "setting-site": true,

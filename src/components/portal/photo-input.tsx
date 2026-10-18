@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 // Photo picker that shrinks the image in the browser before it's sent: resized to at most
 // MAX_SIDE pixels and re-encoded as JPEG, lowering quality until it fits under 1 MB. Member
@@ -75,7 +76,7 @@ export function PhotoInput({ name }: { name: string }) {
   return (
     <>
       <input ref={input} name={name} type="file" accept="image/jpeg,image/png,image/webp" onChange={onChange} />
-      {status.kind === "working" && <span className="portal-field-hint" aria-live="polite">Compressing…</span>}
+      {status.kind === "working" && <span className="portal-field-hint" aria-live="polite"><Busy size={13}>Compressing</Busy></span>}
       {status.kind === "done" && <span className="portal-file-status" aria-live="polite">{status.message}</span>}
     </>
   );

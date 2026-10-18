@@ -18,6 +18,7 @@ import { dateParts, formatDayLabel } from "@/lib/events/format";
 import { addCalendarNote, addCalendarTodo, deleteFromCalendar, editCalendarNote, editCalendarTodo, saveCalendarHighlight, setCalendarTodoDone } from "@/lib/portal/calendar-actions";
 import { toast } from "./toast";
 import "./secretariat-calendar.css";
+import { Busy } from "@/components/busy";
 
 // Secretariat → Calendar: a month of the commission's dates. Events and each unit's Recruitment,
 // Political Party Registration and Filing of Candidacy come in on their own (added from Events and
@@ -570,7 +571,7 @@ function ConfirmRemove({ label, busy, onConfirm }: { label: string; busy: boolea
   if (!armed) return <button type="button" onClick={() => setArmed(true)} aria-label={label}><Trash2 size={14} aria-hidden="true" /></button>;
   return (
     <span className="cal-confirm">
-      <button type="button" className="is-danger" disabled={busy} onClick={async () => { await onConfirm(); setArmed(false); }}><ActionDeleteIcon size={15} aria-hidden="true" />{busy ? "Removing…" : "Remove"}</button>
+      <button type="button" className="is-danger" disabled={busy} onClick={async () => { await onConfirm(); setArmed(false); }}><ActionDeleteIcon size={15} aria-hidden="true" />{busy ? <Busy>Removing</Busy> : "Remove"}</button>
       <button type="button" disabled={busy} onClick={() => setArmed(false)} aria-label="Keep it"><X size={14} aria-hidden="true" /></button>
     </span>
   );
@@ -595,7 +596,7 @@ function Composer({ placeholder, submitLabel, busy, multiline = false, initial =
       {children}
       <span className="cal-composer-actions">
         {onCancel && <button type="button" className="cal-text-button" onClick={onCancel}>Cancel</button>}
-        <button type="button" className="cal-submit" disabled={busy || !text.trim()} onClick={submit}>{busy ? "Saving…" : submitLabel}</button>
+        <button type="button" className="cal-submit" disabled={busy || !text.trim()} onClick={submit}>{busy ? <Busy>Saving</Busy> : submitLabel}</button>
       </span>
     </div>
   );
@@ -702,7 +703,7 @@ function HighlightForm({ draft, setDraft, busy, onSave }: { draft: HighlightDraf
       </div>
       <div className="cal-composer-actions">
         <button type="button" className="cal-text-button" onClick={() => setDraft(null)}>Cancel</button>
-        <button type="button" className="cal-submit" disabled={busy} onClick={onSave}><ActionSaveIcon size={15} aria-hidden="true" />{busy ? "Saving…" : draft.id ? "Save highlight" : "Highlight"}</button>
+        <button type="button" className="cal-submit" disabled={busy} onClick={onSave}><ActionSaveIcon size={15} aria-hidden="true" />{busy ? <Busy>Saving</Busy> : draft.id ? "Save highlight" : "Highlight"}</button>
       </div>
     </div>
   );

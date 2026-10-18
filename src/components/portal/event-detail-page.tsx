@@ -102,6 +102,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
     verified: person.verified,
     sex: sexes[person.sex],
     age: person.age,
+    dateOfBirth: person.dateOfBirth,
     studentNumber: person.studentNumber,
     affiliation: affiliationLabels[person.affiliation],
     // In the list row, a student is placed by their college or faculty.

@@ -5,8 +5,8 @@ import { ToastPill } from "./online-notices";
 import { useToasts } from "./toast";
 
 /**
- * The header's pop-ups (toast.tsx) on their own, for a portal without who's-online: the party
- * portal. The same stack, centred on the header, as a popover so it sits above an open dialog too.
+ * The pop-ups (toast.tsx) on their own, for a portal without who's-online: the party
+ * portal. The same stack, bottom right, as a popover so it sits above an open dialog too.
  */
 export function ToastStack() {
   const toasts = useToasts();

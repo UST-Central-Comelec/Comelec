@@ -57,6 +57,34 @@ const registration = { ...events.emptyRegistration(), firstName: "Juan1", instit
 const registrationErrors = events.checkRegistration(registration, { allowed: [], requireGoogle: false, verifiedEmail: null });
 assert.ok(registrationErrors.firstName);
 assert.match(registrationErrors.institution, /Emoji/);
+
+// UST email verification starts with personal information, before affiliation is chosen.
+const emailContext = { allowed: ["ust-student", "ust-staff", "independent"], requireGoogle: false, verifiedEmail: null };
+const personal = { ...events.emptyRegistration(), lastName: "CRUZ", firstName: "ANA", middleName: "REYES", sex: "female", dateOfBirth: "01/15/2004", email: "ana@ust.edu.ph" };
+const birthdayForm = new FormData();
+birthdayForm.set("dateOfBirth", personal.dateOfBirth);
+assert.equal(events.readRegistration(birthdayForm).dateOfBirth, "2004-01-15", "Typed birthdays reach the server as calendar dates");
+assert.equal(events.needsVerification(personal, emailContext), true);
+assert.match(events.checkRegistration(personal, emailContext, 1).verification, /Verify/);
+assert.equal(events.stepOf.verification, 1, "Verification failures return to the email step");
+assert.deepEqual(events.checkRegistration(personal, { ...emailContext, verifiedEmail: personal.email }, 1), {});
+assert.deepEqual(events.checkRegistration({ ...personal, email: "guest@example.com" }, emailContext, 1), {});
+assert.ok(events.checkRegistration({ ...personal, email: "" }, { ...emailContext, requireGoogle: true }, 1).email, "Email is required before leaving personal information");
+for (const email of ["@ust.edu.ph", "ana@ust.edu.ph.example.com", "ana@ust.edu.ph@other.com", "ana@ust.edu.p"]) {
+  assert.equal(events.needsVerification({ ...personal, email }, emailContext), false, `No Google prompt for ${email}`);
+}
+assert.equal(events.needsVerification({ ...personal, email: "ANA@UST.EDU.PH" }, emailContext), true);
+const ustIndependent = { ...personal, consent: true, affiliation: "independent", attendingAs: "independent" };
+assert.match(events.checkRegistration(ustIndependent, emailContext).verification, /Verify/, "Changing affiliation cannot bypass UST email verification");
+assert.deepEqual(events.checkRegistration(ustIndependent, { ...emailContext, verifiedEmail: personal.email }), {});
+assert.equal(events.needsVerification({ ...personal, email: "guest@example.com", affiliation: "ust-staff" }, { ...emailContext, requireGoogle: true }), true, "Events can still require verification for UST affiliations");
+for (const studentNumber of ["", "123456789", "12345678901", "2026A23456", "2026-12345"]) {
+  const student = { ...personal, affiliation: "ust-student", studentNumber };
+  assert.ok(events.checkRegistration(student, emailContext, 2).studentNumber, `UST students must supply 10 digits: ${studentNumber}`);
+  assert.ok(events.checkRegistration(student, emailContext).studentNumber, "The final server check enforces the same requirement");
+}
+assert.equal(events.checkRegistration({ ...personal, affiliation: "ust-student", studentNumber: "2026123456" }, emailContext, 2).studentNumber, undefined);
+for (const affiliation of ["ust-staff", "independent", "other-institution"]) assert.equal(events.checkRegistration({ ...personal, affiliation, studentNumber: "" }, emailContext, 2).studentNumber, undefined, `${affiliation} does not need a student number`);
 const accessErrors = access.checkAccessRequest({ ...access.readAccessRequest(form), facebookUrl: "facebook.com/😀" });
 assert.ok(accessErrors.firstName);
 assert.match(accessErrors.facebookUrl, /Emoji/);

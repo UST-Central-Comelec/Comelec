@@ -96,9 +96,9 @@ export default async function ManageAccountPage({ params, searchParams }: PagePr
               own || builtIn || viewer ? undefined : (
                 <div className="portal-account-danger">
                   {account.active ? (
-                    <DeleteButton tone="quiet" icon={<Ban size={15} aria-hidden="true" />} action={setAccountAccess.bind(null, account.id, false)} label="Revoke access" prompt="Block their access to the portal?" confirmLabel="Yes, revoke" pendingLabel="Revoking…" />
+                    <DeleteButton tone="quiet" icon={<Ban size={15} aria-hidden="true" />} action={setAccountAccess.bind(null, account.id, false)} label="Revoke access" prompt="Block their access to the portal?" confirmLabel="Yes, revoke" pendingLabel="Revoking" />
                   ) : (
-                    <ActionButton icon={<RotateCcw size={15} aria-hidden="true" />} action={setAccountAccess.bind(null, account.id, true)} label="Restore access" pendingLabel="Restoring…" />
+                    <ActionButton icon={<RotateCcw size={15} aria-hidden="true" />} action={setAccountAccess.bind(null, account.id, true)} label="Restore access" pendingLabel="Restoring" />
                   )}
                   <DeleteButton icon={<Trash2 size={15} aria-hidden="true" />} action={deleteAccount.bind(null, account.id)} label="Delete account" prompt="Delete this account for good? This can’t be undone." />
                 </div>

@@ -1,5 +1,5 @@
 import { affiliations, type Affiliation } from "@/lib/data/types";
-import { comelecUnits, onReferenceChange, replaceArray } from "@/lib/applications/options";
+import { collegeSearchAliases, comelecUnits, filterCollegeOptions, onReferenceChange, replaceArray, unitAbbreviations } from "@/lib/applications/options";
 import type { PeriodKind } from "@/lib/periods/kinds";
 import type { VenueType } from "./activity-checklist";
 
@@ -50,6 +50,19 @@ onReferenceChange(() => replaceArray(collaboratorUnits, [
   ...comelecUnits.map(college => ({ value: college, label: `${college} Comelec Unit` })),
 ]));
 export const collaboratorLabel = (value: string) => collaboratorUnits.find(unit => unit.value === value)?.label ?? value;
+
+/** Registration suggestions use the same Local units and search aliases as the collaborator list. */
+export function filterOrganizationUnits(options: readonly string[], query: string): readonly string[] {
+  const matchingUnits = new Set(filterCollegeOptions(comelecUnits, query));
+  const search = query.trim().toLowerCase();
+  return options.filter(option => option.toLowerCase().includes(search) || collaboratorUnits.some(unit => unit.label === option && matchingUnits.has(unit.value)))
+    .map((option, index) => {
+      const unit = collaboratorUnits.find(unit => unit.label === option)?.value ?? "";
+      const names = [option, unit, unitAbbreviations[unit] ?? "", ...(collegeSearchAliases[unit] ?? [])].map(name => name.toLowerCase());
+      const rank = names.includes(search) ? 0 : names.some(name => name.startsWith(search)) ? 1 : 2;
+      return { option, index, rank };
+    }).sort((a, b) => a.rank - b.rank || a.index - b.index).map(item => item.option);
+}
 
 export type Audience = keyof typeof audiences;
 

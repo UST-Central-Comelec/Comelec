@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { ReviewActionIcon } from "./review-action-icon";
+import { Busy } from "@/components/busy";
 
 type Props = {
   action: () => Promise<void>;
@@ -19,7 +20,7 @@ type Props = {
 };
 
 /** Two-step destructive action: the first click arms the button, the second confirms. */
-export function DeleteButton({ action, label = "Delete", prompt = "Delete permanently?", confirmLabel = "Yes, delete", pendingLabel = "Deleting…", dialogTitle, icon, animatedIcon = true, tone = "danger" }: Props) {
+export function DeleteButton({ action, label = "Delete", prompt = "Delete permanently?", confirmLabel = "Yes, delete", pendingLabel = "Deleting", dialogTitle, icon, animatedIcon = true, tone = "danger" }: Props) {
   const [armed, setArmed] = useState(false);
   const [pending, startTransition] = useTransition();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -39,7 +40,7 @@ export function DeleteButton({ action, label = "Delete", prompt = "Delete perman
           <button className="portal-button is-ghost" type="button" autoFocus disabled={pending} onClick={() => dialog.current?.close()}>Keep</button>
           <button className="portal-button is-danger portal-destructive-button" type="button" disabled={pending} onClick={() => startTransition(async () => { await action(); dialog.current?.close(); })}>
             {animatedIcon && <ReviewActionIcon kind="remove" disabled={pending} />}
-            {pending ? pendingLabel : confirmLabel}
+            {pending ? <Busy>{pendingLabel}</Busy> : confirmLabel}
           </button>
         </div>
       </dialog>
@@ -56,7 +57,7 @@ export function DeleteButton({ action, label = "Delete", prompt = "Delete perman
       <button className={tone === "black" ? "portal-registrant-action-button" : "portal-button is-ghost"} type="button" disabled={pending} onClick={() => setArmed(false)}>Keep</button>
       <button className={`portal-destructive-button ${tone === "black" ? "portal-registrant-action-button" : "portal-button is-danger"}`} type="button" disabled={pending} onClick={() => startTransition(() => action())}>
         {animatedIcon && <ReviewActionIcon kind="remove" disabled={pending} />}
-        {pending ? pendingLabel : confirmLabel}
+        {pending ? <Busy>{pendingLabel}</Busy> : confirmLabel}
       </button>
     </span>
   );
@@ -65,5 +66,5 @@ export function DeleteButton({ action, label = "Delete", prompt = "Delete perman
 /** A one-step action as a plain button, for where a `<form>` of its own can't go (inside another form). */
 export function ActionButton({ action, label, pendingLabel, icon }: { action: () => Promise<void>; label: string; pendingLabel: string; icon?: ReactNode }) {
   const [pending, startTransition] = useTransition();
-  return <button className="portal-button is-ghost" type="button" disabled={pending} onClick={() => startTransition(() => action())}>{icon}{pending ? pendingLabel : label}</button>;
+  return <button className="portal-button is-ghost" type="button" disabled={pending} onClick={() => startTransition(() => action())}>{icon}{pending ? <Busy>{pendingLabel}</Busy> : label}</button>;
 }

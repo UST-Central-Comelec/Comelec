@@ -7,7 +7,7 @@ import { useOnline } from "./online-provider";
 import { dismissToast, toastDuration, useToasts, type ToastItem } from "./toast";
 
 /**
- * Centred on the header: someone asking to follow, who you're following or who's following you
+ * Bottom right of the screen: someone asking to follow, who you're following or who's following you
  * (each with a way to stop it), short updates such as a chat ending, and every action's "Saved" or
  * "Couldn't save" (toast.tsx). It's a popover, so it sits above an open dialog too. While the
  * drawer is open, requests are answered in the drawer instead.
@@ -36,7 +36,7 @@ export function OnlineNotices() {
   }, [count, newest, notices.length]);
 
   return <div ref={stack} popover="manual" className="portal-online-notices" role="region" aria-label="Notifications">
-    {/* Newest first, so what was just done sits on the header line. */}
+    {/* Newest first; the stack runs upward, so what was just done sits nearest the corner. */}
     {toasts.toReversed().map((item) => <ToastPill key={item.id} item={item} />)}
     {requests.map((contact) => <div key={contact.accountId} className="portal-online-notice is-request" role="alertdialog" aria-label={`${contact.name} wants to follow you`}>
       <p><strong>{contact.name}</strong> wants to follow you. They’ll be taken to each page you open, until either of you stops.</p>

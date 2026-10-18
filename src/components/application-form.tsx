@@ -28,6 +28,7 @@ import { SESSION_SLOT } from "@/components/apply-banner";
 import { createPortal } from "react-dom";
 import { DraftExpired, DraftStrip } from "@/components/draft-notice";
 import { ApplyTracker, Field, Required, ReviewSection, VerifiedBadge } from "@/components/apply-form-parts";
+import { Busy } from "@/components/busy";
 
 const steps: Array<{ title: string; description: string; fields: ApplicationField[] }> = [
   { title: "Data Privacy Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
@@ -166,7 +167,7 @@ function ApplicationResult({ result, preview, onRestart }: { result?: SubmittedA
           </dl>
           <div className="apply-result-save">
             <p>{saving === "failed" ? "Couldn’t create the image. Take a screenshot of this page instead." : "Keep a copy of this receipt, with your reference code and all your answers, as an image."}</p>
-            <button type="button" onClick={save} disabled={saving === "saving"}><DownloadIcon size={15} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
+            <button type="button" onClick={save} disabled={saving === "saving"}><DownloadIcon size={15} aria-hidden="true" /> {saving === "saving" ? <Busy>Preparing</Busy> : "Download receipt"}</button>
           </div>
         </section>
       )}
@@ -813,7 +814,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
           ) : <span />}
           {(step !== 3 || (canOfferPositions && (!selectedBody || openPositions.length > 0))) && (
             <button className="button-primary" type="submit" disabled={pending || transitioning || redirecting || waitingForGoogle || !hydrated}>
-              {step === 0 && !verified && !preview ? (waitingForGoogle ? "Waiting for Google…" : <>Continue with UST Google <ArrowRight size={15} /></>) : step === 1 ? <>I confirm <ArrowRight size={15} /></> : step < lastStep ? <>Continue <ArrowRight size={15} /></> : pending ? "Submitting…" : <>Submit application <ArrowRight size={15} /></>}
+              {step === 0 && !verified && !preview ? (waitingForGoogle ? <Busy>Waiting for Google</Busy> : <>Continue with UST Google <ArrowRight size={15} /></>) : step === 1 ? <>I confirm <ArrowRight size={15} /></> : step < lastStep ? <>Continue <ArrowRight size={15} /></> : pending ? <Busy>Submitting</Busy> : <>Submit application <ArrowRight size={15} /></>}
             </button>
           )}
         </footer>

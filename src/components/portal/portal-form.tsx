@@ -6,6 +6,7 @@ import { startTransition, useActionState, useSyncExternalStore, type FormEvent, 
 import type { FormState } from "@/lib/portal/form";
 import { InfoTip } from "./info-tip";
 import { useToast } from "./toast";
+import { Busy } from "@/components/busy";
 
 type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
 
@@ -78,7 +79,7 @@ export function FormActions({ pending, submitLabel, submitIcon, cancelHref, form
     <div className="portal-form-actions">
       {children}
       {cancelVisible && <Link className={`portal-button is-ghost${size}`} href={cancelHref}>Cancel</Link>}
-      <button className={`portal-button${size}`} type="submit" form={formId} disabled={pending || saveDisabled || !(hydrated ?? ready)}>{submitIcon ?? (/^(add|create)\b/i.test(submitLabel) ? <AddIcon size={15} /> : <SaveIcon size={15} />)}{pending ? "Saving…" : submitLabel}</button>
+      <button className={`portal-button${size}`} type="submit" form={formId} disabled={pending || saveDisabled || !(hydrated ?? ready)}>{submitIcon ?? (/^(add|create)\b/i.test(submitLabel) ? <AddIcon size={15} /> : <SaveIcon size={15} />)}{pending ? <Busy>Saving</Busy> : submitLabel}</button>
     </div>
   );
 }

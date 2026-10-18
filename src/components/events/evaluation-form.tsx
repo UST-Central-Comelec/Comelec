@@ -14,6 +14,7 @@ import { checkEvaluationProfile, submitEvaluation, type EvaluationProfileState }
 import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
 import { DraftNotice } from "@/components/draft-notice";
 import { useFormDraft } from "@/components/use-form-draft";
+import { Busy } from "@/components/busy";
 
 function Requirement({ required }: { required: boolean }) { return required ? <span className="ev-evaluation-required" aria-label="required">*</span> : <span className="ev-evaluation-optional">Optional</span>; }
 
@@ -204,7 +205,7 @@ export function EvaluationForm({ eventId, eventName, settings, preview = false }
         {state.error && <p className="ev-field-error ev-evaluation-error" role="alert">{state.error} You can return to earlier steps to correct your answers.</p>}
       <div className="apply-nav ev-form-foot ev-evaluation-nav">
         {step > 0 && <button type="button" className="ev-button is-ghost is-back" disabled={busy} onClick={() => go(step - 1)}><ArrowLeft size={16} aria-hidden="true" />Back</button>}
-        {step < lastStep ? <button type="submit" className="ev-button is-primary" disabled={busy}>{checkingProfile ? "Checking…" : "Continue"}{!checkingProfile && <ArrowRight size={16} aria-hidden="true" />}</button> : preview ? <button className="ev-button is-primary" type="button" onClick={() => setShowAcknowledgement(true)}>See the acknowledgement<ArrowRight size={16} aria-hidden="true" /></button> : <button className="ev-button is-primary" disabled={busy} type="submit">{pending ? "Submitting…" : "Submit evaluation"}{!pending && <Check size={16} aria-hidden="true" />}</button>}
+        {step < lastStep ? <button type="submit" className="ev-button is-primary" disabled={busy}>{checkingProfile ? <Busy>Checking</Busy> : "Continue"}{!checkingProfile && <ArrowRight size={16} aria-hidden="true" />}</button> : preview ? <button className="ev-button is-primary" type="button" onClick={() => setShowAcknowledgement(true)}>See the acknowledgement<ArrowRight size={16} aria-hidden="true" /></button> : <button className="ev-button is-primary" disabled={busy} type="submit">{pending ? <Busy>Submitting</Busy> : "Submit evaluation"}{!pending && <Check size={16} aria-hidden="true" />}</button>}
       </div>
       </div>
     </form>

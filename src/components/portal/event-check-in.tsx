@@ -11,6 +11,7 @@ import type { RegistrationDetailGroup } from "@/lib/events/registration-details"
 import { Field } from "./portal-form";
 import { toast } from "./toast";
 import "./event-workflows.css";
+import { Busy } from "@/components/busy";
 
 const lookupModes = [
   { value: "reference", label: "Reference code", icon: Ticket },
@@ -174,7 +175,7 @@ export function EventCheckIn({ eventId }: { eventId: string }) {
   }
 
   return (
-    <section ref={booth} className={`portal-attendance${fullscreen ? " is-fullscreen" : ""}${notFound ? " is-not-found" : ""}`} aria-label="Event check-in booth">
+    <section ref={booth} data-theme="dark" className={`portal-attendance${fullscreen ? " is-fullscreen" : ""}${notFound ? " is-not-found" : ""}`} aria-label="Event check-in booth">
       <header className="portal-attendance-header">
         <div className="event-booth-brand"><Image src="/images/Logo-1.png" alt="" width={48} height={48} /><div><span>University of Santo Tomas</span><strong>Central Comelec</strong></div></div>
         <div className="event-booth-actions">
@@ -200,7 +201,7 @@ export function EventCheckIn({ eventId }: { eventId: string }) {
                   </fieldset>
                 ))}
               </div>
-              <button className={`portal-button event-attendance-primary event-lookup-submit${notFound ? " is-danger" : ""}`} type={notFound ? "button" : "submit"} aria-describedby={notFound ? lookupStatusId : undefined} onClick={notFound ? () => returnToLookup(true) : undefined}>{notFound ? <RotateCcw size={16} aria-hidden="true" /> : pending && working === "lookup" ? <LoaderCircle size={16} className="event-icon-spin" aria-hidden="true" /> : <Search size={16} aria-hidden="true" />}{notFound ? "Registrant Not Found" : pending && working === "lookup" ? "Finding registration…" : "Preview details"}<ArrowRight size={15} aria-hidden="true" /></button>
+              <button className={`portal-button event-attendance-primary event-lookup-submit${notFound ? " is-danger" : ""}`} type={notFound ? "button" : "submit"} aria-describedby={notFound ? lookupStatusId : undefined} onClick={notFound ? () => returnToLookup(true) : undefined}>{notFound ? <RotateCcw size={16} aria-hidden="true" /> : pending && working === "lookup" ? <LoaderCircle size={16} className="event-icon-spin" aria-hidden="true" /> : <Search size={16} aria-hidden="true" />}{notFound ? "Registrant Not Found" : pending && working === "lookup" ? <Busy>Finding registration</Busy> : "Preview details"}<ArrowRight size={15} aria-hidden="true" /></button>
               {notFound && <span id={lookupStatusId} className="portal-visually-hidden" role="alert">Registrant Not Found. Click to reset the attendance sheet, or wait 10 seconds for it to reset automatically.</span>}
             </fieldset>
           </form>}
@@ -211,7 +212,7 @@ export function EventCheckIn({ eventId }: { eventId: string }) {
             {people.slice(selectedPerson, selectedPerson + 1).map(person => <article className="event-attendance-person" key={person.id}>
               <header><span className="event-person-icon"><UserRound size={23} aria-hidden="true" /></span><div><h3>{person.name}</h3><p className="event-attendance-reference">Reference code <strong>{person.referenceCode}</strong></p></div></header>
               <span className={`portal-tag${person.confirmedAt ? " is-ok" : " is-gold"}`}>{person.confirmedAt ? "Already checked in" : "Registered"}</span>
-              <div className="event-attendance-confirm"><CheckInDetails person={person} /><button className="portal-button event-attendance-primary" type="button" disabled={pending} onClick={() => confirm(person)}>{pending && working === person.id ? <LoaderCircle size={15} className="event-icon-spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}{pending && working === person.id ? "Confirming…" : person.confirmedAt ? "View confirmation" : "Confirm Attendance"}</button></div>
+              <div className="event-attendance-confirm"><CheckInDetails person={person} /><button className="portal-button event-attendance-primary" type="button" disabled={pending} onClick={() => confirm(person)}>{pending && working === person.id ? <LoaderCircle size={15} className="event-icon-spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}{pending && working === person.id ? <Busy>Confirming</Busy> : person.confirmedAt ? "View confirmation" : "Confirm Attendance"}</button></div>
             </article>)}
           </div>}
 

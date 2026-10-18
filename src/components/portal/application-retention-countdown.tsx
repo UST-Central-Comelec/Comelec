@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APPLICATION_RETENTION_DAYS } from "@/lib/applications/options";
+import { Busy } from "@/components/busy";
 
 export function ApplicationRetentionCountdown({ submittedAt }: { submittedAt: string }) {
   const [now, setNow] = useState<number | null>(null);
@@ -20,7 +21,7 @@ export function ApplicationRetentionCountdown({ submittedAt }: { submittedAt: st
   if (!Number.isFinite(expiresAt)) return null;
 
   const secondsLeft = now === null ? null : Math.max(0, Math.ceil((expiresAt - now) / 1000));
-  const countdown = secondsLeft === null ? "Calculating…" : secondsLeft === 0 ? "Deletion due" :
+  const countdown = secondsLeft === null ? <Busy>Calculating</Busy> : secondsLeft === 0 ? "Deletion due" :
     `Auto-deletes in ${Math.floor(secondsLeft / 86_400)}d ${Math.floor(secondsLeft % 86_400 / 3600)}h ${Math.floor(secondsLeft % 3600 / 60)}m ${secondsLeft % 60}s`;
 
   return (

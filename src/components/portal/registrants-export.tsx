@@ -6,6 +6,7 @@ import { DownloadIcon } from "@/components/lucide-animated/download";
 import { toast } from "./toast";
 import type { EventResponseRow } from "./event-responses-table";
 import "./directory-database.css";
+import { BusyIcon } from "@/components/busy";
 
 const formats = [
   { key: "xlsx", label: "Excel (.xlsx)", icon: FileSpreadsheet },
@@ -57,13 +58,13 @@ export function RegistrantsExport({ rows, rsvp }: { rows: EventResponseRow[]; rs
   }
 
   return <>
-    <button ref={button} type="button" className="portal-icon-button" aria-label={pending ? "Exporting…" : "Export data"} title={pending ? "Exporting…" : "Export data"} disabled={pending || rows.length === 0} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => {
+    <button ref={button} type="button" className="portal-icon-button" aria-label={pending ? "Exporting data" : "Export data"} title={pending ? "Exporting data" : "Export data"} disabled={pending || rows.length === 0} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => {
       if (open) { panel.current?.hidePopover(); return; }
       const rect = button.current!.getBoundingClientRect();
       const width = Math.min(260, window.innerWidth - 24);
       setPosition({ left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)), top: rect.bottom + 6 });
       panel.current?.showPopover();
-    }}><DownloadIcon size={15} aria-hidden="true" /></button>
+    }}>{pending ? <BusyIcon /> : <DownloadIcon size={15} aria-hidden="true" />}</button>
     <div ref={panel} id={id} popover="auto" role="dialog" aria-label="Export options" className="directory-export-menu" style={{ ...position, maxHeight: `calc(100dvh - ${position.top + 12}px)` }} onToggle={event => setOpen(event.newState === "open")} onKeyDown={event => {
       if (event.key === "Escape") { event.preventDefault(); panel.current?.hidePopover(); button.current?.focus(); }
     }}>

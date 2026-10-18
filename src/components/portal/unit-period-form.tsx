@@ -12,6 +12,7 @@ import type { FormState } from "@/lib/portal/form";
 import { EventDetailsFields } from "./event-details-fields";
 import { InfoTip } from "./info-tip";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 const options: Array<{ mode: "scheduled" | "closed"; label: string; icon: typeof LockOpenIcon }> = [
   { mode: "scheduled", label: "Scheduled Open", icon: CalendarCogIcon },
@@ -68,7 +69,7 @@ export function UnitPeriodForm({ action, mode: savedMode, initial, noun, allowBo
         <span />
         <div className="portal-form-actions">
           <button className={`portal-button${closing ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />
-            {pending ? "Saving…" : closing ? `Close in ${CLOSE_GRACE_MINUTES} minutes` : mode === "scheduled" ? "Save and schedule" : "Save"}
+            {pending ? <Busy>Saving</Busy> : closing ? `Close in ${CLOSE_GRACE_MINUTES} minutes` : mode === "scheduled" ? "Save and schedule" : "Save"}
           </button>
         </div>
       </div>

@@ -17,6 +17,7 @@ import { Field, useHydrated, usePortalForm } from "./portal-form";
 import { SlidingFilterButtons } from "./sliding-filters";
 import { ViewOnly } from "./view-only";
 import "./onboarding.css";
+import { Busy } from "@/components/busy";
 
 const tabs = [{ key: "edit", label: <span className="onboarding-view-label"><Pencil size={14} aria-hidden="true" />Edit</span> }, { key: "preview", label: <span className="onboarding-view-label"><Eye size={14} aria-hidden="true" />Preview</span> }] as const;
 
@@ -74,7 +75,7 @@ export function OnboardingDocumentEditor({ document, readOnly, isNew = false }: 
             </div>
             <div className="portal-form-actions">
               <button type="button" className="portal-button is-ghost" disabled={pending || !dirty} onClick={() => { setDraft(saved); setEditorVersion(current => current + 1); }}>Discard</button>
-              <button type="submit" className="portal-button" disabled={pending || !dirty || !hydrated}>{isNew ? <Plus size={15} aria-hidden="true" /> : <SaveIcon size={15} aria-hidden="true" />}{pending ? "Saving…" : dirty ? (isNew ? "Add step" : "Save as new version") : "Saved"}</button>
+              <button type="submit" className="portal-button" disabled={pending || !dirty || !hydrated}>{isNew ? <Plus size={15} aria-hidden="true" /> : <SaveIcon size={15} aria-hidden="true" />}{pending ? <Busy>Saving</Busy> : dirty ? (isNew ? "Add step" : "Save as new version") : "Saved"}</button>
             </div>
           </footer>
         )}

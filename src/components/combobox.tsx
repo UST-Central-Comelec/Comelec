@@ -10,7 +10,7 @@ import { filterCollegeOptions } from "@/lib/applications/options";
  * when the sent value differs from the label). `pickOnly` makes it a plain picker for short lists.
  * `freeText` makes the options suggestions: whatever is typed is the value, trimmed on leaving.
  */
-export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, required, disabled, pickOnly, freeText, describedBy, labelledBy, filterOptions, emptyText = "No match. Try another name." }: {
+export function Combobox({ name, options, value, submitValue, onChange, placeholder, invalid, required, disabled, pickOnly, freeText, describedBy, labelledBy, filterOptions, emptyText = "No match. Try another name.", customOptionLabel, customOptionHint = "Type your own name.", maxLength }: {
   name: string;
   options: readonly string[];
   value: string;
@@ -23,6 +23,10 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
   disabled?: boolean;
   pickOnly?: boolean;
   freeText?: boolean;
+  /** A final group for explicitly keeping a typed answer that is not a suggestion. */
+  customOptionLabel?: string;
+  customOptionHint?: string;
+  maxLength?: number;
   describedBy?: string;
   /** Id of the visible label, when the combobox isn't inside a <label>. */
   labelledBy?: string;
@@ -84,6 +88,8 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
   const search = query.trim().toLowerCase();
   const filter = (query: string) => (filterOptions ?? filterCollegeOptions)(options, query);
   const matches = pickOnly || !search || (!freeText && query === value) ? options : filter(search);
+  const customOption = freeText && customOptionLabel && search && !options.some(option => option.toLowerCase() === search) ? query.trim() : null;
+  const choices = customOption ? [...matches, customOption] : matches;
 
   const choose = (option: string) => {
     onChange(option);
@@ -103,7 +109,7 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
 
   /** Opens the list on the current choice, so Enter keeps it rather than taking the first option. */
   const openList = () => {
-    setActive(Math.max(matches.indexOf(value), 0));
+    setActive(Math.max(choices.indexOf(value), 0));
     show();
   };
 
@@ -122,7 +128,7 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
     if (event.key === "Backspace" && hasSelectedOption && !event.nativeEvent.isComposing) {
       event.preventDefault();
       clearSelection();
-    } else if (event.key === "Tab" && !event.shiftKey && open && !pickOnly) {
+    } else if (event.key === "Tab" && !event.shiftKey && open && !pickOnly && !(freeText && customOptionLabel)) {
       // Commit the first search result and let Tab move focus normally. Keep an existing
       // selection when the field was only focused, without a new search.
       if (matches[0] && (query !== value || !options.includes(value))) choose(matches[0]);
@@ -134,10 +140,10 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
       event.preventDefault();
       if (!open) return show();
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((current) => (current + step + matches.length) % Math.max(matches.length, 1));
+      setActive((current) => (current + step + choices.length) % Math.max(choices.length, 1));
     } else if ((event.key === "Enter" || (pickOnly && event.key === " ")) && open) {
       event.preventDefault();
-      if (matches[active]) choose(matches[active]);
+      if (choices[active]) choose(choices[active]);
     } else if (event.key === "Escape" && open) {
       event.preventDefault();
       setOpen(false);
@@ -152,13 +158,14 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
-        aria-activedescendant={open && matches[active] ? `${listId}-${active}` : undefined}
+        aria-activedescendant={open && choices[active] ? `${listId}-${active}` : undefined}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         aria-labelledby={labelledBy}
         value={query}
         placeholder={collegeField ? collegePlaceholder : placeholder}
         autoComplete="off"
+        maxLength={maxLength}
         disabled={disabled}
         readOnly={pickOnly}
         onChange={(event) => {
@@ -217,6 +224,10 @@ export function Combobox({ name, options, value, submitValue, onChange, placehol
               {option}
             </li>
           )) : <li className="combobox-empty">{emptyText}</li>}
+          {freeText && customOptionLabel && <>
+            <li role="presentation" className="combobox-custom-heading">{customOptionLabel}</li>
+            {customOption ? <li id={`${listId}-${matches.length}`} role="option" aria-selected={customOption === value} className={`combobox-custom-option${active === matches.length ? " is-active" : ""}`} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActive(matches.length)} onClick={() => choose(customOption)}>Use “{customOption}”</li> : <li role="presentation" className="combobox-empty">{customOptionHint}</li>}
+          </>}
         </ul>
       )}
     </div>

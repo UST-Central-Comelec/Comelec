@@ -23,6 +23,7 @@ import { ChevronRight, ShieldCheck, Clock } from "lucide-react";
 import { SearchIcon as Search, CloseIcon as X } from "@/components/action-icons";
 import { unstable_rethrow } from "next/navigation";
 import { requestDecisionStatus, type DecisionsResult, type RegistrationKind, type RequestKind, type RequestStatus } from "@/lib/events/options";
+import { Busy } from "@/components/busy";
 
 /** One person's sign-up, with their answers already in words. */
 export type EventResponseRow = {
@@ -42,6 +43,7 @@ export type EventResponseRow = {
   verified: boolean;
   sex: string;
   age: number | null;
+  dateOfBirth?: string | null;
   studentNumber: string | null;
   /** "UST student", "Another institution". */
   affiliation: string;
@@ -109,7 +111,7 @@ const matchesStatusFilter = (row: EventResponseRow, filter: StatusFilter) => {
 };
 const responseFilters: { key: ResponseFilter; label: string; icon: typeof UserPlusIcon }[] = [{ key: "registrants", label: "Registrants", icon: UserPlusIcon }, { key: "rsvp", label: "RSVP Responses", icon: UserRoundCogIcon }];
 export const matchesResponseFilter = (row: EventResponseRow, filter: ResponseFilter) => filter === "registrants" ? row.registered !== false : Boolean(row.rsvp);
-type AddressEdit = (requestId: string, decision: "accepted" | "declined") => Promise<{ error?: string; saved?: boolean }>;
+type AddressEdit = (requestId: string, decision: "accepted" | "declined") => Promise<{ error?: string; saved?: boolean; email?: "sent" | "failed" | "off" | "none"; to?: string }>;
 type Resend = (registrationId: string) => Promise<{ sent: boolean; message: string }>;
 /** Saves the picks made for one registrant (approved or not) and emails them the ones that changed. */
 type Save = (registrationId: string, decisions: Partial<Record<RequestKind, boolean>>) => Promise<DecisionsResult>;
@@ -220,7 +222,10 @@ function Registrant({ row, columns, evaluationQuestions, remove, save, resend, p
         const result = await addressEdit(id, decision);
         if (result.error || !result.saved) { toast(result.error ?? "Couldn’t address the request. Try again.", "error"); return; }
         setDecisions(current => ({ ...current, [id]: decision }));
-        toast(decision === "accepted" ? "Edit request accepted. Review and update the submission." : "Edit request declined.");
+        if (decision === "declined") toast("Edit request declined.");
+        else if (result.email === "sent") toast(`Edit request accepted, and ${result.to} has been emailed a link to edit and resubmit. The link is also on their tracking page.`);
+        else if (result.email === "failed") toast("Edit request accepted, but the email with the edit link didn’t send. They can still open it from their tracking page.", "warn");
+        else toast("Edit request accepted. They can open the edit link from their tracking page.", result.email === "none" ? "warn" : "ok");
       } catch (error) {
         unstable_rethrow(error);
         toast("Couldn’t address the request. Try again.", "error");
@@ -246,11 +251,11 @@ function Registrant({ row, columns, evaluationQuestions, remove, save, resend, p
   </div> : undefined;
   const editRequestPanels = shownEditRequests.map(request => {
     const status = decisions[request.id] ?? request.status;
-    const label = status === "pending" ? "Edit requested" : status === "accepted" ? "Accepted" : status === "declined" ? "Declined" : "Addressed";
+    const label = status === "pending" ? "Edit requested" : status === "accepted" ? request.edited_at ? "Resubmitted" : "Accepted, link sent" : status === "declined" ? "Declined" : "Addressed";
     return <section className="portal-response-edit-request" key={request.id} aria-label="Response edit request">
       <header><h3>{request.rsvp_response_id ? "RSVP edit request" : "Registration edit request"}</h3><span className={`portal-tag ${status === "pending" ? "is-gold" : status === "declined" ? "is-warn" : "is-ok"}`}>{label}</span></header>
       <p>{request.requested_changes}</p>
-      <span className="portal-muted">Requested {new Date(request.created_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</span>
+      <span className="portal-muted">Requested {new Date(request.created_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}{request.edited_at && ` · Resubmitted ${new Date(request.edited_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}`}</span>
     </section>;
   });
 
@@ -305,6 +310,7 @@ function Registrant({ row, columns, evaluationQuestions, remove, save, resend, p
                   ["Email", <><span>{row.email}</span>{row.verified && <span className="portal-verified" title="Verified through UST Google"><ShieldCheck size={12} aria-hidden="true" />Verified</span>}</>, row.email],
                   ["Sex", row.sex],
                   ["Age", row.age === null ? "Not given" : String(row.age)],
+                  ...(row.dateOfBirth ? [["Birthday", new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2-digit", year: "numeric", timeZone: "UTC" }).format(new Date(`${row.dateOfBirth}T00:00:00Z`))] as [string, string]] : []),
                   ["Student number", row.studentNumber || "Not given"],
                 ]} />
                 <Facts title="Affiliation" number="02" facts={[["Affiliation", row.affiliation], ...row.affiliationFacts]} />
@@ -314,7 +320,7 @@ function Registrant({ row, columns, evaluationQuestions, remove, save, resend, p
           </div>
           {visited && (view === "registration" || view === "logistics") && (resend || remove || save || editRequestActions) && <ReviewModalFooter leading={remove && <button type="button" className="portal-button is-danger-ghost portal-destructive-button" disabled={pending} onClick={() => openConfirmation("remove")}><ReviewActionIcon kind="remove" disabled={pending} />Remove</button>}>
             {editRequestActions ?? <>
-              {resend && <button type="button" className="portal-button is-ghost" disabled={pending} onClick={resendEmail}><ReviewActionIcon kind="resend" disabled={pending} />{pending && !confirmation ? "Sending…" : "Resend"}</button>}
+              {resend && <button type="button" className="portal-button is-ghost" disabled={pending} onClick={resendEmail}><ReviewActionIcon kind="resend" disabled={pending} />{pending && !confirmation ? <Busy>Sending</Busy> : "Resend"}</button>}
               {save && <button type="button" className="portal-button" disabled={pending || (view === "logistics" && changes.length === 0)} onClick={() => { if (changes.length) openConfirmation("update"); else setView("logistics"); }}><ReviewActionIcon kind="update" disabled={pending || (view === "logistics" && changes.length === 0)} />Update</button>}
             </>}
           </ReviewModalFooter>}
@@ -329,7 +335,7 @@ function Registrant({ row, columns, evaluationQuestions, remove, save, resend, p
           : <>Save the updated logistics decisions for <strong>{row.name}</strong>? An email with these changes will be sent to <strong>{row.email}</strong>.</>}</p>
         <div className="portal-registrant-confirmation-actions">
           <button type="button" className="portal-registrant-action-button" disabled={pending} autoFocus onClick={() => confirmationDialog.current?.close()}>Cancel</button>
-          <button type="button" className={`portal-registrant-action-button${confirmation === "remove" ? " portal-destructive-button" : ""}`} disabled={pending} onClick={confirm}>{confirmation === "remove" ? <ActionDeleteIcon size={15} /> : <ActionSaveIcon size={15} />}{pending ? confirmation === "remove" ? "Removing…" : "Updating…" : confirmation === "remove" ? "Remove Registration" : "Update & Send Email"}</button>
+          <button type="button" className={`portal-registrant-action-button${confirmation === "remove" ? " portal-destructive-button" : ""}`} disabled={pending} onClick={confirm}>{confirmation === "remove" ? <ActionDeleteIcon size={15} /> : <ActionSaveIcon size={15} />}{pending ? confirmation === "remove" ? <Busy>Removing</Busy> : <Busy>Updating</Busy> : confirmation === "remove" ? "Remove Registration" : "Update & Send Email"}</button>
         </div>
       </dialog>
     </li>

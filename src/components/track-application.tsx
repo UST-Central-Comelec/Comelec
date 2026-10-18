@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { requestResponseEdit } from "@/lib/events/edit-request-actions";
-import { ArrowRight, Check, SquareCheck } from "lucide-react";
+import { ArrowRight, Check, Info, SquareCheck } from "lucide-react";
+import { CopyIcon, EditIcon } from "@/components/action-icons";
 import { declineAcceptance, trackApplication, type ApplicationStatus, type TrackedAccessRequest, type TrackedApplication, type TrackedRegistration, type TrackedRsvp } from "@/lib/applications/actions";
 import { OFFER_DAYS, REAPPLY_DAYS, formatOfferDate, reapplyFrom } from "@/lib/applications/offer";
+import { Busy } from "@/components/busy";
 
 const statusLabels: Record<ApplicationStatus, string> = {
   pending: "Pending review",
@@ -63,38 +65,173 @@ function applicationStatus(application: TrackedApplication): { label: string; to
   return { label: statusLabels[application.status], tone: application.status, note: offer.state === "open" && offer.expiresAt ? `${note} Your offer is valid until ${formatOfferDate(offer.expiresAt)}.` : note };
 }
 
+type Tone = "ok" | "gold" | "danger" | "dim";
+type EditProps = { existing?: { requested_changes: string } | null; editUrl?: string | null; what?: "registration" | "RSVP" };
+
+const toneOf: Record<ApplicationStatus, Tone> = { pending: "gold", reviewing: "gold", accepted: "ok", declined: "danger" };
+
+/** A logistics request's status as a dot tone: waiting is gold, granted green, refused red, not asked dim. */
+const requestTone = (status: string): Tone => status === "Approved" ? "ok" : status === "Pending" ? "gold" : status === "Not requested" ? "dim" : "danger";
+
+function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return <span className={`track-status is-${tone}`}>{children}</span>;
+}
+
+/** The reference code, large, with a copy button beside it. */
+function Reference({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    }).catch(() => {});
+  };
+  return (
+    <div className="track-ref">
+      <strong>{code}</strong>
+      <button type="button" className="track-copy" onClick={copy} aria-label={copied ? "Reference code copied" : "Copy reference code"} title={copied ? "Copied" : "Copy reference code"}>
+        {copied ? <Check size={14} aria-hidden="true" /> : <CopyIcon size={14} aria-hidden="true" />}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The shared frame of every tracked submission, laid out like a deployment page: what it is and its
+ * reference on the left with the one action on the right, then the facts at a glance, then sections.
+ * The edit request's button lives in the header; its form and its answer open as a section below the facts.
+ */
+function TrackCard({ kind, label, reference, identity, edit, facts, lead, children, foot }: {
+  kind: string;
+  label: string;
+  reference: string;
+  identity: string;
+  edit: EditProps;
+  facts: ReactNode;
+  lead?: ReactNode;
+  children?: ReactNode;
+  foot?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [state, action, pending] = useActionState(requestResponseEdit, {});
+  const request = state.request ?? edit.existing;
+  const editLink = edit.editUrl && request ? edit.editUrl : null;
+  return (
+    <section className="track-result" aria-live="polite" aria-label={label}>
+      <header className="track-head">
+        <div className="track-head-main">
+          <span className="track-kind">{kind}</span>
+          <Reference code={reference} />
+        </div>
+        <div className="track-head-actions">
+          {editLink
+            ? <a className="button-primary track-action" href={editLink}>Edit your {edit.what}<ArrowRight size={15} aria-hidden="true" /></a>
+            : !request && !editing && <button type="button" className="track-button-ghost is-small" onClick={() => setEditing(true)}><EditIcon size={14} aria-hidden="true" />Request edit</button>}
+        </div>
+      </header>
+      {lead}
+      <dl className="track-facts">{facts}</dl>
+      {request ? (
+        <section className="track-section" aria-label="Your edit request" role="status">
+          <div className="track-section-head">
+            <h3>Edit request</h3>
+            <Status tone={editLink ? "ok" : "gold"}>{editLink ? "Accepted" : "Waiting for review"}</Status>
+          </div>
+          <p className="track-note">{editLink
+            ? <>The organizers accepted your request. Open your {edit.what} to change your answers and send them again. Your reference code stays {reference}. The link works once, and we’ve also emailed it to you.</>
+            : "The team handling your submission will review the changes below."}</p>
+          <p className="track-edit-changes">{request.requested_changes}</p>
+        </section>
+      ) : editing && (
+        <EditRequestForm reference={reference} identity={identity} action={action} pending={pending} state={state} onCancel={() => setEditing(false)} />
+      )}
+      {children}
+      {foot && <p className="track-foot"><Info size={13} aria-hidden="true" />{foot}</p>}
+    </section>
+  );
+}
+
+function EditRequestForm({ reference, identity, action, pending, state, onCancel }: {
+  reference: string;
+  identity: string;
+  action: (formData: FormData) => void;
+  pending: boolean;
+  state: Awaited<ReturnType<typeof requestResponseEdit>>;
+  onCancel: () => void;
+}) {
+  const [changes, setChanges] = useState("");
+  const id = useId();
+  return (
+    <section className="track-section track-edit-request" aria-label="Request changes to your response">
+      <div className="track-section-head"><h3>Request an edit</h3></div>
+      <form action={action}>
+        <input type="hidden" name="reference" value={reference} />
+        <input type="hidden" name="identity" value={identity} />
+        <label className="apply-field" htmlFor={id}><span className="apply-field-label">What would you like to change?</span>
+          <textarea id={id} name="changes" autoFocus value={changes} onChange={event => setChanges(event.target.value)} rows={4} required maxLength={4000} disabled={pending} aria-invalid={!!state.fieldErrors?.changes} aria-describedby={state.fieldErrors?.changes ? `${id}-error` : undefined} placeholder="Describe the answer to change and the correct information." />
+          {state.fieldErrors?.changes && <span className="apply-field-error" id={`${id}-error`}>{state.fieldErrors.changes}</span>}
+        </label>
+        {state.error && <p className="apply-form-error" role="alert">{state.error}</p>}
+        <div className="track-edit-actions"><button type="button" className="track-button-ghost" disabled={pending} onClick={onCancel}>Cancel</button><button type="submit" className="button-primary" disabled={pending}>{pending ? <Busy>Sending</Busy> : "Send edit request"}</button></div>
+      </form>
+    </section>
+  );
+}
+
+function Fact({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+  return <div className={wide ? "is-wide" : undefined}><dt>{label}</dt><dd>{children}</dd></div>;
+}
+
+/** A titled list of rows, each a name with its status on the right. */
+function TrackRows({ title, summary, rows, empty }: { title: string; summary?: string; rows: Array<{ label: string; status: string; tone: Tone }>; empty?: string }) {
+  return (
+    <section className="track-section" aria-label={title}>
+      <div className="track-section-head">
+        <h3>{title}</h3>
+        {summary && <span className="track-count">{summary}</span>}
+      </div>
+      {rows.length ? (
+        <ul className="track-rows">
+          {rows.map((row) => <li key={row.label}><span>{row.label}</span><Status tone={row.tone}>{row.status}</Status></li>)}
+        </ul>
+      ) : <p className="track-empty">{empty}</p>}
+    </section>
+  );
+}
+
 function TrackedResult({ application: tracked, identity, askDecline, onAsked }: { application: TrackedApplication; identity: string; askDecline: boolean; onAsked: () => void }) {
   const [declined, declineAction, declining] = useActionState(declineAcceptance, undefined);
   const application = declined?.application ?? tracked;
   const shown = applicationStatus(application);
   const decided = application.status === "accepted" || application.status === "declined";
   return (
-    <section className="track-result" aria-live="polite" aria-label="Your application">
-      <header>
-        <div>
-          <span>Reference code</span>
-          <strong>{application.referenceCode}</strong>
-        </div>
-        <span className={`track-status is-${shown.tone}`}>{shown.label}</span>
-      </header>
-      <StatusTimeline result={decided ? shown.label : null} />
-      <p className="track-note">{shown.note} For your privacy, your application is deleted 60 days after you submit it.</p>
-      {application.offer.state === "open" && <OfferChoice application={application} identity={identity} askDecline={askDecline} onAsked={onAsked} action={declineAction} pending={declining} error={declined?.error} />}
-      {application.offer.state !== "open" && declined?.error && <p className="apply-form-error" role="alert">{declined.error}</p>}
-      {application.offer.state === "joined" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
-      <dl className="apply-result-details">
-        <div><dt>Name</dt><dd>{application.name}</dd></div>
-        <div><dt>Submitted</dt><dd>{formatSubmitted(application.submittedAt)}</dd></div>
-        <div><dt>Serve in</dt><dd>{application.preferredBody}</dd></div>
-        {application.division && <div><dt>Division</dt><dd>{application.division}</dd></div>}
-        <div><dt>Position</dt><dd>{application.position}</dd></div>
-        <div><dt>College or faculty</dt><dd>{application.college}</dd></div>
-        <div><dt>Program</dt><dd>{application.program}</dd></div>
-        <div><dt>Year level</dt><dd>{application.yearLevel}</dd></div>
-        {application.interview && <div className="is-wide"><dt>Interview</dt><dd>{application.interview}</dd></div>}
-      </dl>
-      <ResponseEditRequest reference={application.referenceCode} identity={identity} existing={application.editRequest} />
-    </section>
+    <TrackCard
+      kind="Commissioner application"
+      label="Your application"
+      reference={application.referenceCode}
+      identity={identity}
+      edit={{ existing: application.editRequest }}
+      foot="For your privacy, your application is deleted 60 days after you submit it."
+      lead={<>
+        <StatusTimeline result={decided ? shown.label : null} />
+        <p className="track-note">{shown.note}</p>
+        {application.offer.state === "open" && <OfferChoice application={application} identity={identity} askDecline={askDecline} onAsked={onAsked} action={declineAction} pending={declining} error={declined?.error} />}
+        {application.offer.state !== "open" && declined?.error && <p className="apply-form-error" role="alert">{declined.error}</p>}
+        {application.offer.state === "joined" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
+      </>}
+      facts={<>
+        <Fact label="Status"><Status tone={toneOf[shown.tone]}>{shown.label}</Status></Fact>
+        <Fact label="Applicant">{application.name}</Fact>
+        <Fact label="Submitted">{formatSubmitted(application.submittedAt)}</Fact>
+        <Fact label="Serve in">{application.preferredBody}</Fact>
+        {application.division && <Fact label="Division">{application.division}</Fact>}
+        <Fact label="Position">{application.position}</Fact>
+        <Fact label="College or faculty">{application.college}</Fact>
+        <Fact label="Program">{application.program}</Fact>
+        <Fact label="Year level">{application.yearLevel}</Fact>
+        {application.interview && <Fact label="Interview" wide>{application.interview}</Fact>}
+      </>}
+    />
   );
 }
 
@@ -149,7 +286,7 @@ function OfferChoice({ application, identity, askDecline, onAsked, action, pendi
           <input type="hidden" name="reference" value={application.referenceCode} />
           <input type="hidden" name="identity" value={identity} />
           <button type="button" className="track-button-ghost" autoFocus disabled={pending} onClick={close}>Cancel</button>
-          <button type="submit" className="track-decline-confirm" disabled={pending}>{pending ? "Declining…" : "Decline offer"}</button>
+          <button type="submit" className="track-decline-confirm" disabled={pending}>{pending ? <Busy>Declining</Busy> : "Decline offer"}</button>
         </form>
       </dialog>
     </section>
@@ -157,94 +294,86 @@ function OfferChoice({ application, identity, askDecline, onAsked, action, pendi
 }
 
 function TrackedAccess({ request, identity }: { request: TrackedAccessRequest; identity: string }) {
+  const tone: Tone = request.status === "approved" ? "ok" : request.status === "declined" ? "danger" : "gold";
   return (
-    <section className="track-result" aria-live="polite" aria-label="Your portal access request">
-      <header>
-        <div>
-          <span>Reference code</span>
-          <strong>{request.referenceCode}</strong>
-        </div>
-        <span className={`track-status is-${request.status === "approved" ? "accepted" : request.status}`}>{accessLabels[request.status]}</span>
-      </header>
-      <StatusTimeline result={request.status === "pending" ? null : accessLabels[request.status]} />
-      <p className="track-note">{accessNotes[request.status]} For your privacy, your request is deleted 60 days after you send it.</p>
-      <dl className="apply-result-details">
-        <div><dt>Name</dt><dd>{request.name}</dd></div>
-        <div><dt>Submitted</dt><dd>{formatSubmitted(request.submittedAt)}</dd></div>
-        <div><dt>Request</dt><dd>Commission Portal access</dd></div>
-        <div><dt>Role</dt><dd>{request.role}</dd></div>
-        <div className="is-wide"><dt>UST email</dt><dd>{request.email}</dd></div>
-        <div><dt>College or faculty</dt><dd>{request.college}</dd></div>
-        <div><dt>Program</dt><dd>{request.program}</dd></div>
-        <div><dt>Year level</dt><dd>{request.yearLevel}</dd></div>
-      </dl>
-      <ResponseEditRequest reference={request.referenceCode} identity={identity} existing={request.editRequest} />
-      {request.status === "approved" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
-    </section>
+    <TrackCard
+      kind="Portal access request"
+      label="Your portal access request"
+      reference={request.referenceCode}
+      identity={identity}
+      edit={{ existing: request.editRequest }}
+      foot="For your privacy, your request is deleted 60 days after you send it."
+      lead={<>
+        <StatusTimeline result={request.status === "pending" ? null : accessLabels[request.status]} />
+        <p className="track-note">{accessNotes[request.status]}</p>
+        {request.status === "approved" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
+      </>}
+      facts={<>
+        <Fact label="Status"><Status tone={tone}>{accessLabels[request.status]}</Status></Fact>
+        <Fact label="Name">{request.name}</Fact>
+        <Fact label="Submitted">{formatSubmitted(request.submittedAt)}</Fact>
+        <Fact label="Role">{request.role}</Fact>
+        <Fact label="UST email" wide>{request.email}</Fact>
+        <Fact label="College or faculty">{request.college}</Fact>
+        <Fact label="Program">{request.program}</Fact>
+        <Fact label="Year level">{request.yearLevel}</Fact>
+      </>}
+    />
   );
 }
 
 function TrackedEvent({ registration, identity }: { registration: TrackedRegistration; identity: string }) {
+  const registered = registration.status === "registered";
+  const asked = registration.requests.filter((request) => request.status !== "Not requested").length;
   return (
-    <section className="track-result" aria-live="polite" aria-label="Your event registration">
-      <header>
-        <div><span>Registration reference</span><strong>{registration.referenceCode}</strong></div>
-        <span className={`track-status is-${registration.status === "registered" ? "accepted" : "pending"}`}>{registration.status === "registered" ? "Registered" : "Waitlisted"}</span>
-      </header>
-      <dl className="apply-result-details">
-        <div><dt>Participant</dt><dd>{registration.name}</dd></div>
-        <div><dt>Submitted</dt><dd>{formatSubmitted(registration.submittedAt)}</dd></div>
-        <div><dt>Event</dt><dd><Link href={`/events/${registration.eventId}`}>{registration.eventName}</Link></dd></div>
-        <div><dt>Date</dt><dd>{registration.eventDate}</dd></div>
-      </dl>
-      <ResponseEditRequest reference={registration.referenceCode} identity={identity} existing={registration.editRequest} />
-      <h3>Logistics requests</h3>
-      <dl className="apply-result-details">
-        {registration.requests.map((request) => <div key={request.label}><dt>{request.label}</dt><dd>{request.status}</dd></div>)}
-      </dl>
-    </section>
+    <TrackCard
+      kind="Event registration"
+      label="Your event registration"
+      reference={registration.referenceCode}
+      identity={identity}
+      edit={{ existing: registration.editRequest, editUrl: registration.editUrl, what: "registration" }}
+      facts={<>
+        <Fact label="Status"><Status tone={registered ? "ok" : "gold"}>{registered ? "Registered" : "Waitlisted"}</Status></Fact>
+        <Fact label="Event"><Link href={`/events/${registration.eventId}`}>{registration.eventName}</Link></Fact>
+        <Fact label="Date">{registration.eventDate}</Fact>
+        <Fact label="Submitted">{formatSubmitted(registration.submittedAt)}</Fact>
+        <Fact label="Participant" wide>{registration.name}</Fact>
+      </>}
+    >
+      <TrackRows
+        title="Logistics requests"
+        summary={asked ? `${asked} of ${registration.requests.length} requested` : "None requested"}
+        rows={registration.requests.map((request) => ({ label: request.label, status: request.status, tone: requestTone(request.status) }))}
+      />
+    </TrackCard>
   );
 }
 
 function TrackedCollaborator({ rsvp, identity }: { rsvp: TrackedRsvp; identity: string }) {
-  return <section className="track-result" aria-live="polite" aria-label="Your collaborator RSVP">
-    <header><div><span>RSVP reference</span><strong>{rsvp.referenceCode}</strong></div><span className="track-status is-accepted">Recorded</span></header>
-    <p className="track-note">Your collaborator RSVP has been recorded. To ask for a change to your response, choose Request edit. Logistical requests are subject to availability.</p>
-    <dl className="apply-result-details">
-      <div><dt>Name</dt><dd>{rsvp.name}</dd></div>
-      <div><dt>Submitted</dt><dd>{formatSubmitted(rsvp.submittedAt)}</dd></div>
-      <div><dt>Event</dt><dd><Link href={`/events/${rsvp.eventId}`}>{rsvp.eventName}</Link></dd></div>
-      <div><dt>Date</dt><dd>{rsvp.eventDate}</dd></div>
-    </dl>
-    <ResponseEditRequest reference={rsvp.referenceCode} identity={identity} existing={rsvp.editRequest} />
-    <h3>Logistical requests</h3>
-    {rsvp.requests.length ? <ul>{rsvp.requests.map(request => <li key={request}>{request}</li>)}</ul> : <p>No logistical requests.</p>}
-  </section>;
-}
-
-function ResponseEditRequest({ reference, identity, existing }: { reference: string; identity: string; existing?: { requested_changes: string } | null }) {
-  const [open, setOpen] = useState(false);
-  const [changes, setChanges] = useState("");
-  const [state, action, pending] = useActionState(requestResponseEdit, {});
-  const id = useId();
-  const request = state.request ?? existing;
-  if (request) return <section className="track-edit-request" aria-label="Your edit request" role="status">
-    <h3>Edit requested</h3>
-    <p className="track-note">Your edit request has been sent. The team handling your submission will review the changes below.</p>
-    <p className="track-edit-changes">{request.requested_changes}</p>
-  </section>;
-  return <section className="track-edit-request" aria-label="Request changes to your response">
-    {!open ? <button type="button" className="button-primary" onClick={() => setOpen(true)}>Request edit</button> : <form action={action}>
-      <input type="hidden" name="reference" value={reference} />
-      <input type="hidden" name="identity" value={identity} />
-      <label className="apply-field" htmlFor={id}><span className="apply-field-label">What would you like to change?</span>
-        <textarea id={id} name="changes" value={changes} onChange={event => setChanges(event.target.value)} rows={4} required maxLength={4000} disabled={pending} aria-invalid={!!state.fieldErrors?.changes} aria-describedby={state.fieldErrors?.changes ? `${id}-error` : undefined} placeholder="Describe the answer to change and the correct information." />
-        {state.fieldErrors?.changes && <span className="apply-field-error" id={`${id}-error`}>{state.fieldErrors.changes}</span>}
-      </label>
-      {state.error && <p className="apply-form-error" role="alert">{state.error}</p>}
-      <div className="track-edit-actions"><button type="button" className="track-edit-cancel" disabled={pending} onClick={() => setOpen(false)}>Cancel</button><button type="submit" className="button-primary" disabled={pending}>{pending ? "Sending…" : "Send edit request"}</button></div>
-    </form>}
-  </section>;
+  return (
+    <TrackCard
+      kind="Collaborator RSVP"
+      label="Your collaborator RSVP"
+      reference={rsvp.referenceCode}
+      identity={identity}
+      edit={{ existing: rsvp.editRequest, editUrl: rsvp.editUrl, what: "RSVP" }}
+      foot="Logistical requests are subject to availability."
+      facts={<>
+        <Fact label="Status"><Status tone="ok">Recorded</Status></Fact>
+        <Fact label="Event"><Link href={`/events/${rsvp.eventId}`}>{rsvp.eventName}</Link></Fact>
+        <Fact label="Date">{rsvp.eventDate}</Fact>
+        <Fact label="Submitted">{formatSubmitted(rsvp.submittedAt)}</Fact>
+        <Fact label="Name" wide>{rsvp.name}</Fact>
+      </>}
+    >
+      <TrackRows
+        title="Logistical requests"
+        summary={rsvp.requests.length ? `${rsvp.requests.length} requested` : undefined}
+        rows={rsvp.requests.map((request) => ({ label: request, status: "Requested", tone: "gold" as Tone }))}
+        empty="No logistical requests."
+      />
+    </TrackCard>
+  );
 }
 
 export function TrackApplication({ initialReference, initialIdentity = "", fromAcceptance = false }: { initialReference: string; initialIdentity?: string; fromAcceptance?: boolean }) {
@@ -288,7 +417,7 @@ export function TrackApplication({ initialReference, initialIdentity = "", fromA
           <input name="identity" required key={`identity-${state?.entered?.identity}`} defaultValue={state?.entered?.identity ?? initialIdentity.toUpperCase()} onChange={(event) => { event.target.value = event.target.value.toUpperCase(); }} placeholder="2023123456 or DELA CRUZ" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={80} />
           {errors.identity && <span className="apply-field-error">{errors.identity}</span>}
         </label>
-        <button className="button-primary" type="submit" disabled={pending}>{pending ? "Looking up…" : <>Track <ArrowRight size={15} /></>}</button>
+        <button className="button-primary" type="submit" disabled={pending}>{pending ? <Busy>Looking up</Busy> : <>Track <ArrowRight size={15} /></>}</button>
       </form>
 
       {state?.error && !state.application && !state.accessRequest && !state.registration && !state.rsvp && <p className="apply-form-error" role="alert">{state.error}</p>}

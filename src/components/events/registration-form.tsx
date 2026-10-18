@@ -6,15 +6,20 @@ import { startTransition, useActionState, useEffect, useId, useRef, useState, ty
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Lock } from "lucide-react";
 import { Combobox } from "@/components/combobox";
 import { useHydrated } from "@/components/portal/portal-form";
+import { DatePicker } from "@/components/portal/date-picker";
+import { manilaToday } from "@/lib/forms/birthday";
+import { cleanStudentNumber, studentNumberPattern } from "@/lib/forms/input";
 import { colleges, comelecUnits, programsByCollege, yearLevelsFor, programLocked, type College } from "@/lib/applications/options";
 import type { RegistrationState } from "@/lib/events/actions";
-import { affiliationChoices, attendingChoices, isUstAffiliation, requestKinds, sexChoices, type AffiliationChoice, type RequestKind, type SignUpMode } from "@/lib/events/options";
+import { affiliationChoices, attendingChoices, collaboratorUnits, filterOrganizationUnits, isUstAffiliation, requestKinds, sexChoices, type AffiliationChoice, type RequestKind, type SignUpMode } from "@/lib/events/options";
 import { checkRegistration, emptyRegistration, needsVerification, stepOf, type RegistrationContext, type RegistrationValues } from "@/lib/events/schema";
 import { CopyIcon } from "@/components/action-icons";
 import { EventConsentStatement, EventFormTracker } from "./event-form-ui";
+import { OrganizationRoleFields } from "./organization-role-fields";
 import { DraftNotice } from "@/components/draft-notice";
 import { forgetFormDraft, useFormDraft } from "@/components/use-form-draft";
 import "./rsvp.css";
+import { Busy } from "@/components/busy";
 
 /** The five steps, in order. */
 const steps = ["Data Privacy Consent", "Personal information", "University affiliation", "Organization", "Logistics"];
@@ -40,7 +45,7 @@ function Frame({ current, preview = false, busy = false, onStep, onAcknowledgeme
 export type RegistrationInitial = RegistrationValues;
 
 /** Answers kept on this device until sent, through a reload, a dropped connection or a trip to Google. */
-const draftKey = (eventId: string) => `event-registration:${eventId}`;
+const draftKey = (eventId: string, editToken?: string) => editToken ? `event-registration:${eventId}:edit:${editToken}` : `event-registration:${eventId}`;
 
 /** The multi-colour "G", as on the portal's sign-in button. */
 function GoogleMark() {
@@ -133,7 +138,7 @@ function Locked({ label, value, note }: { label: string; value: string; note: st
  * the reference code to copy, what was registered, and what happens next. `onBack` (View Mode) returns
  * to the form; nothing was sent, and the code is a sample.
  */
-function Saved({ event, kind, name, email, referenceCode, acknowledgement, onBack }: { event: { id: string; name: string }; kind: "registered" | "waitlisted"; name: string; email: string; referenceCode?: string; acknowledgement?: "sent" | "failed"; onBack?: () => void }) {
+function Saved({ event, kind, name, email, referenceCode, acknowledgement, edited = false, onBack }: { event: { id: string; name: string }; kind: "registered" | "waitlisted"; name: string; email: string; referenceCode?: string; acknowledgement?: "sent" | "failed"; edited?: boolean; onBack?: () => void }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [copied, setCopied] = useState(false);
   const registered = kind === "registered";
@@ -158,8 +163,10 @@ function Saved({ event, kind, name, email, referenceCode, acknowledgement, onBac
     <div className="ev-register-receipt" role="status">
       <div className="apply-body-head">
         <span>Step {steps.length + 1} of {steps.length + 1}</span>
-        <h2 ref={headingRef} tabIndex={-1}>{registered ? "You’re registered." : "You’re on the waitlist."}</h2>
-        {registered ? (
+        <h2 ref={headingRef} tabIndex={-1}>{edited ? "Your changes are saved." : registered ? "You’re registered." : "You’re on the waitlist."}</h2>
+        {edited ? (
+          <p>{name ? <><strong>{name}</strong>, your</> : "Your"} registration for <strong>{event.name}</strong> now has the answers you just sent, under the same reference code. The organizers can see them straight away.</p>
+        ) : registered ? (
           <p>{name ? <><strong>{name}</strong>, your</> : "Your"} place at <strong>{event.name}</strong> is confirmed. If you asked for anything under Logistics, you’ll be emailed whether it can be arranged.</p>
         ) : (
           <p>{name ? <><strong>{name}</strong>, you’re</> : "You’re"} on the waitlist for <strong>{event.name}</strong>. Your place isn’t confirmed yet. If places become available, come back to the event’s page to register.</p>
@@ -184,7 +191,7 @@ function Saved({ event, kind, name, email, referenceCode, acknowledgement, onBac
           <div className="is-wide"><dt>Event</dt><dd>{event.name}</dd></div>
           <div><dt>Status</dt><dd><span className={`ev-register-state${registered ? " is-ok" : ""}`}><i aria-hidden="true" />{registered ? "Registered" : "Waitlisted"}</span></dd></div>
         </dl>
-        {email && acknowledgement === "sent" && <p className="apply-result-note">{registered ? "A confirmation with the event’s details" : "A confirmation"} is on its way to <strong>{email}</strong>. Check your inbox and spam folder.</p>}
+        {email && acknowledgement === "sent" && !edited && <p className="apply-result-note">{registered ? "A confirmation with the event’s details" : "A confirmation"} is on its way to <strong>{email}</strong>. Check your inbox and spam folder.</p>}
         {acknowledgement === "failed" && <p className="apply-result-note">Your registration is saved, but we couldn’t send the acknowledgement to <strong>{email}</strong>. Please contact <a href="mailto:comelec@ust.edu.ph">comelec@ust.edu.ph</a> for confirmation. You don’t need to register again.</p>}
       </section>
 
@@ -210,6 +217,8 @@ type FormProps = {
   fromWaitlist: boolean;
   /** Why Google verification didn't go through, when it didn't. */
   verifyError?: string;
+  /** Opened from an accepted edit request's link: the registration's answers, to change and send again. */
+  editToken?: string;
 };
 
 type Action = (state: RegistrationState, formData: FormData) => Promise<RegistrationState>;
@@ -221,9 +230,10 @@ type Action = (state: RegistrationState, formData: FormData) => Promise<Registra
  */
 export function EventRegistration({ action, event, mode, form, children, aside, preview = false }: { preview?: boolean; action: Action; event: { id: string; name: string }; mode: SignUpMode | null; form: FormProps | null; children?: ReactNode; aside?: ReactNode }) {
   const [state, formAction, pending] = useActionState(preview ? async () => undefined : action, undefined);
-  useEffect(() => { if (state?.submitted) forgetFormDraft(draftKey(event.id)); }, [state?.submitted, event.id]);
+  const editToken = form?.editToken;
+  useEffect(() => { if (state?.submitted) forgetFormDraft(draftKey(event.id, editToken)); }, [state?.submitted, event.id, editToken]);
 
-  if (state?.submitted) return <Frame current={steps.length} busy aside={aside}><Saved event={event} kind={state.result?.kind ?? (mode === "waitlist" ? "waitlisted" : "registered")} name={state.result?.name ?? ""} email={state.result?.email ?? ""} referenceCode={state.result?.referenceCode} acknowledgement={state.result?.acknowledgement} /></Frame>;
+  if (state?.submitted) return <Frame current={steps.length} busy aside={aside}><Saved event={event} kind={state.result?.kind ?? (mode === "waitlist" ? "waitlisted" : "registered")} name={state.result?.name ?? ""} email={state.result?.email ?? ""} referenceCode={state.result?.referenceCode} acknowledgement={state.result?.acknowledgement} edited={state.result?.edited} /></Frame>;
 
   // Sign-ups closed while the form was open: there's nothing left to send.
   if (state?.closed) {
@@ -231,7 +241,7 @@ export function EventRegistration({ action, event, mode, form, children, aside, 
       <Frame aside={aside}>
       <section className="ev-notice is-warn" role="alert">
         <p className="ev-eyebrow">Not sent</p>
-        <h2>Sign-ups just closed.</h2>
+        <h2>{editToken ? "Your changes weren’t sent." : "Sign-ups just closed."}</h2>
         <p>{state.error}</p>
         <div className="ev-actions">
           <Link className="ev-button is-ghost is-small" href={`/events/${event.id}`}>About this event<ArrowUpRight size={15} aria-hidden="true" /></Link>
@@ -246,7 +256,7 @@ export function EventRegistration({ action, event, mode, form, children, aside, 
   return <RegistrationSteps {...form} event={event} mode={mode} preview={preview} state={state} send={formAction} pending={pending} aside={aside} />;
 }
 
-function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle, allowed, fromWaitlist, verifyError, state, send, pending, preview, aside }: FormProps & { event: { id: string; name: string }; mode: SignUpMode; preview: boolean; state: RegistrationState; send: (formData: FormData) => void; pending: boolean; aside?: ReactNode }) {
+function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle, allowed, fromWaitlist, verifyError, editToken, state, send, pending, preview, aside }: FormProps & { event: { id: string; name: string }; mode: SignUpMode; preview: boolean; state: RegistrationState; send: (formData: FormData) => void; pending: boolean; aside?: ReactNode }) {
   const [values, setValues] = useState<RegistrationValues>(initial);
   const [step, setStep] = useState(0);
   const [previewSubmitted, setPreviewSubmitted] = useState(false);
@@ -256,8 +266,9 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
   const headingRef = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
   const hydrated = useHydrated();
-  const context: RegistrationContext = { allowed, requireGoogle: !preview && requireGoogle, verifiedEmail };
-  const verifying = needsVerification(values, context);
+  const currentVerifiedEmail = state?.verificationExpired ? null : verifiedEmail;
+  const context: RegistrationContext = { allowed, requireGoogle: !preview && requireGoogle, verifiedEmail: currentVerifiedEmail };
+  const verifying = !preview && needsVerification(values, context);
   const ust = isUstAffiliation(values.affiliation);
   const programs: readonly string[] = programsByCollege[values.college as College] ?? [];
   const levels = yearLevelsFor(values.college);
@@ -266,7 +277,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
 
   // Back from Google, a reload or a dropped connection: the answers given, on the step they left from.
   const draft = useFormDraft({
-    key: preview ? null : draftKey(event.id),
+    key: preview ? null : draftKey(event.id, editToken),
     form: formRef,
     state: { step, values },
     restore: (saved) => {
@@ -305,7 +316,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
 
   const next = () => {
     const found = checkRegistration(values, context, step);
-    // Past the affiliation, an email left for later has to be there unless a UST account fills it in.
+    // A UST affiliation needs a UST address, even if a different email was entered on the prior step.
     const email = step === 2 && !Object.keys(found).length ? checkRegistration(values, context).email : undefined;
     setErrors(email ? { email } : found);
     if (email) return go(1);
@@ -346,6 +357,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
           {step === 4 && <p>Everything here is optional and subject to availability. You’ll be emailed whether each one you ask for is approved or not available.</p>}
         </div>
         <DraftNotice draft={draft} buttonClassName="ev-button is-ghost is-small" actionClassName="ev-button is-primary" />
+        {editToken && step === 0 && <p className="ev-callout">Your edit request was accepted. Your answers are filled in: change what you need to, then send them again on the last step. Your reference code stays the same.</p>}
         {fromWaitlist && step === 0 && <p className="ev-callout">You’re on this event’s waitlist, and registration is now open. Check the details you gave, then register to confirm your place.</p>}
 
         {/* 1. Consent */}
@@ -372,19 +384,34 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
             <input name="middleName" required autoComplete="additional-name" autoCapitalize="characters" maxLength={80} value={values.middleName} onChange={(change) => upper("middleName")(change.target.value)} />
           </Field>
           <Choices name="sex" label="Sex" options={Object.entries(sexChoices) as Array<[string, string]>} value={values.sex} onChange={(value) => set("sex", value)} error={errors.sex} columns={2} />
-          <Field name="age" label="Age" error={errors.age} size={3}>
-            <input name="age" required inputMode="numeric" maxLength={3} value={values.age} onChange={(change) => set("age", change.target.value.replace(/\D/g, ""))} />
-          </Field>
-          {verifying && verifiedEmail ? (
-            <div className="ev-field is-9" data-field="email">
+          <PickerField name="dateOfBirth" label="Birthday" error={errors.dateOfBirth} size={6}>
+            {(labelId) => <span className="ev-registration-birthday"><DatePicker name="dateOfBirth" label="Birthday" describedBy={labelId} required editable value={values.dateOfBirth} onChange={(value) => set("dateOfBirth", value)} max={manilaToday()} invalid={Boolean(errors.dateOfBirth)} /></span>}
+          </PickerField>
+          {editToken ? (
+            <div className="ev-field is-6" data-field="email">
               <span className="ev-field-label">Email address</span>
-              <div className="ev-locked"><ShieldMark /><strong>{verifiedEmail}</strong><small>Verified UST account</small></div>
-              <input type="hidden" name="email" value={verifiedEmail} />
+              <div className="ev-locked"><Lock size={14} aria-hidden="true" /><strong>{values.email}</strong><small>Your registration’s email</small></div>
+              <input type="hidden" name="email" value={values.email} />
+              {errors.email && <span className="ev-field-error">{errors.email}</span>}
+            </div>
+          ) : verifying && currentVerifiedEmail ? (
+            <div className="ev-field is-6" data-field="email">
+              <span className="ev-field-label">Email address</span>
+              <div className="ev-locked"><ShieldMark /><strong>{currentVerifiedEmail}</strong><small>Verified UST account</small></div>
+              <input type="hidden" name="email" value={currentVerifiedEmail} />
             </div>
           ) : (
-            <Field name="email" label="Email address" error={errors.email} size={9}>
-              <input name="email" type="email" autoComplete="email" maxLength={120} value={values.email} onChange={(change) => set("email", change.target.value)} placeholder={requireGoogle && allowed.some(isUstAffiliation) ? "UST students and staff can leave this empty: you’ll verify your UST account next" : undefined} />
+            <Field name="email" label="Email address" error={errors.email} size={6}>
+              <input name="email" type="email" required autoComplete="email" maxLength={120} value={values.email} onChange={(change) => set("email", change.target.value)} />
             </Field>
+          )}
+          {verifying && !currentVerifiedEmail && !editToken && (
+            <div className={`ev-verify is-12${errors.verification ? " has-error" : ""}`} data-field="verification">
+              <p><strong>Verify your UST account.</strong> Continue with your <strong>@ust.edu.ph</strong> Google account to verify this email address. You’ll return here with your answers kept.</p>
+              {verifyError && <p className="ev-form-error" role="alert">{verifyError}</p>}
+              <a className="ev-button is-google" href={startUrl} rel="nofollow"><GoogleMark />Continue with UST Google</a>
+              {errors.verification && <span className="ev-field-error">{errors.verification}</span>}
+            </div>
           )}
         </fieldset>
 
@@ -401,24 +428,12 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
             columns={2}
           />
 
-          {ust && (
-            verifying && !verifiedEmail ? (
-              <div className={`ev-verify is-12${errors.verification ? " has-error" : ""}`} data-field="verification">
-                <p><strong>Verify your UST account.</strong> This event requires UST students, faculty and staff to sign in once with their <strong>@ust.edu.ph</strong> Google account. You’ll come straight back here with your answers kept.</p>
-                {verifyError && <p className="ev-form-error" role="alert">{verifyError}</p>}
-                {/* A plain link: sign-in starts on the server, which sends them on to Google. */}
-                <a className="ev-button is-google" href={startUrl} rel="nofollow"><GoogleMark />Continue with UST Google</a>
-                {errors.verification && <span className="ev-field-error">{errors.verification}</span>}
-              </div>
-            ) : (
-              <Locked label="University affiliation" value="University of Santo Tomas" note={verifying ? `Verified through UST Google as ${verifiedEmail}` : "Locked to your choice above"} />
-            )
-          )}
+          {ust && <Locked label="University affiliation" value="University of Santo Tomas" note={verifying && currentVerifiedEmail ? `Verified through UST Google as ${currentVerifiedEmail}` : "Locked to your choice above"} />}
 
           {values.affiliation === "ust-student" && (
             <>
-              <Field name="studentNumber" label="Student number (optional)" error={errors.studentNumber} size={6}>
-                <input name="studentNumber" inputMode="numeric" maxLength={10} value={values.studentNumber} onChange={change => set("studentNumber", change.target.value)} />
+              <Field name="studentNumber" label="Student number" error={errors.studentNumber} size={6}>
+                <input name="studentNumber" required inputMode="numeric" maxLength={10} pattern={studentNumberPattern.source} value={values.studentNumber} onChange={change => set("studentNumber", cleanStudentNumber(change.target.value))} />
               </Field>
               <PickerField name="college" label="College/Faculty" error={errors.college} size={6}>
                 {(labelId) => <Combobox required name="college" options={colleges} value={values.college} onChange={(value) => { if (value !== values.college) { set("college", value); set("program", ""); set("yearLevel", ""); } }} placeholder="Type or pick your college" invalid={Boolean(errors.college)} labelledBy={labelId} />}
@@ -455,15 +470,10 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
           <Choices name="attendingAs" label="Are you attending as:" options={Object.entries(attendingChoices) as Array<["representative" | "independent", string]>} value={values.attendingAs} onChange={(value) => set("attendingAs", value)} error={errors.attendingAs} columns={2} />
           {values.attendingAs === "representative" && (
             <>
-              <Field name="organizationName" label="Organization name" error={errors.organizationName} size={12}>
-                <input name="organizationName" required maxLength={160} value={values.organizationName} onChange={(change) => set("organizationName", change.target.value)} />
-              </Field>
-              <Field name="organizationCommittee" label="Committee/Department" optional error={errors.organizationCommittee} size={6}>
-                <input name="organizationCommittee" maxLength={120} value={values.organizationCommittee} onChange={(change) => set("organizationCommittee", change.target.value)} placeholder="External Relations" />
-              </Field>
-              <Field name="organizationPosition" label="Position" error={errors.organizationPosition} size={6}>
-                <input name="organizationPosition" required maxLength={120} value={values.organizationPosition} onChange={(change) => set("organizationPosition", change.target.value)} placeholder="Vice President for External Relations" />
-              </Field>
+              <PickerField name="organizationName" label="Organization name" error={errors.organizationName} size={12}>
+                {(labelId) => <Combobox name="organizationName" required freeText maxLength={160} options={collaboratorUnits.filter(unit => unit.value !== "central").map(unit => unit.label)} filterOptions={filterOrganizationUnits} value={values.organizationName} onChange={(value) => set("organizationName", value)} labelledBy={labelId} invalid={Boolean(errors.organizationName)} placeholder="Type or pick a local unit or organization" customOptionLabel="Others" customOptionHint="Type your organization’s name." emptyText="No local unit matches. You can keep your organization’s name below." />}
+              </PickerField>
+              <OrganizationRoleFields position={values.organizationPosition} committee={values.organizationCommittee} onPositionChange={value => set("organizationPosition", value)} onCommitteeChange={value => set("organizationCommittee", value)} positionError={errors.organizationPosition} committeeError={errors.organizationCommittee} active={step === 3 && !pending} />
             </>
           )}
         </fieldset>
@@ -513,7 +523,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
         <div className="apply-nav ev-form-foot ev-actions">
           {step > 0 && <button type="button" className="ev-button is-ghost is-back" onClick={() => go(step - 1)} disabled={pending}><ArrowLeft size={15} aria-hidden="true" />Back</button>}
           <button className="ev-button is-primary" type="submit" disabled={pending || !hydrated}>
-            {step < last ? <>Continue<ArrowRight size={15} aria-hidden="true" /></> : <>{preview ? "See acknowledgement" : pending ? "Sending…" : mode === "register" ? "Register" : "Join the waitlist"}<ArrowUpRight size={15} aria-hidden="true" /></>}
+            {step < last ? <>Continue<ArrowRight size={15} aria-hidden="true" /></> : <>{preview ? "See acknowledgement" : pending ? <Busy>Sending</Busy> : editToken ? "Send changes" : mode === "register" ? "Register" : "Join the waitlist"}<ArrowUpRight size={15} aria-hidden="true" /></>}
           </button>
         </div>
         </div>

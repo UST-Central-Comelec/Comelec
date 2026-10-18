@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import type { FormState } from "@/lib/portal/form";
 import { Field, useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 /**
  * Where a Central account asks a Local unit to change one of its events. With a request already
@@ -20,8 +21,8 @@ export function ChangeRequestForm({ action, withdraw, current }: { action: (stat
         <textarea key={current ?? ""} name="request" rows={3} maxLength={1000} defaultValue={current ?? ""} placeholder="e.g. Please move the ingress to 12:30 PM, and name the room in the venue." required />
       </Field>
       <div className="portal-form-actions">
-        {current && <button className="portal-button is-ghost" type="button" disabled={withdrawing || pending} onClick={() => startWithdraw(() => withdraw())}>{withdrawing ? "Withdrawing…" : "Withdraw request"}</button>}
-        <button className="portal-button" type="submit" disabled={pending || withdrawing || !hydrated}>{pending ? "Sending…" : current ? "Update request" : "Send request"}</button>
+        {current && <button className="portal-button is-ghost" type="button" disabled={withdrawing || pending} onClick={() => startWithdraw(() => withdraw())}>{withdrawing ? <Busy>Withdrawing</Busy> : "Withdraw request"}</button>}
+        <button className="portal-button" type="submit" disabled={pending || withdrawing || !hydrated}>{pending ? <Busy>Sending</Busy> : current ? "Update request" : "Send request"}</button>
       </div>
     </form>
   );

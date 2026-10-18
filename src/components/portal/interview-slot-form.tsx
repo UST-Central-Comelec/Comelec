@@ -8,6 +8,7 @@ import { TimePicker } from "./time-picker";
 import { InfoTip } from "./info-tip";
 import { Field, FormFooter, usePortalForm } from "./portal-form";
 import { UnitSwitcher } from "./unit-switcher";
+import { Busy } from "@/components/busy";
 
 function describeDays(days: string[]) {
   const consecutive = days.every((day, index) => index === 0 || Date.parse(`${day}T00:00:00Z`) - Date.parse(`${days[index - 1]}T00:00:00Z`) === 86_400_000);
@@ -68,7 +69,7 @@ export function InterviewSlotForm({ action, dates = [], layout, unit = "", unitO
       </div>
       {layout === "side" ? (
         <div className="portal-side-footer">
-          <button className="portal-button is-block" type="submit" disabled={pending}><ActionAddIcon size={15} aria-hidden="true" />{pending ? "Adding…" : dates.length > 1 ? `Add a slot to ${dates.length} days` : "Add slot"}</button>
+          <button className="portal-button is-block" type="submit" disabled={pending}><ActionAddIcon size={15} aria-hidden="true" />{pending ? <Busy>Adding</Busy> : dates.length > 1 ? `Add a slot to ${dates.length} days` : "Add slot"}</button>
         </div>
       ) : (
         <FormFooter pending={pending} submitLabel="Add slots" cancelHref="/portal" />

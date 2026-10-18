@@ -4,6 +4,7 @@ import { Check, Clock3, Minus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { Busy } from "@/components/busy";
 
 /** Ticks every second once mounted; null on the server so the markup matches. */
 export function useNow() {
@@ -102,5 +103,5 @@ export function PeriodOverview({
 
 function CancelButton() {
   const { pending } = useFormStatus();
-  return <button className="portal-button is-ghost" type="submit" disabled={pending}>{pending ? "Cancelling…" : "Cancel closing"}</button>;
+  return <button className="portal-button is-ghost" type="submit" disabled={pending}>{pending ? <Busy>Cancelling</Busy> : "Cancel closing"}</button>;
 }

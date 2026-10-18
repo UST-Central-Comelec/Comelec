@@ -9,6 +9,7 @@ import { chamberRoles, type ChamberRole } from "@/lib/data/types";
 import { setChamberRole } from "@/lib/portal/directory-actions";
 import { MemberAvatar } from "./member-avatar";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 export type ChamberMember = { id: string; name: string; college: string; photoUrl: string | null; role: ChamberRole | null };
 
@@ -99,7 +100,7 @@ export function ChamberGroup({ members, editable, manageable }: { members: Chamb
             </fieldset>
             <footer className="portal-help-foot chamber-dialog-foot">
               {manageable ? <Link className="chamber-edit-link" href={`/portal/accounts/${selected.id}`}>Manage their account</Link> : <span />}
-              <button type="button" className="portal-button" onClick={save} disabled={pending || role === selected.role}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save role"}</button>
+              <button type="button" className="portal-button" onClick={save} disabled={pending || role === selected.role}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : "Save role"}</button>
             </footer>
           </div>
         )}

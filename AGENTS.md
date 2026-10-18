@@ -70,7 +70,7 @@ Gold is scarce: the main action, the current tab, live markers, and accent words
 - A page is `<main className="portal-page">` (`is-wide` for wide tables). It contains a `<header className="portal-page-head">` holding a `portal-eyebrow` (section name), a `TitleWithInfo` (title plus an "i" tip), an optional `portal-muted` line, and the page's main action on the right. Content follows in `portal-card`s.
 - Explanations go behind `InfoTip` / `TitleWithInfo`, not in paragraphs on the page. Wrap read-only areas in `ViewOnly`, and show `ViewOnlyTag` in place of the main action.
 - Radii: cards `--p-radius` (20px); dialogs and menus 14px; buttons and small controls 6px (`--ui-button-radius`); pills 999px.
-- Layering: topbar 15, menus and pickers 60, the header pop-up stack 70, the session warning 100. Prefer the top layer (`popover`, `<dialog>`) to z-index for anything that floats.
+- Layering: topbar 15, menus and pickers 60, the pop-up stack 70, the session warning 100. Prefer the top layer (`popover`, `<dialog>`) to z-index for anything that floats.
 
 ## Buttons
 
@@ -86,7 +86,8 @@ Gold is scarce: the main action, the current tab, live markers, and accent words
   - Buttons are 40px tall (32px small), weight 600, 6px radius. Hover darkens slightly (`filter: brightness(.94)`), press moves down 1px, disabled is 50% opacity.
 - **Delete, Close, Dismiss and X buttons** are solid black and turn red on hover or focus, by the "Delete and dismiss controls" rule near the end of `portal.css`. It matches on `aria-label` / `title` starting "Close", "Dismiss" or "Delete", or an X or trash icon. Give such buttons those labels and let the rule style them; don't override it.
 - **Destructive actions take two steps.** Use `DeleteButton` (`src/components/portal/delete-button.tsx`): the first click arms it, the second confirms, and "Keep" backs out. Use a confirmation `<dialog>` only when the consequence needs explaining (emails sent, records removed).
-- **Labels** are a verb plus an object, in sentence case: "Save settings", "Add event", "Send announcement". While working they read "Saving…", "Sending…". After saving, an unchanged form's button reads "Saved" and is disabled.
+- **Labels** are a verb plus an object, in sentence case: "Save settings", "Add event", "Send announcement". After saving, an unchanged form's button reads "Saved" and is disabled.
+- **Work in progress shows the loader, never an ellipsis** (site and portal). While a button or status is working, it reads the word alone ("Saving", "Sending", "Deploying", "Uploading 45%") beside the animated Animate UI Loader: write `{pending ? <Busy>Saving</Busy> : "Save settings"}` with `Busy` from `src/components/busy.tsx` (`BusyIcon` alone for an icon-only button, with an `aria-label` such as "Exporting data"). The loader plays for as long as it's shown, even on a disabled button, stands in for the button's own icons (a rule in `src/app/icon-motion.css` hides them), and stays still under reduced motion. Label props (`pendingLabel` on `DeleteButton`, `ActionButton`, `ConfirmAction`, `QuickAction`) take the plain word and add the loader themselves. Never write "Saving…" or "Saving..." for work in progress, and don't add another spinner. Only text that can't hold an icon (a placeholder, an `aria-label`, a `title`) uses the word alone.
 - **Site:** each family has its own button: `.bp-button`, `.ev-button`, `.lp-button`, `.ck-button` (with `is-primary`, `is-ghost`). Main buttons use the family's `--*-action` token: UST gold in both themes.
 
 ## Fields and choices
@@ -214,7 +215,7 @@ In each, one solid ink "thumb" (`.portal-filters-thumb`) slides to the picked it
 
 ## Writing
 
-- **Plain words a visitor or commissioner would use, in sentence case.** Curly apostrophes and quotes (’ “ ”), and "…" for an ellipsis.
+- **Plain words a visitor or commissioner would use, in sentence case.** Curly apostrophes and quotes (’ “ ”), and "…" for an ellipsis (but not for work in progress: see the loader rule under Buttons).
 - **Say what happened and what follows**, not just "Success": "Account added, and they’ve been emailed. They can now sign in…".
 - **Errors say what to do:** "Couldn’t save the settings. Try again."
 
@@ -255,9 +256,9 @@ Nobody edits live together; each browser saves its whole form. So an edit form f
 - **Records edited in a dialog or in place** (letters, minutes, calendar notes and highlights) send the `updatedAt` they opened. The store saves only over that and otherwise throws a conflict with the latest record (`RecordConflict`, `CalendarConflict`), which the action returns. The letters dialog merges different fields itself (`src/lib/letters/conflict.ts`). The calendar shows theirs and keeps the editor open, so saving again replaces it. A to-do rename checks the title instead, so ticking it done never blocks a rename.
 - **Saves that set one value** (featured, registration open or closed, revoke or restore access, ticking a to-do) don't need the guard: they set what was clicked, so the last click wins.
 
-## Action messages are header pop-ups
+## Action messages are bottom-right pop-ups
 
-Every message that reports the outcome of something the user just did in the portal must be shown as the shared pop-up, centred on the portal header. Don't print it as a line in the page, a dialog, a card or a button label, and don't put it at the bottom of the screen. This covers success ("Saved.", "Email copied to clipboard.", "Announcement sent."), warnings (it worked, but the email didn't send) and failures ("Couldn't save. Try again.").
+Every message that reports the outcome of something the user just did in the portal must be shown as the shared pop-up in the bottom-right corner of the screen. Don't print it as a line in the page, a dialog, a card or a button label, and don't put it anywhere else on the screen. This covers success ("Saved.", "Email copied to clipboard.", "Announcement sent."), warnings (it worked, but the email didn't send) and failures ("Couldn't save. Try again.").
 
 - **In client code:** call `toast(message, tone)` from `src/components/portal/toast.tsx`. `tone` is `"ok"` (default), `"warn"` or `"error"`.
 - **In a form using `usePortalForm`:** `state.error` already pops up. Don't render it again.
@@ -265,7 +266,7 @@ Every message that reports the outcome of something the user just did in the por
 - **After a server action that redirects:** redirect with `?notice=<key>`, add the key's text to `src/components/portal/notice.tsx`, and render `<Notice notice={notice} />` on the page. It pops up and removes `?notice=` from the address.
 - **On a server page with a one-off message:** render `<Toast message="…" param="notice" />`.
 
-The pop-ups sit in the header stack in `src/components/portal/online-notices.tsx`, next to the Following pill, newest first. A one-line pop-up is a 36px pill 8px from the top, so it lines up with the middle of the 52px header. The stack re-raises itself above open dialogs, menus, popovers and the full-screen attendance booth. Don't build a second toast, snackbar or notice component.
+The pop-ups sit in the stack in `src/components/portal/online-notices.tsx` (`ToastStack` in the filing portal), 16px from the bottom and right edges, next to the Following pill. The stack grows upward, with the newest nearest the corner, and re-raises itself above open dialogs, menus, popovers and the full-screen attendance booth. Don't build a second toast, snackbar or notice component.
 
 These stay inline, beside what they're about:
 - an error under a specific field

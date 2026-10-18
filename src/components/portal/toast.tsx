@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 
-// Every "Saved.", "Copied", "Couldn't save" in the portal: a pill in the header's stack, beside the
+// Every "Saved.", "Copied", "Couldn't save" in the portal: a pill in the bottom-right stack, beside the
 // Following pill (online-notices.tsx), rather than a line somewhere on the page. Anything can call
 // `toast()`; a server page renders <Toast> instead.
 
@@ -15,7 +15,7 @@ let next = 0;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 
-/** Shows `message` in the header. The same message twice in a row only refreshes the one already there. */
+/** Shows `message` at the bottom right. The same message twice in a row only refreshes the one already there. */
 export function toast(message: string, tone: ToastTone = "ok") {
   if (!message) return;
   const same = items.find((item) => item.message === message && item.tone === tone);

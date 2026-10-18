@@ -3,6 +3,7 @@
 import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "../toast";
 import "../filing-review.css";
+import { Busy } from "@/components/busy";
 
 type Result = { ok?: string; error?: string };
 
@@ -63,7 +64,7 @@ export function ConfirmAction({ label, icon, buttonClassName = "portal-button is
           )}
           <div className="portal-registrant-confirmation-actions">
             <button type="button" className="portal-button is-ghost" autoFocus disabled={pending} onClick={close}>Cancel</button>
-            <button type="submit" className={`portal-button${danger ? " is-danger" : ""}`} disabled={pending}>{pending ? pendingLabel : confirmLabel}</button>
+            <button type="submit" className={`portal-button${danger ? " is-danger" : ""}`} disabled={pending}>{pending ? <Busy>{pendingLabel}</Busy> : confirmLabel}</button>
           </div>
         </form>
       </dialog>
@@ -78,6 +79,6 @@ export function QuickAction({ label, pendingLabel, icon, action, buttonClassName
     <button type="button" className={buttonClassName} disabled={pending} onClick={() => startTransition(async () => {
       const result = await action();
       toast(result.error ?? result.ok ?? "Done.", result.error ? "error" : "ok");
-    })}>{icon}{pending ? pendingLabel : label}</button>
+    })}>{icon}{pending ? <Busy>{pendingLabel}</Busy> : label}</button>
   );
 }

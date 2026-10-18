@@ -51,6 +51,7 @@ const jsx = { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({
 const EventRegistration = () => null, RsvpForm = () => null, EvaluationForm = () => null, SurveyAnswer = () => null;
 global.localStorage = storage;
 const view = load("src/components/form-view-mode.tsx", {
+  "@/components/busy": { Busy: () => null },
   "react": { useMemo: fn => fn(), useSyncExternalStore: (_subscribe, snapshot) => snapshot() },
   "react/jsx-runtime": jsx,
   "@/components/events/registration-form": { EventRegistration },
@@ -116,11 +117,15 @@ const registration = load("src/components/events/registration-form.tsx", {
   "@/lib/scroll": {},
   "@/components/combobox": {},
   "@/components/portal/portal-form": { useHydrated: () => true },
+  "@/components/portal/date-picker": { DatePicker: () => null },
+  "@/lib/forms/birthday": { manilaToday: () => "2026-10-18" },
   "@/lib/applications/options": { programsByCollege: {}, yearLevelsFor: () => ({}), colleges: {}, comelecUnits: {}, programLocked: () => false },
   "@/lib/events/options": { affiliationChoices: {}, attendingChoices: {}, requestKinds: {}, sexChoices: {}, isUstAffiliation: () => false },
   "@/lib/events/schema": { needsVerification: () => false, checkRegistration: () => { throw Error("Preview must skip validation"); }, stepOf: {} },
   "./event-form-ui": { EventFormTracker: () => null, EventConsentStatement: () => null },
+  "./organization-role-fields": { OrganizationRoleFields: () => null },
   "@/components/action-icons": { CopyIcon: () => null },
+  "@/components/busy": { Busy: () => null },
   "./rsvp.css": {},
   "@/components/use-form-draft": { useFormDraft: () => ({ restoredAt: null, endsAt: null, expired: false, clear: () => {}, startOver: () => {} }), forgetFormDraft: () => {} },
   "@/components/draft-notice": { DraftNotice: () => null },

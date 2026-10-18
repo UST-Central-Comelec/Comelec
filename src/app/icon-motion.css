@@ -21,3 +21,8 @@
     animation: none !important;
   }
 }
+
+/* Work in progress: the Busy spinner stands in for a control's own icons. */
+.ui-busy { display: inline-flex; align-items: center; gap: .45em; min-width: 0; }
+.ui-busy-icon { display: inline-flex; flex-shrink: 0; }
+:where(button, a, [role="button"]):has(.ui-busy) svg:not(:where(.ui-busy-icon svg)) { display: none; }

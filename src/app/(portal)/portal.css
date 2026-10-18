@@ -17,8 +17,8 @@
 
 /* Night: the portal's own colours. They sit on :root, and again on what stays dark when the rest goes
    light (Daylight, at the end): the sidebar, the dashboard's hero, a settings page's status card and
-   the tooltips. */
-:root, .portal-sidebar, .portal-hero, .period-overview, .portal-info-tip, .portal-access-workspace {
+   the tooltips and the check-in booth. */
+:root, .portal-sidebar, .portal-hero, .period-overview, .portal-info-tip, .portal-access-workspace, .portal-attendance {
 	--p-bg: #030305;
 	--p-onyx: #040408;
 	--p-onyx-glass: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012));
@@ -2288,10 +2288,10 @@ html:has(.portal-registrant-dialog[open]) { overflow: hidden; }
 /* What was a dark surface of its own becomes a white one. */
 :where([data-theme="light"]) .directory-card.is-dragging > a { background-color: var(--ui-panel); }
 :where([data-theme="light"]) .portal-stat-table thead th { background: var(--ui-surface-highlight); }
-:where([data-theme="light"]) .portal-field select option, :where([data-theme="light"]) select.portal-input option { background: var(--ui-panel); }
+:where([data-theme="light"]) .portal-field select option:not(:where(.portal-attendance *)), :where([data-theme="light"]) select.portal-input option:not(:where(.portal-attendance *)) { background: var(--ui-panel); }
 /* Fields are a fainter grey on white, and one in use clears to white rather than darkening. */
-:where([data-theme="light"]) .portal-field input:not([type="checkbox"], [type="radio"]), :where([data-theme="light"]) .portal-field select, :where([data-theme="light"]) .portal-field textarea, :where([data-theme="light"]) .portal-input { background-color: #f9fafc; box-shadow: inset 0 1px 2px rgba(16,24,40,.06); }
-:where([data-theme="light"]) .portal-field :is(input:not([type="checkbox"], [type="radio"]), select, textarea):hover:not(:focus), :where([data-theme="light"]) .portal-input:hover:not(:focus) { border-color: #aab4c3; }
+:where([data-theme="light"]) .portal-field:not(:where(.portal-attendance *)) input:not([type="checkbox"], [type="radio"]), :where([data-theme="light"]) .portal-field:not(:where(.portal-attendance *)) select, :where([data-theme="light"]) .portal-field:not(:where(.portal-attendance *)) textarea, :where([data-theme="light"]) .portal-input:not(:where(.portal-attendance *)) { background-color: #f9fafc; box-shadow: inset 0 1px 2px rgba(16,24,40,.06); }
+:where([data-theme="light"]) .portal-field:not(:where(.portal-attendance *)) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):hover:not(:focus), :where([data-theme="light"]) .portal-input:not(:where(.portal-attendance *)):hover:not(:focus) { border-color: #aab4c3; }
 :where([data-theme="light"]) :is(.portal-dropdown.is-field > button, .email-editor) { background-color: #f9fafc; box-shadow: inset 0 1px 2px rgba(16,24,40,.06); }
 :where([data-theme="light"]) :is(.portal-dropdown.is-field > button:focus-visible, .portal-dropdown.is-field.is-open > button, .email-editor:focus-within) { background-color: var(--ui-panel); }
 :where([data-theme="light"]) .portal-field :is(input, select, textarea):focus, :where([data-theme="light"]) .portal-input:focus { background-color: var(--p-field-active-bg); box-shadow: var(--p-field-active-lift); }
@@ -2416,8 +2416,8 @@ button.portal-list-review:focus-visible { outline: 2px solid var(--p-gold-edge);
 :root:has(.portal-shell[data-theme="light"]) .dashboard-glowing-grid > .portal-card[data-glow] { border-radius: var(--ui-card-radius); }
 :root:has(.portal-shell[data-theme="light"]) .dashboard-glowing-grid > .portal-card[data-glow]::before { display: none; }
 :root:has(.portal-shell[data-theme="light"]) .dashboard-glowing-grid > .portal-card[data-glow]::after { background: conic-gradient(from calc(var(--dashboard-glow-angle) - 45deg), transparent 0deg, #cbd5e1 20deg, #94a3b8 45deg, #fec30c 75deg, transparent 90deg); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea):not(:where(.portal-hero *, .period-overview *)) { background: var(--ui-panel-tint); border-radius: var(--ui-control-radius); }
-:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input, select, textarea):focus:not(:where(.portal-hero *, .period-overview *)) { background: var(--ui-panel); }
+:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea):not(:where(.portal-hero *, .period-overview *, .portal-attendance *)) { background: var(--ui-panel-tint); border-radius: var(--ui-control-radius); }
+:root:has(.portal-shell[data-theme="light"]) .portal-page .portal-field :is(input, select, textarea):focus:not(:where(.portal-hero *, .period-overview *, .portal-attendance *)) { background: var(--ui-panel); }
 
 /* Profile card menu, shared by every portal account. The native popover stays above page content. */
 .portal-profile-trigger { color: inherit; cursor: pointer; font: inherit; text-align: left; width: 100%; }
@@ -2744,9 +2744,11 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
 .portal-online-compose textarea:disabled { cursor: not-allowed; opacity: .6; }
 .portal-online-send { align-items: center; background: var(--p-bright); border: 0; border-radius: 50%; color: var(--p-on-bright); cursor: pointer; display: flex; flex: none; height: 38px; justify-content: center; width: 38px; }
 .portal-online-send:disabled { cursor: default; opacity: .3; }
-/* Centred on the 52px header (a 36px pill 8px down): follow requests, who's following, short updates and every action's toast. A popover, so it also sits above an open dialog. */
-.portal-online-notices { background: none; border: 0; color: inherit; inset: max(8px, env(safe-area-inset-top)) auto auto 50%; margin: 0; max-width: calc(100vw - 32px); overflow: visible; padding: 0; pointer-events: none; position: fixed; transform: translateX(-50%); width: 720px; z-index: 70; }
-.portal-online-notices:popover-open { align-items: center; display: flex; flex-direction: column; gap: 8px; }
+/* Bottom right of the screen, newest nearest the corner: follow requests, who's following, short updates and every action's toast. A popover, so it also sits above an open dialog. */
+.portal-online-notices { background: none; border: 0; color: inherit; inset: auto max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) auto; margin: 0; max-width: calc(100vw - 32px); overflow: visible; padding: 0; pointer-events: none; position: fixed; width: 420px; z-index: 70; }
+.portal-online-notices:popover-open { align-items: flex-end; display: flex; flex-direction: column-reverse; gap: 8px; }
+/* Beside the who's-online drawer while it's open, so a pop-up never covers the chat box. */
+@media (min-width: 861px) { html:has(.portal-online-drawer[open]) .portal-online-notices { right: 376px; } }
 .portal-online-notice { align-items: center; animation: portal-online-drop .3s var(--p-ease); background: var(--p-panel); border: 1px solid var(--p-line); border-radius: 18px; box-shadow: 0 16px 48px rgba(0,0,0,.2), var(--p-shadow-card); color: var(--p-text); display: flex; gap: 10px; padding: 4px 5px 4px 14px; pointer-events: auto; width: min(100%, 420px); }
 .portal-online-notice p { color: var(--p-soft); flex: 1; font-size: 12px; line-height: 1.55; margin: 0; }
 .portal-online-notice strong { color: var(--p-text); font-weight: 600; }
@@ -2761,7 +2763,7 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
 .is-warn > .portal-toast-icon { background: var(--p-warn); }
 .is-error > .portal-toast-icon { background: var(--p-danger); color: #fff; }
 .portal-online-dismiss { align-items: center; border-radius: 50%; cursor: pointer; display: flex; flex: none; height: 26px; justify-content: center; width: 26px; }
-@keyframes portal-online-drop { from { opacity: 0; transform: translateY(-10px); } }
+@keyframes portal-online-drop { from { opacity: 0; transform: translateY(10px); } }
 @media (prefers-reduced-motion: reduce) { .portal-online-notice, .portal-online-notice.is-bar i { animation: none; } }
 @media (max-width: 860px) {
   .portal-online-pill { gap: 6px; padding: 0 10px; }
@@ -2792,13 +2794,13 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
 .portal-notification-panel .is-unread .portal-notification-unit { color: var(--p-text); }
 
 /* Light-mode actions share gentle depth across gold, neutral and status fills. */
-:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-registrants-column-switch)) {
+:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-attendance *, .portal-registrants-column-switch)) {
   box-shadow: var(--ui-button-shadow);
   transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
 }
-:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-registrants-column-switch)):hover:not(:disabled, [aria-disabled="true"]) { box-shadow: var(--ui-button-shadow-hover); }
-:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-registrants-column-switch)):active:not(:disabled, [aria-disabled="true"]) { box-shadow: var(--ui-button-shadow-pressed); }
-:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-registrants-column-switch)):is(:disabled, [aria-disabled="true"]) { box-shadow: none; }
+:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-attendance *, .portal-registrants-column-switch)):hover:not(:disabled, [aria-disabled="true"]) { box-shadow: var(--ui-button-shadow-hover); }
+:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-attendance *, .portal-registrants-column-switch)):active:not(:disabled, [aria-disabled="true"]) { box-shadow: var(--ui-button-shadow-pressed); }
+:root:has(.portal-shell[data-theme="light"]) :is(.portal-button, .portal-icon-button, .portal-notification-bell, .portal-inbox-read-button, .portal-dropdown > button, .email-editor-tools button, .code-edit-tools button):not(:where(.portal-access-workspace *, .portal-attendance *, .portal-registrants-column-switch)):is(:disabled, [aria-disabled="true"]) { box-shadow: none; }
 
 /* Brief confirmation after sending, positioned above the Inbox without shifting its rows. */
 

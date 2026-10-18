@@ -5,7 +5,8 @@ import { applicationNoticeEmail, confirmationEmail, offerDeclinedEmail, resultEm
 import { approvalRequestEmail, revisionPublishedEmail, revisionReturnedEmail, revisionSignedEmail, revisionSubmittedEmail, revisionWithdrawnEmail } from "@/lib/codes/emails";
 import type { RevisionSummary } from "@/lib/codes/options";
 import type { Email } from "@/lib/email/send";
-import { changeRequestEmail, registrationEmail, requestDecisionsEmail } from "@/lib/events/emails";
+import { siteUrl } from "@/lib/email/template";
+import { changeRequestEmail, editLinkEmail, registrationEmail, requestDecisionsEmail } from "@/lib/events/emails";
 import { acknowledgementEmail, rsvpReceiptEmail } from "@/lib/events/rsvp-emails";
 import { evaluationAcknowledgement } from "@/lib/events/evaluation";
 import type { CommissionEvent } from "@/lib/events/options";
@@ -318,6 +319,14 @@ export const automaticEmails: AutomaticGroup[] = [
         to: () => "Whoever asked, at the email they registered with",
         byUnit: false,
         sample: () => requestDecisionsEmail(person, event, [{ kind: "parking", approved: true, detail: "ABC 1234 · White Toyota Vios · arriving 12:30 PM" }, { kind: "certificate", approved: true, detail: "" }, { kind: "dietary", approved: false, detail: "Peanuts, shellfish" }], 1),
+      },
+      {
+        id: "event-edit-link",
+        name: "Edit request accepted",
+        when: "The organizers accept a registrant’s or collaborator’s request to edit their response, under Responses. The email carries the link to edit it.",
+        to: () => "Whoever asked, at the email on their registration or RSVP",
+        byUnit: false,
+        sample: () => editLinkEmail({ email: person.email, firstName: person.firstName, referenceCode: "7K3MX", form: "registration" }, event, `${siteUrl()}/events/${event.id}/register?edit=00000000-0000-4000-8000-000000000000`, "Please change my middle name to SANTOS."),
       },
       {
         id: "event-changes",

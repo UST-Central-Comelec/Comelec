@@ -10,6 +10,7 @@ import { AccessFlowMap } from "./access-flow-map";
 import type { GroupLabel, TabKey } from "@/lib/portal/access";
 import type { FormState } from "@/lib/portal/form";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 /** The saved and default permissions represented by a diagram node. */
 export type AccessTab = { key: TabKey; label: string; on: boolean; byDefault: boolean; fixed: boolean; centralOnly: boolean; boardOnly: boolean };
@@ -108,7 +109,7 @@ export function AccessControlForm({ action, groups, updated, levelName, rolePick
       {tabs.filter((tab) => open.has(tab.key)).map((tab) => <input key={tab.key} type="hidden" name="tab" value={tab.key} />)}
       <AccessFlowMap immersive groups={groups} open={open} levelName={levelName} disabled={pending || !hydrated} onChange={set} onReady={onCanvasReady}
         resetControl={<button type="button" className="portal-flow-display-toggle" title="Reset to last saved access" aria-label="Reset to last saved access" onClick={() => setOpen(new Set(saved))} disabled={locked || unchanged || pending || !hydrated}><RotateCcw size={14} aria-hidden="true" /></button>}
-        saveControl={<button type="submit" className="portal-flow-display-toggle" aria-label={pending ? "Saving access" : "Save access"} title={locked ? "Fixed access" : pending ? "Saving…" : unchanged ? "Access already saved" : "Save access"} disabled={locked || unchanged || pending || !hydrated}><Save size={14} aria-hidden="true" /></button>}
+        saveControl={<button type="submit" className="portal-flow-display-toggle" aria-label={pending ? "Saving access" : "Save access"} title={locked ? "Fixed access" : pending ? "Saving access" : unchanged ? "Access already saved" : "Save access"} disabled={locked || unchanged || pending || !hydrated}><Save size={14} aria-hidden="true" /></button>}
         overlay={<div className="portal-access-save-controls">
           <span aria-live="polite" title={updated ?? undefined}>{locked ? "Fixed access" : unchanged ? "Saved" : "Unsaved changes"}</span>
         </div>}
@@ -138,7 +139,7 @@ export function AccessControlForm({ action, groups, updated, levelName, rolePick
         </div>}
         <div className="portal-access-security-actions">
           <button type="button" className="portal-button is-ghost" autoFocus disabled={pending} onClick={() => securityDialog.current?.close()}>Cancel</button>
-          {confirmationStep ? <button type="submit" className="portal-button" disabled={pending || !hydrated || confirmationText !== confirmationPhrase}>{pending ? "Saving…" : "Execute"}</button> : <button type="button" className="portal-button" disabled={pending || !hydrated} onClick={() => setConfirmationStep(true)}>Authorize</button>}
+          {confirmationStep ? <button type="submit" className="portal-button" disabled={pending || !hydrated || confirmationText !== confirmationPhrase}>{pending ? <Busy>Saving</Busy> : "Execute"}</button> : <button type="button" className="portal-button" disabled={pending || !hydrated} onClick={() => setConfirmationStep(true)}>Authorize</button>}
         </div>
         <span className="sr-only" role="status">{pending ? "Saving access changes. Please wait." : ""}</span>
       </dialog>

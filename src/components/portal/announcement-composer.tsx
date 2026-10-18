@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 import { Field, useHydrated, usePortalForm } from "./portal-form";
 import { sendAnnouncement } from "@/lib/portal/inbox-actions";
 import { DocumentBodyField } from "./document-body-field";
+import { Busy } from "@/components/busy";
 
 export function AnnouncementComposer({ broadcast, unit }: { broadcast: boolean; unit: string }) {
   const { pending, onSubmit, errors } = usePortalForm(sendAnnouncement);
@@ -23,7 +24,7 @@ export function AnnouncementComposer({ broadcast, unit }: { broadcast: boolean; 
           <DocumentBodyField value={body} onChange={setBody} invalid={Boolean(errors.body)} label="Message editor" windowTitle="Edit message" />
           {errors.body && <span className="portal-field-error">{errors.body}</span>}
         </div>
-        <div className="portal-announcement-form-actions"><Link className="portal-button is-ghost" href="/portal/apps/inbox">Cancel</Link><button type="submit" className="portal-button" disabled={!hydrated || pending}><Send size={15} aria-hidden="true" />{pending ? "Sending…" : "Send announcement"}</button></div>
+        <div className="portal-announcement-form-actions"><Link className="portal-button is-ghost" href="/portal/apps/inbox">Cancel</Link><button type="submit" className="portal-button" disabled={!hydrated || pending}><Send size={15} aria-hidden="true" />{pending ? <Busy>Sending</Busy> : "Send announcement"}</button></div>
       </form>
   );
 }

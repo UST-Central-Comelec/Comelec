@@ -9,6 +9,7 @@ import { SaveIcon, ViewIcon as Eye, HideIcon as EyeOff } from "@/components/acti
 import type { FormState } from "@/lib/portal/form";
 import { InfoTip } from "./info-tip";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
 
@@ -20,7 +21,7 @@ function SettingsFoot({ unchanged, pending, onDiscard, submitLabel, danger }: { 
       <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
       <div className="portal-form-actions">
         {!unchanged && <button type="button" className="portal-button is-ghost" onClick={onDiscard} disabled={pending}>Discard</button>}
-        <button className={`portal-button${danger ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated || unchanged}><SaveIcon size={15} />{pending ? "Saving…" : unchanged ? "Saved" : submitLabel}</button>
+        <button className={`portal-button${danger ? " is-danger" : ""}`} type="submit" disabled={pending || !hydrated || unchanged}><SaveIcon size={15} />{pending ? <Busy>Saving</Busy> : unchanged ? "Saved" : submitLabel}</button>
       </div>
     </footer>
   );
@@ -118,5 +119,5 @@ export function CookieNoticeForm({ action, shown: saved }: { action: FormAction;
 export function ResetNoticeButton() {
   const { pending } = useFormStatus();
   const hydrated = useHydrated();
-  return <button className="portal-button is-ghost" type="submit" disabled={pending || !hydrated}><RotateCcw size={15} aria-hidden="true" /> {pending ? "Resetting…" : "Show again to everyone"}</button>;
+  return <button className="portal-button is-ghost" type="submit" disabled={pending || !hydrated}><RotateCcw size={15} aria-hidden="true" /> {pending ? <Busy>Resetting</Busy> : "Show again to everyone"}</button>;
 }

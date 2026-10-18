@@ -15,6 +15,7 @@ import { DraftNotice } from "@/components/draft-notice";
 import { useFormDraft } from "@/components/use-form-draft";
 import "./event-form-editor.css";
 import "./surveys.css";
+import { Busy } from "@/components/busy";
 
 export function SurveyAnswer({ id, title, description = "", definition, updatedAt, preview = false, answered = false }: { id: string; title: string; description?: string; definition: EditorDefinition; updatedAt: string; preview?: boolean; answered?: boolean }) {
   const privacyId = useId();
@@ -84,7 +85,7 @@ export function SurveyAnswer({ id, title, description = "", definition, updatedA
             {current.kind === "privacy" && <EventConsentStatement id={privacyId} />}
             <EditorFields fields={current.fields} visible={flow.visible} values={answers} portalPickers onChange={(key, value) => setAnswers(previous => ({ ...previous, [key]: value }))} />
           </fieldset>
-          <footer className="portal-settings-foot"><div>{index > 0 && <button type="button" className="ev-button is-ghost" disabled={pending} onClick={() => go(index - 1)}><ArrowLeft size={15} aria-hidden="true" />Back</button>}</div><button type="submit" className="ev-button is-primary" disabled={pending}>{last ? <SaveIcon size={15} aria-hidden="true" /> : <ArrowRight size={15} aria-hidden="true" />}{pending ? "Submitting…" : last ? preview ? "Preview submission" : "Submit response" : "Continue"}</button></footer>
+          <footer className="portal-settings-foot"><div>{index > 0 && <button type="button" className="ev-button is-ghost" disabled={pending} onClick={() => go(index - 1)}><ArrowLeft size={15} aria-hidden="true" />Back</button>}</div><button type="submit" className="ev-button is-primary" disabled={pending}>{last ? <SaveIcon size={15} aria-hidden="true" /> : <ArrowRight size={15} aria-hidden="true" />}{pending ? <Busy>Submitting</Busy> : last ? preview ? "Preview submission" : "Submit response" : "Continue"}</button></footer>
         </> : <p className="portal-empty">Add a question to preview this survey.</p>}
       </div>
     </form>

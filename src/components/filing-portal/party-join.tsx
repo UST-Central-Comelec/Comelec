@@ -11,6 +11,7 @@ import { toast, useToast } from "@/components/portal/toast";
 import { cancelJoinRequest, joinPartyFromPortal } from "@/lib/party-portal/actions";
 import type { JoinableParty } from "@/lib/party-portal/types";
 import "./documents.css";
+import { Busy } from "@/components/busy";
 
 // The Political Party tab for an account that isn't in a party: ask to join one that's
 // registering, or register a new one and be its contact person. The same rules as the
@@ -92,7 +93,7 @@ export function PartyJoin({ parties, units }: { parties: JoinableParty[]; /** Un
       <div className="pp-review-actions">
         <button type="submit" className="portal-button" disabled={pending || !hydrated || (mode === "join" ? !parties.length : !units.length)}>
           {mode === "join" ? <Users size={15} aria-hidden="true" /> : <UserPlus size={15} aria-hidden="true" />}
-          {pending ? "Sending…" : mode === "join" ? "Ask to join" : "Register party"}
+          {pending ? <Busy>Sending</Busy> : mode === "join" ? "Ask to join" : "Register party"}
         </button>
       </div>
     </form>
@@ -106,6 +107,6 @@ export function CancelJoinRequest() {
     <button type="button" className="portal-button is-ghost is-small" disabled={pending} onClick={() => start(async () => {
       const result = await cancelJoinRequest();
       toast(result.error ?? result.ok ?? "Done.", result.error ? "error" : "ok");
-    })}><Undo2 size={14} aria-hidden="true" />{pending ? "Taking back…" : "Take back my request"}</button>
+    })}><Undo2 size={14} aria-hidden="true" />{pending ? <Busy>Taking back</Busy> : "Take back my request"}</button>
   );
 }

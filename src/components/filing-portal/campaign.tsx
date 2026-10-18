@@ -19,6 +19,7 @@ import {
 import type { CalendarHighlight } from "@/lib/calendar/options";
 import { formatSlot, manilaParts } from "@/lib/filing-portal/services";
 import "./documents.css";
+import { Busy } from "@/components/busy";
 
 // A qualified candidate's campaign in the filing portal: the materials they send for the unit's
 // approval (Candidacy → Campaign materials), and their campaign schedule (Candidacy → Campaign
@@ -72,7 +73,7 @@ export function MaterialsBoard({ materials, underParty, partyName, unit, open }:
                 {open && (material.status === "submitted" || material.status === "changes") && (
                   <div className="pp-requirement-actions">
                     {material.status === "changes" && <button type="button" className="portal-button is-ghost is-small" onClick={() => setEditing(material)}><EditIcon size={14} aria-hidden="true" />Send a revised version</button>}
-                    {material.status === "submitted" && <DeleteButton label="Take back" prompt="Take this material back?" confirmLabel="Yes, take it back" pendingLabel="Taking back…" action={async () => report(await withdrawMyMaterial(material.id))} />}
+                    {material.status === "submitted" && <DeleteButton label="Take back" prompt="Take this material back?" confirmLabel="Yes, take it back" pendingLabel="Taking back" action={async () => report(await withdrawMyMaterial(material.id))} />}
                   </div>
                 )}
               </li>
@@ -191,7 +192,7 @@ function MaterialForm({ editing, underParty, partyName, onDone }: { editing: Cam
         )}
       </div>
       <div className="pp-review-actions">
-        <button type="submit" className="portal-button" disabled={pending || !hydrated || Boolean(tooBig)}><Send size={15} aria-hidden="true" />{pending ? "Sending…" : editing ? "Send revised version" : "Send for approval"}</button>
+        <button type="submit" className="portal-button" disabled={pending || !hydrated || Boolean(tooBig)}><Send size={15} aria-hidden="true" />{pending ? <Busy>Sending</Busy> : editing ? "Send revised version" : "Send for approval"}</button>
       </div>
     </form>
   );
@@ -229,7 +230,7 @@ export function ScheduleBoard({ activities, changeable, cancellable, moratoriums
                 {open && cancellable.includes(activity.id) && (
                   <div className="pp-requirement-actions">
                     {changeable.includes(activity.id) && <button type="button" className="portal-button is-ghost is-small" onClick={() => setEditing(activity)}><EditIcon size={14} aria-hidden="true" />Change</button>}
-                    <DeleteButton label="Cancel activity" prompt={changeable.includes(activity.id) ? "Cancel this activity?" : `It’s under ${NOTICE_HOURS} hours away. Cancel anyway?`} confirmLabel="Yes, cancel" pendingLabel="Cancelling…" action={async () => report(await cancelMyActivity(activity.id))} />
+                    <DeleteButton label="Cancel activity" prompt={changeable.includes(activity.id) ? "Cancel this activity?" : `It’s under ${NOTICE_HOURS} hours away. Cancel anyway?`} confirmLabel="Yes, cancel" pendingLabel="Cancelling" action={async () => report(await cancelMyActivity(activity.id))} />
                   </div>
                 )}
               </li>
@@ -270,7 +271,7 @@ function ActivityForm({ editing, moratoriums, onDone }: { editing: CampaignActiv
       </div>
       <ActivityFields key={round} editing={editing} moratoriums={moratoriums} errors={state?.fieldErrors ?? {}} />
       <div className="pp-review-actions">
-        <button type="submit" className="portal-button" disabled={pending || !hydrated}><Send size={15} aria-hidden="true" />{pending ? "Sending…" : editing ? "Send the change" : "Add to schedule"}</button>
+        <button type="submit" className="portal-button" disabled={pending || !hydrated}><Send size={15} aria-hidden="true" />{pending ? <Busy>Sending</Busy> : editing ? "Send the change" : "Add to schedule"}</button>
       </div>
     </form>
   );

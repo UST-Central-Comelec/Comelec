@@ -72,6 +72,10 @@ assert.ok(options.colleges.includes("College of Testing"));
 assert.ok(options.comelecUnits.includes("College of Testing"), "comelecUnits is the same list");
 assert.equal(options.unitAbbreviations["College of Testing"], "CT");
 assert.deepEqual(options.filterCollegeOptions(options.colleges, "test"), ["College of Testing"]);
+const organizationUnits = eventOptions.collaboratorUnits.filter(unit => unit.value !== "central").map(unit => unit.label);
+assert.equal(eventOptions.filterOrganizationUnits(organizationUnits, "CT")[0], "College of Testing Comelec Unit", "An exact saved unit abbreviation ranks before partial matches");
+assert.deepEqual(eventOptions.filterOrganizationUnits(organizationUnits, "TEST"), ["College of Testing Comelec Unit"], "Organization suggestions use the saved aliases");
+assert.deepEqual(eventOptions.filterOrganizationUnits(organizationUnits, "My own organization"), [], "Custom organizations are kept separately from unit suggestions");
 assert.deepEqual(options.programsByCollege["College of Testing"], ["Bachelor of Science in Testing"]);
 assert.deepEqual(accounts.programsOf("College of Testing"), ["Bachelor of Science in Testing"]);
 // Each office recruits its board seat, Executive Associates and the unit's added roles; an

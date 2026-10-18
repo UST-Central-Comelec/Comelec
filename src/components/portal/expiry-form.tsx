@@ -6,6 +6,7 @@ import type { FormState } from "@/lib/portal/form";
 import { DatePicker } from "./date-picker";
 import { InfoTip } from "./info-tip";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 /** Accounts → Expiration: the date commissioners' access ends. `today` is the earliest it can be, in Manila. */
 export function ExpiryForm({ action, expiresOn: saved, today }: { action: (state: FormState, formData: FormData) => Promise<FormState>; expiresOn: string; today: string }) {
@@ -30,7 +31,7 @@ export function ExpiryForm({ action, expiresOn: saved, today }: { action: (state
         <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
         <div className="portal-form-actions">
           {!unchanged && <button type="button" className="portal-button is-ghost" onClick={() => setDate(saved)} disabled={pending}>Discard</button>}
-          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : unchanged ? "Saved" : "Save date"}</button>
+          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : unchanged ? "Saved" : "Save date"}</button>
         </div>
       </footer>
     </form>

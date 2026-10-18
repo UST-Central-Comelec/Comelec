@@ -22,23 +22,26 @@ assert.deepEqual(capacitySchema.parse({}),{minimumRegistrants:1,maximumRegistran
 for(const value of [{minimumRegistrants:0},{minimumRegistrants:2,maximumRegistrants:1},{maximumRegistrants:1.5},{maximumRegistrants:'no'}]) assert.equal(capacitySchema.safeParse(value).success,false);
 (async()=>{
  const deliveries=[];
+ let savedAnswers;
  const registration = load('src/lib/events/actions.ts', {
    '@/lib/reference/store': { ensureReferenceData: async () => {} },
    'next/headers': { headers: async()=>new Headers() }, 'next/cache': { revalidatePath: ()=>{} },
    '@/lib/notifications/notify': { sendAutomatic: async(kind, send)=>{deliveries.push(kind);send();return 'sent'} },
    '@/lib/security/rate-limit': {clientIp:()=>'',limits:{eventRegister:{}},rateLimit:()=>({ok:true})},
    '@/lib/supabase/config': {isSupabaseConfigured:()=>true},
-   '@/lib/supabase/server': {createAdminClient:()=>({from:()=>({insert:()=>({select:()=>({single:async()=>({data:{reference_code:'ABCDE',status:'waitlisted'},error:null})})})})})},
+   '@/lib/supabase/server': {createAdminClient:()=>({from:()=>({insert:answers=>{savedAnswers=answers;return {select:()=>({single:async()=>({data:{reference_code:'ABCDE',status:'waitlisted'},error:null})})}}})})},
    '@/lib/forms/email-domain': {emailDomainProblem:async()=>null},
    './emails': {registrationEmail:(_person,_event,kind)=>{assert.equal(kind,'waitlisted');return {}}},
    './queries': {getEvent:async()=>({id:'sample',published:true,registrationStatus:'open',endDate:'2099-01-01',endsTime:'23:59',requireGoogle:false})},
    './registrations': {findRegistration:async()=>null,fullName:()=> 'ANA CRUZ'},
-   './schema': {readRegistration:()=>({lastName:'CRUZ',firstName:'ANA',middleName:'',email:'guest@example.com',affiliation:'independent',attendingAs:'independent',institution:'',age:'20',consent:true}),checkRegistration:()=>({}),needsVerification:()=>false,toRequests:()=>({})},
+   './schema': {readRegistration:()=>({lastName:'CRUZ',firstName:'ANA',middleName:'',email:'guest@example.com',affiliation:'independent',attendingAs:'independent',institution:'',dateOfBirth:'2004-01-15',consent:true}),checkRegistration:()=>({}),needsVerification:()=>false,toRequests:()=>({})},
    './verification': {readEventPass:async()=>null,clearEventPass:async()=>{}},
  });
  const result = await registration.submitRegistration('sample',{},new FormData());
  assert.equal(result.result.kind,'waitlisted','Confirmation follows the saved status when the last place was taken meanwhile');
  assert.deepEqual(deliveries,['event-waitlisted']);
+ assert.equal(savedAnswers.date_of_birth,'2004-01-15');
+ assert.equal(savedAnswers.age,load('src/lib/forms/birthday.ts').ageFromBirthday('2004-01-15'),'Age is calculated from the saved birthday');
  const db=new PGlite();
  try {
   await db.exec(`create role anon; create role authenticated; create role service_role;
@@ -74,6 +77,11 @@ for(const value of [{minimumRegistrants:0},{minimumRegistrants:2,maximumRegistra
   await db.exec("delete from events where id='limited';");
   assert.equal((await db.query("select count(*)::int as n from event_registrations where event_id='limited'")).rows[0].n,0);
   assert.equal((await db.query("select relrowsecurity from pg_class where oid='public.events'::regclass")).rows[0].relrowsecurity,true);
+  await db.exec(fs.readFileSync('supabase/migrations/20261018143217_event_registration_birthdays.sql','utf8'));
+  assert.equal((await db.query("select date_of_birth from event_registrations where id='old'")).rows[0].date_of_birth,null,'Legacy registrations have no invented birthday');
+  await db.exec("update event_registrations set date_of_birth='2004-01-15' where id='old';");
+  assert.equal((await db.query("select date_of_birth::text as birthday from event_registrations where id='old'")).rows[0].birthday,'2004-01-15');
+  await assert.rejects(db.exec("update event_registrations set date_of_birth='2999-01-01' where id='old';"),/event_registrations_birthday_not_future/);
   console.log('Event capacity passed: validation, legacy defaults, admission limits, automatic waitlist, promotions, rollback, deletion, closed events and RLS.');
  } finally {await db.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

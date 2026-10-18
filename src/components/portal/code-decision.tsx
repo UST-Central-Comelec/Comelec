@@ -5,6 +5,7 @@ import { Check, CornerUpLeft } from "lucide-react";
 import type { ApproverRole } from "@/lib/codes/options";
 import type { FormState } from "@/lib/portal/form";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 type Props = {
   /** The office the signed-in account signs as. */
@@ -34,7 +35,7 @@ export function CodeDecision({ role, signed, last, approve, sendBack }: Props) {
         <p>Approve this revision as {role}?{last && <> Yours is the last approval missing, so <strong>it’s published on the website straight away</strong>.</>}</p>
         <div className="portal-form-actions">
           <button className="portal-button is-ghost" type="button" disabled={approving} onClick={() => setMode("idle")}>Not yet</button>
-          <button className="portal-button is-ok" type="button" disabled={approving} onClick={() => startApprove(() => approve())}><Check size={15} aria-hidden="true" /> {approving ? "Approving…" : last ? "Yes, approve and publish" : "Yes, approve"}</button>
+          <button className="portal-button is-ok" type="button" disabled={approving} onClick={() => startApprove(() => approve())}><Check size={15} aria-hidden="true" /> {approving ? <Busy>Approving</Busy> : last ? "Yes, approve and publish" : "Yes, approve"}</button>
         </div>
       </div>
     );
@@ -50,7 +51,7 @@ export function CodeDecision({ role, signed, last, approve, sendBack }: Props) {
         <p className="portal-muted">Its editors are emailed what you write. It becomes a draft again, and every approval so far is cleared.</p>
         <div className="portal-form-actions">
           <button className="portal-button is-ghost" type="button" disabled={returning} onClick={() => setMode("idle")}>Cancel</button>
-          <button className="portal-button" type="submit" disabled={returning || !hydrated}><CornerUpLeft size={15} aria-hidden="true" /> {returning ? "Sending back…" : "Send back"}</button>
+          <button className="portal-button" type="submit" disabled={returning || !hydrated}><CornerUpLeft size={15} aria-hidden="true" /> {returning ? <Busy>Sending back</Busy> : "Send back"}</button>
         </div>
       </form>
     );

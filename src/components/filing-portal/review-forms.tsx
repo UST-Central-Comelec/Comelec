@@ -9,6 +9,7 @@ import { useToast } from "@/components/portal/toast";
 import type { DocumentStatus } from "@/lib/filing-portal/types";
 import "./documents.css";
 import "@/components/portal/filing-review.css";
+import { Busy } from "@/components/busy";
 
 // The Comelec unit's review in the commission portal: of each document (a party's or a
 // candidate's), and its decision on the party or the candidacy. The page passes the bound Server
@@ -54,7 +55,7 @@ export function DocumentReviewForm({ action, status, feedback, filer }: { action
       </label>
       <div className="pp-review-actions">
         <button type="submit" className={`portal-button is-small${decision === "approved" ? " is-ok" : ""}`} disabled={pending || !hydrated}>
-          <SaveIcon size={14} aria-hidden="true" />{pending ? "Saving…" : decision === "approved" ? "Approve document" : "Return for revisions"}
+          <SaveIcon size={14} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : decision === "approved" ? "Approve document" : "Return for revisions"}
         </button>
       </div>
     </form>
@@ -109,7 +110,7 @@ function DecisionForm({ action, status, remarks, choices, against, againstLabel,
         {errors.remarks && <span className="portal-field-error">{errors.remarks}</span>}
       </label>
       <div className="pp-review-actions">
-        <button type="submit" className="portal-button" disabled={pending || !hydrated || blocked || (needsOverride && !override)}><SaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : "Save decision"}</button>
+        <button type="submit" className="portal-button" disabled={pending || !hydrated || blocked || (needsOverride && !override)}><SaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : "Save decision"}</button>
       </div>
     </form>
   );

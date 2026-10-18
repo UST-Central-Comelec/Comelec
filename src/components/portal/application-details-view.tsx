@@ -19,6 +19,7 @@ import { onboardApplication } from "@/lib/portal/account-actions";
 import { ReviewModalDetailsGroup, ReviewModalHeader, ReviewModalToolbar } from "./review-modal-ui";
 import { InfoTip } from "@/components/portal/info-tip";
 import "./event-workflows.css";
+import { Busy } from "@/components/busy";
 
 const formatDate = (iso: string) => new Date(iso).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" });
 
@@ -209,7 +210,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
           </div>}
           {reofferable && <button className="portal-registrant-action-button" type="button" onClick={() => openStatusConfirmation("accepted")} disabled={full}><Check size={15} /> Accept again</button>}
           <button type="button" className="portal-registrant-action-button" disabled={deleting || onboarding} onClick={() => confirmationDialog.current?.showModal()}><ActionDeleteIcon size={15} aria-hidden="true" />Delete application</button>
-          {application.status === "accepted" && <button type="button" className="portal-registrant-action-button portal-application-onboard" disabled={!canOnboard || onboarding || onboarded || deleting} title={!canOnboard ? "Account management access is required to onboard applicants." : undefined} onClick={onboard}>{onboarding ? "Onboarding…" : onboarded ? "Onboarded" : "Onboard"}</button>}
+          {application.status === "accepted" && <button type="button" className="portal-registrant-action-button portal-application-onboard" disabled={!canOnboard || onboarding || onboarded || deleting} title={!canOnboard ? "Account management access is required to onboard applicants." : undefined} onClick={onboard}>{onboarding ? <Busy>Onboarding</Busy> : onboarded ? "Onboarded" : "Onboard"}</button>}
         </> : undefined} />
       <div className="portal-registrant-receipt-body">
         <Notice notice={notice} />
@@ -260,7 +261,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
           </label>
           <div className="portal-registrant-confirmation-actions">
             <button type="button" className="portal-registrant-action-button" disabled={updatingStatus} autoFocus onClick={() => statusDialog.current?.close()}>Cancel</button>
-            <button type="submit" className="portal-registrant-action-button" disabled={updatingStatus || (proposedStatus === "accepted" && full)}>{updatingStatus ? "Saving…" : proposedStatus === "accepted" ? "Accept application" : "Reject application"}</button>
+            <button type="submit" className="portal-registrant-action-button" disabled={updatingStatus || (proposedStatus === "accepted" && full)}>{updatingStatus ? <Busy>Saving</Busy> : proposedStatus === "accepted" ? "Accept application" : "Reject application"}</button>
           </div>
         </form>
       </dialog>}
@@ -278,7 +279,7 @@ export function ApplicationDetailsView({ application, slotsLeft, readOnly, canOn
         <p id={confirmationDescriptionId}>This will permanently delete <strong>{applicantDisplayName(application)}</strong>’s application. This can’t be undone.{application.status === "accepted" && " Their slot stays taken."}</p>
         <div className="portal-registrant-confirmation-actions">
           <button type="button" className="portal-registrant-action-button" disabled={deleting} autoFocus onClick={() => confirmationDialog.current?.close()}>Cancel</button>
-          <button type="button" className="portal-registrant-action-button" disabled={deleting} onClick={confirmDeletion}><ActionDeleteIcon size={15} aria-hidden="true" />{deleting ? "Deleting…" : "Delete application"}</button>
+          <button type="button" className="portal-registrant-action-button" disabled={deleting} onClick={confirmDeletion}><ActionDeleteIcon size={15} aria-hidden="true" />{deleting ? <Busy>Deleting</Busy> : "Delete application"}</button>
         </div>
       </dialog>}
     </article>

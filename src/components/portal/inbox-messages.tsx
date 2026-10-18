@@ -10,6 +10,7 @@ import type { InboxMessage } from "@/lib/notifications/inbox-rules";
 import { deleteAnnouncement, readNotification } from "@/lib/portal/inbox-actions";
 import { SlidingFilters } from "./sliding-filters";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 const inboxFilters = [
   { key: "all", href: "/portal/apps/inbox?tab=all", label: "All Messages" },
@@ -107,8 +108,8 @@ export function InboxMessages({ messages, empty, tab }: { messages: InboxMessage
             <div className="portal-inbox-message-footer">
               <span className="portal-inbox-audience"><Users size={14} aria-hidden="true" />From {message.senderName}</span>
               <div className="portal-inbox-message-actions">{message.readAt ? <span className="portal-inbox-read-status"><CheckCheck size={15} aria-hidden="true" />Read</span>
-                : <button type="button" className="portal-inbox-read-button" disabled={pending} onClick={() => markRead(message.id)}><Check size={15} aria-hidden="true" />{pending && reading === message.id ? "Marking as read…" : "Mark as read"}</button>}
-                {message.kind === "announcement" && <button type="button" className="portal-inbox-read-button is-delete" aria-label={`Delete ${message.title} from your inbox`} disabled={pending} onClick={() => removeAnnouncement(message.id)}><Trash2 size={14} aria-hidden="true" />{pending && deleting === message.id ? "Deleting…" : "Delete"}</button>}
+                : <button type="button" className="portal-inbox-read-button" disabled={pending} onClick={() => markRead(message.id)}><Check size={15} aria-hidden="true" />{pending && reading === message.id ? <Busy>Marking as read</Busy> : "Mark as read"}</button>}
+                {message.kind === "announcement" && <button type="button" className="portal-inbox-read-button is-delete" aria-label={`Delete ${message.title} from your inbox`} disabled={pending} onClick={() => removeAnnouncement(message.id)}><Trash2 size={14} aria-hidden="true" />{pending && deleting === message.id ? <Busy>Deleting</Busy> : "Delete"}</button>}
               </div>
             </div>
           </div>

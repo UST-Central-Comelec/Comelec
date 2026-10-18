@@ -6,6 +6,7 @@ import { CopyIcon as Copy, CloseIcon as X } from "@/components/action-icons";
 import type { PresenceProfile } from "@/lib/portal/presence";
 import { useOnline } from "./online-provider";
 import { toast } from "./toast";
+import { Busy } from "@/components/busy";
 
 function ProfilePicture({ name, url }: { name: string; url: string | null }) {
   const [failed, setFailed] = useState(false);
@@ -144,8 +145,8 @@ export function OnlineProfile({ accountId, name, children }: { accountId: string
           <ProfilePicture key={person.avatarUrl} name={person.name} url={person.avatarUrl} />
           <div><h2>{person.name}</h2><p aria-label="Faculty/College">{person.college ?? "Faculty/College not provided"}</p></div>
         </div>
-        <p className="portal-online-profile-status is-inline" role="status">Loading details…</p>
-      </div> : <p className="portal-online-profile-status" role="status">Loading profile…</p> : result.error ? <p className="portal-online-profile-status" role="status">{result.error}</p> : profile && <>
+        <p className="portal-online-profile-status is-inline" role="status"><Busy>Loading details</Busy></p>
+      </div> : <p className="portal-online-profile-status" role="status"><Busy>Loading profile</Busy></p> : result.error ? <p className="portal-online-profile-status" role="status">{result.error}</p> : profile && <>
         <div className="portal-online-profile-content">
           <div className="portal-online-profile-header">
             <ProfilePicture key={profile.avatarUrl} name={profile.name} url={profile.avatarUrl} />

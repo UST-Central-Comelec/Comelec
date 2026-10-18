@@ -16,6 +16,7 @@ import { toast } from "./toast";
 import { EditConflict, EditPresence } from "./edit-guard";
 import type { EditGuardInfo } from "@/lib/portal/edit-conflict";
 import "./surveys.css";
+import { Busy } from "@/components/busy";
 
 /**
  * Edits one part of a survey: its details, its questions, or both while it's being added. Each
@@ -62,7 +63,7 @@ export function SurveyEditor({ initial, section, readOnly = false, guard }: { in
   const actions = (small = false) => <div className="portal-form-actions">
     {!initial && <Link className={`portal-button is-ghost${small ? " is-small" : ""}`} href="/portal/secretariat/surveys">Cancel</Link>}
     {initial && dirty && <button className={`portal-button is-ghost${small ? " is-small" : ""}`} type="button" disabled={pending} onClick={() => setDraft(saved)}>Discard</button>}
-    <button className={`portal-button${small ? " is-small" : ""}`} type="submit" form={id} disabled={pending || !dirty || (Boolean(initial) && !expected)}>{initial ? <SaveIcon size={15} aria-hidden="true" /> : <AddIcon size={15} aria-hidden="true" />}{pending ? "Saving…" : !initial ? "Add survey" : dirty ? "Save survey" : "Saved"}</button>
+    <button className={`portal-button${small ? " is-small" : ""}`} type="submit" form={id} disabled={pending || !dirty || (Boolean(initial) && !expected)}>{initial ? <SaveIcon size={15} aria-hidden="true" /> : <AddIcon size={15} aria-hidden="true" />}{pending ? <Busy>Saving</Busy> : !initial ? "Add survey" : dirty ? "Save survey" : "Saved"}</button>
   </div>;
   // Keep the editor's save form separate from the respondent preview's form.
   return <section ref={editorRef} className="portal-card portal-survey-editor">

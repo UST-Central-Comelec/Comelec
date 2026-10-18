@@ -14,6 +14,7 @@ import { ViewOnly } from "./view-only";
 import { DeleteButton } from "./delete-button";
 import { InfoTip } from "./info-tip";
 import "./recruitment-onboarding.css";
+import { Busy } from "@/components/busy";
 
 const tabs = [{ key: "settings", label: "Settings" }, { key: "preview", label: "Preview" }];
 const editable = (settings: OnboardingSettings) => ({ ...settings, buttons: settings.buttons.map((button, index) => ({ ...button, id: `saved-${index}` })) });
@@ -66,7 +67,7 @@ export function RecruitmentOnboarding({ settings, unit, readOnly }: { settings: 
         <span className="portal-settings-dirty" aria-live="polite">{dirty ? "Unsaved changes" : "Saved"}</span>
         <div className="portal-form-actions">
           <button type="button" className="portal-button is-ghost" disabled={pending || !dirty} onClick={() => setDraft(editable(settings))}>Discard</button>
-          <button type="submit" className="portal-button" disabled={pending || !dirty || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : dirty ? "Save settings" : "Saved"}</button>
+          <button type="submit" className="portal-button" disabled={pending || !dirty || !hydrated}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : dirty ? "Save settings" : "Saved"}</button>
         </div>
       </footer>}
     </form>

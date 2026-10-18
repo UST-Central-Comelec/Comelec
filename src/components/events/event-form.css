@@ -52,6 +52,7 @@
 .ev .ev-application-form .ev-privacy-clause-body { padding: 0 18px 18px; }
 .ev .ev-application-form .apply-privacy-icon { background: rgba(var(--ev-ink), .04); border: 1px solid var(--ev-line); color: var(--ev-gold-mark); box-shadow: none; }
 .ev .ev-application-form .apply-privacy-law { color: var(--ev-muted); }
+.ev .ev-application-form .apply-privacy-updated { color: var(--ev-muted); }
 .ev .ev-application-form .ev-privacy-clauses { align-items: start; gap: 12px; grid-template-columns: 1fr; }
 .ev .ev-application-form .ev-privacy-clause { background: rgba(var(--ev-ink), .025); border-color: var(--ev-line); display: block; padding: 0; }
 .ev .ev-application-form .apply-privacy-item-icon { background: var(--ev-surface); border-color: var(--ev-line); color: var(--ev-soft); }

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Bell, CheckCheck } from "lucide-react";
 import type { InboxPreview } from "@/lib/notifications/inbox-rules";
 import { senderLabel } from "@/lib/notifications/inbox-presentation";
+import { Busy } from "@/components/busy";
 
 const timeFormat = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -95,7 +96,7 @@ export function NotificationBell({ mobile = false, filing = false }: { mobile?: 
       <div className="portal-notification-heading"><div><strong>{filing ? "Announcements" : "Notifications"}</strong><p>Your latest updates, at a glance.</p></div>{unread > 0 ? <span className="portal-notification-count">{unread} unread</span> : loaded && !error && <CheckCheck size={18} aria-label="All read" />}</div>
       <div className="portal-notification-body">
       {error ? <p role="status" className="portal-empty">{filing ? "Announcements" : "Notifications"} are unavailable. Try again shortly.</p>
-        : !loaded ? <p className="portal-empty">{filing ? "Loading announcements…" : "Loading notifications…"}</p>
+        : !loaded ? <p className="portal-empty">{filing ? <Busy>Loading announcements</Busy> : <Busy>Loading notifications</Busy>}</p>
         : !messages.length ? <p className="portal-empty">You’re all caught up.</p>
         : <ul>{messages.slice(0, 6).map((message) => {
           return <li key={message.id}><Link href={message.href ?? `${historyHref}#message-${message.id}`} className={message.readAt ? undefined : "is-unread"} onClick={() => setOpen(false)}>

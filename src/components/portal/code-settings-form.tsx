@@ -9,6 +9,7 @@ import type { CodeKey } from "@/lib/codes/options";
 import type { CodeVisibility } from "@/lib/codes/settings";
 import { updateCodeVisibility } from "@/lib/portal/code-settings-actions";
 import { useHydrated, usePortalForm } from "./portal-form";
+import { Busy } from "@/components/busy";
 
 export function CodeSettingsForm({ code, visibility: saved, readOnly }: { code: CodeKey; visibility: CodeVisibility; readOnly: boolean }) {
   const { pending, onSubmit } = usePortalForm(updateCodeVisibility.bind(null, code));
@@ -39,7 +40,7 @@ export function CodeSettingsForm({ code, visibility: saved, readOnly }: { code: 
         <span className="portal-settings-dirty" aria-live="polite">{unchanged ? "" : "Unsaved changes"}</span>
         <div className="portal-form-actions">
           {!unchanged && <button className="portal-button is-ghost" type="button" onClick={() => setVisibility(saved)} disabled={pending}>Discard</button>}
-          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? "Saving…" : unchanged ? "Saved" : "Save settings"}</button>
+          <button className="portal-button" type="submit" disabled={pending || !hydrated || unchanged}><ActionSaveIcon size={15} aria-hidden="true" />{pending ? <Busy>Saving</Busy> : unchanged ? "Saved" : "Save settings"}</button>
         </div>
       </footer>}
     </form>

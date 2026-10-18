@@ -3,7 +3,7 @@ import { answerFormatProblem, answerHint, cleanAnswer, rulesOf, type EditorField
 import { ratingLabels } from "@/lib/events/evaluation";
 import { StudentVerification } from "./student-verification";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRightToLine, CheckCircle2 } from "lucide-react";
 import { Dropdown } from "@/components/portal/dropdown";
 import { Combobox } from "@/components/combobox";
@@ -83,7 +83,8 @@ function RsvpEmail({ field, value, onChange, error }: { field: EditorField; valu
   </>;
 }
 
-type Verify = { eventId: string; target: "rsvp-form" | "evaluate"; preview?: boolean };
+/** `locked`: an edit of a sent response, whose verified email stays as it was. */
+type Verify = { eventId: string; target: "rsvp-form" | "evaluate"; preview?: boolean; locked?: boolean };
 
 function Required({ field }: { field: EditorField }) { return field.required ? <span className="ev-evaluation-required" aria-label="required">*</span> : null; }
 function Hint({ field, hideStudentNumber = false }: { field: EditorField; hideStudentNumber?: boolean }) {
@@ -100,7 +101,7 @@ function Hint({ field, hideStudentNumber = false }: { field: EditorField; hideSt
  * With `columns`, short questions in a row share a line, as on the Apply form: two or three across,
  * a lone one full width (the classes size them on a six-column grid; rsvp.css).
  */
-export function EditorFields({ fields, visible, values, onChange, verify, columns = false, sectionBreaks, fieldErrors, fieldHints, fieldErrorHelp, portalPickers = false }: { fields: EditorField[]; visible?: ReadonlySet<string>; values: FormAnswers; onChange: (id: string, value: string | string[]) => void; verify?: Verify; columns?: boolean; sectionBreaks?: Readonly<Record<string, string>>; fieldErrors?: Readonly<Record<string, string>>; fieldHints?: Readonly<Record<string, string>>; fieldErrorHelp?: Readonly<Record<string, React.ReactNode>>; portalPickers?: boolean }) {
+export function EditorFields({ fields, visible, values, onChange, verify, columns = false, sectionBreaks, fieldErrors, fieldHints, fieldErrorHelp, portalPickers = false }: { fields: EditorField[]; visible?: ReadonlySet<string>; values: FormAnswers; onChange: (id: string, value: string | string[]) => void; verify?: Verify; columns?: boolean; sectionBreaks?: Readonly<Record<string, string>>; fieldErrors?: Readonly<Record<string, string>>; fieldHints?: Readonly<Record<string, ReactNode>>; fieldErrorHelp?: Readonly<Record<string, React.ReactNode>>; portalPickers?: boolean }) {
   const reducedMotion = useReducedMotion();
   const questions = fields.filter(field => !(field.kind === "content" && field.prompt.trim() === registrationGuide));
   // Use the complete step to size columns; a revealed question must not rearrange earlier inputs.
@@ -156,7 +157,7 @@ function lineUp(fields: EditorField[]) {
   return spans;
 }
 
-function Question({ field, value, onChange, verify, span, error, statusHint, errorHelp, portalPickers }: { field: EditorField; value: string | string[] | undefined; onChange: (value: string | string[]) => void; verify?: Verify; span?: 2 | 3 | 6; error?: string; statusHint?: string; errorHelp?: React.ReactNode; portalPickers?: boolean }) {
+function Question({ field, value, onChange, verify, span, error, statusHint, errorHelp, portalPickers }: { field: EditorField; value: string | string[] | undefined; onChange: (value: string | string[]) => void; verify?: Verify; span?: 2 | 3 | 6; error?: string; statusHint?: ReactNode; errorHelp?: React.ReactNode; portalPickers?: boolean }) {
   const fieldset = `ev-group ev-custom-field${span ? ` is-span-${span}` : ""}`;
   const text = typeof value === "string" ? value : "";
   const list = Array.isArray(value) ? value : [];
@@ -230,7 +231,7 @@ function Question({ field, value, onChange, verify, span, error, statusHint, err
       <Hint field={field} />
       {error && <p className="ev-field-error" id={`${field.id}-error`} role="alert">{error}{errorHelp && <><br />{errorHelp}</>}</p>}
       {statusHint && <p className="ev-field-hint" role="status">{statusHint}</p>}
-      {portalPickers ? <p className="ev-field-hint">This verified email can’t be changed here.</p> : verify && !verify.preview ? <StudentVerification eventId={verify.eventId} target={verify.target} onVerified={onChange} /> : <p className="ev-field-hint">Respondents verify with their UST Google account here.</p>}
+      {portalPickers || (verify?.locked && text) ? <p className="ev-field-hint">This verified email can’t be changed here.</p> : verify && !verify.preview ? <StudentVerification eventId={verify.eventId} target={verify.target} onVerified={onChange} /> : <p className="ev-field-hint">Respondents verify with their UST Google account here.</p>}
     </fieldset>
   );
 

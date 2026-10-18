@@ -16,11 +16,13 @@ import { emailDomainProblem } from "@/lib/forms/email-domain";
 import { canManageEvent } from "./access";
 import { getEvent } from "./queries";
 import { getRsvpSettings, validRsvpToken } from "./rsvp-store";
-import { formFacts, normalizeRsvpDefinition, rsvpFormPath, committeeLimitSchema, type RsvpAnswers } from "./rsvp";
+import { formFacts, normalizeRsvpDefinition, rsvpFormPath, committeeLimitSchema, type RsvpAnswers, type RsvpSettings } from "./rsvp";
+import type { EditorDefinition, FormAnswers } from "./form-editor";
+import { claimEditLink, findEditLink, releaseEditLink } from "./edit-requests";
 import { acknowledgementEmail } from "./rsvp-emails";
 import { containsEmoji } from "@/lib/forms/input";
 import { z } from "zod";
-export type RsvpState = { error?: string; success?: boolean; registrationUrl?: string; emailSent?: boolean; name?: string; referenceCode?: string; duplicateEmail?: string; fieldErrors?: Record<string, string> };
+export type RsvpState = { error?: string; success?: boolean; edited?: boolean; registrationUrl?: string; emailSent?: boolean; name?: string; referenceCode?: string; duplicateEmail?: string; fieldErrors?: Record<string, string> };
 
 export async function saveRsvpSettings(eventId: string, _state: RsvpState, form: FormData): Promise<RsvpState> {
   const user = await requireEditor("events");
@@ -72,11 +74,7 @@ export async function checkRsvpEmail(eventId: string, token: string, value: stri
 
 const answersSchema = z.record(z.string().max(80), z.union([z.string().max(4000), z.array(z.string().max(200)).max(30)]));
 
-/**
- * Saves a collaborator's RSVP. The answers are checked against the form as it's set up (what shows,
- * what's required, each question's rules), questions they weren't shown are dropped, and Email
- * questions that ask for UST Google verification must match the account they verified.
- */
+/** Saves a collaborator's RSVP, its answers checked by `readRsvpAnswers`. */
 export async function submitRsvp(eventId: string, token: string, _state: RsvpState, form: FormData): Promise<RsvpState> {
   await ensureReferenceData();
   if (form.get("website")) return { success: true };
@@ -86,30 +84,9 @@ export async function submitRsvp(eventId: string, token: string, _state: RsvpSta
     const [event, settings] = await Promise.all([getEvent(eventId), getRsvpSettings(eventId)]);
     if (!event || event.published === false || !settings || settings.invitation_token !== token) return { error: "This collaborator RSVP link is invalid." };
     if (!settings.enabled) return { error: "This RSVP form is closed." };
-    const raw = form.get("answers");
-    if (typeof raw !== "string" || raw.length > 100000) return { error: "Check your answers and try again." };
-    let payload: unknown;
-    try { payload = JSON.parse(raw); } catch { return { error: "Check your answers and try again." }; }
-    const parsed = answersSchema.safeParse(payload);
-    if (!parsed.success) return { error: "Check your answers and try again." };
-    const definition = normalizeRsvpDefinition(settings.definition);
-    const problem = validateEditorAnswers(definition, parsed.data);
-    if (problem) return { error: problem };
-    const values = keptAnswers(definition, parsed.data);
-    for (const value of Object.values(values)) if ((Array.isArray(value) ? value : [value]).some(containsEmoji)) return { error: "Emoji aren’t allowed in RSVP answers." };
-
-    // UST accounts: a verified Email question always; with the form's Google setting on, any UST address given.
-    const emails = definition.steps.flatMap(step => step.fields).filter(field => field.kind === "email" && typeof values[field.id] === "string");
-    const needsPass = emails.filter(field => field.verifyUst || (settings.require_google && String(values[field.id]).endsWith("@ust.edu.ph")));
-    if (needsPass.length) {
-      const pass = await readEventPass(eventId);
-      if (!pass || needsPass.some(field => values[field.id] !== pass.email)) return { error: "Verify your UST Google account before submitting. The email must match the verified account." };
-    }
-    // Every email answered must have a domain that takes mail.
-    for (const field of emails) {
-      const problem = await emailDomainProblem(String(values[field.id]));
-      if (problem) return { error: `${field.label}: ${problem}` };
-    }
+    const read = await readRsvpAnswers(eventId, settings, form);
+    if ("error" in read) return { error: read.error };
+    const { definition, values } = read;
 
     const email = respondentEmail(definition, values);
     const name = identityAnswer(definition, values, "firstName");
@@ -123,6 +100,76 @@ export async function submitRsvp(eventId: string, token: string, _state: RsvpSta
     const acknowledgement = acknowledgementOf(definition);
     const delivery = acknowledgement?.email && email ? await sendAutomatic("event-rsvp", () => acknowledgementEmail(email, acknowledgement, event, name, "Collaborator RSVP", referenceCode, formFacts(definition, values))) : undefined;
     return { success: true, referenceCode, registrationUrl: `${siteUrl()}/events/${eventId}/register`, emailSent: delivery === undefined ? undefined : delivery === "sent", name };
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: "RSVP is unavailable right now. Please try again later." };
+  }
+}
+
+/**
+ * The answers sent, checked against the form as it's set up (what shows, what's required, each
+ * question's rules), with questions they weren't shown dropped, and Email questions that ask for UST
+ * Google verification matched to the account they verified.
+ */
+async function readRsvpAnswers(eventId: string, settings: RsvpSettings, form: FormData, verified?: string): Promise<{ error: string } | { definition: EditorDefinition; values: FormAnswers }> {
+  const raw = form.get("answers");
+  if (typeof raw !== "string" || raw.length > 100000) return { error: "Check your answers and try again." };
+  let payload: unknown;
+  try { payload = JSON.parse(raw); } catch { return { error: "Check your answers and try again." }; }
+  const parsed = answersSchema.safeParse(payload);
+  if (!parsed.success) return { error: "Check your answers and try again." };
+  const definition = normalizeRsvpDefinition(settings.definition);
+  const problem = validateEditorAnswers(definition, parsed.data);
+  if (problem) return { error: problem };
+  const values = keptAnswers(definition, parsed.data);
+  for (const value of Object.values(values)) if ((Array.isArray(value) ? value : [value]).some(containsEmoji)) return { error: "Emoji aren’t allowed in RSVP answers." };
+
+  // UST accounts: a verified Email question always; with the form's Google setting on, any UST address given.
+  const emails = definition.steps.flatMap(step => step.fields).filter(field => field.kind === "email" && typeof values[field.id] === "string");
+  const needsPass = emails.filter(field => (field.verifyUst || (settings.require_google && String(values[field.id]).endsWith("@ust.edu.ph"))) && !(verified && values[field.id] === verified));
+  if (needsPass.length) {
+    const pass = await readEventPass(eventId);
+    if (!pass || needsPass.some(field => values[field.id] !== pass.email)) return { error: "Verify your UST Google account before submitting. The email must match the verified account." };
+  }
+  // Every email answered must have a domain that takes mail.
+  for (const field of emails) {
+    const problem = await emailDomainProblem(String(values[field.id]));
+    if (problem) return { error: `${field.label}: ${problem}` };
+  }
+  return { definition, values };
+}
+
+/**
+ * Saves an RSVP again through the edit link the organizers sent once they accepted an edit request:
+ * the same response and reference, with the new answers. Works while the RSVP form is closed too,
+ * and only once. An email already verified on the response counts as verified again.
+ */
+export async function resubmitRsvp(eventId: string, editToken: string, _state: RsvpState, form: FormData): Promise<RsvpState> {
+  await ensureReferenceData();
+  if (form.get("website")) return { success: true };
+  if (!rateLimit(`event-rsvp:${clientIp(await headers())}`, limits.eventRegister.limit, limits.eventRegister.windowMs).ok) return { error: "Too many submissions. Please try again shortly." };
+  const gone = { error: "This edit link has already been used or is no longer valid. Track your RSVP to ask for another edit." };
+  try {
+    const link = await findEditLink(eventId, "rsvp", editToken);
+    if (!link) return gone;
+    const client = createAdminClient();
+    const [event, settings, { data: before }] = await Promise.all([getEvent(eventId), getRsvpSettings(eventId), client.from("event_rsvp_responses").select("id,reference_code,email").eq("id", link.rsvp_response_id!).maybeSingle()]);
+    if (!event || event.published === false || !settings || !before) return gone;
+    const read = await readRsvpAnswers(eventId, settings, form, before.email as string);
+    if ("error" in read) return { error: read.error };
+    const { definition, values } = read;
+    const email = respondentEmail(definition, values);
+    const name = identityAnswer(definition, values, "firstName");
+    const answers: RsvpAnswers = { version: 2, values, definition };
+    if (!(await claimEditLink(link.id))) return gone;
+    const { data, error } = await client.from("event_rsvp_responses").update({ email: email || before.email, answers, updated_at: new Date().toISOString() }).eq("id", before.id).select("id");
+    if (error || !data?.length) {
+      await releaseEditLink(link.id);
+      if (error?.code === "23505") return { duplicateEmail: email, error: "This email already has an RSVP submission." };
+      return { error: "Couldn’t save your changes. Please try again." };
+    }
+    revalidatePath(`/portal/events/${eventId}`, "layout");
+    return { success: true, edited: true, referenceCode: before.reference_code as string, registrationUrl: `${siteUrl()}/events/${eventId}/register`, name };
   } catch (error) {
     unstable_rethrow(error);
     return { error: "RSVP is unavailable right now. Please try again later." };

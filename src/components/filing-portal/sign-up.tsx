@@ -30,6 +30,7 @@ import { unitName, yearLevelLabel, type JoinableParty } from "@/lib/party-portal
 import { scrollToElement, scrollToTop } from "@/lib/scroll";
 import "@/components/application-form-ui.css";
 import "./sign-up.css";
+import { Busy } from "@/components/busy";
 
 // The filing portal's sign-up, on Political Party Registration (`purpose="party"`) and Filing of
 // Candidacy (`purpose="candidacy"`), in the same step-by-step form as the commissioner application
@@ -704,9 +705,9 @@ export function FilingSignUp({ purpose, units, initialUnit, verified: verifiedAt
             <Link className="button-primary" href={purpose === "party" ? "/filing" : "/filing/candidacy"}>Open the filing portal <ArrowRight size={15} /></Link>
           ) : (
             <button className="button-primary" type="submit" disabled={pending || transitioning || redirecting || waitingForGoogle || !hydrated}>
-              {step === 0 && !verified ? (waitingForGoogle ? "Waiting for Google…" : <>Continue with UST Google <ArrowRight size={15} /></>)
+              {step === 0 && !verified ? (waitingForGoogle ? <Busy>Waiting for Google</Busy> : <>Continue with UST Google <ArrowRight size={15} /></>)
                 : step < lastStep ? <>Continue <ArrowRight size={15} /></>
-                : pending ? (purpose === "party" ? "Sending…" : "Filing…")
+                : pending ? (purpose === "party" ? <Busy>Sending</Busy> : <Busy>Filing</Busy>)
                 : <>{purpose === "candidacy" ? "File my candidacy" : mode === "join" ? "Ask to join" : "Make the party"} <ArrowRight size={15} /></>}
             </button>
           )}

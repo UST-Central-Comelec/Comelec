@@ -24,6 +24,7 @@ import { accountPositions, affiliations, commissionerPositions, describeAffiliat
 import { formatAccepted, requestOnboardingSteps, type OnboardingDocument, type OnboardingDocumentKey } from "@/lib/onboarding/documents";
 import { LegalText } from "./legal-text";
 import "./onboarding.css";
+import { Busy } from "@/components/busy";
 
 const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso));
 
@@ -125,7 +126,7 @@ function AccessReceipt({ result, onBack }: { result?: SubmittedAccessRequest; on
           </dl>
           <div className="portal-receipt-save">
             <p className="portal-muted">{saving === "failed" ? "Couldn’t create the image. Take a screenshot instead." : "Keep a copy of this receipt as an image."}</p>
-            <button className="portal-button is-ghost is-small" type="button" onClick={save} disabled={saving === "saving"}><DownloadIcon size={14} aria-hidden="true" /> {saving === "saving" ? "Preparing…" : "Download receipt"}</button>
+            <button className="portal-button is-ghost is-small" type="button" onClick={save} disabled={saving === "saving"}><DownloadIcon size={14} aria-hidden="true" /> {saving === "saving" ? <Busy>Preparing</Busy> : "Download receipt"}</button>
           </div>
         </>
       )}
@@ -455,7 +456,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
               <p className="portal-muted portal-login-lede">{join ? "Verify the UST Google account you applied with. Your accepted application then fills in your profile." : "Verify your UST Google account first. Its email is filled in for you, and confirmed again when you submit."}</p>
               {waiting === "verify" ? (
                 <div className="portal-request-waiting" role="status">
-                  <p><strong>Waiting for Google…</strong> Finish signing in in the window that opened.</p>
+                  <p><strong><Busy>Waiting for Google</Busy></strong> Finish signing in in the window that opened.</p>
                   <div>
                     <button type="button" onClick={() => openGoogle("verify")}>Open the window again</button>
                     <button type="button" onClick={cancelWaiting}>Cancel</button>
@@ -472,7 +473,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
               <p className="portal-verified-line"><VerifiedMark /><span>Verified as <strong>{profile.email}</strong></span>
                 <button type="button" onClick={() => startForgetting(async () => { await forgetAccessVerification(); onProfileChange(null); setJoined(null); })} disabled={busy || forgetting}>Use a different account</button>
               </p>
-              {joinLoading && <StepNote>Finding your application…</StepNote>}
+              {joinLoading && <StepNote><Busy>Finding your application</Busy></StepNote>}
               {application && <StepNote>Filled in from your application {application.referenceCode}. Your unit, position and role come from your acceptance; correct anything else that’s changed.</StepNote>}
               {joinFound && !application && <StepNote>{joinFound.note}</StepNote>}
 
@@ -602,7 +603,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
           )}
           {step === LAST ? (
             <button className="portal-button" type="submit" disabled={busy || !hydrated || !profile}>
-              {pending ? "Submitting…" : waiting === "confirm" ? "Waiting for Google…" : <>{application ? "Confirm with Google and join" : "Confirm with Google and submit"} <ArrowRight size={15} aria-hidden="true" /></>}
+              {pending ? <Busy>Submitting</Busy> : waiting === "confirm" ? <Busy>Waiting for Google</Busy> : <>{application ? "Confirm with Google and join" : "Confirm with Google and submit"} <ArrowRight size={15} aria-hidden="true" /></>}
             </button>
           ) : (
             <button className="portal-button" type="submit" disabled={!hydrated || busy || !complete(step)}>

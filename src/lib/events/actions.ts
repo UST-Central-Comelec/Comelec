@@ -10,15 +10,17 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/server";
 import { emailDomainProblem } from "@/lib/forms/email-domain";
 import { tidyPersonName } from "@/lib/forms/input";
+import { ageFromBirthday, parseBirthday } from "@/lib/forms/birthday";
 import { registrationEmail } from "./emails";
-import { allowedAffiliations, isEventId, signUpMode, type AffiliationChoice, type CommissionEvent, type RegistrationKind } from "./options";
+import { allowedAffiliations, isEventId, signUpMode, type AffiliationChoice, type CommissionEvent, type RegistrationKind, type Requests } from "./options";
 import { getEvent } from "./queries";
-import { findRegistration, fullName } from "./registrations";
+import { findRegistration, fullName, getRegistration, type Registration } from "./registrations";
+import { claimEditLink, findEditLink, releaseEditLink } from "./edit-requests";
 import { checkRegistration, needsVerification, readRegistration, toRequests } from "./schema";
 import { clearEventPass, readEventPass } from "./verification";
 
 /** What the form shows once a registration is saved. */
-export type SavedRegistration = { referenceCode: string; kind: RegistrationKind; name: string; email: string; acknowledgement: "sent" | "failed" };
+export type SavedRegistration = { referenceCode: string; kind: RegistrationKind; name: string; email: string; acknowledgement: "sent" | "failed"; edited?: boolean };
 
 /**
  * `verificationExpired` sends the student back through Google; `closed` means the event stopped
@@ -89,7 +91,8 @@ export async function submitRegistration(eventId: string, _state: RegistrationSt
     middle_name: middleName,
     middle_initial: middleName.charAt(0),
     sex: values.sex,
-    age: Number(values.age),
+    date_of_birth: parseBirthday(values.dateOfBirth),
+    age: ageFromBirthday(values.dateOfBirth),
     affiliation,
     college: affiliation === "ust-student" ? values.college : null,
     program: affiliation === "ust-student" ? values.program : null,
@@ -154,4 +157,96 @@ export async function submitRegistration(eventId: string, _state: RegistrationSt
   }
 
   return { submitted: true, result: { referenceCode, kind, name: fullName(answers.first_name, middleName, answers.last_name), email, acknowledgement: delivery === "sent" ? "sent" : "failed" } };
+}
+
+/** A logistics request asked for again unchanged keeps the organizers' answer; a new or changed one waits again. */
+function keepDecisions(next: Requests, before: Requests): Requests {
+  const kept: Requests = {};
+  for (const [kind, entry] of Object.entries(next) as Array<[keyof Requests, NonNullable<Requests[keyof Requests]>]>) {
+    const previous = before[kind];
+    const same = previous && (["plate", "model", "color", "arrival", "allergens"] as const).every((key) => (previous[key] ?? "") === (entry[key] ?? ""));
+    kept[kind] = same ? { ...entry, status: previous.status } : entry;
+  }
+  return kept;
+}
+
+/**
+ * Saves a registration again through the edit link the organizers sent once they accepted an edit
+ * request: the same entry, reference and email, with the new answers. The link works once.
+ */
+export async function resubmitRegistration(eventId: string, token: string, _state: RegistrationState, formData: FormData): Promise<RegistrationState> {
+  await ensureReferenceData();
+  if (text(formData, "website")) return { submitted: true };
+  if (!isEventId(eventId) || !isSupabaseConfigured()) return { error: unavailable };
+  const limited = rateLimit(`event-register:${clientIp(await headers())}`, limits.eventRegister.limit, limits.eventRegister.windowMs);
+  if (!limited.ok) return { error: `Too many submissions from this network. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.` };
+
+  let event: CommissionEvent | null;
+  let registration: Registration | null;
+  let requestId: string;
+  try {
+    const link = await findEditLink(eventId, "registration", token);
+    if (!link) return { error: "This edit link has already been used or is no longer valid. Track your registration to ask for another edit.", closed: true };
+    requestId = link.id;
+    [event, registration] = await Promise.all([getEvent(eventId), getRegistration(link.registration_id!)]);
+  } catch (error) {
+    console.error(error);
+    return { error: failed };
+  }
+  if (!event || event.published === false || !registration) return { error: "This event or registration is no longer listed, so your changes weren’t sent.", closed: true };
+
+  const pass = await readEventPass(eventId);
+  const values = readRegistration(formData);
+  // The email stays the registration's; a verified one counts as verified again.
+  const verifiedEmail = registration.verified ? registration.email : pass?.email === registration.email ? pass.email : null;
+  const context = { allowed: allowedAffiliations(), requireGoogle: event.requireGoogle, verifiedEmail };
+  const fieldErrors = checkRegistration({ ...values, email: registration.email }, context);
+  if (fieldErrors.email) fieldErrors.email = `${fieldErrors.email} Your email can’t be changed here; email comelec@ust.edu.ph if it needs to.`;
+  if (fieldErrors.verification) return { error: "This registration’s email isn’t a verified UST account, so it can’t register as UST. Email comelec@ust.edu.ph to change it.", fieldErrors };
+  if (Object.keys(fieldErrors).length) return { error: "Check the highlighted fields.", fieldErrors };
+
+  const affiliation = values.affiliation as AffiliationChoice;
+  const representative = values.attendingAs === "representative";
+  const middleName = tidyPersonName(values.middleName);
+  const answers = {
+    last_name: tidyPersonName(values.lastName),
+    first_name: tidyPersonName(values.firstName),
+    middle_name: middleName,
+    middle_initial: middleName.charAt(0),
+    sex: values.sex,
+    date_of_birth: parseBirthday(values.dateOfBirth),
+    age: ageFromBirthday(values.dateOfBirth),
+    affiliation,
+    college: affiliation === "ust-student" ? values.college : null,
+    program: affiliation === "ust-student" ? values.program : null,
+    student_number: affiliation === "ust-student" ? values.studentNumber.trim() || null : null,
+    year_level: affiliation === "ust-student" ? values.yearLevel : null,
+    office: affiliation === "ust-staff" ? values.office.trim() : null,
+    institution: affiliation === "other-institution" || affiliation === "independent" ? values.institution.trim() || null : null,
+    attending_as: values.attendingAs,
+    organization_name: representative ? values.organizationName.trim() : null,
+    organization_committee: representative ? values.organizationCommittee.trim() || null : null,
+    organization_position: representative ? values.organizationPosition.trim() : null,
+    requests: keepDecisions(toRequests(values), registration.requests),
+    consent: values.consent,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    // Claimed first, so the same link sent twice at once saves only once.
+    if (!(await claimEditLink(requestId))) return { error: "This edit link has already been used. Track your registration to ask for another edit.", closed: true };
+    const { data, error } = await createAdminClient().from("event_registrations").update(answers).eq("id", registration.id).select("id");
+    if (error || !data.length) {
+      await releaseEditLink(requestId);
+      throw new Error(error?.message ?? "The registration is gone.");
+    }
+  } catch (error) {
+    console.error("Couldn’t save the edited registration:", error instanceof Error ? error.message : error);
+    return { error: failed };
+  }
+
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/portal/events/${eventId}`, "layout");
+  if (pass) await clearEventPass().catch(() => undefined);
+  return { submitted: true, result: { referenceCode: registration.referenceCode, kind: registration.status, name: fullName(answers.first_name, middleName, answers.last_name), email: registration.email, acknowledgement: "sent", edited: true } };
 }

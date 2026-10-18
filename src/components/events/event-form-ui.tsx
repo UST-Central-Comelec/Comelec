@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { FileText } from "lucide-react";
 import { PrivacyStatement, PRIVACY_UPDATED } from "@/components/privacy-statement";
 import "../application-form-ui.css";
 import "./event-form.css";
@@ -32,10 +32,12 @@ export function EventFormTracker({ steps, current, acknowledgement, label, previ
 
 export function EventConsentStatement({ id }: { id: string }) {
   return <section className="ev-consent-statement" aria-labelledby={`${id}-title`}>
-    <header className="apply-privacy-head"><span className="apply-privacy-icon" aria-hidden="true"><ShieldCheck size={20} /></span><div>
+    <header className="apply-privacy-head"><FileText className="apply-privacy-document" size={24} strokeWidth={1.5} aria-hidden="true" /><div className="apply-privacy-heading">
       <h3 id={`${id}-title`}>Data Privacy Statement</h3>
-      <span className="apply-privacy-law">Data Privacy Act of 2012 · Republic Act No. 10173</span>
-      <p className="ev-field-hint">Updated <time dateTime={PRIVACY_UPDATED}>{privacyUpdated}</time></p>
+      <div className="apply-privacy-meta">
+        <span className="apply-privacy-law">Data Privacy Act of 2012 · Republic Act No. 10173</span>
+        <span className="apply-privacy-updated">Updated <time dateTime={PRIVACY_UPDATED}>{privacyUpdated}</time></span>
+      </div>
     </div></header>
     <div className="ev-consent-body">
       <PrivacyStatement eventForm idPrefix={id} />

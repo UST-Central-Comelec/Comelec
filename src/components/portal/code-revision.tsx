@@ -132,7 +132,7 @@ export function RevisionView({ revision, user, holders, place, notice, show }: P
         <div className="portal-head-actions">
           <span className={`portal-tag portal-status-tag ${state.tone}`}>{state.label}</span>
           {revision.status === "approved" && <a className="portal-button is-ghost" href={path} target="_blank" rel="noreferrer">View on website <ActionViewIcon size={15} aria-hidden="true" /></a>}
-          {edits && pending && <DeleteButton tone="quiet" action={withdrawCodeRevision.bind(null, revision.code, revision.id)} label="Withdraw" prompt="Withdraw it from approval? Any approvals so far are cleared." confirmLabel="Yes, withdraw" pendingLabel="Withdrawing…" />}
+          {edits && pending && <DeleteButton tone="quiet" action={withdrawCodeRevision.bind(null, revision.code, revision.id)} label="Withdraw" prompt="Withdraw it from approval? Any approvals so far are cleared." confirmLabel="Yes, withdraw" pendingLabel="Withdrawing" />}
           {edits && draft && <Link className="portal-button" href={`${tabHref(tab)}/edit`}><PencilLine size={15} aria-hidden="true" /> Continue editing</Link>}
         </div>
       </header>

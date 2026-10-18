@@ -8,7 +8,7 @@ import { withdrawMyCandidacy } from "@/lib/candidacy/actions";
 
 /** Withdraws the candidacy in two steps; the action takes them to the dashboard. */
 export function WithdrawCandidacy() {
-  return <DeleteButton label="Withdraw my candidacy" prompt="Withdraw your candidacy?" confirmLabel="Yes, withdraw" pendingLabel="Withdrawing…" animatedIcon={false} icon={<CircleSlash size={15} aria-hidden="true" />} action={async () => {
+  return <DeleteButton label="Withdraw my candidacy" prompt="Withdraw your candidacy?" confirmLabel="Yes, withdraw" pendingLabel="Withdrawing" animatedIcon={false} icon={<CircleSlash size={15} aria-hidden="true" />} action={async () => {
     try {
       const result = await withdrawMyCandidacy();
       if (result.error) toast(result.error, "error");

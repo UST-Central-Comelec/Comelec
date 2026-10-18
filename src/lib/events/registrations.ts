@@ -24,6 +24,7 @@ export type Registration = {
   verified: boolean;
   sex: Sex;
   age: number | null;
+  dateOfBirth?: string | null;
   affiliation: AffiliationChoice;
   /** A UST student's. */
   college: string | null;
@@ -56,6 +57,7 @@ type Row = {
   verified?: boolean | null;
   sex: string;
   age?: number | null;
+  date_of_birth?: string | null;
   affiliation?: string | null;
   college: string | null;
   program: string | null;
@@ -105,6 +107,7 @@ function toRegistration(row: Row): Registration {
     verified: row.verified !== false,
     sex: row.sex in sexes ? (row.sex as Sex) : "undisclosed",
     age: typeof row.age === "number" ? row.age : null,
+    dateOfBirth: row.date_of_birth ?? null,
     affiliation: row.affiliation && row.affiliation in affiliationChoices ? (row.affiliation as AffiliationChoice) : "ust-student",
     college: row.college ?? null,
     program: row.program ?? null,

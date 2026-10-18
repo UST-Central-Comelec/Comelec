@@ -5,6 +5,7 @@ import { Check, Download, FileText } from "lucide-react";
 import { CopyIcon as Copy, CloseIcon as X } from "@/components/action-icons";
 import QRCode from "qrcode";
 import { toast } from "@/components/portal/toast";
+import { Busy } from "@/components/busy";
 
 // Export colours stay independent of the page’s theme.
 const colors = { black: "#000000", white: "#ffffff", transparent: "#00000000" } as const;
@@ -104,7 +105,7 @@ export function RegistrationShare({ link }: { link: string }) {
         {/* eslint-disable-next-line @next/next/no-img-element -- Locally generated QR image. */}
         <img src={qr.image} width={160} height={160} alt="QR code for the participant registration form" />
         <span>View and download</span>
-      </button> : <p>{qrError ? "Couldn’t generate the QR code. Share the link instead." : "Preparing QR code…"}</p>}
+      </button> : <p>{qrError ? "Couldn’t generate the QR code. Share the link instead." : <Busy>Preparing QR code</Busy>}</p>}
     </div>
     <dialog ref={dialog} className="ev-share-dialog" aria-labelledby={titleId} onCancel={event => { if (busy) event.preventDefault(); }} onClick={event => {
       if (event.target !== event.currentTarget || busy) return;
@@ -121,8 +122,8 @@ export function RegistrationShare({ link }: { link: string }) {
       <p className="ev-share-pdf-note">PNG uses your selected colours. PDF prints a black code on a white Letter page.</p>
       <div className="ev-share-dialog-actions">
         <button type="button" className="ev-button is-ghost" onClick={() => void copy()}><Copy size={16} aria-hidden="true" />Copy link</button>
-        <button type="button" className="ev-button is-ghost" disabled={!!busy || !qr} onClick={() => void download("pdf")}><FileText size={16} aria-hidden="true" />{busy === "pdf" ? "Saving…" : "Download PDF"}</button>
-        <button type="button" className="ev-button is-primary" disabled={!!busy || !preview} onClick={() => void download("png")}><Download size={16} aria-hidden="true" />{busy === "png" ? "Saving…" : "Download PNG"}</button>
+        <button type="button" className="ev-button is-ghost" disabled={!!busy || !qr} onClick={() => void download("pdf")}><FileText size={16} aria-hidden="true" />{busy === "pdf" ? <Busy>Saving</Busy> : "Download PDF"}</button>
+        <button type="button" className="ev-button is-primary" disabled={!!busy || !preview} onClick={() => void download("png")}><Download size={16} aria-hidden="true" />{busy === "png" ? <Busy>Saving</Busy> : "Download PNG"}</button>
       </div>
       <span className="ev-registration-share-status" role="status">{status}</span>
     </dialog>

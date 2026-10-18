@@ -28,6 +28,7 @@ import { SlidingFilterButtons } from "./sliding-filters";
 import { LetterDocumentCard, LetterDocumentList } from "./letter-document-sortable";
 import { arrayMove } from "@dnd-kit/sortable";
 import "./letters-tracker.css";
+import { Busy } from "@/components/busy";
 
 const PAGE_SIZE = 25;
 const emptyLetter: LetterValues = { title: "", label: null, type: "", status: "", controlNumber: "", destinationOffice: "", workingDocuments: [], remarks: "", notifyStatusUpdates: false, remarkPresets: [] };
@@ -442,9 +443,9 @@ export function LettersTracker({ rows, readOnly, loadError, preparerName, settin
             {recordReadOnly ? <ViewOnlyTag /> : deleteArmed ? <div className="portal-letter-delete-confirm">
               <span className="portal-muted">Delete permanently?</span>
               <button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => setDeleteArmed(false)}>Keep</button>
-              <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={pending} onClick={remove}><ReviewActionIcon kind="remove" disabled={pending} />{pending ? "Deleting…" : "Delete"}</button>
+              <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={pending} onClick={remove}><ReviewActionIcon kind="remove" disabled={pending} />{pending ? <Busy>Deleting</Busy> : "Delete"}</button>
             </div> : <button type="button" className="portal-registrant-action-button portal-letter-delete portal-destructive-button" disabled={!selected || pending} aria-label={`Delete ${noun}`} title={selected ? `Delete ${noun}` : `Save ${noun} before deleting it`} onClick={() => setDeleteArmed(true)}><ReviewActionIcon kind="remove" disabled={!selected || pending} />Delete</button>}
-            <div className="portal-registrant-actions"><button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => dialog.current?.close()}><ActionCloseIcon size={15} aria-hidden="true" />{recordReadOnly ? "Close" : "Cancel"}</button>{!recordReadOnly && <button type="submit" className="portal-registrant-action-button" disabled={pending || !changed}><ReviewActionIcon kind="update" disabled={pending || !changed} />{pending && !deleteArmed ? "Saving…" : selected ? "Save changes" : addLabel}</button>}</div>
+            <div className="portal-registrant-actions"><button type="button" className="portal-registrant-action-button" disabled={pending} onClick={() => dialog.current?.close()}><ActionCloseIcon size={15} aria-hidden="true" />{recordReadOnly ? "Close" : "Cancel"}</button>{!recordReadOnly && <button type="submit" className="portal-registrant-action-button" disabled={pending || !changed}><ReviewActionIcon kind="update" disabled={pending || !changed} />{pending && !deleteArmed ? <Busy>Saving</Busy> : selected ? "Save changes" : addLabel}</button>}</div>
           </footer>
         </form>
       </dialog>
