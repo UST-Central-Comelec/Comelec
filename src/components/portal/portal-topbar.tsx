@@ -3,31 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ViewIcon as Eye } from "@/components/action-icons";
-import { useNow } from "./period-overview";
+import { ManilaClock } from "./manila-clock";
 import { trail } from "./portal-nav";
 import { NotificationBell } from "./notification-bell";
 import { OnlinePill } from "./online-pill";
-
-const zone = "Asia/Manila";
-const dayFormat = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "short", day: "numeric" });
-const timeFormat = new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
-
-/**
- * The date and time in Manila, ticking: every closing time in the portal is set in Manila time.
- * Dashes until mounted, so server and browser markup match. Hidden from screen readers, which
- * would otherwise announce each second.
- */
-function ManilaClock() {
-  const now = useNow();
-  return (
-    <span className="portal-clock" aria-hidden="true">
-      <span>{now === null ? "--- --- --" : dayFormat.format(now)}</span>
-      <i />
-      <b>{now === null ? "--:--:--" : timeFormat.format(now)}</b>
-      <span>PHT</span>
-    </span>
-  );
-}
 
 /**
  * The bar across the top of every portal page: where you are, who's online, and the time.

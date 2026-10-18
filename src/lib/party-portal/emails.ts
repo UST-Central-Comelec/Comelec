@@ -3,7 +3,7 @@ import "server-only";
 import type { Email } from "@/lib/email/send";
 import { COMMISSION, button, details, detailsText, divider, escape, greetingName, link, note, paragraph, quote, shell, siteUrl, status, strong, type Details } from "@/lib/email/template";
 import { requirements } from "@/lib/polpar/content";
-import { partyStatusLabel, unitName, type Party, type PartyStatus } from "./types";
+import { partyRequirementHref, partyStatusLabel, unitName, type Party, type PartySanction, type PartyStatus } from "./types";
 
 // The emails a party's registration in the filing portal sends by itself (switches under Services → Email → Automatic):
 // to the contact person when someone asks to join, to that person when they're answered, and to
@@ -15,7 +15,8 @@ const portalUrl = (path = "") => `${siteUrl()}/filing${path}`;
 const helpText = "Questions? Reply to this email, or write to comelec@ust.edu.ph.";
 const help = note(`Questions? Reply to this email, or write to ${link("mailto:comelec@ust.edu.ph", "comelec@ust.edu.ph")}.`);
 const greeting = (person: Person) => `Hi ${greetingName(person.firstName)},`;
-const eyebrow = (party: Pick<Party, "college">) => `Political Party Registration · ${unitName(party.college)}`;
+/** The email's top line: the unit, and the party's ID when there is one (PP-7K3M-9QXA). */
+const eyebrow = (party: Pick<Party, "college"> & { reference?: string }) => ["Political Party Registration", unitName(party.college), party.reference].filter(Boolean).join(" · ");
 
 export const requirementLabel = (id: string) => requirements.find((item) => item.id === id)?.label ?? id;
 
@@ -61,7 +62,7 @@ export function feedbackEmail(member: Person, party: Pick<Party, "name" | "colle
   const label = requirementLabel(requirement);
   const intro = approved ? `The ${unit} approved ${label} for ${party.name}.` : `The ${unit} reviewed ${label} for ${party.name} and asked for changes. Update the files, then send it again from the filing portal.`;
   const said = feedback.trim();
-  const url = portalUrl("/party");
+  const url = `${siteUrl()}${partyRequirementHref(requirement)}`;
   return {
     to: member.email,
     subject: approved ? `Approved: ${label}` : `Changes asked: ${label}`,
@@ -105,11 +106,60 @@ export function partyDecisionEmail(member: Person, party: Pick<Party, "name" | "
   };
 }
 
+/** To a member: the unit suspended or blacklisted the party (`sanction`), or lifted it (null). Switch "party-decision". */
+export function partySanctionEmail(member: Person, party: Pick<Party, "name" | "college">, sanction: PartySanction | null, lifted: PartySanction | null, reason: string): Email {
+  const unit = unitName(party.college);
+  const intro = sanction === "suspended"
+    ? `The ${unit} suspended ${party.name}. Until it’s lifted, the party can’t take members, endorse candidates, or field them, and its documents can’t change.`
+    : sanction === "blacklisted"
+      ? `The ${unit} blacklisted ${party.name}. The party is barred: it can’t take members, endorse or field candidates, and its name can’t be registered again.`
+      : `The ${unit} lifted the ${lifted === "blacklisted" ? "blacklisting" : "suspension"} of ${party.name}. The party stands as it did before.`;
+  const said = reason.trim();
+  return {
+    to: member.email,
+    subject: sanction ? `${party.name} is ${sanction}` : `${party.name}: ${lifted === "blacklisted" ? "blacklisting" : "suspension"} lifted`,
+    text: [greeting(member), intro, said && `The unit wrote:\n${said}`, `Open the filing portal: ${portalUrl("/party")}`, helpText, COMMISSION].filter(Boolean).join("\n\n"),
+    html: shell({
+      eyebrow: eyebrow(party),
+      title: sanction ? `Your party is *${sanction}*` : "A sanction is *lifted*",
+      preheader: intro,
+      blocks: [...(sanction ? [] : [status("Lifted", "ok")]), paragraph(escape(greeting(member))), paragraph(escape(intro)), ...(said ? [quote(said)] : []), button("Open the filing portal", portalUrl("/party")), divider(), help],
+    }),
+  };
+}
+
+/** What the unit changed about someone's place in a party (switch "party-membership"). */
+export type MembershipChange = { kind: "removed"; reason: string } | { kind: "contact" } | { kind: "withdrawn"; reason: string };
+
+/** To a member: the unit removed them, made them the contact person, or withdrew the party's registration. */
+export function membershipEmail(member: Person, party: Pick<Party, "name" | "college">, change: MembershipChange): Email {
+  const unit = unitName(party.college);
+  const intro = change.kind === "removed"
+    ? `The ${unit} removed you from ${party.name} in the filing portal. You no longer see the party’s documents. You can join or register another party while registration is open.`
+    : change.kind === "contact"
+      ? `The ${unit} made you ${party.name}’s contact person. You now approve who joins the party and endorse its candidates, under Members in the filing portal.`
+      : `The ${unit} withdrew ${party.name}’s registration. The party’s name is free again, and you can join or register another party while registration is open.`;
+  const said = change.kind === "contact" ? "" : change.reason.trim();
+  const url = portalUrl(change.kind === "contact" ? "/party/members" : "");
+  return {
+    to: member.email,
+    subject: change.kind === "removed" ? `You were removed from ${party.name}` : change.kind === "contact" ? `You’re now ${party.name}’s contact person` : `${party.name}’s registration was withdrawn`,
+    text: [greeting(member), intro, said && `The unit wrote:\n${said}`, `Open the filing portal: ${url}`, helpText, COMMISSION].filter(Boolean).join("\n\n"),
+    html: shell({
+      eyebrow: eyebrow(party),
+      title: change.kind === "contact" ? "You’re the *contact person*" : "An update on your *party*",
+      preheader: intro,
+      blocks: [...(change.kind === "contact" ? [status("Contact person")] : []), paragraph(escape(greeting(member))), paragraph(escape(intro)), ...(said ? [quote(said)] : []), button("Open the filing portal", url), divider(), help],
+    }),
+  };
+}
+
 /* Samples for Services → Email → Automatic, built by the same code. */
 
-const sampleParty = (college: string | null) => ({ name: "LAKAS TOMASINO", college: college ?? "" });
+const sampleParty = (college: string | null) => ({ name: "LAKAS TOMASINO", college: college ?? "", reference: "PP-7K3M-9QXA" });
 const samplePerson = { firstName: "JUAN", email: "juan.delacruz@ust.edu.ph" };
 export const joinRequestSample = (college: string | null) => joinRequestEmail(samplePerson, { name: "MARIA CLARA SANTOS", email: "maria.santos@ust.edu.ph", college: "College of Science" }, sampleParty(college));
 export const joinDecisionSample = (college: string | null) => joinDecisionEmail(samplePerson, sampleParty(college), true);
 export const feedbackSample = (college: string | null) => feedbackEmail(samplePerson, sampleParty(college), "members", false, "The roll lists 48 members, but the certification says 50. Correct the count and upload the signed roll again.");
 export const partyDecisionSample = (college: string | null) => partyDecisionEmail(samplePerson, sampleParty(college), "accredited", "");
+export const membershipSample = (college: string | null) => membershipEmail(samplePerson, sampleParty(college), { kind: "removed", reason: "You aren’t on the party’s signed roll of members (Form 03)." });

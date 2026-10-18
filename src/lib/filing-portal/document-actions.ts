@@ -33,6 +33,7 @@ async function target(area: FilingArea, requirement: string | null): Promise<Tar
   if (area === "party") {
     const account = await requirePartyMember();
     if (requirement !== null && !requirements.some((item) => item.id === requirement)) return { error: "That isn’t one of the requirements." };
+    if (account.party.sanction) return { error: `The party is ${account.party.sanction}, so its documents can’t change now.` };
     if (account.party.status !== "pending") return { error: "The party’s registration has been decided, so its documents can’t change now." };
     const id = account.party.id;
     const name = fullName(account.member);

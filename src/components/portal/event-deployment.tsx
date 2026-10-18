@@ -26,7 +26,7 @@ const statusOrder: RegistrationStatus[] = ["open", "waitlist", "closed", "resche
 export function EventDeployment({ eventId, eventName = "This event", baseUrl, published = true, registrationStatus, minimumRegistrants = 1, maximumRegistrants = null, registeredCount = 0, responseCounts = { rsvp: 0, evaluation: 0 }, requireGoogle = true, rsvp, evaluation, editable, scheduled: initialSchedule = null }: { eventId: string; eventName?: string; baseUrl: string; published?: boolean; registrationStatus: RegistrationStatus; minimumRegistrants?: number; maximumRegistrants?: number | null; registeredCount?: number; responseCounts?: EventResponseCounts | null; requireGoogle?: boolean; rsvp: RsvpSettings | null; evaluation: EvaluationSettings; editable: boolean; scheduled?: PendingDeployment | null }) {
   const id = useId();
   const [activeForm, setActiveForm] = useState<DeploymentForm>("registration");
-  const { draft, saving, state, change, retry } = useDeploymentSchedule(eventId, {
+  const { draft, scheduled, saving, state, change, retry } = useDeploymentSchedule(eventId, {
     published, registrationStatus, minimumRegistrants: String(minimumRegistrants), maximumRegistrants: maximumRegistrants === null ? "" : String(maximumRegistrants),
     requireGoogle, rsvpEnabled: rsvp?.enabled ?? false, rsvpGoogle: rsvp?.require_google ?? false,
     evaluationEnabled: evaluation.enabled, evaluationGoogle: evaluation.requireGoogle ?? false, allowAnonymous: evaluation.allowAnonymous,
@@ -57,7 +57,7 @@ export function EventDeployment({ eventId, eventName = "This event", baseUrl, pu
       {state.fieldErrors?.publicationStatus && <p className="portal-field-error">{state.fieldErrors.publicationStatus}</p>}
       </div>
       <div className="portal-deployment-column">
-        <header className="portal-card-head"><TitleWithInfo as="h2" className="portal-card-title" info="Published events appear on the website. Unpublished events and their public form links are hidden; the event and its existing responses stay in the portal.">Deploy status</TitleWithInfo></header>
+        <header className="portal-card-head"><TitleWithInfo as="h2" className="portal-card-title" info="Published events appear on the website. Unpublished events and their public form links are hidden; the event and its existing responses stay in the portal.">Deploy status</TitleWithInfo>{scheduled && !scheduled.error && <span className="portal-tag is-gold" title="Your changes are saved and go live within 2 minutes.">Building event</span>}</header>
         <SlidingSegments active={activeForm} className="portal-deployment-forms" role="radiogroup" aria-label="Deploy status">
           {deploymentForms.map(item => <label className={`portal-segment${activeForm === item.key ? " is-selected" : ""}`} key={item.key}>
             <input type="radio" name="deploymentForm" value={item.key} checked={activeForm === item.key} onChange={() => setActiveForm(item.key)} />{item.label}

@@ -14,7 +14,8 @@ import "./documents.css";
 // (the candidate). Each has its template if there is one, its files, where its review stands and
 // what the unit wrote. Files go up to /filing/upload, the rest through Server Actions.
 
-export type Requirement = { id: string; label: string; hint: string; templateHref: string | null; optional?: boolean };
+/** `number`: its place in the whole checklist, when only some of the requirements are shown. */
+export type Requirement = { id: string; label: string; hint: string; templateHref: string | null; optional?: boolean; number?: number };
 
 const megabytes = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(bytes < 1024 * 1024 ? 2 : 1)} MB`;
 const when = (iso: string | null) => (iso ? new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso)) : "");
@@ -73,7 +74,7 @@ export function FilingDocuments({ area, requirements, documents, open, unit }: {
         return (
           <li key={requirement.id} id={`requirement-${requirement.id}`} className={`portal-card pp-requirement${dragging === requirement.id ? " is-dragging" : ""}`} {...dropOn(requirement.id, editable)}>
             <div className="pp-requirement-head">
-              <span className="pp-requirement-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+              <span className="pp-requirement-index" aria-hidden="true">{String(requirement.number ?? index + 1).padStart(2, "0")}</span>
               <div className="pp-requirement-title">
                 <h2>{requirement.label}{requirement.optional && <small> Optional</small>}</h2>
                 <p>{requirement.hint}</p>

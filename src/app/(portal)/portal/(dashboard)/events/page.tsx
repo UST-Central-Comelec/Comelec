@@ -14,6 +14,7 @@ import { comelecUnit, isOver, type Listing } from "@/lib/events/options";
 import { getEvents, getPeriodListings, byStart } from "@/lib/events/queries";
 import { listingLink } from "@/lib/events/listing-link";
 import { countRegistrations } from "@/lib/events/registrations";
+import { listBuildingEvents } from "@/lib/events/deployment-store";
 import { settle } from "@/lib/portal/settle";
 
 export const metadata: Metadata = { title: "Events" };
@@ -48,7 +49,7 @@ export default async function PortalEventsPage({ searchParams }: PageProps<"/por
   const filters = { unit: isUnitFilter(unitParam) ? unitParam : "all", kind: isKindFilter(type) ? type : "activities" } as { unit: UnitFilter; kind: KindFilter };
 
   // Activities and the three major events have separate lists, with the same unit filter.
-  const [{ value, error: loadError }, listings] = await Promise.all([settle(Promise.all([getEvents(), countRegistrations()])), getPeriodListings({ withScheduled: true })]);
+  const [{ value, error: loadError }, listings, building] = await Promise.all([settle(Promise.all([getEvents(), countRegistrations()])), getPeriodListings({ withScheduled: true }), listBuildingEvents()]);
   const all = value?.[0] ?? [];
   const counts: Awaited<ReturnType<typeof countRegistrations>> = value?.[1] ?? {};
   const source = filters.kind === "activities" ? all : listings.filter(event => event.period?.kind === filters.kind);
@@ -113,7 +114,7 @@ export default async function PortalEventsPage({ searchParams }: PageProps<"/por
                         </td>
                         <td className="is-nowrap">{formatEventDateShort(event.eventDate)}<small className="portal-muted">{formatEventDateShort(event.endDate)}</small></td>
                         <td className="portal-event-venue">{event.venueDetails}<small className="portal-muted">{formatTimeRange(event.startsTime, event.endsTime)}</small></td>
-                        <td><EventStatusTag event={event} compact /></td>
+                        <td><EventStatusTag event={event} compact building={building.has(event.id)} /></td>
                         {/* Sign-ups for a unit's Recruitment, Political Party or Filing of Candidacy go through their own pages, not the event form. */}
                         <td className="is-nowrap">{event.period ? <span className="portal-muted">—</span> : <span className="portal-event-count">{count.registered}</span>}</td>
                         <td className="portal-row-actions">{link && <Link href={link.href} target={link.external ? "_blank" : undefined}>{link.label}</Link>}</td>

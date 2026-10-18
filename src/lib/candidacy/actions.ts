@@ -9,6 +9,7 @@ import { accountForSignUp } from "@/lib/filing-portal/sign-up";
 import { fullName } from "@/lib/filing-portal/types";
 import { clearFilingPass, readFilingPass } from "@/lib/filing-portal/verification";
 import { getParty, listJoinableParties } from "@/lib/party-portal/store";
+import { canFieldCandidates } from "@/lib/party-portal/types";
 import { listUnitPeriodsForSite } from "@/lib/periods/store";
 import { openUnits } from "@/lib/periods/summary";
 import { unitKey } from "@/lib/periods/kinds";
@@ -44,6 +45,7 @@ export async function fileCandidacy(_state: SignUpState, formData: FormData): Pr
     console.error("Couldn’t make the filing portal account:", error instanceof Error ? error.message : error);
     return { error: "Your account couldn’t be made. Try again in a moment. Your answers are still here." };
   }
+  if ("suspended" in resolved) return { error: "This UST account can’t file through the filing portal right now. Write to comelec@ust.edu.ph." };
   const fieldErrors = { ...("fieldErrors" in resolved ? resolved.fieldErrors : {}), ...candidacyProblems };
   if (Object.keys(fieldErrors).length || !("account" in resolved)) return { error: "Check the highlighted answers.", fieldErrors };
   const { account } = resolved;
@@ -77,6 +79,7 @@ export async function fileCandidacy(_state: SignUpState, formData: FormData): Pr
 export async function answerEndorsement(candidacyId: string, endorse: boolean): Promise<ActionResult> {
   const account = await requirePartyMember();
   if (!isContactPerson(account)) return { error: "Only the party’s contact person can endorse candidates." };
+  if (endorse && !canFieldCandidates(account.party)) return { error: account.party.sanction ? `The party is ${account.party.sanction}, so it can’t endorse candidates now.` : "The party isn’t accredited now, so it can’t endorse candidates." };
   const candidacy = await getCandidacy(candidacyId);
   if (!candidacy || candidacy.partyId !== account.party.id) return { error: "That candidate isn’t running under your party." };
   const decided = await decideEndorsement(candidacy.id, account.party.id, endorse, account.member.email);
@@ -91,7 +94,7 @@ export async function answerEndorsement(candidacyId: string, endorse: boolean): 
 /** Withdraws the candidate's own filing while it's pending (Elections Code, Section 6.1), so they can file again. */
 export async function withdrawMyCandidacy(): Promise<ActionResult> {
   const { account, candidacy } = await requireCandidacy();
-  const withdrawn = await withdrawCandidacy(candidacy.id, account.id);
+  const withdrawn = await withdrawCandidacy(candidacy.id, account.id, account.email);
   if (!withdrawn) return { error: "This candidacy has already been decided, so it can’t be withdrawn here. Write to your Comelec unit." };
   await addAccountNotice({ accountId: account.id, kind: "candidacy-withdrawn", title: `You withdrew your candidacy for ${candidacy.position}`, body: "Give your Comelec unit your sworn declaration of withdrawal too.", actor: "You" });
   revalidatePath("/filing", "layout");

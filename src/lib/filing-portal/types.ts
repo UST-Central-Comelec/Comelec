@@ -15,7 +15,14 @@ export type PublicAccount = {
   program: string;
   yearLevel: string;
   noticesReadAt: string | null;
+  /** Set by the commission: the account can't sign in until it's restored. */
+  suspendedAt: string | null;
+  suspendedBy: string | null;
+  suspensionReason: string;
+  /** Sessions started before this have ended. */
+  sessionsRevokedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 /** What the sign-up forms show of an account that already exists, in place of asking again. */
@@ -46,6 +53,34 @@ export const documentStatusLabel: Record<DocumentStatus, string> = { draft: "Not
 export const documentStatusTone: Record<DocumentStatus, string> = { draft: "", submitted: "is-gold", approved: "is-ok", changes: "is-warn" };
 /** A document's files can change while it's being put together, or after feedback asks for changes. */
 export const isEditable = (status: DocumentStatus) => status === "draft" || status === "changes";
+
+/** Where an application's documents stand, against its requirements (the optional ones don't hold up a decision). */
+export type DocumentProgress = { total: number; required: number; approved: number; requiredApproved: number; waiting: number; changes: number; drafts: number; missing: string[] };
+
+export function documentProgress(requirements: ReadonlyArray<{ id: string; label: string; optional?: boolean }>, documents: ReadonlyArray<{ requirement: string; status: DocumentStatus }>): DocumentProgress {
+  const status = new Map(documents.map((item) => [item.requirement, item.status]));
+  const count = (wanted: DocumentStatus) => requirements.filter((item) => status.get(item.id) === wanted).length;
+  const required = requirements.filter((item) => !item.optional);
+  return {
+    total: requirements.length,
+    required: required.length,
+    approved: count("approved"),
+    requiredApproved: required.filter((item) => status.get(item.id) === "approved").length,
+    waiting: count("submitted"),
+    changes: count("changes"),
+    drafts: requirements.length - count("approved") - count("submitted") - count("changes"),
+    missing: required.filter((item) => status.get(item.id) !== "approved").map((item) => item.label),
+  };
+}
+
+/** What's still to approve, in a line: the documents by name when there are a few, otherwise how many. */
+export const stillToApprove = (progress: DocumentProgress) =>
+  progress.missing.length <= 3 ? `Still to approve: ${progress.missing.join("; ")}.`
+    : progress.missing.length === progress.required ? `None of the ${progress.required} required documents is approved yet.`
+      : `${progress.missing.length} of the ${progress.required} required documents are still to approve.`;
+
+/** Every required document approved, and nothing left waiting for review: the application can be decided in its favour. */
+export const isReadyToDecide = (progress: DocumentProgress) => progress.requiredApproved === progress.required && progress.waiting === 0;
 
 /** "JUAN SANTOS DELA CRUZ": first, middle, last, as names are kept. */
 export const fullName = (person: { firstName: string; middleName: string; lastName: string }) => [person.firstName, person.middleName, person.lastName].filter(Boolean).join(" ");

@@ -11,13 +11,14 @@ import { candidacyStatusLabel, councilOf, type CandidacyStatus } from "./types";
 // the party answers, and to the candidate when the Comelec unit reviews a document or decides.
 
 type Person = { firstName: string; email: string };
-type Filed = { position: string; college: string };
+/** What the candidate filed: the office, the unit, and the filing's ID when there is one (FC-7K3M-9QXA). */
+type Filed = { position: string; college: string; reference?: string };
 
 const portalUrl = (path = "") => `${siteUrl()}/filing${path}`;
 const helpText = "Questions? Reply to this email, or write to comelec@ust.edu.ph.";
 const help = note(`Questions? Reply to this email, or write to ${link("mailto:comelec@ust.edu.ph", "comelec@ust.edu.ph")}.`);
 const greeting = (person: Person) => `Hi ${greetingName(person.firstName)},`;
-const eyebrow = (filed: Filed) => `Filing of Candidacy · ${unitName(filed.college)}`;
+const eyebrow = (filed: Filed) => ["Filing of Candidacy", unitName(filed.college), filed.reference].filter(Boolean).join(" · ");
 const office = (filed: Filed) => `${filed.position}, ${councilOf(filed.college)}`;
 
 /** To a party's contact person: a member filed their candidacy under the party, and asks for its endorsement. */
@@ -62,7 +63,7 @@ export function candidacyFeedbackEmail(candidate: Person, filed: Filed, requirem
   const label = candidacyRequirementLabel(requirement);
   const intro = approved ? `The ${unit} approved your ${label.toLowerCase()}.` : `The ${unit} reviewed your ${label.toLowerCase()} and asked for changes. Update the files, then send it again from the filing portal.`;
   const said = feedback.trim();
-  const url = portalUrl("/candidacy");
+  const url = portalUrl("/candidacy/documents");
   return {
     to: candidate.email,
     subject: approved ? `Approved: ${label}` : `Changes asked: ${label}`,
@@ -106,11 +107,30 @@ export function candidacyDecisionEmail(candidate: Person, filed: Filed, decision
   };
 }
 
+/** To the candidate: the unit recorded their withdrawal, on their sworn declaration (switch "candidacy-withdrawn"). */
+export function candidacyWithdrawnEmail(candidate: Person, filed: Filed, reason: string): Email {
+  const unit = unitName(filed.college);
+  const intro = `The ${unit} recorded the withdrawal of your candidacy for ${office(filed)}. You can file again while filing is open.`;
+  const said = reason.trim();
+  return {
+    to: candidate.email,
+    subject: `Your candidacy for ${filed.position} is withdrawn`,
+    text: [greeting(candidate), intro, said && `The unit wrote:\n${said}`, `Open the filing portal: ${portalUrl()}`, helpText, COMMISSION].filter(Boolean).join("\n\n"),
+    html: shell({
+      eyebrow: eyebrow(filed),
+      title: "Your candidacy is *withdrawn*",
+      preheader: intro,
+      blocks: [paragraph(escape(greeting(candidate))), paragraph(escape(intro)), ...(said ? [quote(said)] : []), button("Open the filing portal", portalUrl()), divider(), help],
+    }),
+  };
+}
+
 /* Samples for Services → Email → Automatic, built by the same code. */
 
 const samplePerson = { firstName: "JUAN", email: "juan.delacruz@ust.edu.ph" };
-const sampleFiled = (college: string | null) => ({ position: "President", college: college ?? "" });
+const sampleFiled = (college: string | null) => ({ position: "President", college: college ?? "", reference: "FC-4T8W-2HNC" });
 export const endorsementRequestSample = (college: string | null) => endorsementRequestEmail(samplePerson, { name: "MARIA CLARA SANTOS", email: "maria.santos@ust.edu.ph" }, { name: "LAKAS TOMASINO" }, sampleFiled(college));
 export const endorsementDecisionSample = (college: string | null) => endorsementDecisionEmail(samplePerson, { name: "LAKAS TOMASINO" }, sampleFiled(college), true);
 export const candidacyFeedbackSample = (college: string | null) => candidacyFeedbackEmail(samplePerson, sampleFiled(college), "transcript", false, "The transcript isn’t certified by the Registrar. Upload the certified copy.");
 export const candidacyDecisionSample = (college: string | null) => candidacyDecisionEmail(samplePerson, sampleFiled(college), "qualified", "");
+export const candidacyWithdrawnSample = (college: string | null) => candidacyWithdrawnEmail(samplePerson, sampleFiled(college), "Received your sworn declaration of withdrawal on 20 October 2026.");

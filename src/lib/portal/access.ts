@@ -31,7 +31,7 @@ export const tabGroups = [
       { key: "apps/email", label: "Email", local: true },
     ],
   },
-  { label: null, section: null, tabs: [{ key: "request", label: "Request", local: true }] },
+  { label: null, section: null, tabs: [{ key: "request", label: "Requests", local: true }] },
   {
     label: "Secretariat",
     section: "Committee",
@@ -102,6 +102,7 @@ export const tabGroups = [
     section: "Registrations",
     tabs: [
       { key: "candidacy/filings", label: "Applicants", local: true },
+      { key: "candidacy/campaign", label: "Campaign", local: true },
       { key: "candidacy/requirements", label: "Requirements", local: false },
       { key: "candidacy/settings", label: "Settings", local: true },
     ],

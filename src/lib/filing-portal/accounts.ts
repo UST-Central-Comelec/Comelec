@@ -20,7 +20,9 @@ function fail(what: string, error: { message: string } | null) {
 export const toAccount = (row: Row): PublicAccount => ({
   id: str(row.id), email: str(row.email), lastName: str(row.last_name), firstName: str(row.first_name), middleName: str(row.middle_name),
   studentNumber: str(row.student_number), mobileNumber: str(row.mobile_number), facebookUrl: str(row.facebook_url),
-  college: str(row.college), program: str(row.program), yearLevel: str(row.year_level), noticesReadAt: strOrNull(row.notices_read_at), createdAt: str(row.created_at),
+  college: str(row.college), program: str(row.program), yearLevel: str(row.year_level), noticesReadAt: strOrNull(row.notices_read_at),
+  suspendedAt: strOrNull(row.suspended_at), suspendedBy: strOrNull(row.suspended_by), suspensionReason: str(row.suspension_reason), sessionsRevokedAt: strOrNull(row.sessions_revoked_at),
+  createdAt: str(row.created_at), updatedAt: str(row.updated_at),
 });
 
 export const toNotice = (row: Row): Notice => ({ id: str(row.id), kind: str(row.kind), title: str(row.title), body: str(row.body), href: strOrNull(row.href), actor: str(row.actor), createdAt: str(row.created_at) });
@@ -38,7 +40,7 @@ export async function findAccountByEmail(email: string): Promise<PublicAccount |
   return data ? toAccount(data) : null;
 }
 
-export type NewAccount = Omit<PublicAccount, "id" | "noticesReadAt" | "createdAt">;
+export type NewAccount = Pick<PublicAccount, "email" | "lastName" | "firstName" | "middleName" | "studentNumber" | "mobileNumber" | "facebookUrl" | "college" | "program" | "yearLevel">;
 
 /** Makes the account, or returns the one this email already has (two tabs signing up at once). */
 export async function createAccount(account: NewAccount): Promise<PublicAccount> {

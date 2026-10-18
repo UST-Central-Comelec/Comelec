@@ -10,9 +10,11 @@ import { senderLabel } from "@/lib/notifications/inbox-presentation";
 
 const timeFormat = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
+type NotificationPreview = Pick<InboxPreview, "id" | "title" | "senderName" | "senderAffiliation" | "senderCollege" | "createdAt" | "readAt" | "preview"> & { href?: string };
+
+export function NotificationBell({ mobile = false, filing = false }: { mobile?: boolean; filing?: boolean }) {
   const panelId = useId();
-  const [messages, setMessages] = useState<InboxPreview[]>([]);
+  const [messages, setMessages] = useState<NotificationPreview[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [open, setOpen] = useState(false);
@@ -36,7 +38,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
       lastLoaded.current = Date.now();
       pending = true;
       try {
-        const response = await fetch("/portal/notifications/latest", { cache: "no-store", signal: controller.signal });
+        const response = await fetch(filing ? "/filing/announcements/latest" : "/portal/notifications/latest", { cache: "no-store", signal: controller.signal });
         if (!response.ok) throw new Error("Unavailable");
         const data = await response.json();
         setMessages(data.messages);
@@ -56,7 +58,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     const timer = window.setInterval(forced, 60000);
     window.addEventListener("focus", throttled);
     phone.addEventListener("change", forced);
-    window.addEventListener("portal-notifications-changed", forced);
+    window.addEventListener(filing ? "filing-notices-read" : "portal-notifications-changed", forced);
     document.addEventListener("visibilitychange", throttled);
     return () => {
       // A check cut short by leaving the page doesn't count: the next page makes its own.
@@ -64,10 +66,10 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
       controller.abort(); window.clearInterval(timer);
       window.removeEventListener("focus", throttled);
       phone.removeEventListener("change", forced);
-      window.removeEventListener("portal-notifications-changed", forced);
+      window.removeEventListener(filing ? "filing-notices-read" : "portal-notifications-changed", forced);
       document.removeEventListener("visibilitychange", throttled);
     };
-  }, [pathname, mobile]);
+  }, [pathname, mobile, filing]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,26 +84,26 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open]);
 
-  const historyHref = inboxAvailable ? "/portal/apps/inbox?tab=all" : "/portal/notifications";
+  const historyHref = filing ? "/filing/announcements" : inboxAvailable ? "/portal/apps/inbox?tab=all" : "/portal/notifications";
   return <div className="portal-notifications" ref={container} onBlur={(event) => {
     if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
   }}>
-    <button ref={button} type="button" className={`portal-notification-bell${unread > 0 ? " has-unread" : ""}`} aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+    <button ref={button} type="button" className={`portal-notification-bell${unread > 0 ? " has-unread" : ""}`} aria-label={`${filing ? "Announcements" : "Notifications"}${unread ? `, ${unread} unread` : ""}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
       <Bell size={16} aria-hidden="true" />{unread > 0 && <span className="portal-notification-dot" aria-hidden="true" />}
     </button>
-    {open && <section id={panelId} className="portal-notification-panel" aria-label="Latest notifications">
-      <div className="portal-notification-heading"><div><strong>Notifications</strong><p>Your latest updates, at a glance.</p></div>{unread > 0 ? <span className="portal-notification-count">{unread} unread</span> : loaded && !error && <CheckCheck size={18} aria-label="All read" />}</div>
+    {open && <section id={panelId} className="portal-notification-panel" aria-label={filing ? "Latest announcements" : "Latest notifications"}>
+      <div className="portal-notification-heading"><div><strong>{filing ? "Announcements" : "Notifications"}</strong><p>Your latest updates, at a glance.</p></div>{unread > 0 ? <span className="portal-notification-count">{unread} unread</span> : loaded && !error && <CheckCheck size={18} aria-label="All read" />}</div>
       <div className="portal-notification-body">
-      {error ? <p role="status" className="portal-empty">Notifications are unavailable. Try again shortly.</p>
-        : !loaded ? <p className="portal-empty">Loading notifications…</p>
+      {error ? <p role="status" className="portal-empty">{filing ? "Announcements" : "Notifications"} are unavailable. Try again shortly.</p>
+        : !loaded ? <p className="portal-empty">{filing ? "Loading announcements…" : "Loading notifications…"}</p>
         : !messages.length ? <p className="portal-empty">You’re all caught up.</p>
         : <ul>{messages.slice(0, 6).map((message) => {
-          return <li key={message.id}><Link href={`${historyHref}#message-${message.id}`} className={message.readAt ? undefined : "is-unread"} onClick={() => setOpen(false)}>
+          return <li key={message.id}><Link href={message.href ?? `${historyHref}#message-${message.id}`} className={message.readAt ? undefined : "is-unread"} onClick={() => setOpen(false)}>
             <span className="portal-notification-copy"><span className="portal-notification-meta"><span className="portal-notification-unit" title={message.senderName}>{senderLabel(message)}</span><time dateTime={message.createdAt}>{timeFormat.format(new Date(message.createdAt))} PHT</time>{!message.readAt && <span className="portal-notification-item-dot" aria-label="Unread" />}</span><strong>{message.title}</strong><span className="portal-notification-preview">{message.preview}</span></span>
           </Link></li>;
         })}</ul>}
       </div>
-      <Link href={historyHref} className="portal-notification-all" onClick={() => setOpen(false)}>View all notifications<ActionViewIcon size={15} aria-hidden="true" /></Link>
+      <Link href={historyHref} className="portal-notification-all" onClick={() => setOpen(false)}>{filing ? "View all announcements" : "View all notifications"}<ActionViewIcon size={15} aria-hidden="true" /></Link>
     </section>}
   </div>;
 }

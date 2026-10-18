@@ -58,7 +58,9 @@ export default async function EditEventPage({ params }: PageProps<"/portal/event
               key="delete-event"
               action={deleteEvent.bind(null, event.id)}
               label="Delete event"
-              prompt={signUps > 0 ? `Delete it, and the ${signUps === 1 ? "registration" : `${signUps} registrations`} for it?` : "Delete permanently?"}
+              dialogTitle="Delete event?"
+              confirmLabel="Delete event"
+              prompt={`This will permanently delete “${event.name}”${signUps > 0 ? ` and ${signUps === 1 ? "its registration" : `all ${signUps} registrations for it`}` : ""}. This can’t be undone.`}
             />
           }
         />

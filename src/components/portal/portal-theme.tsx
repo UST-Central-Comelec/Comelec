@@ -2,10 +2,11 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { usePathname } from "next/navigation";
 import { ThemeToggleButton } from "@/components/theme-toggle";
 import { PHONE_QUERY, readTheme, THEME_COLOR, THEME_COOKIE, type PortalTheme } from "@/lib/portal/theme";
 
-const ThemeContext = createContext<{ theme: PortalTheme; toggle: (from: HTMLElement) => void } | null>(null);
+const ThemeContext = createContext<{ theme: PortalTheme; toggle: (from: HTMLElement) => void; locked: boolean } | null>(null);
 
 /**
  * The browser's own bars follow the theme, except on a phone, where the header stays dark. The layout's
@@ -23,18 +24,24 @@ function paintBrowser(theme: PortalTheme) {
  * `cookiePath` is where that cookie is sent: the commission portal's, or the filing portal's (/filing).
  */
 export function PortalShell({ initialTheme, children, cookiePath = "/portal" }: { initialTheme: PortalTheme; children: ReactNode; cookiePath?: string }) {
+  const pathname = usePathname();
+  const darkOnly = cookiePath === "/portal" && /^\/portal\/events\/[^/]+\/check-in\/?$/.test(pathname ?? "");
   // In the browser the cookie has the last word: the router can bring this layout back from its cache,
   // rendered before the theme was last changed.
   const [theme, setTheme] = useState(() => (typeof document === "undefined" ? initialTheme : readTheme(document.cookie.match(`(?:^|; )${THEME_COOKIE}=(\\w+)`)?.[1] ?? initialTheme)));
+  // Check-in, including its full-screen booth and dialogs, always uses Night. Keep the saved choice
+  // for when the commissioner leaves the booth.
+  const displayedTheme = darkOnly ? "dark" : theme;
 
   useEffect(() => {
-    paintBrowser(theme);
+    paintBrowser(displayedTheme);
     // Signing out leads to the sign-in page, which is always dark.
     return () => paintBrowser("dark");
-  }, [theme]);
+  }, [displayedTheme]);
 
   /** `from` is the switch that was pressed: daylight spreads out from it, and draws back into it. */
   const toggle = (from: HTMLElement) => {
+    if (darkOnly) return;
     const next: PortalTheme = theme === "light" ? "dark" : "light";
     document.cookie = `${THEME_COOKIE}=${next}; path=${cookiePath}; max-age=31536000; samesite=lax`;
     // Synchronously, so the browser's snapshot of the new page really is the new theme.
@@ -59,8 +66,8 @@ export function PortalShell({ initialTheme, children, cookiePath = "/portal" }: 
   };
 
   return (
-    <ThemeContext value={{ theme, toggle }}>
-      <div className="portal-shell" data-theme={theme}>{children}</div>
+    <ThemeContext value={{ theme: displayedTheme, toggle, locked: darkOnly }}>
+      <div className="portal-shell" data-theme={displayedTheme}>{children}</div>
     </ThemeContext>
   );
 }
@@ -71,7 +78,7 @@ export const usePortalTheme = (): PortalTheme => useContext(ThemeContext)?.theme
 /** Shared sun/moon switch in the top bar and mobile sidebar. */
 export function ThemeToggle() {
   const context = useContext(ThemeContext);
-  if (!context) return null;
+  if (!context || context.locked) return null;
   const light = context.theme === "light";
 
   return (

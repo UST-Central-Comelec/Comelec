@@ -29,21 +29,34 @@ export async function endFilingSession() {
   (await cookies()).delete({ name: FILING_SESSION_COOKIE, path: filingSessionCookieOptions.path });
 }
 
-/** The signed-in account, with its party membership (asked to join counts) and its candidacy. */
-export const getFilingAccount = cache(async (): Promise<FilingAccount | null> => {
+/** Whether the commission has shut this session out: the account is suspended, or its sessions were ended after this one began. */
+export const isShutOut = (account: Pick<PublicAccount, "suspendedAt" | "sessionsRevokedAt">, startedAt: number) =>
+  account.suspendedAt !== null || (account.sessionsRevokedAt !== null && startedAt < Date.parse(account.sessionsRevokedAt));
+
+/** The session's account and what it holds; "suspended" when the commission has suspended it. */
+const readFilingSession = cache(async (): Promise<FilingAccount | "suspended" | null> => {
   await connection();
   const session = await decodeFilingSession((await cookies()).get(FILING_SESSION_COOKIE)?.value);
   if (!session || filingTimeout(session)) return null;
   const account = await getAccount(session.accountId);
   if (!account || account.email !== session.email.toLowerCase()) return null;
+  if (account.suspendedAt) return "suspended";
+  if (isShutOut(account, session.startedAt)) return null;
   const [member, candidacy] = await Promise.all([membershipOfAccount(account.id), candidacyOfAccount(account.id)]);
   const party = member ? await getParty(member.partyId) : null;
   return { account, membership: member && party ? { member, party } : null, candidacy };
 });
 
+/** The signed-in account, with its party membership (asked to join counts) and its candidacy. */
+export const getFilingAccount = async (): Promise<FilingAccount | null> => {
+  const found = await readFilingSession();
+  return found === "suspended" ? null : found;
+};
+
 /** Use in every filing portal page and action: the proxy's check alone isn't a security boundary. */
 export async function requireFilingAccount() {
-  const account = await getFilingAccount();
+  const account = await readFilingSession();
+  if (account === "suspended") redirect("/filing/login?error=suspended");
   if (!account) redirect("/filing/login");
   return account;
 }
@@ -51,14 +64,14 @@ export async function requireFilingAccount() {
 /** For the party's files and members: a member of its group, not someone still asking to join. */
 export async function requirePartyMember(): Promise<FilingAccount & Membership> {
   const account = await requireFilingAccount();
-  if (!account.membership || account.membership.member.status !== "active") redirect("/filing");
+  if (!account.membership || account.membership.member.status !== "active") redirect("/filing/party");
   return { ...account, ...account.membership };
 }
 
 /** For the candidacy's pages and actions: the account's own filing. */
 export async function requireCandidacy(): Promise<FilingAccount & { candidacy: Candidacy }> {
   const account = await requireFilingAccount();
-  if (!account.candidacy) redirect("/filing");
+  if (!account.candidacy) redirect("/filing/candidacy");
   return { ...account, candidacy: account.candidacy };
 }
 

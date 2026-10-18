@@ -9,8 +9,8 @@ import { receiptBlocks, receiptText, type ReceiptSection } from "@/lib/notificat
 // The emails a petition or a case sends when it's submitted: a receipt to whoever submitted it,
 // and a notice to the unit it concerns (its official account and its Executive Board).
 //
-// The Petitions and Cases form isn't built yet, so nothing sends these today. They're ready for it:
-// on submit, call `petitionSubmitted` (./notify.ts), which sends both to the right people.
+// Petitions are filed in the filing portal (Services → File a petition, src/app/(portal)/filing/submit/
+// petition/route.ts), which calls `petitionSubmitted` (./notify.ts) to send both to the right people.
 //
 // A submission concerns the Central Comelec or a Local unit: the form asks which, and the college
 // if Local. Either way it leaves from the Central Comelec's mailbox, so one for a Local unit says
@@ -32,7 +32,7 @@ export type Petition = {
 
 const TOPIC = "Petitions and Cases";
 
-const trackUrlOf = (petition: Petition) => `${siteUrl()}/apply/track?ref=${petition.referenceCode}`;
+const trackUrlOf = () => `${siteUrl()}/filing/services/petition`;
 const portalUrl = () => `${siteUrl()}/portal/petitions/case-docket`;
 
 const summaryOf = (petition: Petition): Details => [["Type", petition.type], ["About", petition.subject], ["Submitted", formatClosing(petition.submittedAt)], ["Addressed to", unitOf(petition.concern)]];
@@ -41,18 +41,18 @@ const summaryOf = (petition: Petition): Details => [["Type", petition.type], ["A
 export function petitionReceivedEmail(petition: Petition, answers: ReceiptSection[] = []): Email {
   const { concern } = petition;
   const local = isLocalConcern(concern);
-  const trackUrl = trackUrlOf(petition);
+  const trackUrl = trackUrlOf();
   const relay = relayNote(concern, "your submission");
   const greeting = `Hi ${greetingName(petition.submitter.firstName)},`;
   const kind = petition.type.toLowerCase();
   const intro = local ? `Your ${kind} to the ${unitOf(concern)} was received through the ${COMET}, and the unit has been notified.` : `We’ve received your ${kind}, and the commission has been notified.`;
-  const next = `${local ? "The unit" : "The commission"} will write to you at this address about what happens next. Keep your reference code: you’ll need it to follow up.`;
+  const next = `${local ? "The unit" : "The commission"} will write to you at this address about what happens next. Keep your reference code: you’ll need it to follow up. You can follow it in the filing portal too.`;
   const summary = summaryOf(petition);
 
   return {
     to: petition.submitter.email,
     subject: `${through(`${petition.type} received`, concern)} (${petition.referenceCode})`,
-    text: [greeting, `${intro} This email is your receipt.`, `Reference code: ${petition.referenceCode}`, detailsText(summary), receiptText(answers), next, `Track it: ${trackUrl}`, "Questions? Reply to this email, or write to comelec@ust.edu.ph.", relay, COMMISSION].filter(Boolean).join("\n\n"),
+    text: [greeting, `${intro} This email is your receipt.`, `Reference code: ${petition.referenceCode}`, detailsText(summary), receiptText(answers), next, `Follow it in the filing portal: ${trackUrl}`, "Questions? Reply to this email, or write to comelec@ust.edu.ph.", relay, COMMISSION].filter(Boolean).join("\n\n"),
     html: shell({
       eyebrow: topicFor(TOPIC, concern),
       title: local ? "Received through *COMET*" : "We’ve received your *submission*",
@@ -65,7 +65,7 @@ export function petitionReceivedEmail(petition: Petition, answers: ReceiptSectio
         details(summary),
         ...receiptBlocks(answers),
         paragraph(escape(next)),
-        button("Track it", trackUrl),
+        button("Open the filing portal", trackUrl),
         divider(),
         note(`Questions? Reply to this email, or write to ${link("mailto:comelec@ust.edu.ph", "comelec@ust.edu.ph")}.`),
         ...(relay ? [note(escape(relay))] : []),

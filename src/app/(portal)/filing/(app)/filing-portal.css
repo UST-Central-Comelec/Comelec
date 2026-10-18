@@ -94,3 +94,79 @@
 @media (prefers-reduced-motion: reduce) {
 	.pp-scale-scene { animation: none; }
 }
+
+/* Political Party, for an account without one: join a party or register a new one. */
+.pp-join { display: flex; flex-direction: column; gap: 18px; }
+.pp-join > .pp-review-actions { margin-top: auto; }
+.pp-join .portal-segmented { align-self: flex-start; }
+.pp-join-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pp-join-grid .is-wide { grid-column: 1 / -1; }
+.pp-join .portal-muted { margin: 0; }
+@media (max-width: 640px) { .pp-join-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Party information: the requirements, group by group, each a way into its subtab. */
+.pp-progress { align-content: start; display: grid; gap: 16px; }
+.pp-progress h2 { margin: 0 !important; }
+.pp-groups { border: 1px solid var(--p-line); border-radius: 12px; list-style: none; margin: 0; padding: 0; }
+.pp-groups li + li { border-top: 1px solid var(--p-line); }
+.pp-groups a { align-items: center; color: var(--p-text); display: flex; gap: 12px; justify-content: space-between; padding: 12px 14px; text-decoration: none; transition: background .15s ease; }
+.pp-groups a:hover { background: rgba(var(--p-ink), .04); }
+.pp-groups a > svg { color: var(--p-gold-mark); flex: none; transition: transform .3s var(--p-ease); }
+.pp-groups a:hover > svg { transform: translateX(2px); }
+.pp-groups span { display: grid; gap: 2px; }
+.pp-groups strong { font-size: 13.5px; font-weight: 600; }
+.pp-groups small { color: var(--p-muted); font-size: 12.5px; }
+.pp-waiting-actions { margin-top: 14px !important; }
+@media (prefers-reduced-motion: reduce) { .pp-groups a > svg { transition: none; } }
+
+/* Joining or registering, beside the account's own candidacy: the main card wider, both the same height. */
+.pp-join-row { align-items: stretch; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); margin-bottom: 0; }
+.pp-join-row > .portal-card { min-width: 0; }
+.pp-join-row > .pp-waiting { max-width: none; }
+.pp-join-row .pp-remarks { margin: 0; }
+.pp-join-row > .pp-application { display: flex; flex-direction: column; }
+.pp-join-row > .pp-application > .portal-button { align-self: flex-start; margin-top: auto; }
+/* Stacked, the candidacy comes first: it's what to know before deciding. */
+@media (max-width: 1100px) {
+	.pp-join-row { grid-template-columns: minmax(0, 1fr); }
+	.pp-join-row > .pp-application { order: -1; }
+}
+@media (max-width: 560px) {
+	.pp-join .portal-segmented { align-self: stretch; }
+	.pp-join .portal-segment { flex: 1; justify-content: center; }
+}
+
+/* Services, and a candidate's campaign: the form beside what's been sent, each item with where it stands. */
+.pp-service-grid { align-items: start; display: grid; gap: 20px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.pp-service-grid.is-single { grid-template-columns: minmax(0, 1fr); }
+.pp-service-form { display: flex; flex-direction: column; gap: 18px; }
+.pp-service-form .pp-card-head { align-items: center; margin: 0; }
+.pp-service-side h2 { margin: 0 0 6px !important; }
+.pp-service-list { display: grid; list-style: none; margin: 0; padding: 0; }
+.pp-service-list > li { border-top: 1px solid var(--p-line); display: grid; gap: 12px; padding: 16px 0; }
+.pp-service-list > li:first-child { border-top: 0; }
+.pp-service-list > li.is-editing { background: rgba(var(--p-ink), .04); border-radius: 12px; margin: 0 -12px; padding-inline: 12px; }
+.pp-service-head { align-items: start; display: flex; gap: 12px; justify-content: space-between; }
+.pp-service-head > div { display: grid; gap: 3px; min-width: 0; }
+.pp-service-head strong { color: var(--p-text); font-size: 14px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.pp-service-head small { color: var(--p-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.pp-service-head .portal-tag { flex: none; }
+.pp-service-details { margin: 0; }
+.pp-service-details dd svg { color: var(--p-muted); vertical-align: -2px; }
+.pp-service-details a { overflow-wrap: anywhere; }
+.pp-join-grid > .is-wide { grid-column: 1 / -1; }
+.pp-size { align-items: center; display: flex; gap: 10px; }
+.pp-size .portal-input { font-variant-numeric: tabular-nums; max-width: 140px; }
+.pp-size > span { color: var(--p-muted); }
+.pp-head-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.pp-feed { margin-top: 16px; }
+@media (max-width: 1100px) { .pp-service-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Calendar: the Secretariat calendar's look (secretariat-calendar.css), with the account's own campaign and requests. */
+.pp-cal [data-kind="campaign"], .pp-cal .cal-layers [data-layer="campaign"] { --k: #6cb6ff; }
+.pp-cal [data-kind="service"], .pp-cal .cal-layers [data-layer="service"] { --k: #3ec7a6; }
+:where([data-theme="light"]) .pp-cal [data-kind="campaign"], :where([data-theme="light"]) .pp-cal .cal-layers [data-layer="campaign"] { --k: #4f9cf9; }
+:where([data-theme="light"]) .pp-cal [data-kind="service"], :where([data-theme="light"]) .pp-cal .cal-layers [data-layer="service"] { --k: #14a884; }
+.pp-cal .cal-head-title .portal-eyebrow { margin-bottom: 10px; }
+.pp-cal-list { padding: 10px 20px 16px; }
+.pp-cal-list .cal-row { margin: 0; }

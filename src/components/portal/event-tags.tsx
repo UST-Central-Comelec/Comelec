@@ -17,8 +17,9 @@ const statusTone: Record<RegistrationStatus, string> = { closed: "", open: "is-o
  * unless it was cancelled. A unit's Recruitment, Political Party Registration or Filing of Candidacy
  * is only listed while it's open, and says until when.
  */
-export function EventStatusTag({ event, large, compact }: { event: Pick<Listing, "registrationStatus" | "endDate" | "endsTime" | "period">; large?: boolean; /** The tag alone, without when it opens or closes. */ compact?: boolean }) {
+export function EventStatusTag({ event, large, compact, building }: { event: Pick<Listing, "registrationStatus" | "endDate" | "endsTime" | "period">; large?: boolean; /** The tag alone, without when it opens or closes. */ compact?: boolean; /** Deployment changes are waiting to go live (1 to 2 minutes). */ building?: boolean }) {
   const size = large ? " portal-status-tag" : "";
+  if (building) return <span className={`portal-tag is-gold${size}`} title="Deployment changes go live within 2 minutes.">Building event</span>;
   // Scheduled, not open yet: in the portal's list already, on the website once it opens.
   if (event.period?.opensAt) {
     return (

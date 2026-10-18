@@ -12,7 +12,7 @@ import { isContactPerson, requireFilingAccount } from "@/lib/filing-portal/sessi
 import { fullName } from "@/lib/filing-portal/types";
 import { requirements } from "@/lib/polpar/content";
 import { getMember, listMembers, listSubmissions } from "@/lib/party-portal/store";
-import { partyStatusLabel, partyStatusTone, unitName } from "@/lib/party-portal/types";
+import { partyStanding, unitName } from "@/lib/party-portal/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -57,17 +57,18 @@ export default async function FilingDashboard({ searchParams }: { searchParams: 
 
       <div className="pp-dash-grid is-even">
         <section className="portal-card pp-application">
-          <div className="pp-card-head"><h2>Political party</h2>{active && <span className={`portal-tag ${partyStatusTone[active.party.status]}`}>{partyStatusLabel[active.party.status]}</span>}</div>
+          <div className="pp-card-head"><h2>Political party</h2>{active && <span className={`portal-tag ${partyStanding(active.party).tone}`}>{partyStanding(active.party).label}</span>}</div>
           {active ? (
             <>
               <p className="pp-application-name">{active.party.name}</p>
               <dl className="portal-details">
+                <div><dt>Party ID</dt><dd>{active.party.reference}</dd></div>
                 <div><dt>Registering with</dt><dd>{unitName(active.party.college)}</dd></div>
                 <div><dt>Documents</dt><dd>{approved(partyDocuments)} of {requirements.length} approved{waiting(partyDocuments) ? ` · ${waiting(partyDocuments)} waiting for review` : ""}{changes(partyDocuments) ? ` · ${changes(partyDocuments)} with changes asked` : ""}</dd></div>
                 <div><dt>Members</dt><dd>{members.filter((item) => item.status === "active").length}{requests > 0 && contactPerson ? <> · <Link href="/filing/party/members">{requests} asking to join</Link></> : null}</dd></div>
                 <div><dt>Your role</dt><dd>{contactPerson ? "Contact person" : "Member"}</dd></div>
               </dl>
-              <Link className="portal-button" href="/filing/party">Open party documents <ArrowRight size={15} aria-hidden="true" /></Link>
+              <Link className="portal-button" href="/filing/party">Open Political Party <ArrowRight size={15} aria-hidden="true" /></Link>
             </>
           ) : membership ? (
             <div className="pp-waiting">
@@ -76,8 +77,8 @@ export default async function FilingDashboard({ searchParams }: { searchParams: 
             </div>
           ) : (
             <>
-              <p className="portal-muted">You aren’t in a political party here. Register a new party, or ask to join one that’s registering, on the Political Party Registration page.</p>
-              <a className="portal-button is-ghost" href="/party-registration">Political Party Registration <ArrowRight size={15} aria-hidden="true" /></a>
+              <p className="portal-muted">You aren’t in a political party here. Ask to join one that’s registering, or register a new one, under Political Party.</p>
+              <Link className="portal-button is-ghost" href="/filing/party">Join or register a party <ArrowRight size={15} aria-hidden="true" /></Link>
             </>
           )}
         </section>
@@ -88,12 +89,13 @@ export default async function FilingDashboard({ searchParams }: { searchParams: 
             <>
               <p className="pp-application-name">{candidacy.position}</p>
               <dl className="portal-details">
+                <div><dt>Filing ID</dt><dd>{candidacy.reference}</dd></div>
                 <div><dt>Council</dt><dd>{councilOf(candidacy.college)}</dd></div>
                 <div><dt>Running</dt><dd>{candidacy.partyName ? `Under ${candidacy.partyName}` : "As an independent"}</dd></div>
                 {candidacy.partyId && <div><dt>Endorsement</dt><dd>{endorsementLabel[candidacy.endorsement]}</dd></div>}
                 <div><dt>Documents</dt><dd>{approved(candidacyDocuments)} of {candidacyRequirements.length} approved{waiting(candidacyDocuments) ? ` · ${waiting(candidacyDocuments)} waiting for review` : ""}{changes(candidacyDocuments) ? ` · ${changes(candidacyDocuments)} with changes asked` : ""}</dd></div>
               </dl>
-              <Link className="portal-button is-ghost" href="/filing/candidacy">Open my candidacy <ArrowRight size={15} aria-hidden="true" /></Link>
+              <Link className="portal-button is-ghost" href="/filing/candidacy">Open Candidacy <ArrowRight size={15} aria-hidden="true" /></Link>
             </>
           ) : (
             <>
@@ -105,7 +107,7 @@ export default async function FilingDashboard({ searchParams }: { searchParams: 
       </div>
 
       <section className="portal-card">
-        <div className="pp-card-head"><h2>Latest notifications</h2><Link href="/filing/notifications">All notifications</Link></div>
+        <div className="pp-card-head"><h2>Latest announcements</h2><Link href="/filing/announcements">All announcements</Link></div>
         {latest.length ? (
           <ul className="pp-notices is-compact">
             {latest.map((item) => (
@@ -116,7 +118,7 @@ export default async function FilingDashboard({ searchParams }: { searchParams: 
               </li>
             ))}
           </ul>
-        ) : <p className="portal-empty">Nothing yet. Your unit’s feedback and decisions show up here.</p>}
+        ) : <p className="portal-empty">Nothing yet. Your unit’s feedback, decisions and answers to your requests show up here.</p>}
       </section>
     </main>
   );

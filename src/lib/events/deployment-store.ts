@@ -14,6 +14,14 @@ export async function getPendingDeployment(eventId: string): Promise<PendingDepl
   return data ? pending(data as Row) : null;
 }
 
+/** The events with deployment changes still waiting for the background job: they show "Building event". */
+export async function listBuildingEvents(): Promise<Set<string>> {
+  if (!isSupabaseConfigured()) return new Set();
+  const { data, error } = await createAdminClient().from("event_deployment_changes").select("event_id").is("applied_at", null).is("error", null);
+  if (error) return new Set();
+  return new Set((data ?? []).map(row => row.event_id as string));
+}
+
 export async function queueDeployment(eventId: string, values: DeploymentValues, seed: { evaluationQuestions: unknown; evaluationSteps: unknown }, author: string, clientId: string, revision: number): Promise<PendingDeployment> {
   const { data, error } = await createAdminClient().rpc("queue_event_deployment", { p_event_id: eventId, p_values: { ...values, ...seed }, p_author: author, p_client_id: clientId, p_revision: revision });
   if (error || !data) throw new Error(problem);

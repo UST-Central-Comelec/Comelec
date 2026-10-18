@@ -1,0 +1,18 @@
+.pp-request-workspace { display: grid; gap: 20px; min-width: 0; }
+.pp-request-workspace > .portal-filters { justify-self: start; }
+.pp-request-workspace > section { min-width: 0; }
+.pp-request-workspace [hidden] { display: none; }
+.pp-request-status { flex: 0 1 250px; min-width: 0; }
+.pp-request-status .portal-dropdown { width: 100%; }
+.pp-request-table { min-width: 900px; }
+.pp-request-table th:first-child { width: 160px; }
+.pp-request-table th:nth-child(2) { width: 30%; }
+.pp-request-table th:last-child { width: 56px; }
+.pp-request-table td { font-variant-numeric: tabular-nums; }
+.pp-request-table td strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.pp-request-table td small { color: var(--p-muted); }
+.pp-request-detail-row > td { background: rgba(var(--p-ink), .025); white-space: normal; }
+.pp-request-detail-row .pp-service-list > li { padding-block: 4px; }
+@media (max-width: 860px) {
+  .pp-request-tools .pp-request-status, .pp-request-tools .portal-search { flex-basis: 100%; max-width: none; }
+}

@@ -23,7 +23,7 @@ export default async function FilingPortalLayout({ children }: { children: React
 
   return (
     <PortalShell initialTheme={readTheme(cookieStore.get(THEME_COOKIE)?.value)} cookiePath="/filing">
-      <FilingSidebar account={{ name: fullName(account), email: account.email, role: roles.join(" · ") || "Filer", summary, party: Boolean(member), candidacy: Boolean(candidacy) }} unread={own + party} initialCollapsed={cookieStore.get(FILING_SIDEBAR_COOKIE)?.value === "collapsed"} />
+      <FilingSidebar account={{ name: fullName(account), email: account.email, role: roles.join(" · ") || "Filer", summary, party: Boolean(member), candidacy: Boolean(candidacy), requested: membership?.member.status === "requested" }} unread={own + party} initialCollapsed={cookieStore.get(FILING_SIDEBAR_COOKIE)?.value === "collapsed"} />
       <div className="portal-main pp-app">
         <FilingTopbar />
         {children}

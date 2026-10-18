@@ -61,6 +61,9 @@ export async function finishFilingVerification(request: NextRequest, code: strin
     return failed("unavailable");
   }
 
+  // Suspended by the commission: no session, whichever way they came in.
+  if (account?.suspendedAt) return mode === "login" ? toLogin("suspended") : failed("failed");
+
   if (mode === "login") {
     if (!account) return toLogin("not-registered");
     await startFilingSession(account);

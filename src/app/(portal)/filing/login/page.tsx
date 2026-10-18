@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, FileText, Lock, Users } from "lucide-react";
+import { FileText, Lock, Users } from "lucide-react";
 import { ScaleBackdrop } from "@/components/filing-portal/scale-backdrop";
 import { GoogleMark } from "@/components/portal/login-form";
 import { getFilingAccount } from "@/lib/filing-portal/session";
@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: "Sign in" };
 
 const errors: Record<string, string> = {
   "not-ust": "Sign in with your @ust.edu.ph Google account. Personal Google accounts can’t use the filing portal.",
-  "not-registered": "That UST account doesn’t have an account here yet. Register your party, or file your candidacy, on the website first.",
+  "not-registered": "Account not yet registered. Register your party, or file your candidacy, first.",
+  suspended: "This account’s access to the filing portal is suspended. Write to comelec@ust.edu.ph to ask about it.",
   failed: "Google sign-in didn’t complete. Please try again.",
   "rate-limited": "Too many sign-in attempts from this network. Wait a few minutes, then try again.",
   unavailable: "Sign-in isn’t available right now. Please email comelec@ust.edu.ph.",
@@ -53,23 +54,6 @@ export default async function FilingLoginPage({ searchParams }: { searchParams: 
             Your party’s registration and your own candidacy, in one place. Upload <strong>the forms and supporting documents</strong>, download the templates, and follow <strong>your Comelec unit’s feedback</strong> as each document is reviewed.
           </p>
         </div>
-        <nav className="portal-login-links" aria-label="Quick links" data-enter style={enter(5)}>
-          <p>Quick links</p>
-          <div>
-            <Link href="/party-registration" prefetch={false}>
-              <Users size={20} strokeWidth={1.6} aria-hidden="true" />
-              <strong>Political Party Registration</strong>
-              <small>Register or join a party</small>
-              <ArrowUpRight size={15} aria-hidden="true" />
-            </Link>
-            <Link href="/candidacy" prefetch={false}>
-              <FileText size={20} strokeWidth={1.6} aria-hidden="true" />
-              <strong>Filing of Candidacy</strong>
-              <small>File your certificate</small>
-              <ArrowUpRight size={15} aria-hidden="true" />
-            </Link>
-          </div>
-        </nav>
       </section>
 
       <section className="portal-login-panel">

@@ -1,4 +1,5 @@
 import type { FilingDocument } from "@/lib/filing-portal/types";
+import type { PartySanction, PartyStatus } from "@/lib/party-portal/types";
 
 // Filing of Candidacy (supabase/migrations/20261017210000_candidacy_filing.sql), as the pages use
 // it. Free of server-only imports.
@@ -9,12 +10,17 @@ export type Endorsement = "none" | "waiting" | "endorsed" | "declined";
 
 export type Candidacy = {
   id: string;
+  /** The filing's ID for people: FC-7K3M-9QXA. */
+  reference: string;
   accountId: string;
   /** The unit it's filed with: "" for the Central Comelec, else a Local unit's college. */
   college: string;
   position: string;
   partyId: string | null;
   partyName: string | null;
+  /** Where the party stands now, for a party's candidate. */
+  partyStatus: PartyStatus | null;
+  partySanction: PartySanction | null;
   endorsement: Endorsement;
   endorsedBy: string | null;
   endorsedAt: string | null;
@@ -24,7 +30,14 @@ export type Candidacy = {
   decisionRemarks: string;
   decidedBy: string | null;
   decidedAt: string | null;
+  /** Qualified with documents still outstanding; the remarks say why. */
+  decisionOverride: boolean;
+  /** Set when it's withdrawn: by the candidate in the filing portal, or by the unit on their sworn declaration. */
+  withdrawnBy: string | null;
+  withdrawnAt: string | null;
+  withdrawalReason: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type CandidacyDocument = FilingDocument & { candidacyId: string };

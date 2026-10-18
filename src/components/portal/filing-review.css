@@ -1,0 +1,135 @@
+/* The commission's side of the filing portal: PolPaR and Filing of Candidacy → Applicants (parties,
+   filings, accounts), Accredited Parties and Requirements. Tracking lists, document progress,
+   people, and what happened. Portal tokens only (--p-*), so both themes. */
+
+/* Document progress: one thin bar split by review (approved, waiting, returned), then a line of figures. */
+.fr-progress { display: grid; gap: 6px; min-width: 140px; }
+.fr-progress-bar { background: rgba(var(--p-ink), .08); border-radius: 999px; display: flex; gap: 2px; height: 6px; overflow: hidden; }
+.fr-progress-bar i { display: block; flex: none; height: 100%; }
+.fr-progress-bar i:last-child { border-radius: 0 999px 999px 0; }
+.fr-progress-bar .is-ok { background: var(--p-ok); }
+.fr-progress-bar .is-gold { background: var(--p-gold); }
+.fr-progress-bar .is-warn { background: var(--p-warn); }
+.fr-progress-text { color: var(--p-muted); font-size: 12px; font-variant-numeric: tabular-nums; line-height: 1.4; }
+.fr-progress-text b { color: var(--p-text); font-weight: 600; }
+.fr-progress.is-large { gap: 8px; }
+.fr-progress.is-large .fr-progress-bar { height: 8px; }
+.fr-progress.is-large .fr-progress-text { font-size: 13px; }
+
+/* Tracking lists: filters on the left; unit, search and sort on the right. */
+.fr-tools { align-items: center; border-bottom: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 12px 14px; justify-content: space-between; padding: 14px 20px; }
+.fr-tools-side { align-items: center; display: flex; flex: 1 1 320px; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.fr-tools .portal-search { flex: 1 1 220px; max-width: 320px; }
+.fr-tools .portal-filters small { font-variant-numeric: tabular-nums; }
+.fr-table { min-width: 880px; }
+.fr-table td { vertical-align: top; }
+.fr-table td:first-child { min-width: 220px; }
+.fr-table .portal-row-title { color: var(--p-text); display: inline-block; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; transition: text-decoration-color .15s ease; }
+.fr-table a.portal-row-title:hover { text-decoration-color: var(--p-gold-edge); }
+.fr-table td small { color: var(--p-muted); }
+.fr-table time { color: var(--p-soft); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fr-flag { color: var(--p-warn-ink) !important; }
+
+/* A record's page: its details beside the decision, then its tabs. */
+.fr-summary { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.fr-summary h2, .fr-card-title { font-size: 16px !important; font-weight: 600 !important; margin: 0 0 14px !important; }
+.fr-summary .portal-card { min-width: 0; }
+.fr-decision { align-content: start; display: grid; gap: 16px; }
+.fr-decision .fr-progress { margin-top: 2px; }
+.fr-section { display: grid; gap: 14px; }
+.fr-subtabs { margin-bottom: -6px; }
+/* The page's own rhythm comes from .portal-page's gap: nothing here adds margins of its own. */
+.fr-kpis { margin: 0 !important; }
+.fr-page .pp-card-head h2 { font-size: 16px !important; font-weight: 600 !important; }
+.fr-page .portal-page-head .portal-muted .portal-tag { font-size: 12.5px; }
+.fr-heading { font-size: 18px !important; font-weight: 600 !important; margin: 10px 0 -8px !important; }
+
+/* What still holds up a decision: a neutral panel, colour only in its icon. */
+.fr-checklist { background: var(--p-surface-2, rgba(var(--p-ink), .04)); border: 1px solid var(--p-line); border-radius: 12px; display: grid; gap: 6px; list-style: none; margin: 0; padding: 12px 14px; }
+.fr-checklist li { align-items: flex-start; color: var(--p-soft); display: flex; font-size: 13px; gap: 9px; line-height: 1.5; }
+.fr-checklist li > svg { color: var(--p-muted); flex: none; margin-top: 2px; }
+.fr-checklist li.is-done > svg { color: var(--p-ok-ink); }
+.fr-checklist li.is-open > svg { color: var(--p-warn-ink); }
+
+/* The override: a tick box with what it does under it. */
+.fr-override { align-items: flex-start; cursor: pointer; display: flex; gap: 10px; }
+.fr-override input { accent-color: var(--p-text); flex: none; height: 16px; margin: 2px 0 0; width: 16px; }
+.fr-override strong { color: var(--p-text); display: block; font-size: 13.5px; font-weight: 600; }
+.fr-override small { color: var(--p-muted); display: block; font-size: 12.5px; line-height: 1.5; margin-top: 2px; }
+
+/* A party's sanction in its decision card, with the way to lift it. */
+.fr-sanctions { align-items: center; border-top: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 8px 10px; padding-top: 14px; }
+.fr-sanctions > span { color: var(--p-faint); font-size: 12px; margin-right: auto; }
+
+/* A notice about the record as a whole (withdrawn, suspended, waiting on the party). */
+.fr-banner { align-items: flex-start; background: var(--p-surface-2, rgba(var(--p-ink), .04)); border: 1px solid var(--p-line-strong); border-radius: 14px; display: flex; gap: 12px; margin: 0; padding: 14px 16px; }
+.fr-banner > svg { color: var(--p-warn-ink); flex: none; margin-top: 2px; }
+.fr-banner.is-info > svg { color: var(--p-muted); }
+.fr-banner strong { color: var(--p-text); display: block; font-size: 13.5px; font-weight: 600; }
+.fr-banner p { color: var(--p-soft); font-size: 13px; line-height: 1.6; margin: 3px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+
+/* People: a row's own actions at its right. */
+.fr-row-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.fr-people td:last-child { text-align: right; }
+.fr-people .portal-table { min-width: 760px; }
+.fr-muted-row td { opacity: .62; }
+
+/* What happened, newest first: a line per notice, dot and rule down the left. */
+.fr-timeline { list-style: none; margin: 0; padding: 0; }
+.fr-timeline li { display: grid; gap: 2px 14px; grid-template-columns: 9px minmax(0, 1fr); padding-bottom: 18px; position: relative; }
+.fr-timeline li::before { background: var(--p-dim); border-radius: 50%; content: ""; grid-row: 1; height: 7px; margin-top: 6px; width: 7px; }
+.fr-timeline li::after { background: var(--p-line); bottom: 0; content: ""; left: 3px; position: absolute; top: 18px; width: 1px; }
+.fr-timeline li:last-child { padding-bottom: 0; }
+.fr-timeline li:last-child::after { display: none; }
+.fr-timeline li.is-ok::before { background: var(--p-ok); }
+.fr-timeline li.is-warn::before { background: var(--p-warn); }
+.fr-timeline li.is-gold::before { background: var(--p-gold); }
+.fr-timeline strong { color: var(--p-text); font-size: 13.5px; font-weight: 550; grid-column: 2; line-height: 1.5; }
+.fr-timeline p { color: var(--p-soft); font-size: 13px; grid-column: 2; line-height: 1.6; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.fr-timeline small { color: var(--p-faint); font-size: 12px; grid-column: 2; }
+
+/* Requirements: each one's reviews across the unit's applications. */
+.fr-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.fr-template-link { color: var(--p-text); font-size: 13px; text-decoration: underline; text-decoration-color: var(--p-gold-edge); text-underline-offset: 3px; white-space: nowrap; }
+.fr-positions { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.fr-positions .portal-card h3 { font-size: 14.5px; font-weight: 600; margin: 0 0 10px; }
+.fr-positions ol { display: grid; gap: 6px; margin: 0; padding: 0 0 0 18px; }
+.fr-positions li { color: var(--p-soft); font-size: 13px; }
+.fr-positions li small { color: var(--p-faint); font-size: 12px; font-variant-numeric: tabular-nums; margin-left: 6px; }
+
+/* The account editor and the confirmations. */
+.fr-dialog { width: 560px; }
+.fr-dialog form { display: grid; gap: 14px; }
+.fr-dialog-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fr-dialog-grid .is-wide { grid-column: 1 / -1; }
+.fr-dialog textarea { min-height: 96px; }
+.fr-dialog .portal-registrant-confirmation-actions { margin-top: 6px; }
+
+@media (max-width: 1100px) {
+	.fr-summary { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+	.fr-tools { padding: 12px 16px; }
+	.fr-tools-side { justify-content: flex-start; }
+	.fr-tools .portal-search { max-width: none; }
+}
+@media (max-width: 560px) {
+	.fr-dialog-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.fr-table .portal-row-title { transition: none; }
+}
+
+/* The filing portal's Services and a candidate's campaign, on the commission's side: a record's actions in a row, and items reviewed one by one. */
+.fr-actions { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.fr-items { display: grid; list-style: none; margin: 0; padding: 0; }
+.fr-items > li { border-top: 1px solid var(--p-line); display: grid; gap: 12px; padding: 18px 24px; }
+.fr-items > li:first-child { border-top: 0; }
+.fr-item-head { align-items: start; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; }
+.fr-item-head > div { display: grid; gap: 3px; min-width: 0; }
+.fr-item-head strong { color: var(--p-text); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.fr-item-head small { color: var(--p-muted); font-size: 12.5px; }
+.fr-item-head a { color: inherit; }
+.fr-statement { color: var(--p-soft); font-size: 14px; line-height: 1.7; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+@media (max-width: 560px) { .fr-items > li { padding-inline: 18px; } }
+.fr-sub { color: var(--p-muted); display: block; font-size: 12.5px; margin-top: 2px; }

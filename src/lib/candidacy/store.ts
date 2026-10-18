@@ -19,15 +19,21 @@ function fail(what: string, error: { message: string } | null) {
   if (error) throw new Error(`Couldn’t ${what}: ${error.message}`);
 }
 
-const SELECT = "*, party:parties(name)";
+const SELECT = "*, party:parties(name, status, sanction)";
 
-export const toCandidacy = (row: Row): Candidacy => ({
-  id: str(row.id), accountId: str(row.account_id), college: str(row.college), position: str(row.position),
-  partyId: strOrNull(row.party_id), partyName: strOrNull(one(row.party as Row | Row[] | null)?.name),
-  endorsement: str(row.endorsement) as Candidacy["endorsement"], endorsedBy: strOrNull(row.endorsed_by), endorsedAt: strOrNull(row.endorsed_at),
-  dateOfBirth: str(row.date_of_birth), residence: str(row.residence), status: str(row.status) as CandidacyStatus,
-  decisionRemarks: str(row.decision_remarks), decidedBy: strOrNull(row.decided_by), decidedAt: strOrNull(row.decided_at), createdAt: str(row.created_at),
-});
+export function toCandidacy(row: Row): Candidacy {
+  const party = one(row.party as Row | Row[] | null);
+  return {
+    id: str(row.id), reference: str(row.reference), accountId: str(row.account_id), college: str(row.college), position: str(row.position),
+    partyId: strOrNull(row.party_id), partyName: strOrNull(party?.name),
+    partyStatus: party ? (str(party.status) as Candidacy["partyStatus"]) : null, partySanction: party?.sanction === "suspended" || party?.sanction === "blacklisted" ? (party.sanction as Candidacy["partySanction"]) : null,
+    endorsement: str(row.endorsement) as Candidacy["endorsement"], endorsedBy: strOrNull(row.endorsed_by), endorsedAt: strOrNull(row.endorsed_at),
+    dateOfBirth: str(row.date_of_birth), residence: str(row.residence), status: str(row.status) as CandidacyStatus,
+    decisionRemarks: str(row.decision_remarks), decidedBy: strOrNull(row.decided_by), decidedAt: strOrNull(row.decided_at), decisionOverride: row.decision_override === true,
+    withdrawnBy: strOrNull(row.withdrawn_by), withdrawnAt: strOrNull(row.withdrawn_at), withdrawalReason: str(row.withdrawal_reason),
+    createdAt: str(row.created_at), updatedAt: str(row.updated_at),
+  };
+}
 
 const toFiles = (value: unknown): FilingFile[] => (Array.isArray(value) ? value : []).filter((file): file is FilingFile => Boolean(file) && typeof file === "object" && typeof (file as FilingFile).path === "string");
 
@@ -75,11 +81,26 @@ export async function decideEndorsement(id: string, partyId: string, endorse: bo
 }
 
 /** The candidate withdraws their filing while it's still pending, so they can file again. */
-export async function withdrawCandidacy(id: string, accountId: string): Promise<Candidacy | null> {
+export async function withdrawCandidacy(id: string, accountId: string, by: string): Promise<Candidacy | null> {
   const now = new Date().toISOString();
-  const { data, error } = await db().from("candidacies").update({ status: "withdrawn", updated_at: now }).eq("id", id).eq("account_id", accountId).eq("status", "pending").select(SELECT).maybeSingle();
+  const { data, error } = await db().from("candidacies").update({ status: "withdrawn", withdrawn_by: by, withdrawn_at: now, updated_at: now }).eq("id", id).eq("account_id", accountId).eq("status", "pending").select(SELECT).maybeSingle();
   fail("withdraw the candidacy", error);
   return data ? toCandidacy(data) : null;
+}
+
+/** The unit records a withdrawal, on the candidate's sworn declaration: from any state but withdrawn. */
+export async function withdrawCandidacyByUnit(id: string, by: string, reason: string): Promise<Candidacy | null> {
+  const now = new Date().toISOString();
+  const { data, error } = await db().from("candidacies").update({ status: "withdrawn", withdrawn_by: by, withdrawn_at: now, withdrawal_reason: reason, updated_at: now }).eq("id", id).neq("status", "withdrawn").select(SELECT).maybeSingle();
+  fail("withdraw the candidacy", error);
+  return data ? toCandidacy(data) : null;
+}
+
+/** Every candidacy the account has filed, newest first, withdrawn ones too. */
+export async function listAccountCandidacies(accountId: string): Promise<Candidacy[]> {
+  const { data, error } = await db().from("candidacies").select(SELECT).eq("account_id", accountId).order("created_at", { ascending: false });
+  fail("load the candidacies", error);
+  return (data ?? []).map(toCandidacy);
 }
 
 export type CandidateRow = Candidacy & { account: PublicAccount };
@@ -91,26 +112,43 @@ export async function listPartyCandidates(partyId: string): Promise<CandidateRow
   return (data ?? []).map((row) => ({ ...toCandidacy(row), account: toAccount(one(row.account as Row | Row[]) as Row) }));
 }
 
-/** A unit's filings, newest first: all of them for the Central Comelec, its own for a Local unit (`college`). */
-export async function listCandidaciesForUnit(college: string | null): Promise<Array<CandidateRow & { approved: number; waiting: number }>> {
-  let query = db().from("candidacies").select(`${SELECT}, account:public_accounts(*), candidacy_submissions(status)`).neq("status", "withdrawn").order("created_at", { ascending: false }).limit(500);
+export type FilingSummary = CandidateRow & {
+  documents: Array<{ requirement: string; status: CandidacyDocument["status"] }>;
+  /** The last thing anyone did: the filing's own change, or a document's. */
+  lastActivity: string;
+};
+
+/** A unit's filings, newest first, withdrawn ones too: all of them for the Central Comelec, its own for a Local unit (`college`). */
+export async function listCandidaciesForUnit(college: string | null): Promise<FilingSummary[]> {
+  let query = db().from("candidacies").select(`${SELECT}, account:public_accounts(*), candidacy_submissions(requirement, status, updated_at)`).order("created_at", { ascending: false }).limit(2000);
   if (college !== null) query = query.eq("college", college);
   const { data, error } = await query;
   fail("load the filings", error);
   return (data ?? []).map((row) => {
-    const documents = (row.candidacy_submissions ?? []) as Array<{ status: string }>;
+    const documents = (row.candidacy_submissions ?? []) as Array<{ requirement: string; status: CandidacyDocument["status"]; updated_at: string }>;
+    const candidacy = toCandidacy(row);
     return {
-      ...toCandidacy(row),
+      ...candidacy,
       account: toAccount(one(row.account as Row | Row[]) as Row),
-      approved: documents.filter((item) => item.status === "approved").length,
-      waiting: documents.filter((item) => item.status === "submitted").length,
+      documents: documents.map((item) => ({ requirement: item.requirement, status: item.status })),
+      lastActivity: [candidacy.updatedAt, ...documents.map((item) => item.updated_at)].filter(Boolean).sort().at(-1) ?? candidacy.createdAt,
     };
   });
 }
 
-export async function decideCandidacy(id: string, status: "pending" | "qualified" | "disqualified", remarks: string, by: string): Promise<Candidacy | null> {
+/** Every requirement's review across a unit's filings still in play, for Requirements. */
+export async function listCandidacyDocumentStatuses(college: string | null): Promise<Array<{ requirement: string; status: CandidacyDocument["status"] }>> {
+  let query = db().from("candidacy_submissions").select("requirement, status, candidacy:candidacies!inner(college, status)").in("candidacy.status", ["pending", "qualified"]).limit(20000);
+  if (college !== null) query = query.eq("candidacy.college", college);
+  const { data, error } = await query;
+  fail("load the documents", error);
+  return (data ?? []).map((row) => ({ requirement: str(row.requirement), status: str(row.status) as CandidacyDocument["status"] }));
+}
+
+/** Decides on a candidacy: never one that's withdrawn. `override`: qualified with documents outstanding. */
+export async function decideCandidacy(id: string, status: "pending" | "qualified" | "disqualified", remarks: string, by: string, override = false): Promise<Candidacy | null> {
   const now = new Date().toISOString();
-  const { data, error } = await db().from("candidacies").update({ status, decision_remarks: remarks, decided_by: by, decided_at: now, updated_at: now }).eq("id", id).select(SELECT).maybeSingle();
+  const { data, error } = await db().from("candidacies").update({ status, decision_remarks: remarks, decided_by: by, decided_at: now, decision_override: override, updated_at: now }).eq("id", id).neq("status", "withdrawn").select(SELECT).maybeSingle();
   fail("save the decision", error);
   return data ? toCandidacy(data) : null;
 }
@@ -165,9 +203,11 @@ export async function takeBackCandidacyDocument(candidacyId: string, requirement
   return data ? toCandidacyDocument(data) : null;
 }
 
-export async function reviewCandidacyDocument(id: string, status: "approved" | "changes", feedback: string, by: string): Promise<CandidacyDocument | null> {
+/** As for a party's: only a sent document, and only over the version the reviewer opened (`seen`). Null when it moved on. */
+export async function reviewCandidacyDocument(id: string, status: "approved" | "changes", feedback: string, by: string, seen: string): Promise<CandidacyDocument | null> {
   const now = new Date().toISOString();
-  const { data, error } = await db().from("candidacy_submissions").update({ status, feedback, reviewed_by: by, reviewed_at: now, updated_at: now }).eq("id", id).select("*").maybeSingle();
+  const { data, error } = await db().from("candidacy_submissions").update({ status, feedback, reviewed_by: by, reviewed_at: now, updated_at: now })
+    .eq("id", id).eq("updated_at", seen).in("status", ["submitted", "approved", "changes"]).select("*").maybeSingle();
   fail("save the review", error);
   return data ? toCandidacyDocument(data) : null;
 }

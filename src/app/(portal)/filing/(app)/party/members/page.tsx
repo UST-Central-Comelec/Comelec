@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { EndorsementActions, JoinRequestActions } from "@/components/party-portal/member-requests";
-import { TitleWithInfo } from "@/components/portal/info-tip";
+import { PartyHead } from "@/components/filing-portal/page-heads";
 import { formatClosing } from "@/lib/applications/period";
 import { listPartyCandidates } from "@/lib/candidacy/store";
 import { councilOf, endorsementLabel } from "@/lib/candidacy/types";
 import { isContactPerson, requirePartyMember } from "@/lib/filing-portal/session";
 import { fullName } from "@/lib/filing-portal/types";
-import { listMembers } from "@/lib/party-portal/store";
+import { listMembers, listSubmissions } from "@/lib/party-portal/store";
 import { yearLevelLabel } from "@/lib/party-portal/types";
 
 export const metadata: Metadata = { title: "Party members" };
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Party members" };
 export default async function PartyMembersPage() {
   const account = await requirePartyMember();
   const contactPerson = isContactPerson(account);
-  const [everyone, candidates] = await Promise.all([listMembers(account.party.id), listPartyCandidates(account.party.id)]);
+  const [everyone, candidates, documents] = await Promise.all([listMembers(account.party.id), listPartyCandidates(account.party.id), listSubmissions(account.party.id)]);
   const members = everyone.filter((item) => item.status === "active");
   const requests = everyone.filter((item) => item.status === "requested");
   const asking = candidates.filter((item) => item.endorsement === "waiting");
@@ -23,13 +23,8 @@ export default async function PartyMembersPage() {
 
   return (
     <main className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <p className="portal-eyebrow">{account.party.name}</p>
-          <TitleWithInfo info="Everyone in the party’s group has their own account and sees the same documents and feedback. People join from the Political Party Registration page, and members who run file on the Filing of Candidacy page. The contact person approves who joins and endorses the party’s candidates.">Party <em>members</em></TitleWithInfo>
-          <p className="portal-muted">{members.length} {members.length === 1 ? "member" : "members"}{requests.length ? ` · ${requests.length} asking to join` : ""}{candidates.length ? ` · ${candidates.length} ${candidates.length === 1 ? "candidate" : "candidates"}` : ""}</p>
-        </div>
-      </header>
+      <PartyHead party={account.party} documents={documents} current="members" />
+      <p className="portal-muted pp-locked">{members.length} {members.length === 1 ? "member" : "members"}{requests.length ? ` · ${requests.length} asking to join` : ""}{candidates.length ? ` · ${candidates.length} ${candidates.length === 1 ? "candidate" : "candidates"}` : ""}. People join from this tab or the Political Party Registration page; the contact person approves them and endorses the party’s candidates.</p>
 
       {requests.length > 0 && (
         <section className="portal-card is-flush">

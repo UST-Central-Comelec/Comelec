@@ -73,7 +73,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
     settle(listLetters({ local: event.organizer === "local", college: event.college, eventId: event.id })),
     settle(getSecretariatSettings()),
   ]) : [null, null];
-  const scheduledDeployment = tab === "deployment" ? await settle(getPendingDeployment(id)) : null;
+  const scheduledDeployment = tab === "deployment" || tab === "event-details" ? await settle(getPendingDeployment(id)) : null;
   const responseCounts = tab === "deployment" ? await settle(getEventResponseCounts(id)) : null;
   const registrations = seesInside && (tab === "responses" || tab === "analytics") ? await settle(listRegistrations(id)) : { value: [], error: null };
   const manages = canManageEvent(user, event);
@@ -209,7 +209,7 @@ export async function EventDetailPage({ id, notice, tab }: { id: string; notice?
             <Detail label="Participants">{describeAudience(event)}</Detail>
             {event.openToInternal && <Detail label="Collaborators">{[...(event.collaborators ?? []).map(collaboratorLabel), ...(event.otherCollaborators ?? [])].join(", ") || "None added"}</Detail>}
             <Detail label="Organizer">{unit}</Detail>
-            <Detail label="Registration"><EventStatusTag event={event} /></Detail>
+            <Detail label="Registration"><EventStatusTag event={event} building={!!scheduledDeployment?.value && !scheduledDeployment.value.error} /></Detail>
             <Detail label="Last updated time">{formatWhen(event.updatedAt)}</Detail>
             <Detail label="Last updated by">{event.updatedBy}</Detail>
           </dl>

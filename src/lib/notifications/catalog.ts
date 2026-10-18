@@ -23,8 +23,11 @@ import { emailKeys, type EmailKey } from "./switches";
 // page shows what a recipient would see.
 
 import type { OnboardingSettings } from "@/lib/applications/onboarding";
-import { feedbackSample, joinDecisionSample, joinRequestSample, partyDecisionSample } from "@/lib/party-portal/emails";
-import { candidacyDecisionSample, candidacyFeedbackSample, endorsementDecisionSample, endorsementRequestSample } from "@/lib/candidacy/emails";
+import { feedbackSample, joinDecisionSample, joinRequestSample, membershipSample, partyDecisionSample } from "@/lib/party-portal/emails";
+import { candidacyDecisionSample, candidacyFeedbackSample, candidacyWithdrawnSample, endorsementDecisionSample, endorsementRequestSample } from "@/lib/candidacy/emails";
+import { accountChangeSample } from "@/lib/filing-portal/emails";
+import { petitionUpdateSample, serviceAnswerSample, serviceNoticeSample } from "@/lib/filing-portal/services-emails";
+import { campaignReviewSample } from "@/lib/candidacy/campaign-emails";
 
 export type AutomaticEmail = {
   /** Its switch. */
@@ -240,11 +243,15 @@ export const automaticEmails: AutomaticGroup[] = [
       { id: "party-join-request", name: "Request to join a party", when: "Someone signs up on the Political Party Registration page and picks a party that’s already registering.", to: () => "The party’s contact person", byUnit: true, sample: (concern) => joinRequestSample(isLocalConcern(concern) ? concern.college : null) },
       { id: "party-join-decision", name: "Request to join, answered", when: "A party’s contact person approves or declines a request to join, in the filing portal.", to: () => "Whoever asked to join", byUnit: true, sample: (concern) => joinDecisionSample(isLocalConcern(concern) ? concern.college : null) },
       { id: "party-feedback", name: "Party document reviewed", when: "A party’s document is approved or sent back with changes under PolPaR → Applicants.", to: () => "Every member of the party", byUnit: true, sample: (concern) => feedbackSample(isLocalConcern(concern) ? concern.college : null) },
-      { id: "party-decision", name: "Party accredited or declined", when: "A party is accredited, declined or reopened under PolPaR → Applicants.", to: () => "Every member of the party", byUnit: true, sample: (concern) => partyDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "party-decision", name: "Party accredited, declined or sanctioned", when: "A party is accredited, declined, reopened, suspended or blacklisted (or a sanction lifted) under PolPaR → Applicants.", to: () => "Every member of the party", byUnit: true, sample: (concern) => partyDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "party-membership", name: "Party membership changed by the unit", when: "A member is removed from a party, made its contact person, or the party’s registration is withdrawn, under PolPaR → Applicants.", to: () => "The member concerned, or every member when the registration is withdrawn", byUnit: true, sample: (concern) => membershipSample(isLocalConcern(concern) ? concern.college : null) },
       { id: "candidacy-endorsement-request", name: "Candidate asks for the party’s endorsement", when: "Someone files on the Filing of Candidacy page under a party.", to: () => "The party’s contact person", byUnit: true, sample: (concern) => endorsementRequestSample(isLocalConcern(concern) ? concern.college : null) },
       { id: "candidacy-endorsement-decision", name: "Party endorsement, answered", when: "A party’s contact person endorses a candidate, or declines to, in the filing portal.", to: () => "The candidate", byUnit: true, sample: (concern) => endorsementDecisionSample(isLocalConcern(concern) ? concern.college : null) },
-      { id: "candidacy-feedback", name: "Candidacy document reviewed", when: "A candidate’s document is approved or sent back with changes under Filing of Candidacy → Filings.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyFeedbackSample(isLocalConcern(concern) ? concern.college : null) },
-      { id: "candidacy-decision", name: "Candidate qualified or disqualified", when: "A candidate is found qualified, disqualified, or reopened under Filing of Candidacy → Filings.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-feedback", name: "Candidacy document reviewed", when: "A candidate’s document is approved or sent back with changes under Filing of Candidacy → Applicants.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyFeedbackSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-decision", name: "Candidate qualified or disqualified", when: "A candidate is found qualified, disqualified, or reopened under Filing of Candidacy → Applicants.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyDecisionSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "candidacy-withdrawn", name: "Candidacy withdrawn by the unit", when: "A unit records a candidate’s withdrawal under Filing of Candidacy → Applicants.", to: () => "The candidate", byUnit: true, sample: (concern) => candidacyWithdrawnSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "filing-account", name: "Filing portal account changed", when: "A unit corrects a filing portal account’s details, or suspends or restores its access, under Applicants → Accounts.", to: () => "The account holder", byUnit: false, sample: () => accountChangeSample() },
+      { id: "campaign-review", name: "Campaign material or activity reviewed", when: "A candidate’s campaign material or campaign schedule activity is approved, sent back with changes, or not approved under Filing of Candidacy → Campaign.", to: () => "The candidate", byUnit: true, sample: (concern) => campaignReviewSample(isLocalConcern(concern) ? concern.college : null) },
       { id: "candidacy-received", name: "Certificate of candidacy received", when: "A certificate of candidacy is filed.", to: () => "Whoever filed it", byUnit: true, waiting: true, sample: (concern) => filingReceivedEmail(filing("candidacy", concern)) },
       {
         id: "candidacy-result",
@@ -260,16 +267,23 @@ export const automaticEmails: AutomaticGroup[] = [
   {
     label: "Petitions and cases",
     emails: [
-      { id: "petition-received", name: "Submission received", when: "A petition or case is submitted.", to: () => "Whoever submitted it", byUnit: true, waiting: true, sample: (concern) => petitionReceivedEmail(petition(concern)) },
+      { id: "petition-received", name: "Submission received", when: "A petition or case is filed in the filing portal, under Services → File a petition.", to: () => "Whoever submitted it", byUnit: true, sample: (concern) => petitionReceivedEmail(petition(concern)) },
       {
         id: "petition-notice",
         name: "Notice to the unit",
-        when: "A petition or case is submitted.",
+        when: "A petition or case is filed in the filing portal.",
         to: unitOnly,
         byUnit: true,
-        waiting: true,
         sample: (concern) => petitionNoticeEmail(unitSample(concern), petition(concern)),
       },
+      { id: "petition-update", name: "Petition docketed, resolved or dismissed", when: "A unit dockets a petition, resolves or dismisses it, or reopens it, under Petitions and Cases → Case Docket.", to: () => "Whoever filed it", byUnit: true, sample: (concern) => petitionUpdateSample(isLocalConcern(concern) ? concern.college : null) },
+    ],
+  },
+  {
+    label: "Filing portal services",
+    emails: [
+      { id: "service-notice", name: "Consultation or commissioner asked for", when: "Someone books a consultation, or asks for a commissioner at an activity, in the filing portal.", to: unitOnly, byUnit: true, sample: (concern) => serviceNoticeSample(isLocalConcern(concern) ? concern.college : null) },
+      { id: "service-answer", name: "Consultation or commissioner request answered", when: "A unit confirms a consultation or a commissioner request, changes what it confirmed, or declines it, under Request.", to: () => "Whoever asked", byUnit: true, sample: (concern) => serviceAnswerSample(isLocalConcern(concern) ? concern.college : null) },
     ],
   },
   {

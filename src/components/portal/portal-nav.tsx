@@ -25,10 +25,13 @@ type Section = { label?: string; entries: Entry[] };
 // also decides who may open each. Here they get what the sidebar adds: an icon, and the top bar's
 // word for a page inside them.
 
-const tabItems: Partial<Record<TabKey, string>> = { "apps/email": "Email", "documents/approval": "Review", events: "Details", "charters/constitution": "Revision", "charters/elections-code": "Revision", "charters/magna-carta": "Revision", "recruitment/applications": "Review", "polpar/registrations": "Review", "candidacy/filings": "Review", accounts: "Manage", maintenance: "Test" };
+const tabItems: Partial<Record<TabKey, string>> = { "apps/email": "Email", "documents/approval": "Review", events: "Details", "charters/constitution": "Revision", "charters/elections-code": "Revision", "charters/magna-carta": "Revision", "recruitment/applications": "Review", "polpar/registrations": "Review", "candidacy/filings": "Review", "petitions/case-docket": "Petition", request: "Request", accounts: "Manage", maintenance: "Test" };
 
 /** Pages inside a tab that have a name of their own in the top bar. */
-const namedPages: Record<string, string> = { "/portal/accounts/access-control": "Access Control", "/portal/accounts/expiration": "Expiration", "/portal/apps/email/outbox": "Outbox", "/portal/apps/email/automatic": "Automatic" };
+const namedPages: Record<string, string> = { "/portal/accounts/access-control": "Access Control", "/portal/accounts/expiration": "Expiration", "/portal/apps/email/outbox": "Outbox", "/portal/apps/email/automatic": "Automatic", "/portal/polpar/registrations/accounts": "Accounts", "/portal/candidacy/filings/accounts": "Accounts" };
+
+/** A page's own name in the top bar, where it has one: the filing portal's accounts, and one of them, under either Applicants tab. */
+const namedPage = (pathname: string) => namedPages[pathname] ?? (/^\/portal\/(polpar\/registrations|candidacy\/filings)\/accounts\/[^/]+$/.test(pathname) ? "Account" : undefined);
 
 const isGroup = (entry: Entry): entry is Group => "items" in entry;
 
@@ -102,7 +105,7 @@ export function trail(pathname: string, viewOnly = false): Crumb[] {
     return [
       ...groups.map(group => ({ label: group.label })),
       within ? { label: tab.label, href: tab.href } : { label: tab.label },
-      ...(within ? [{ label: namedPages[pathname] ?? (pathname.endsWith("/new") ? "New" : viewOnly && tab.key !== "events" ? "View" : pathname.endsWith("/edit") ? "Edit" : (tab.item ?? "Edit")) }] : []),
+      ...(within ? [{ label: namedPage(pathname) ?? (pathname.endsWith("/new") ? "New" : viewOnly && tab.key !== "events" ? "View" : pathname.endsWith("/edit") ? "Edit" : (tab.item ?? "Edit")) }] : []),
     ];
   }
   return [];

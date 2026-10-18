@@ -6,7 +6,7 @@ import { later, sendAutomatic } from "@/lib/notifications/notify";
 import { addNotice, getMember } from "@/lib/party-portal/store";
 import { unitName, type Party } from "@/lib/party-portal/types";
 import { candidacyRequirementLabel } from "./content";
-import { candidacyDecisionEmail, candidacyFeedbackEmail, endorsementDecisionEmail, endorsementRequestEmail } from "./emails";
+import { candidacyDecisionEmail, candidacyFeedbackEmail, candidacyWithdrawnEmail, endorsementDecisionEmail, endorsementRequestEmail } from "./emails";
 import { candidacyStatusLabel, type Candidacy, type CandidacyStatus } from "./types";
 
 // What happens around a change to a candidacy: a line in the candidate's Notifications (and the
@@ -32,7 +32,7 @@ export async function noticeEndorsementDecision(party: Party, candidacy: Candida
 /** The unit approved a document, or asked for changes. */
 export async function noticeCandidacyFeedback(candidacy: Candidacy, candidate: PublicAccount, requirement: string, approved: boolean, feedback: string) {
   const label = candidacyRequirementLabel(requirement);
-  await addAccountNotice({ accountId: candidate.id, kind: approved ? "document-approved" : "document-changes", title: approved ? `${label} was approved` : `Changes asked on ${label}`, body: feedback, href: "/filing/candidacy", actor: unitName(candidacy.college) });
+  await addAccountNotice({ accountId: candidate.id, kind: approved ? "document-approved" : "document-changes", title: approved ? `${label} was approved` : `Changes asked on ${label}`, body: feedback, href: "/filing/candidacy/documents", actor: unitName(candidacy.college) });
   later(() => sendAutomatic("candidacy-feedback", () => candidacyFeedbackEmail({ firstName: firstName(candidate), email: candidate.email }, candidacy, requirement, approved, feedback)));
 }
 
@@ -40,4 +40,12 @@ export async function noticeCandidacyFeedback(candidacy: Candidacy, candidate: P
 export async function noticeCandidacyDecision(candidacy: Candidacy, candidate: PublicAccount, decision: Exclude<CandidacyStatus, "withdrawn">, remarks: string) {
   await addAccountNotice({ accountId: candidate.id, kind: "candidacy-decision", title: decision === "pending" ? "Your candidacy was reopened for review" : `Your candidacy: ${candidacyStatusLabel[decision].toLowerCase()}`, body: remarks, href: "/filing/candidacy", actor: unitName(candidacy.college) });
   later(() => sendAutomatic("candidacy-decision", () => candidacyDecisionEmail({ firstName: firstName(candidate), email: candidate.email }, candidacy, decision, remarks)));
+}
+
+/** The unit recorded the candidate's withdrawal. A party candidate's party sees it too. */
+export async function noticeCandidacyWithdrawn(candidacy: Candidacy, candidate: PublicAccount, reason: string) {
+  const unit = unitName(candidacy.college);
+  await addAccountNotice({ accountId: candidate.id, kind: "candidacy-withdrawn", title: `The ${unit} recorded your withdrawal as a candidate for ${candidacy.position}`, body: reason, actor: unit, href: "/filing" });
+  if (candidacy.partyId && candidacy.endorsement === "endorsed") await addNotice({ partyId: candidacy.partyId, kind: "candidate-withdrawn", title: `${fullName(candidate)} withdrew as a candidate for ${candidacy.position}`, actor: unit, href: "/filing/party/members" });
+  later(() => sendAutomatic("candidacy-withdrawn", () => candidacyWithdrawnEmail({ firstName: firstName(candidate), email: candidate.email }, candidacy, reason)));
 }
