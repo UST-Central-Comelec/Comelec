@@ -17,7 +17,7 @@ import { Dropdown, optionsOf } from "@/components/portal/dropdown";
 import { useHydrated } from "@/components/portal/portal-form";
 import { RoleSelect, useRoleChoice } from "@/components/portal/role-field";
 import { forgetAccessVerification, loadJoinProfile, submitAccessRequest, type SubmittedAccessRequest } from "@/lib/access-requests/actions";
-import { ACCESS_CHANNEL, accessStatusMessages, type AccessMessage, type AccessProfile, type AccessStep, type JoinProfile } from "@/lib/access-requests/channel";
+import { ACCESS_CHANNEL, CONFIRM_PHRASE, accessStatusMessages, type AccessMessage, type AccessProfile, type AccessStep, type JoinProfile } from "@/lib/access-requests/channel";
 import { checkAccessRequest, readAccessRequest } from "@/lib/access-requests/schema";
 import { colleges, programsByCollege, programLocked, yearLevelsFor, type College } from "@/lib/applications/options";
 import { downloadReceipt } from "@/lib/applications/receipt-image";
@@ -169,6 +169,60 @@ function ReviewMark({ done, sealed, order }: { done: boolean; sealed: boolean; o
   );
 }
 
+/** What the progress bar says it's doing, and from what percentage. */
+const SUBMIT_STAGES = [
+  [0, "Verifying student ID"],
+  [18, "Verifying student email"],
+  [36, "Building conforme"],
+  [54, "Processing data"],
+  [72, "Connecting to unit"],
+  [100, "Build complete"],
+] as const;
+/** How long the bar takes to reach 90%; it waits there for the server, then fills. */
+const SUBMIT_MS = 4200;
+
+/**
+ * The bar shown while a request is sent: it runs to 90% through the stages while the request is on
+ * its way, holds there until the server answers, then fills to 100% and reports back with `onComplete`.
+ */
+function SubmitProgress({ settled, onComplete }: { settled: boolean; onComplete: () => void }) {
+  const [progress, setProgress] = useState(0);
+  const done = useRef(onComplete);
+  useEffect(() => { done.current = onComplete; });
+
+  useEffect(() => {
+    const started = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - started) / SUBMIT_MS);
+      // Eases out, so each stage reads for a moment before the next.
+      setProgress((was) => Math.max(was, Math.round(90 * (1 - (1 - t) ** 2))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const ready = settled && progress >= 90;
+  useEffect(() => {
+    if (!ready) return;
+    const fill = setTimeout(() => setProgress(100), 120);
+    const finish = setTimeout(() => done.current(), 1100);
+    return () => { clearTimeout(fill); clearTimeout(finish); };
+  }, [ready]);
+
+  const stage = [...SUBMIT_STAGES].reverse().find(([from]) => progress >= from)![1];
+  return (
+    <div className={`onboarding-progressbar${progress === 100 ? " is-complete" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-valuetext={`${stage}, ${progress}%`}>
+      <div className="onboarding-progressbar-text">
+        <span>{progress === 100 ? <><Check size={14} strokeWidth={3} aria-hidden="true" /> {stage}</> : <Busy>{stage}</Busy>}</span>
+        <strong>{progress}%</strong>
+      </div>
+      <div className="onboarding-progressbar-track" aria-hidden="true"><span style={{ transform: `scaleX(${progress / 100})` }} /></div>
+    </div>
+  );
+}
+
 /**
  * One document to agree to. Its tick box opens once the text has been scrolled to the end; a text
  * short enough to show whole counts as read.
@@ -209,9 +263,9 @@ function DocumentStep({ document, signer, acceptedAt, read, onRead, onAccept }: 
 /**
  * Request access, on the portal's sign-in page, in steps: 0 the Data Privacy Notice and Consent,
  * 1 the requester's profile (they verify their UST Google account first; the email is then filled
- * in and locked), 2–11 the onboarding documents to accept, and 12 Submit, which confirms the same
- * account with Google again. Both Google steps run in a popup that reports back over a
- * BroadcastChannel (src/lib/access-requests/callback.ts).
+ * in and locked), 2–11 the onboarding documents to accept, and 12 Submit, where the requester types
+ * CONFIRM_PHRASE; sending seals each agreement and runs a progress bar until the server answers. The
+ * Google step runs in a popup that reports back over a BroadcastChannel (src/lib/access-requests/callback.ts).
  *
  * With `join` (an accepted application's reference code, from the acceptance email's Join the
  * Commission button) the profile is filled in from the application, its unit, position and role
@@ -227,6 +281,11 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
   const [furthest, setFurthest] = useState(0);
   const [accepted, setAccepted] = useState<Partial<Record<OnboardingDocumentKey, string>>>({});
   const [read, setRead] = useState<Partial<Record<OnboardingDocumentKey, boolean>>>({});
+  // The typed confirmation on the last step, and the send under way: `sending` runs the locks and the
+  // progress bar; `finished` once the bar has filled, when the receipt takes over.
+  const [confirmation, setConfirmation] = useState("");
+  const [sending, setSending] = useState(false);
+  const [finished, setFinished] = useState(false);
   // When the profile was last completed, for the review.
   const [profileDoneAt, setProfileDoneAt] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<AccessStep | null>(null);
@@ -261,6 +320,8 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
     setErrors(state?.fieldErrors ?? {});
     if (state?.fieldErrors && Object.keys(state.fieldErrors).length) setStep(PROFILE);
     if (state?.verification === "expired") setStep(PROFILE);
+    // Refused: the locks open again and the error shows.
+    if (!state?.submitted) setSending(false);
   }
 
   // The verification ran out before the request was saved: back to verifying.
@@ -442,16 +503,20 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
       setMessage("Agree to this document to continue.");
       return;
     }
-    // Checked; now prove it's still the same UST account, then send.
-    waitingData.current = new FormData(event.currentTarget);
-    openGoogle("confirm");
+    if (confirmation !== CONFIRM_PHRASE) return;
+    // Checked; seal it and send.
+    const data = new FormData(event.currentTarget);
+    setMessage("");
+    setSending(true);
+    setFinished(false);
+    startTransition(() => formAction(data));
   };
 
-  if (state?.submitted) return <AccessReceipt result={state.result} onBack={onBack} />;
+  if (state?.submitted && finished) return <AccessReceipt result={state.result} onBack={onBack} />;
 
   // A new attempt under way hides the last one's error.
-  const alert = message || (waiting || pending ? "" : state?.error ?? "");
-  const busy = pending || waiting === "confirm";
+  const alert = message || (waiting || pending || sending ? "" : state?.error ?? "");
+  const busy = pending || sending;
   const current = onboardingSteps[step]!;
   const shown = documentFor(current.id);
   const joinLabel = join ? "Join the Commission" : "Request access";
@@ -627,7 +692,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
 
         {step === LAST && (
           <section className={`onboarding-review${busy ? " is-sealing" : ""}`} aria-label="What you’ve agreed to">
-            <p className="portal-muted">{busy ? "Your agreements are sealed for sending. Confirm with Google to submit them." : application ? "Check what you’ve agreed to. Submitting asks you to sign in with Google once more; your account is then ready straight away." : "Check what you’ve agreed to. Submitting asks you to sign in with Google once more, then the Executive Board reviews your request."}</p>
+            <p className="portal-muted">{busy ? "Your agreements are sealed and your request is on its way." : application ? "Check what you’ve agreed to. Once you submit, your account is ready straight away." : "Check what you’ve agreed to. Once you submit, the Executive Board reviews your request."}</p>
             <ul>
               {/* The profile sits second, where its step is, among the documents. */}
               {[...documents.slice(0, 1).map((item) => ({ key: item.key, title: item.title, at: accepted[item.key], version: item.version, verb: "Accepted", missing: "Not yet agreed to" })),
@@ -639,15 +704,21 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                 </li>
               ))}
             </ul>
-            {waiting === "confirm" && profile && (
-              <div className="portal-request-waiting" role="status">
-                <p><strong>Confirm it’s you.</strong> Sign in again with {profile.email} in the window that opened; your request is sent as soon as you do.</p>
-                <div>
-                  <button type="button" onClick={() => openGoogle("confirm")}>Open the window again</button>
-                  <button type="button" onClick={cancelWaiting}>Cancel</button>
-                </div>
-              </div>
-            )}
+            <div className="onboarding-confirm">
+              <header>
+                <h2>Review and submit</h2>
+                <p>Please review your information before proceeding. By confirming, you acknowledge that the information you have provided is accurate and complete.</p>
+              </header>
+              <footer>
+                {sending ? (
+                  <SubmitProgress settled={Boolean(state?.submitted)} onComplete={() => setFinished(true)} />
+                ) : (
+                  <Field label={`Type “${CONFIRM_PHRASE}” to proceed.`}>
+                    <input name="confirmation" value={confirmation} onChange={(event) => setConfirmation(event.target.value.toUpperCase())} required pattern={CONFIRM_PHRASE} autoComplete="off" spellCheck={false} placeholder={CONFIRM_PHRASE} maxLength={20} data-draft="off" />
+                  </Field>
+                )}
+              </footer>
+            </div>
           </section>
         )}
 
@@ -658,8 +729,8 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
             <button className="portal-button is-ghost" type="button" onClick={() => goTo(step - 1)} disabled={busy}><ArrowLeft size={15} aria-hidden="true" /> Back</button>
           )}
           {step === LAST ? (
-            <button className="portal-button" type="submit" disabled={busy || !hydrated || !profile}>
-              {pending ? <Busy>Submitting</Busy> : waiting === "confirm" ? <Busy>Waiting for Google</Busy> : <>{application ? "Confirm with Google and join" : "Confirm with Google and submit"} <ArrowRight size={15} aria-hidden="true" /></>}
+            <button className="portal-button" type="submit" disabled={busy || !hydrated || !profile || confirmation !== CONFIRM_PHRASE}>
+              {busy ? <Busy>Submitting</Busy> : <>{application ? "Submit and join" : "Submit request"} <ArrowRight size={15} aria-hidden="true" /></>}
             </button>
           ) : (
             <button className="portal-button" type="submit" disabled={!hydrated || busy || !complete(step)}>
@@ -667,7 +738,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
             </button>
           )}
         </div>
-        {step === LAST && profile && <p className="portal-request-fineprint portal-muted">Submitting asks you to sign in with Google once more, to confirm it comes from {profile.email}. {ACCESS_REQUEST_RETENTION_NOTICE}</p>}
+        {step === LAST && profile && <p className="portal-request-fineprint portal-muted">Your request is sent from {profile.email}, the UST account you verified. {ACCESS_REQUEST_RETENTION_NOTICE}</p>}
       </div>
     </form>
   );

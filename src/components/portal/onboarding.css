@@ -137,6 +137,25 @@
 /* The line sits at the top of a layer as tall as the list, so moving the layer its own height carries the line to the foot. */
 @keyframes onboarding-seal-sweep { from { opacity: 0; transform: translateY(0); } 15%, 85% { opacity: 1; } to { opacity: 0; transform: translateY(100%); } }
 
+/* Review and submit: a neutral panel with the typed confirmation in its foot, which gives way to the
+   progress bar once it's sent. The bar fills in gold and turns green when the build is complete. */
+.onboarding-confirm { background: var(--p-surface-2); border: 1px solid var(--p-line-strong); border-radius: 14px; margin: 4px 0 0; overflow: hidden; }
+.onboarding-confirm header { padding: 18px 20px 16px; }
+.onboarding-confirm h2 { color: var(--p-bright); font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+.onboarding-confirm header p { color: var(--p-soft); font-size: 13.5px; line-height: 1.6; margin: 0; }
+.onboarding-confirm footer { background: rgba(var(--p-ink), .025); border-top: 1px solid var(--p-line); min-height: 92px; padding: 16px 20px 18px; }
+.onboarding-confirm .portal-field { max-width: 360px; }
+.onboarding-confirm input[name="confirmation"] { font-variant-numeric: tabular-nums; font-weight: 600; }
+.onboarding-progressbar { animation: onboarding-bar-in .3s var(--p-ease) both; display: grid; gap: 10px; padding-top: 6px; }
+.onboarding-progressbar-text { align-items: center; color: var(--p-text); display: flex; font-size: 13.5px; font-weight: 500; gap: 12px; justify-content: space-between; }
+.onboarding-progressbar-text > span { align-items: center; display: inline-flex; gap: 8px; }
+.onboarding-progressbar-text strong { color: var(--p-bright); font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.onboarding-progressbar-track { background: rgba(var(--p-ink), .08); border-radius: 999px; height: 6px; overflow: hidden; }
+.onboarding-progressbar-track span { background: var(--p-gold); border-radius: inherit; display: block; height: 100%; transform-origin: left; transition: transform .3s var(--p-ease), background-color .3s ease; }
+.onboarding-progressbar.is-complete .onboarding-progressbar-track span { background: var(--p-ok); transition-duration: .55s; }
+.onboarding-progressbar.is-complete .onboarding-progressbar-text > span { color: var(--p-ok-ink); }
+@keyframes onboarding-bar-in { from { opacity: 0; transform: translateY(6px); } }
+
 /* Legals → Documents → Onboarding. */
 .onboarding-view-label { align-items: center; display: inline-flex; gap: 6px; vertical-align: middle; }
 .onboarding-docs .onboarding-figure { font-variant-numeric: tabular-nums; width: 72px; }
@@ -177,6 +196,7 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-progress span, .onboarding-step-group button, .onboarding-agree, .onboarding-review li, .onboarding-review-mark, .onboarding-review-mark > * { transition: none; }
   .onboarding-review.is-sealing ul::after { animation: none; display: none; }
+  .onboarding-progressbar, .onboarding-progressbar-track span { animation: none; transition: none; }
 }
 
 /* Directory: a person's profile, opened from their name (directory-cards.tsx). */

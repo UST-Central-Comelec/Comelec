@@ -21,7 +21,8 @@ import type { JoinProfile } from "./channel";
 import { accessDecisionEmail, accessReceivedEmail, accessRequestNoticeEmail } from "./emails";
 import { findJoinProfile } from "./join";
 import { checkAccessRequest, describeAccessRequest, readAccessRequest, type AccessRequestSection } from "./schema";
-import { clearAccessVerification, isConfirmed, readAccessPass } from "./verification";
+import { clearAccessVerification, readAccessPass } from "./verification";
+import { CONFIRM_PHRASE } from "./channel";
 
 /** What the receipt shows once a request is saved. `approved` when it came from Join the Commission and the account is ready. */
 export type SubmittedAccessRequest = { referenceCode: string; name: string; email: string; submittedAt: string; answers: AccessRequestSection[]; approved?: boolean };
@@ -68,11 +69,11 @@ export async function submitAccessRequest(_state: AccessRequestState, formData: 
   const limited = rateLimit(`access-request:${clientIp(await headers())}`, limits.apply.limit, limits.apply.windowMs);
   if (!limited.ok) return { error: `Request Blocked by Security Protection - Unusual Traffic Detected. Please try again in ${Math.ceil(limited.retryAfter / 60)} minutes.` };
 
-  // The email saved is the Google-verified one, whatever the form says, and only after it was
-  // confirmed with Google again just now.
+  // The email saved is the Google-verified one, whatever the form says. The requester confirms by
+  // typing the phrase on the last step.
   const pass = await readAccessPass();
   if (!pass) return { error: "Your UST account verification expired. Verify again, then submit.", verification: "expired" };
-  if (!(await isConfirmed(pass))) return { error: "Confirm with your UST Google account to submit your request.", verification: "unconfirmed" };
+  if (text(formData, "confirmation").trim() !== CONFIRM_PHRASE) return { error: `Type “${CONFIRM_PHRASE}” to submit your request.` };
 
   const access = await checkAccess(pass.email);
   if ("user" in access) return { error: "This account already has portal access. Go back and sign in with Google." };

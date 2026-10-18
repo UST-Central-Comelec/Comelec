@@ -48,3 +48,6 @@ export type JoinProfile = {
   /** "Executive Associate to the Chairperson", the office they applied to. */
   appliedFor: string;
 };
+
+/** What a requester types on the last step to confirm their request, in place of a second Google sign-in. */
+export const CONFIRM_PHRASE = "I CONFIRM";
