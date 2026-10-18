@@ -73,7 +73,8 @@
 
 .portal-legal-text { color: var(--p-text); font-size: 14.5px; line-height: 1.75; }
 .portal-legal-text p { margin: 0 0 14px; }
-.portal-legal-text .legal-lead { color: var(--p-bright); font-size: 15.5px; line-height: 1.7; margin-bottom: 0; }
+.portal-legal-text .legal-lead { color: var(--p-bright); font-size: 15.5px; line-height: 1.7; margin-bottom: 16px; }
+.legal-opening > :last-child { margin-bottom: 0; }
 .portal-legal-text .legal-lead-in { color: var(--p-bright); font-weight: 560; margin-bottom: 10px; }
 .legal-opening { padding-bottom: 22px; }
 .legal-section { border-top: 1px solid var(--p-line); padding: 22px 0 8px; }

@@ -84,320 +84,325 @@ export const stepOf = (key: OnboardingDocumentKey) => onboardingSteps.findIndex(
 export const defaultDocuments: Record<DefaultOnboardingDocumentKey, OnboardingText> = {
   "privacy-notice": {
     title: "Data Privacy Notice and Consent Form",
-    statement: "I have read this notice, and I freely consent to the UST Central Comelec collecting and processing my personal data as it describes.",
-    body: `The UST Central Commission on Elections (“the Commission”) respects your privacy. This notice explains what personal data we collect when you request access to the Commission Portal and complete onboarding, why we collect it, who sees it, and how we protect it. It follows Republic Act No. 10173, the Data Privacy Act of 2012, its Implementing Rules and Regulations, and the University of Santo Tomas’s data privacy policies.
+    statement: "I have read and understood this Notice, and I freely and expressly consent to the collection and processing of my personal data by the UST Central Commission on Elections for the purposes stated herein.",
+    body: `The UST Central Commission on Elections (“the Commission”) recognizes its obligation to protect the personal data entrusted to it. This Notice sets forth the personal data the Commission collects when a person requests access to the Commission Portal (“the Portal”) and completes onboarding, the purposes for which such data are processed, the persons to whom they are disclosed, and the measures by which they are protected. It is issued in accordance with Republic Act No. 10173, otherwise known as the Data Privacy Act of 2012, its Implementing Rules and Regulations, and the data privacy policies of the University of Santo Tomas (“the University”).
 
-## What we collect
-- Your name, student number, UST email address, mobile number and Facebook profile link
-- Your college or faculty, program and year level
-- Your unit, position and role in the Commission
-- If you were recruited: the details of your accepted application
-- Your acceptance of each onboarding document, with the date and time you accepted it
-- Records of your activity in the Commission Portal, such as sign-ins and the changes you make
+## 1. Personal data collected
+The Commission collects the following:
+- full name, student number, UST email address, mobile number and Facebook profile link;
+- college or faculty, academic program and year level;
+- unit, position and role in the Commission;
+- where the person was recruited, the particulars of the accepted application;
+- the acceptance of each onboarding document, together with the date and time of acceptance; and
+- records of activity in the Portal, including sign-ins and changes made.
 
-## Why we collect it
-- To verify that you are a bona fide Thomasian student and a member of the Commission
-- To create and manage your Commission Portal account, and to decide what it can open
-- To list you in the Commission’s Directory and, where your role calls for it, in “Meet the commission” on the website
-- To contact you about your duties, meetings and other Commission matters
-- To keep a record of your undertakings and declarations, as the Constitution, the Elections Code and University rules require
-- To keep the portal secure, and to investigate misuse
+## 2. Purposes of processing
+Personal data are processed for the following purposes:
+- to verify that the person is a bona fide student of the University and a Member of the Commission;
+- to create and administer the person’s Portal account and determine the access it grants;
+- to list the person in the Commission’s Directory and, where the role so requires, in “Meet the commission” on the Commission’s website;
+- to communicate with the person on duties, meetings and other official matters;
+- to keep a record of undertakings and declarations, as the Constitution, the Elections Code and University rules require; and
+- to secure the Portal and investigate any misuse of it.
 
-## Who sees it
-Your details are seen by the Commission’s Executive Board and by the officers who manage accounts for your unit. Your name, role, unit, UST email, Facebook link and photo appear in the Directory for other members. Your name, role and photo may appear on the public website.
+## 3. Disclosure
+Personal data are accessible to the Executive Board and to the officers charged with administering accounts for the person’s unit. The person’s name, role, unit, UST email address, Facebook profile link and photograph are shown in the Directory to other Members. The name, role and photograph may be published on the Commission’s public website.
 
-We don’t sell your data, and we don’t share it outside the University except where the law requires it or you consent. Service providers that host the portal and its files process data on the Commission’s behalf, under appropriate safeguards.
+The Commission does not sell personal data, and does not disclose them outside the University except where the law requires or the person consents. Service providers engaged to host the Portal and its files process personal data on the Commission’s behalf and under appropriate contractual and technical safeguards.
 
-## How long we keep it
-- A request for access is deleted 60 days after it’s sent.
-- Your account and your declarations are kept while you serve, and for up to one (1) academic year after your term ends, for turnover and accountability. They are then deleted or anonymized, unless the law or a pending case requires us to keep them longer.
+## 4. Retention
+- A request for access is deleted sixty (60) days after its submission.
+- A Member’s account and declarations are retained for the duration of service and for up to one (1) academic year after the end of the Member’s term, for purposes of turnover and accountability. They are thereafter deleted or anonymized, unless the law or a pending case requires their longer retention.
 
-## How we protect it
-Only verified UST Google accounts can sign in, every connection is encrypted, and each member sees only what their position needs. Members who handle personal data are bound by the Confidentiality Agreement.
+## 5. Security measures
+Only verified UST Google accounts may sign in to the Portal. All connections are encrypted, and each Member is granted access only to what the Member’s position requires. Members who handle personal data are bound by the Confidentiality Agreement.
 
-## Your rights
-Under the Data Privacy Act you have the right to be informed, to access your data, to object to its processing, to have it corrected, to have it erased or blocked, to data portability, to be indemnified for damages, and to file a complaint with the National Privacy Commission. To use any of these rights, write to comelec@ust.edu.ph. You may also reach the University’s Data Protection Officer.
+## 6. Rights of the data subject
+Under the Data Privacy Act of 2012, the data subject has the right to be informed, to access, to object, to rectification, to erasure or blocking, to data portability, to damages, and to file a complaint with the National Privacy Commission. Any of these rights may be exercised by writing to comelec@ust.edu.ph. The data subject may also contact the University’s Data Protection Officer.
 
-## Your consent
-By ticking the box below, you confirm that you have read this notice, that the information you give is true, and that you freely consent to the Commission processing your personal data for the purposes above. You may withdraw your consent at any time by writing to us. Withdrawing ends your portal access, since the portal can’t work without it.`,
+## 7. Consent
+By ticking the box below, the person certifies that they have read and understood this Notice, that the information they provide is true and correct, and that they freely and expressly consent to the processing of their personal data for the purposes stated herein. Consent may be withdrawn at any time by written notice to the Commission. Withdrawal of consent shall terminate the person’s access to the Portal, as the Portal cannot operate without it.`,
   },
 
   "membership-agreement": {
     title: "Membership Agreement",
-    statement: "I have read and agree to the Membership Agreement.",
-    body: `This Membership Agreement is between you (“the Member”) and the UST Central Commission on Elections (“the Commission”). It takes effect when you submit your onboarding.
+    statement: "I have read and understood the Membership Agreement, and I agree to be bound by its terms.",
+    body: `This Membership Agreement (“the Agreement”) is entered into by and between the undersigned (“the Member”) and the UST Central Commission on Elections (“the Commission”). It shall take effect upon the submission of the Member’s onboarding.
 
-## 1. Membership
-1. You are admitted as a member of the Commission in the unit, position and role shown in your profile. Your unit is the Central Comelec or your college’s Local Comelec.
-2. Membership is personal. It can’t be passed to anyone else, and your portal account is for your use only.
-3. Your term runs for the current academic year, or until you resign or are removed, whichever comes first.
+## 1. Admission
+1. The Member is admitted to the Commission in the unit, position and role stated in the Member’s profile. The Member’s unit is either the Central Comelec or the Local Comelec of the Member’s college or faculty.
+2. Membership is personal and non-transferable. The Member’s Portal account is for the Member’s sole and exclusive use.
+3. The Member’s term shall run for the current academic year, or until the Member’s resignation or removal, whichever occurs first.
 
 ## 2. Eligibility
-You confirm that:
-- you are a bona fide student of the University of Santo Tomas, currently enrolled;
-- you are in good academic and disciplinary standing;
-- you meet the qualifications the Constitution and the Elections Code set for your position; and
-- the information in your profile is true and complete.
+The Member represents and warrants that:
+- the Member is a bona fide and currently enrolled student of the University of Santo Tomas;
+- the Member is in good academic and disciplinary standing;
+- the Member possesses the qualifications that the Constitution and the Elections Code prescribe for the Member’s position; and
+- the information in the Member’s profile is true, correct and complete.
 
-You will tell the Executive Board straight away if any of these stops being true.
+The Member shall notify the Executive Board without delay should any of the foregoing cease to be true.
 
 ## 3. Duties
-As a Member you will:
-- uphold the Constitution, the Elections Code, and the Commission’s resolutions and rules;
-- carry out the tasks your office assigns, on time and to standard;
-- attend the meetings, trainings and election duties you’re called to, or give notice beforehand if you can’t;
-- keep your profile up to date; and
-- respect the University’s rules, the Code of Conduct, and your fellow Members.
+The Member shall:
+- uphold the Constitution, the Elections Code, and the resolutions and rules of the Commission;
+- perform the tasks assigned by the Member’s office faithfully, competently and on time;
+- attend the meetings, trainings and election duties to which the Member is called, or give prior notice of inability to attend;
+- keep the Member’s profile accurate and up to date; and
+- observe the rules of the University and the Code of Conduct, and accord fellow Members due respect.
 
-## 4. Acting for the Commission
-The Commission decides as a body, under the authority the Constitution gives it. No Member may speak or act for the Commission, or commit it to anything, without that authority.
+## 4. Authority to act for the Commission
+The Commission acts as a collegial body, under the authority vested in it by the Constitution. No Member may speak or act for the Commission, or bind it to any obligation, without such authority.
 
 ## 5. Resignation and removal
-1. You may resign by writing to your unit’s Chairperson, with at least fifteen (15) days’ notice where you can, and you will complete turnover before you leave.
-2. You may be suspended or removed for breaching this Agreement or any onboarding document, under the process the Constitution, the Elections Code and the Commission’s rules set. You will be heard before any decision is made.
-3. When your membership ends, your portal access ends with it.
+1. The Member may resign by written notice to the Chairperson of the Member’s unit, given at least fifteen (15) days in advance where practicable, and shall complete turnover before leaving office.
+2. The Member may be suspended or removed for any breach of this Agreement or of any onboarding document, in accordance with the procedure laid down by the Constitution, the Elections Code and the rules of the Commission. The Member shall be afforded due process before any decision is rendered.
+3. The Member’s access to the Portal shall terminate upon the end of the Member’s membership.
 
-## 6. Voluntary service
-Membership is voluntary service. You aren’t an employee of the Commission or the University, and you aren’t paid for your service.
+## 6. Nature of service
+Membership is voluntary service. Nothing in this Agreement creates an employer–employee relationship between the Member and the Commission or the University, and the Member shall receive no compensation for the Member’s service.
 
-## 7. The whole agreement
-This Agreement, with the other onboarding documents you accept, sets out your commitments as a Member. Where any of them conflicts with the Constitution or the Elections Code, those prevail.`,
+## 7. Entire agreement
+This Agreement, together with the other onboarding documents the Member accepts, constitutes the entire undertaking of the Member. In case of conflict between any of them and the Constitution or the Elections Code, the latter shall prevail.`,
   },
 
   "code-of-conduct": {
     title: "Code of Conduct and Nonpartisanship Agreement",
-    statement: "I have read and agree to the Code of Conduct and Nonpartisanship Agreement.",
-    body: `The Commission’s authority rests on the trust of the Thomasian electorate. This Code sets the conduct expected of every Member, in and out of election season.
+    statement: "I have read and understood the Code of Conduct and Nonpartisanship Agreement, and I agree to abide by it.",
+    body: `The authority of the Commission rests upon the trust of the Thomasian electorate. This Code prescribes the standards of conduct required of every Member, within and outside the election period.
 
 ## 1. Integrity
-- Act honestly. Never falsify, hide or alter records, results or documents.
-- Never accept gifts, favours, food, money or anything of value from a candidate, a political party, or anyone acting for them.
-- Report any attempt to influence you or another Member.
+- The Member shall act with honesty at all times, and shall never falsify, conceal or alter any record, result or document.
+- The Member shall never solicit or accept any gift, favour, food, money or other thing of value from a candidate, a political party, or any person acting on their behalf.
+- The Member shall report to the Executive Board any attempt to influence the Member or any other Member.
 
 ## 2. Professional conduct
-- Treat students, candidates, parties, fellow Members and University personnel with courtesy and respect, without discrimination or harassment.
-- Be punctual, prepared and responsive.
-- Use the Commission’s name, logo and channels only for official purposes, and only with authority.
+- The Member shall treat students, candidates, parties, fellow Members and University personnel with courtesy and respect, and shall refrain from any form of discrimination or harassment.
+- The Member shall be punctual, prepared and responsive in the discharge of the Member’s duties.
+- The Member shall use the name, logo and channels of the Commission only for official purposes and only with due authority.
 
 ## 3. Nonpartisanship
-For as long as you are a Member, you will not:
+For the duration of membership, the Member shall not:
 1. join, run under, or hold office in any student political party or coalition;
-2. run for any elective student position;
-3. campaign for or against any candidate, party or position, in person or online, including through likes, shares, reactions, comments, profile frames or endorsements;
-4. help prepare any candidate’s or party’s campaign, filing or materials;
-5. reveal non-public information about an election to anyone outside the Commission; or
-6. give a public opinion on a candidate, a party, or a pending case.
+2. seek any elective student position;
+3. campaign for or against any candidate, party or position, whether in person or online, including through reactions, shares, comments, profile frames or endorsements;
+4. assist in the preparation of any candidate’s or party’s campaign, filing or materials;
+5. disclose non-public information on any election to any person outside the Commission; or
+6. express a public opinion on any candidate, party or pending case.
 
-You will leave any party you belong to before you take office, and say so in your Declaration of Neutrality and Impartiality.
+The Member shall resign from any party to which the Member belongs before assuming office, and shall so state in the Declaration of Neutrality and Impartiality.
 
 ## 4. Social media
-Your personal accounts are your own, but what you post reflects on the Commission. On election matters, share only the Commission’s official announcements, without comment.
+The Member’s personal accounts remain the Member’s own; however, what the Member posts reflects upon the Commission. On election matters, the Member shall share only the official announcements of the Commission, without comment.
 
-## 5. Breaches
-A breach of this Code may lead to a warning, suspension or removal, and to referral to the University where its rules apply.`,
+## 5. Sanctions
+Any breach of this Code may result in a warning, suspension or removal, and in referral to the University where its rules apply.`,
   },
 
   confidentiality: {
     title: "Confidentiality Agreement",
-    statement: "I have read and agree to the Confidentiality Agreement.",
-    body: `In your work you will see information that isn’t public: personal data of students, applicants and candidates; case records; deliberations; draft resolutions; election materials; and what’s in the Commission Portal (together, “Confidential Information”).
+    statement: "I have read and understood the Confidentiality Agreement, and I agree to be bound by its terms.",
+    body: `In the course of the Member’s duties, the Member will have access to information that is not public, including the personal data of students, applicants and candidates; case records; deliberations; draft resolutions; election materials; and the contents of the Commission Portal (collectively, “Confidential Information”).
 
-## 1. What you agree to
-1. Use Confidential Information only to carry out your duties.
-2. Don’t disclose it to anyone outside the Commission, or to a Member who doesn’t need it for their duties, unless the Executive Board authorizes it or the law requires it.
-3. Don’t copy, download, screenshot or forward it, or take it outside the Commission’s official tools, except as your duties require.
-4. Keep the deliberations of the Commission, the En Banc and every chamber confidential, including how each Member voted.
-5. Handle personal data as the Data Privacy Act requires, and report any loss, leak or unauthorized access to the Executive Board within twenty-four (24) hours of learning of it.
+## 1. Obligations of the Member
+The Member shall:
+1. use Confidential Information solely for the performance of the Member’s duties;
+2. not disclose Confidential Information to any person outside the Commission, or to any Member who does not require it for their duties, unless authorized by the Executive Board or required by law;
+3. not copy, download, capture, forward or remove Confidential Information from the official tools of the Commission, except as the Member’s duties require;
+4. keep in strict confidence the deliberations of the Commission, the En Banc and every chamber, including the vote of each Member; and
+5. process personal data in accordance with the Data Privacy Act of 2012, and report any loss, leak or unauthorized access to the Executive Board within twenty-four (24) hours of learning of it.
 
-## 2. What isn’t covered
-Information that is already public through no fault of yours, and information you’re required to disclose by law or by a lawful order. In that case, tell the Commission first wherever you can.
+## 2. Exceptions
+The foregoing obligations shall not apply to information that has become public through no fault of the Member, or that the Member is compelled to disclose by law or by lawful order. In the latter case, the Member shall, wherever possible, notify the Commission before making the disclosure.
 
-## 3. How long it lasts
-This duty starts when you submit your onboarding, and it continues after your membership ends.
+## 3. Duration
+These obligations shall take effect upon the submission of the Member’s onboarding and shall survive the termination of the Member’s membership.
 
-## 4. Returning materials
-When your membership ends, you will hand over every document, file and account in your keeping, and delete any copies you hold, as part of turnover.
+## 4. Return of materials
+Upon the end of membership, the Member shall surrender every document, file and account in the Member’s custody, and shall delete all copies in the Member’s possession, as part of turnover.
 
-## 5. Breaches
-A breach may lead to removal, referral to the University, and liability under the Data Privacy Act and other laws.`,
+## 5. Sanctions
+Any breach of this Agreement may result in removal, referral to the University, and liability under the Data Privacy Act of 2012 and other applicable laws.`,
   },
 
   neutrality: {
     title: "Declaration of Neutrality and Impartiality",
-    statement: "I make this Declaration of Neutrality and Impartiality, and I confirm that it is true.",
-    body: `I, the Member named in this onboarding, declare that:
+    statement: "I make this Declaration of Neutrality and Impartiality freely, and I certify that its contents are true and correct.",
+    body: `I, the Member named in this onboarding, of legal age and a student of the University of Santo Tomas, hereby declare that:
 
-1. I am not a member, officer, candidate or volunteer of any student political party or coalition, and I will not become one while I serve.
-2. I am not a candidate for any elective student position, and I will not file a candidacy while I serve.
-3. I have no relationship with any candidate or party officer that would keep me from acting fairly. Where I have one, I have disclosed it, or will disclose it, to the Executive Board under the Recusal Undertaking.
-4. I will decide every matter on its merits, on the evidence and the rules alone, without fear or favour, and without regard to who the candidate or party is.
-5. I will apply the Constitution and the Elections Code equally to every candidate, party and voter.
-6. I will not let any personal interest, friendship, organization or loyalty affect my work in the Commission.
-7. I understand that if this declaration is false, or stops being true and I don’t report it, I may be removed from the Commission.
+1. I am not a member, officer, candidate or volunteer of any student political party or coalition, and I will not become one for the duration of my service.
+2. I am not a candidate for any elective student position, and I will not file a certificate of candidacy for the duration of my service.
+3. I have no relationship with any candidate or party officer that would impair my ability to act fairly. Where any such relationship exists, I have disclosed it, or shall disclose it, to the Executive Board in accordance with the Recusal Undertaking.
+4. I shall decide every matter on its merits, on the evidence and the applicable rules alone, without fear or favour, and without regard to the identity of any candidate or party.
+5. I shall apply the Constitution and the Elections Code equally to every candidate, party and voter.
+6. I will not allow any personal interest, friendship, affiliation or loyalty to influence the performance of my duties in the Commission.
+7. I understand that should this Declaration be false, or should it cease to be true and I fail to report it, I may be removed from the Commission.
 
-I make this declaration freely, and I confirm it by accepting it electronically.`,
+I make this Declaration freely and voluntarily, and I affirm it by my electronic acceptance.`,
   },
 
   recusal: {
     title: "Recusal Undertaking",
-    statement: "I have read and agree to the Recusal Undertaking.",
-    body: `A Member must step aside from any matter where their impartiality could reasonably be questioned. This undertaking sets out when, and how.
+    statement: "I have read and understood the Recusal Undertaking, and I bind myself to its terms.",
+    body: `A Member shall inhibit from any matter in which the Member’s impartiality might reasonably be questioned. This Undertaking sets forth the grounds and the manner of recusal.
 
-## 1. When I will recuse
-I will take no part in a matter, including its discussion, investigation, deliberation, vote or implementation, if:
-- I am related within the fourth (4th) civil degree of consanguinity or affinity to a candidate, party officer, petitioner or respondent involved;
-- I am, or was in the past twelve (12) months, a member, officer or volunteer of a party involved;
-- I have a close personal, romantic, business or organizational relationship with someone involved;
-- I have already given a public opinion on the matter; or
-- anything else would lead a fair-minded observer to doubt my impartiality.
+## 1. Grounds for recusal
+I shall take no part in any matter, including its discussion, investigation, deliberation, vote or implementation, where:
+- I am related within the fourth (4th) civil degree of consanguinity or affinity to any candidate, party officer, petitioner or respondent involved;
+- I am, or have been within the past twelve (12) months, a member, officer or volunteer of any party involved;
+- I have a close personal, romantic, business or organizational relationship with any person involved;
+- I have previously expressed a public opinion on the matter; or
+- any other circumstance would lead a fair-minded observer to doubt my impartiality.
 
-## 2. How I will recuse
-1. I will disclose the conflict in writing to my unit’s Chairperson as soon as I learn of it, and before the matter is taken up. If the conflict involves the Chairperson, I will tell the Vice Chairperson.
-2. I will leave any meeting while the matter is discussed and decided, and I won’t try to influence anyone who decides it.
-3. I will not open the records of the matter, in the portal or anywhere else.
-4. My recusal, and its reason, will be recorded in the minutes.
+## 2. Manner of recusal
+1. I shall disclose the conflict in writing to the Chairperson of my unit as soon as I become aware of it, and before the matter is taken up. Where the conflict involves the Chairperson, I shall make the disclosure to the Vice Chairperson.
+2. I shall excuse myself from any meeting while the matter is discussed and decided, and I will not attempt to influence any person who decides it.
+3. I will not access the records of the matter, whether in the Commission Portal or elsewhere.
+4. My recusal, and the ground for it, shall be entered in the minutes.
 
-## 3. When others ask
-If anyone asks for my recusal, I will let the Executive Board decide, and I will abide by its decision.
+## 3. Motions for recusal
+Where any party moves for my recusal, I shall submit the motion to the Executive Board for resolution, and I shall abide by its decision.
 
-## 4. Failing to recuse
-I understand that failing to disclose a conflict, or to recuse, may void my part in the matter, and may lead to my removal.`,
+## 4. Consequences of failure to recuse
+I understand that any failure to disclose a conflict, or to recuse, may render my participation in the matter void, and may be a ground for my removal.`,
   },
 
   "intellectual-property": {
-    title: "Intellectual Property",
-    statement: "I have read and agree to the Intellectual Property terms.",
-    body: `## 1. Work you create for the Commission
-Everything you create in the course of your duties, including resolutions, memoranda, reports, designs, publication materials, photos, videos, code, forms and templates (“Commission Works”), is created for the Commission. You agree that:
-1. the Commission may use, reproduce, adapt, publish and distribute Commission Works, without time limit and without payment to you;
-2. to the extent you hold copyright in a Commission Work, you assign it to the Commission or, where that isn’t possible, grant the Commission an exclusive, perpetual, royalty-free licence to it; and
-3. you will not publish, sell or reuse Commission Works for any other purpose without the Executive Board’s written approval.
+    title: "Intellectual Property Agreement",
+    statement: "I have read and understood the Intellectual Property Agreement, and I agree to be bound by its terms.",
+    body: `## 1. Works created for the Commission
+All works the Member creates in the course of the Member’s duties, including resolutions, memoranda, reports, designs, publication materials, photographs, videos, software, forms and templates (“Commission Works”), are created for the Commission. The Member agrees that:
+1. the Commission may use, reproduce, adapt, publish and distribute Commission Works, without limitation as to time and without compensation to the Member;
+2. to the extent the Member holds copyright in any Commission Work, the Member hereby assigns it to the Commission or, where assignment is not legally possible, grants the Commission an exclusive, perpetual and royalty-free licence to it; and
+3. the Member shall not publish, sell or reuse any Commission Work for any other purpose without the prior written approval of the Executive Board.
 
-## 2. Credit
-The Commission will credit you where it’s practical. You keep your moral rights under the Intellectual Property Code of the Philippines (Republic Act No. 8293). Once a Commission Work is officially published, you may show it in your personal portfolio, with credit to the Commission.
+## 2. Attribution and moral rights
+The Commission shall credit the Member wherever practicable. The Member retains the moral rights granted by the Intellectual Property Code of the Philippines (Republic Act No. 8293). Upon the official publication of a Commission Work, the Member may include it in the Member’s personal portfolio, with due credit to the Commission.
 
 ## 3. Names and marks
-The Commission’s name, seal and logos, and the University’s name and marks, may be used only for official purposes, in the forms the Commission approves.
+The name, seal and logos of the Commission, and the name and marks of the University, shall be used only for official purposes and only in the forms the Commission approves.
 
-## 4. Other people’s work
-You will not use anyone else’s copyrighted work, including images, music, fonts and software, in a Commission Work without permission or a valid licence, and you will credit your sources.
+## 4. Works of third parties
+The Member shall not incorporate any copyrighted work of another, including images, music, fonts and software, into a Commission Work without permission or a valid licence, and shall properly cite all sources.
 
-## 5. Your own materials
-Anything you made before joining, or outside your duties, stays yours. If you bring it into a Commission Work, you grant the Commission a non-exclusive, perpetual, royalty-free licence to use it there.`,
+## 5. Pre-existing works
+Works the Member created before joining the Commission, or outside the Member’s duties, remain the Member’s property. Where the Member incorporates any such work into a Commission Work, the Member grants the Commission a non-exclusive, perpetual and royalty-free licence to use it therein.`,
   },
 
   "terms-of-service": {
     title: "Terms of Service",
-    statement: "I have read and agree to the Terms of Service.",
-    body: `These Terms govern your use of the Commission Portal (“the Portal”), the Commission’s private workspace, and the tools inside it.
+    statement: "I have read and understood the Terms of Service, and I agree to be bound by them.",
+    body: `These Terms of Service (“the Terms”) govern the use of the Commission Portal (“the Portal”), the private workspace of the Commission, and of the tools within it.
 
-## 1. Your account
-1. Your account is tied to your UST Google account. You sign in only with that account, and you may not share it, lend it, or let anyone else use your session.
-2. What you can open follows your unit and position. Don’t try to reach anything your access doesn’t give you.
-3. Keep your Google account secure, with a strong password and two-step verification, and sign out on shared devices.
-4. Tell the Executive Board at once if you think someone else has used your account.
+## 1. Accounts
+1. Each account is tied to the Member’s UST Google account. The Member shall sign in only with that account, and shall not share or lend it or permit any other person to use the Member’s session.
+2. Access is determined by the Member’s unit and position. The Member shall not attempt to access any resource beyond the access granted.
+3. The Member shall keep the Member’s Google account secure, with a strong password and two-step verification, and shall sign out of shared devices.
+4. The Member shall notify the Executive Board immediately upon suspecting any unauthorized use of the Member’s account.
 
-## 2. When access ends
-Your access ends when your term ends, on the expiry date the Executive Board sets, or when it’s revoked. The Commission may suspend access at any time to protect the Portal or an investigation.
+## 2. Termination of access
+Access shall terminate upon the end of the Member’s term, on the expiry date the Executive Board sets, or upon revocation. The Commission may suspend access at any time to protect the Portal or the integrity of an investigation.
 
-## 3. Your content
-You are responsible for what you post, upload or change in the Portal. What you add for the Commission is a Commission Work, under the Intellectual Property terms.
+## 3. Content
+The Member is responsible for all content the Member posts, uploads or modifies in the Portal. Content added for the Commission constitutes a Commission Work under the Intellectual Property Agreement.
 
-## 4. Records
-The Portal records sign-ins and changes, with who made them and when, to keep the Commission accountable. The Executive Board may review these records, and they may be used in an investigation.
+## 4. Audit records
+The Portal records sign-ins and changes, together with the identity of the person who made them and the time they were made, to ensure the accountability of the Commission. The Executive Board may review these records, and they may be used as evidence in any investigation.
 
 ## 5. Availability
-The Portal is provided as it is. The Commission works to keep it available and accurate, but can’t promise it will always be available or free of errors.
+The Portal is provided on an “as is” basis. The Commission endeavours to keep it available and accurate, but makes no warranty that it will be uninterrupted or free of errors.
 
-## 6. Changes to these Terms
-The Commission may update these Terms. Significant changes will be announced in the Portal, and using the Portal after they take effect means you accept them.
+## 6. Amendments
+The Commission may amend these Terms. Material amendments shall be announced in the Portal, and continued use of the Portal after they take effect shall constitute acceptance of them.
 
 ## 7. Governing rules
-These Terms are read together with the Constitution, the Elections Code, the University’s policies, and the laws of the Philippines.`,
+These Terms shall be read together with the Constitution, the Elections Code, the policies of the University, and the laws of the Republic of the Philippines.`,
   },
 
   "acceptable-use": {
     title: "Acceptable Use Policy",
-    statement: "I have read and agree to the Acceptable Use Policy.",
-    body: `This policy sets out what you may and may not do with the Commission Portal, its email tools and its files.
+    statement: "I have read and understood the Acceptable Use Policy, and I agree to comply with it.",
+    body: `This Policy sets forth the permitted and prohibited uses of the Commission Portal, its email tools and its files.
 
-## You may
-- use the Portal for Commission work within your role;
-- send official messages through the Portal’s tools, in the Commission’s name, where your role allows; and
-- download records when a task needs them, and delete them once it’s done.
+## 1. Permitted use
+The Member may:
+- use the Portal for Commission work within the scope of the Member’s role;
+- send official communications through the Portal’s tools, in the name of the Commission, where the Member’s role so permits; and
+- download records where a task requires them, and shall delete them upon its completion.
 
-## You may not
+## 2. Prohibited use
+The Member shall not:
 1. use the Portal for personal, commercial, partisan or campaign purposes;
-2. open, or try to open, records, tabs or accounts beyond your access, including by sharing sessions or guessing links;
-3. copy, export or share the personal data of students, applicants or candidates, except as a task needs;
-4. send spam, chain messages, or messages in the Commission’s name without authority;
-5. upload unlawful, obscene, defamatory, discriminatory or infringing material, or malware;
-6. probe, scan, overload or interfere with the Portal’s security or operation, or get around its limits;
-7. use automated tools to read or change data, unless the Executive Board allows it;
-8. alter, delete or backdate records to mislead anyone; or
-9. impersonate another Member or the Commission.
+2. access, or attempt to access, any record, tab or account beyond the Member’s authorized access, including by sharing sessions or guessing links;
+3. copy, export or share the personal data of students, applicants or candidates, except as a task requires;
+4. send unsolicited or chain messages, or any message in the name of the Commission without authority;
+5. upload any unlawful, obscene, defamatory, discriminatory or infringing material, or any malicious software;
+6. probe, scan, overload or interfere with the security or operation of the Portal, or circumvent its limits;
+7. use automated tools to read or modify data, unless the Executive Board permits it;
+8. alter, delete or backdate any record to mislead any person; or
+9. impersonate any other Member or the Commission.
 
-## Reporting problems
-If you find a security problem or see misuse, report it to the Executive Board at once, and don’t test it further.
+## 3. Duty to report
+The Member shall report any security vulnerability or misuse to the Executive Board immediately, and shall not test it further.
 
-## Breaches
-For any breach, the Commission may suspend or revoke access, remove content and take disciplinary action, and refer serious breaches to the University or the authorities.`,
+## 4. Sanctions
+For any breach of this Policy, the Commission may suspend or revoke access, remove content and impose disciplinary action, and may refer serious breaches to the University or the proper authorities.`,
   },
 
   "privacy-policy": {
     title: "Privacy Policy",
-    statement: "I have read and agree to the Privacy Policy.",
-    body: `This policy explains how the Commission Portal handles personal data: your own, and that of the students, applicants and candidates you work with. Read it with the Data Privacy Notice you consented to at the start.
+    statement: "I have read and understood the Privacy Policy, and I agree to comply with it.",
+    body: `This Policy governs the handling of personal data in the Commission Portal, both the Member’s own and that of the students, applicants and candidates with whom the Member works. It shall be read together with the Data Privacy Notice to which the Member consented.
 
-## 1. Your data
-The Portal keeps your profile, your access, your onboarding declarations and when you accepted them, and records of your activity. It uses them as the Data Privacy Notice describes.
+## 1. The Member’s personal data
+The Portal keeps the Member’s profile, access, onboarding declarations and the times of their acceptance, and records of the Member’s activity. These are processed as the Data Privacy Notice provides.
 
-## 2. Data you handle
-As a Member you will handle other people’s personal data. You will:
-1. collect only what a task needs, and use it only for that task;
-2. keep it inside the Portal and the Commission’s official tools;
-3. keep no personal copies, and delete working files once a task is done;
-4. share it only with Members who need it for their duties; and
+## 2. Personal data handled by the Member
+In handling the personal data of others, the Member shall:
+1. collect only what a task requires, and use it solely for that task;
+2. keep it within the Portal and the official tools of the Commission;
+3. retain no personal copies, and delete working files upon the completion of a task;
+4. share it only with Members who require it for their duties; and
 5. report any personal data breach to the Executive Board within twenty-four (24) hours.
 
 ## 3. Cookies and sessions
-The Portal uses only essential cookies, to keep you signed in and secure. A session closes after 30 minutes of inactivity, and ends after 8 hours. The Portal uses no advertising cookies.
+The Portal uses only essential cookies, to keep the Member signed in and secure. A session closes after thirty (30) minutes of inactivity, and ends after eight (8) hours. The Portal uses no advertising cookies.
 
 ## 4. Storage and security
-Data is kept with the Commission’s hosting and storage providers and encrypted in transit. Access is limited by unit and position, and changes are logged.
+Personal data are stored with the Commission’s hosting and storage providers and are encrypted in transit. Access is limited by unit and position, and all changes are logged.
 
 ## 5. Retention
-Applications and access requests are deleted 60 days after they’re sent. Accounts and declarations are kept as the Data Privacy Notice says.
+Applications and requests for access are deleted sixty (60) days after their submission. Accounts and declarations are retained as the Data Privacy Notice provides.
 
-## 6. Contact
-Send questions, requests and complaints about privacy to comelec@ust.edu.ph.`,
+## 6. Inquiries
+Questions, requests and complaints concerning privacy shall be addressed to comelec@ust.edu.ph.`,
   },
 
   "officer-acceptance": {
     title: "Officer Acceptance and Turnover Agreement",
-    statement: "I accept my office, and I agree to the Officer Acceptance and Turnover Agreement.",
+    statement: "I accept my office, and I agree to be bound by the Officer Acceptance and Turnover Agreement.",
     body: `## 1. Acceptance of office
-I accept the position and role shown in my profile. I will perform its duties faithfully for my whole term, under the Constitution, the Elections Code and the Commission’s rules. I take this office freely, without mental reservation or purpose of evasion.
+I hereby accept the position and role stated in my profile. I shall faithfully discharge its duties for the whole of my term, in accordance with the Constitution, the Elections Code and the rules of the Commission. I assume this office freely, without mental reservation or purpose of evasion.
 
-## 2. Receiving turnover
-When I take office, I will:
-1. receive the turnover of my office from my predecessor or the Executive Board: its files, accounts, pending matters and property;
-2. check what I receive against the turnover inventory, and report anything missing within seven (7) days; and
-3. take responsibility for everything I receive from then on.
+## 2. Receipt of turnover
+Upon assuming office, I shall:
+1. receive the turnover of my office, including its files, accounts, pending matters and property, from my predecessor or the Executive Board;
+2. verify what I receive against the turnover inventory, and report any deficiency within seven (7) days; and
+3. be accountable for everything I receive from that time forward.
 
-## 3. Handing over
-When my term ends, or if I resign or am removed, I will:
+## 3. Turnover upon leaving office
+Upon the end of my term, or upon my resignation or removal, I shall:
 1. prepare a turnover report for my office, covering pending matters, deadlines, contacts and lessons learned;
-2. hand over every document, file, account and item of Commission property in my keeping within fifteen (15) days;
-3. transfer ownership of the shared drives, pages, forms and files I created for the Commission to the Commission’s official account;
-4. delete my personal copies of Commission records; and
-5. within reason, answer my successor’s questions for thirty (30) days after turnover.
+2. surrender every document, file, account and item of Commission property in my custody within fifteen (15) days;
+3. transfer the ownership of the shared drives, pages, forms and files I created for the Commission to the Commission’s official account;
+4. delete all personal copies of Commission records in my possession; and
+5. respond, within reason, to the inquiries of my successor for thirty (30) days after turnover.
 
 ## 4. Clearance
 I understand that the Commission may withhold my certificate of service, or any clearance it issues, until my turnover is complete.
 
-## 5. Accountability
-I remain answerable for what I did in office after my term ends, including under the Confidentiality Agreement.`,
+## 5. Continuing accountability
+I shall remain accountable for my acts in office after the end of my term, including under the Confidentiality Agreement.`,
   },
 };
 
