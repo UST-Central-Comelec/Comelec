@@ -1,10 +1,11 @@
 "use client";
 
+import { ACCESS_REQUEST_RETENTION_NOTICE } from "@/lib/access-requests/retention";
 import { scrollToElement } from "@/lib/scroll";
 import { cleanMobileNumber, cleanStudentNumber, tidyPersonName } from "@/lib/forms/input";
 import { DownloadIcon } from "@/components/lucide-animated/download";
 import Link from "next/link";
-import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, Info } from "lucide-react";
 import { CopyIcon as Copy } from "@/components/action-icons";
 import { Combobox } from "@/components/combobox";
@@ -23,6 +24,7 @@ import { downloadReceipt } from "@/lib/applications/receipt-image";
 import { accountPositions, affiliations, commissionerPositions, describeAffiliation, type Affiliation } from "@/lib/data/types";
 import { formatAccepted, requestOnboardingSteps, type OnboardingDocument, type OnboardingDocumentKey } from "@/lib/onboarding/documents";
 import { LegalText } from "./legal-text";
+import { LockOpenIcon, type LockOpenIconHandle } from "@/components/lucide-animated/lock-open";
 import "./onboarding.css";
 import { Busy } from "@/components/busy";
 
@@ -142,6 +144,28 @@ function AccessReceipt({ result, onBack }: { result?: SubmittedAccessRequest; on
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * A document's mark on the review: a green tick once agreed to. While the request is being sent it
+ * turns, one after another down the list, into a red lock that snaps shut: what was agreed to is sealed.
+ */
+function ReviewMark({ done, sealed, order }: { done: boolean; sealed: boolean; order: number }) {
+  const lock = useRef<LockOpenIconHandle>(null);
+  useEffect(() => {
+    if (!sealed) {
+      lock.current?.stopAnimation();
+      return;
+    }
+    const shut = setTimeout(() => lock.current?.startAnimation(), 160 + order * 90);
+    return () => clearTimeout(shut);
+  }, [sealed, order]);
+  return (
+    <span className={`onboarding-review-mark${done ? " is-done" : ""}${sealed && done ? " is-sealed" : ""}`} style={{ "--seal-delay": `${order * 90}ms` } as CSSProperties} aria-hidden="true">
+      {done && <Check className="onboarding-review-check" size={11} strokeWidth={3} />}
+      {done && <LockOpenIcon ref={lock} className="onboarding-review-lock" size={12} />}
+    </span>
   );
 }
 
@@ -598,13 +622,13 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
         </div>
 
         {step === LAST && (
-          <section className="onboarding-review" aria-label="What you’ve agreed to">
-            <p className="portal-muted">{application ? "Check what you’ve agreed to. Submitting asks you to sign in with Google once more; your account is then ready straight away." : "Check what you’ve agreed to. Submitting asks you to sign in with Google once more, then the Executive Board reviews your request."}</p>
+          <section className={`onboarding-review${busy ? " is-sealing" : ""}`} aria-label="What you’ve agreed to">
+            <p className="portal-muted">{busy ? "Your agreements are sealed for sending. Confirm with Google to submit them." : application ? "Check what you’ve agreed to. Submitting asks you to sign in with Google once more; your account is then ready straight away." : "Check what you’ve agreed to. Submitting asks you to sign in with Google once more, then the Executive Board reviews your request."}</p>
             <ul>
-              {documents.map((item) => (
-                <li key={item.key}>
-                  <span className={`onboarding-review-mark${accepted[item.key] ? " is-done" : ""}`} aria-hidden="true">{accepted[item.key] && <Check size={11} strokeWidth={3} />}</span>
-                  <span>{item.title}<small>{accepted[item.key] ? `Accepted ${formatAccepted(accepted[item.key]!)} · version ${item.version}` : "Not yet agreed to"}</small></span>
+              {documents.map((item, order) => (
+                <li key={item.key} style={{ "--seal-delay": `${order * 90}ms` } as CSSProperties}>
+                  <ReviewMark done={Boolean(accepted[item.key])} sealed={busy} order={order} />
+                  <span>{item.title}<small>{accepted[item.key] ? `${busy ? "Sealed" : "Accepted"} ${formatAccepted(accepted[item.key]!)} · version ${item.version}` : "Not yet agreed to"}</small></span>
                 </li>
               ))}
             </ul>
@@ -636,7 +660,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
             </button>
           )}
         </div>
-        {step === LAST && profile && <p className="portal-request-fineprint portal-muted">Submitting asks you to sign in with Google once more, to confirm it comes from {profile.email}. Your request is deleted 60 days after you send it; what you agreed to stays on your account.</p>}
+        {step === LAST && profile && <p className="portal-request-fineprint portal-muted">Submitting asks you to sign in with Google once more, to confirm it comes from {profile.email}. {ACCESS_REQUEST_RETENTION_NOTICE}</p>}
       </div>
     </form>
   );

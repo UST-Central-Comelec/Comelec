@@ -10,10 +10,11 @@
 .onboarding-main > :is(.onboarding-document, .onboarding-note, .onboarding-review) { margin-top: 0; }
 
 /* The step's name on the left, the session's countdown on the right. */
-.onboarding-head { align-items: flex-end; border-bottom: 1px solid var(--p-line); display: flex; flex-wrap: wrap; gap: 16px 24px; justify-content: space-between; margin-bottom: 22px; padding-bottom: 20px; }
+.onboarding-head { align-items: start; border-bottom: 1px solid var(--p-line); display: grid; gap: 16px 24px; grid-template-columns: minmax(0, 1fr) auto; margin-bottom: 22px; padding-bottom: 20px; }
 .onboarding-head > div:first-child { min-width: 0; }
 .onboarding-head .portal-eyebrow { margin-bottom: 10px; }
-.onboarding-head h1 { color: var(--p-bright); font-size: clamp(26px, 2.2vw, 32px); line-height: 1.15; margin: 0; max-width: 24em; }
+.onboarding-head h1 { color: var(--p-bright); font-size: clamp(26px, 2.2vw, 32px); line-height: 1.2; margin: 0; max-width: 24em; overflow-wrap: anywhere; text-wrap: balance; }
+.onboarding-head > div:only-child { grid-column: 1 / -1; }
 /* Focused on each new step so it's read out; it isn't a control, so it shows no ring. */
 .onboarding-head h1:focus { outline: none; }
 .onboarding-main .portal-login-lede { margin: 0 0 18px; }
@@ -24,10 +25,11 @@
 .onboarding .apply-countdown li { align-items: baseline; background: rgba(var(--p-ink), .06); border: 1px solid var(--p-line); border-radius: 8px; display: flex; gap: 3px; min-width: 58px; justify-content: center; padding: 6px 10px; }
 .onboarding .apply-countdown strong { color: var(--p-bright); font-size: 16px; font-variant-numeric: tabular-nums; font-weight: 600; }
 .onboarding .apply-countdown small { color: var(--p-muted); font-size: 10.5px; font-weight: 500; }
-.onboarding .draft-strip { margin-left: 0; }
+.onboarding .draft-strip { margin-left: 0; max-width: 100%; min-width: 0; width: clamp(200px, 18vw, 260px); }
 .onboarding .draft-strip.is-warn .apply-countdown strong { color: var(--p-danger-ink); }
-.onboarding .draft-strip-note { color: var(--p-muted); font-size: 11.5px; }
-.onboarding .draft-strip-note svg { color: var(--p-gold-mark); height: 12px; width: 12px; }
+.onboarding .draft-strip-note { color: var(--p-muted); display: block; font-size: 11.5px; text-align: right; }
+.onboarding .draft-strip-note svg { color: var(--p-gold-mark); display: inline-block; height: 12px; margin-right: 6px; vertical-align: -2px; width: 12px; }
+.onboarding .draft-strip-note button { margin-left: 6px; }
 .onboarding .draft-strip.is-warn .draft-strip-note svg { color: var(--p-danger-ink); }
 .onboarding .draft-strip-note button:hover { color: var(--p-gold-mark); }
 
@@ -58,6 +60,15 @@
 
 /* A document to read, then agree to. Until it's been read to the end, its foot fades out. */
 .onboarding-reader { background: rgba(var(--p-ink), .025); border: 1px solid var(--p-line); border-radius: 14px; max-height: min(52vh, 560px); overflow: auto; overscroll-behavior: contain; padding: 26px clamp(20px, 2.6vw, 34px) 22px; scrollbar-color: rgba(var(--p-ink), .22) transparent; scrollbar-width: thin; }
+.onboarding-reader .document-table-wrap { scrollbar-color: rgba(var(--p-ink), .22) transparent; scrollbar-width: thin; }
+@supports selector(::-webkit-scrollbar) {
+  .onboarding-reader, .onboarding-reader .document-table-wrap { scrollbar-color: auto; scrollbar-width: auto; }
+  .onboarding-reader::-webkit-scrollbar, .onboarding-reader .document-table-wrap::-webkit-scrollbar { height: 3px; width: 3px; }
+  .onboarding-reader::-webkit-scrollbar-track, .onboarding-reader .document-table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .onboarding-reader::-webkit-scrollbar-track { margin-block: 14px; margin-inline: 14px; }
+  .onboarding-reader::-webkit-scrollbar-thumb, .onboarding-reader .document-table-wrap::-webkit-scrollbar-thumb { background: rgba(var(--p-ink), .22); border-radius: 999px; }
+  .onboarding-reader::-webkit-scrollbar-thumb:hover, .onboarding-reader .document-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(var(--p-ink), .35); }
+}
 .onboarding-document:not(.is-read) .onboarding-reader { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent); }
 .onboarding-reader:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 2px; }
 .onboarding-reader.is-preview { max-height: none; }
@@ -106,14 +117,25 @@
 .onboarding-agree input { accent-color: var(--p-text); flex: none; height: 17px; margin: 2px 0 0; width: 17px; }
 .onboarding-agree small { color: var(--p-muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; margin-top: 4px; }
 .onboarding-agree.is-locked { color: var(--p-soft); cursor: default; }
+.onboarding-agree.is-locked small { color: var(--p-danger-ink); }
 
-/* Step 12: everything agreed to, with when. */
+/* Step 12: everything agreed to, with when, in two columns. While it's being sent, each tick turns in
+   turn into a red lock that snaps shut, and a red line runs down the list once: it's sealed. */
 .onboarding-review > p { margin: 0 0 14px; }
-.onboarding-review ul { border-top: 1px solid var(--p-line); list-style: none; margin: 0 0 18px; padding: 0; }
-.onboarding-review li { align-items: flex-start; border-bottom: 1px solid var(--p-line); display: flex; font-size: 13.5px; font-weight: 500; gap: 12px; padding: 11px 2px; }
+.onboarding-review ul { border-top: 1px solid var(--p-line); column-gap: 32px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; margin: 0 0 18px; padding: 0; position: relative; }
+.onboarding-review li { align-items: flex-start; border-bottom: 1px solid var(--p-line); display: flex; font-size: 13.5px; font-weight: 500; gap: 12px; padding: 11px 2px; transition: color .3s ease var(--seal-delay, 0ms); }
 .onboarding-review li small { color: var(--p-muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 400; margin-top: 2px; }
-.onboarding-review-mark { align-items: center; border: 1px solid var(--p-line-strong); border-radius: 999px; display: inline-flex; flex: none; height: 18px; justify-content: center; margin-top: 1px; width: 18px; }
+.onboarding-review-mark { align-items: center; border: 1px solid var(--p-line-strong); border-radius: 999px; display: inline-flex; flex: none; height: 20px; justify-content: center; margin-top: 0; position: relative; transition: background-color .3s var(--p-ease) var(--seal-delay, 0ms), border-color .3s var(--p-ease) var(--seal-delay, 0ms), transform .3s var(--p-ease) var(--seal-delay, 0ms); width: 20px; }
 .onboarding-review-mark.is-done { background: var(--p-ok); border-color: var(--p-ok); color: #04140c; }
+.onboarding-review-mark > * { position: absolute; transition: opacity .2s ease var(--seal-delay, 0ms), transform .3s var(--p-ease) var(--seal-delay, 0ms); }
+.onboarding-review-lock { opacity: 0; transform: scale(.4) rotate(-20deg); }
+.onboarding-review-mark.is-sealed { background: var(--p-danger); border-color: var(--p-danger); color: #fff; transform: scale(1.08); }
+.onboarding-review-mark.is-sealed .onboarding-review-check { opacity: 0; transform: scale(.4) rotate(20deg); }
+.onboarding-review-mark.is-sealed .onboarding-review-lock { opacity: 1; transform: none; }
+.onboarding-review.is-sealing li { color: var(--p-bright); }
+.onboarding-review.is-sealing ul::after { animation: onboarding-seal-sweep 1.4s var(--p-ease) both; background: linear-gradient(90deg, transparent, var(--p-danger), transparent) 0 0 / 100% 1px no-repeat; content: ""; inset: 0; pointer-events: none; position: absolute; }
+/* The line sits at the top of a layer as tall as the list, so moving the layer its own height carries the line to the foot. */
+@keyframes onboarding-seal-sweep { from { opacity: 0; transform: translateY(0); } 15%, 85% { opacity: 1; } to { opacity: 0; transform: translateY(100%); } }
 
 /* Legals → Documents → Onboarding. */
 .onboarding-view-label { align-items: center; display: inline-flex; gap: 6px; vertical-align: middle; }
@@ -143,14 +165,18 @@
   .onboarding-steps { display: none; }
   .onboarding-main { padding: 26px 20px 22px; }
   .onboarding-progress { display: block; }
-  .onboarding-head { align-items: stretch; flex-direction: column; }
+  .onboarding-head { align-items: stretch; grid-template-columns: minmax(0, 1fr); }
+  .onboarding .draft-strip { width: auto; }
+  .onboarding .draft-strip-note { text-align: left; }
   .onboarding .apply-countdown { justify-content: space-between; }
   .onboarding-reader { max-height: 58vh; padding: 18px 16px 14px; }
+  .onboarding-review ul { grid-template-columns: minmax(0, 1fr); }
   .onboarding-editor, .onboarding-preview { padding: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .onboarding-progress span, .onboarding-step-group button, .onboarding-agree { transition: none; }
+  .onboarding-progress span, .onboarding-step-group button, .onboarding-agree, .onboarding-review li, .onboarding-review-mark, .onboarding-review-mark > * { transition: none; }
+  .onboarding-review.is-sealing ul::after { animation: none; display: none; }
 }
 
 /* Directory: a person's profile, opened from their name (directory-cards.tsx). */
