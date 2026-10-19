@@ -93,7 +93,7 @@ export default async function PortalDashboardPage() {
     ...(candidacyTab && candidacy ? [periodReading("Candidacy", tabHref(candidacyTab), candidacy.value, "Not open")] : []),
     ...(partiesTab && parties ? [periodReading("Parties", tabHref(partiesTab), parties.value, "Not open")] : []),
     ...(pending ? [queueReading("To review", `/portal/recruitment/applications?status=pending${local ? "" : "&body=all"}`, pending.value?.length ?? null, "application")] : []),
-    ...(requests ? [queueReading("Access requests", "/portal/accounts?status=pending", waiting, "request")] : []),
+    ...(requests ? [queueReading("Access requests", "/portal/accounts/approvals", waiting, "request")] : []),
     ...(revisions ? [queueReading(office ? "To approve" : "Approval", tabHref("documents/approval"), toApprove, "revision")] : []),
   ];
 

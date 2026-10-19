@@ -98,7 +98,7 @@ export function MaintenanceSettings({ settings, loadError, notice, readOnly }: {
                 <p className="portal-muted">{screen.detail}</p>
               </div>
               {/* A plain link: these live under other layouts, and one of them fails on purpose. */}
-              <a className="portal-button is-ghost is-small" href={screen.href} target="_blank" rel="noopener">Open <ArrowUpRight size={13} aria-hidden="true" /></a>
+              <a className="portal-button is-ghost is-small" href={screen.href} target="_blank" rel="noopener">Test Open <ArrowUpRight size={13} aria-hidden="true" /></a>
             </li>
           ))}
         </ul>

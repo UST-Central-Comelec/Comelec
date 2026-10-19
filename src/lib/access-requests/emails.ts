@@ -67,7 +67,7 @@ export function accessReceivedEmail(requester: Requester, { answers, submittedAt
 export function accessRequestNoticeEmail(recipients: string[], requester: Requester & { name: string }, rows: Details): Email {
   const { concern } = requester;
   const local = isLocalConcern(concern);
-  const url = `${siteUrl()}/portal/accounts?status=pending`;
+  const url = `${siteUrl()}/portal/accounts/approvals`;
   const intro = local
     ? `Someone asked for access to the Commission Portal as a member of the ${unitOf(concern)}, through the ${COMET}. It’s waiting under Accounts for your unit’s Executive Board, or the Central Comelec’s, to approve or decline. Only your unit’s official account and Executive Board were told.`
     : `Someone asked for access to the Commission Portal as a member of the Central Comelec. It’s waiting under Accounts for the Executive Board to approve or decline. Only the Central Comelec’s official account and Executive Board were told.`;

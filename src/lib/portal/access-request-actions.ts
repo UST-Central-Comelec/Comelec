@@ -24,8 +24,8 @@ import { text } from "./form";
 // is emailed the decision with their details, and sees it when they track the request.
 
 function done(notice: string): never {
-  revalidatePath("/portal/accounts");
-  redirect(`/portal/accounts?notice=${notice}`);
+  revalidatePath("/portal/accounts", "layout");
+  redirect(`/portal/accounts/approvals?notice=${notice}`);
 }
 
 export async function approveAccessRequest(id: string, formData: FormData) {

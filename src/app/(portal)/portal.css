@@ -762,13 +762,22 @@ a.portal-row-title:hover { text-decoration: underline !important; text-decoratio
 .portal-table td .portal-account-check { align-items: center; color: var(--p-faint); display: inline-flex; font-size: 11px; gap: 4px; white-space: nowrap; }
 .portal-table td .portal-account-check.is-verified { color: var(--p-ok-ink); }
 
-/* Accounts: portal access requests waiting to be decided, as Pending rows of the table. A gold
-   tick on the left edge marks them. */
-.portal-request-row td:first-child { background: linear-gradient(90deg, rgba(var(--p-gold-rgb),.09), transparent 70%); box-shadow: inset 2px 0 0 var(--p-gold); }
+/* Accounts → Approvals: access requests and edit requests, a row each. The row opens the
+   request's review, where it's approved or declined. */
+.portal-request-row.is-reviewable { cursor: pointer; transition: background-color .15s ease; }
+.portal-request-row.is-reviewable:hover { background: rgba(var(--p-ink), .035); }
 .portal-request-row .portal-tag { margin-right: 0; }
+.portal-row-open { background: none; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0; text-align: left; }
+.portal-row-open:hover { color: var(--p-bright); }
+.portal-row-open:focus-visible { outline: 2px solid var(--p-gold-edge); outline-offset: 3px; border-radius: 4px; }
+/* Status, one over the other: Pending, then Edit request. */
+.portal-account-status-stack { align-items: flex-start; display: grid; gap: 4px; justify-items: start; }
+.portal-accounts td .portal-account-status-stack .portal-tag, .portal-account-status-stack .portal-tag { border-left: 0; margin-left: 0; padding-left: 0; }
+.portal-registrant-receipt-body .portal-response-edit-request { text-align: left; }
 .portal-request-actions { display: inline-flex; gap: 8px; }
 /* The position and the role it leads to, one over the other. */
 .portal-request-picks { display: grid; gap: 6px; width: 190px; }
+.portal-registrant-group .portal-request-picks { width: min(100%, 360px); }
 .portal-request-picks .portal-dropdown { display: flex; }
 /* A role that's fixed (a deputy's) or absent, as a pill like the dropdowns beside it. */
 .portal-request-picks input.is-fixed { background: transparent; border: 1px dashed var(--p-line-strong); border-radius: 6px; color: var(--p-muted); cursor: default; font: inherit; font-size: 12px; font-weight: 500; min-width: 0; padding: 6px 13px; width: 100%; }

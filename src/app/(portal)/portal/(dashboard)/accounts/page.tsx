@@ -5,8 +5,6 @@ import { BadgeCheck, CircleDashed } from "lucide-react";
 import { AddIcon as Plus } from "@/components/action-icons";
 import { AccountKindLabel, AccountStatusLabel } from "@/components/portal/account-badges";
 import { listSubmissionEditReviews } from "@/lib/applications/edit-requests";
-import { SubmissionEditRequests } from "@/components/portal/submission-edit-requests";
-import { AccessRequestRow } from "@/components/portal/access-requests";
 import { AccountsUnitFilter } from "@/components/portal/accounts-unit-filter";
 import { AccountsTabs } from "@/components/portal/accounts-tabs";
 import { TitleWithInfo } from "@/components/portal/info-tip";
@@ -27,8 +25,8 @@ import { directoryReturnHref } from "@/lib/portal/directory-return";
 
 export const metadata: Metadata = { title: "Accounts" };
 
-/** Pending includes access requests and accounts waiting for their first Google sign-in. */
-const filters = { pending: "Pending", active: "Active", revoked: "Revoked" } as const;
+/** Pending accounts and access requests are under Approvals. */
+const filters = { active: "Active", revoked: "Revoked" } as const;
 type Filter = keyof typeof filters;
 const isFilter = (value: unknown): value is Filter => typeof value === "string" && value in filters;
 
@@ -38,7 +36,6 @@ type Category = keyof typeof categories;
 const isCategory = (value: unknown): value is Category => typeof value === "string" && value in categories;
 
 const emptyText: Record<Filter, string> = {
-  pending: "No pending accounts or access requests.",
   active: "No active accounts.",
   revoked: "No revoked accounts.",
 };
@@ -82,7 +79,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
   const status = isFilter(statusParam) ? statusParam : undefined;
   const category = isCategory(kindParam) ? kindParam : undefined;
   const builtIn = builtInUser();
-  const [me, [everyAccount, { value: everyRequest, error: requestsError }]] = await withPortalUser(Promise.all([getAccounts(builtIn?.email), settle(listPendingAccessRequests())]), allowed("accounts"));
+  const [me, [everyAccount, { value: everyRequest }]] = await withPortalUser(Promise.all([getAccounts(builtIn?.email), settle(listPendingAccessRequests())]), allowed("accounts"));
 
   // A Local account sees its own college's Local Comelec; anyone else, everybody. An Adviser or
   // Admin reads the list; nothing on it is theirs to change.
@@ -94,19 +91,17 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
   const visibleRequests = (everyRequest ?? []).filter(request => viewer ? canSeeUnit(me, request) : canDecideRequest(me, request));
   const units = local ? (me.college ? [me.college] : []) : [...new Set([...comelecUnits, ...visibleAccounts, ...visibleRequests].flatMap(entry => typeof entry === "string" ? [entry] : entry.affiliation === "local" && entry.college ? [entry.college] : []))].sort((a, b) => a.localeCompare(b));
   const unit = typeof unitParam === "string" && ((unitParam === "central" && !local) || units.includes(unitParam)) ? unitParam : undefined;
-  const inUnit = visibleAccounts.filter(account => matchesUnit(account, unit));
-  const pending = visibleRequests.filter(request => matchesUnit(request, unit));
+  // Pending accounts wait under Approvals, with the access and edit requests.
+  const inUnit = visibleAccounts.filter(account => matchesUnit(account, unit) && accountStatusOf(account) !== "pending");
+  const waiting = visibleRequests.length + visibleEdits.filter(edit => !visibleRequests.some(request => request.id === edit.access_request_id)).length + visibleAccounts.filter(account => accountStatusOf(account) === "pending").length;
   // The built-in executive has access without a row; until it has one, it's listed on its own.
   const bare = !local && builtIn && !everyAccount.some((account) => account.builtIn) ? builtIn : null;
 
-  // Requests are for personal accounts, and come first under All, so they're seen before anything else.
-  const requests = (!status || status === "pending") && category !== "official" ? pending : [];
   // The Central Comelec's own account leads the list.
   const leads = (account: AccountSummary) => Number(account.kind === "official" && account.affiliation === "central");
   const accounts = [...inUnit].sort((a, b) => leads(b) - leads(a)).filter((account) => (!status || accountStatusOf(account) === status) && (!category || account.kind === category));
-  const pendingCount = (category === "official" ? 0 : pending.length) + inUnit.filter((account) => accountStatusOf(account) === "pending" && (!category || account.kind === category)).length;
-  const showBare = bare && matchesUnit(bare, unit) && status !== "pending" && status !== "revoked" && category !== "official";
-  const empty = requests.length === 0 && accounts.length === 0 && !showBare;
+  const showBare = bare && matchesUnit(bare, unit) && status !== "revoked" && category !== "official";
+  const empty = accounts.length === 0 && !showBare;
   const href = (next: { status?: Filter; kind?: Category }) => {
     const query = new URLSearchParams(Object.entries({ unit, returnTo, ...next }).filter(([, value]) => value) as [string, string][]).toString();
     return query ? `/portal/accounts?${query}` : "/portal/accounts";
@@ -118,13 +113,13 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
         <div>
           <p className="portal-eyebrow">Administrative</p>
           <TitleWithInfo info={local
-            ? `${me.college ?? "Your college"}’s Local Comelec: who can sign in to the portal with their UST Google account, and who they are in the commission. The Directory is filled in from the commissioners’ accounts. People without an account can ask for one with Request access on the sign-in page; requests for your Local Comelec show here as Pending, to approve or decline. They’re emailed either way. Manually added accounts stay Pending until their first Google sign-in verifies the email.`
-            : "Who can sign in to the portal with their UST Google account, and who they are. Commissioner accounts are people’s own: commissioners, advisers and admins. Official accounts are the units’ shared mailboxes. The Directory and the website’s About page are filled in from the commissioners’ accounts. An account’s affiliation and position decide which tabs it opens; a Local account only sees its own college’s records, and advisers and admins only read. People without an account can ask for one with Request access on the sign-in page; their requests show here as Pending, to approve or decline. They’re emailed either way. Manually added accounts stay Pending until their first Google sign-in verifies the email."}>Accounts</TitleWithInfo>
+            ? `${me.college ?? "Your college"}’s Local Comelec: who can sign in to the portal with their UST Google account, and who they are in the commission. The Directory is filled in from the commissioners’ accounts. People without an account can ask for one with Request access on the sign-in page; requests for your Local Comelec show under Approvals, to approve or decline. They’re emailed either way. Manually added accounts wait under Approvals until their first Google sign-in verifies the email.`
+            : "Who can sign in to the portal with their UST Google account, and who they are. Commissioner accounts are people’s own: commissioners, advisers and admins. Official accounts are the units’ shared mailboxes. The Directory and the website’s About page are filled in from the commissioners’ accounts. An account’s affiliation and position decide which tabs it opens; a Local account only sees its own college’s records, and advisers and admins only read. People without an account can ask for one with Request access on the sign-in page; their requests show under Approvals, to approve or decline. They’re emailed either way. Manually added accounts wait under Approvals until their first Google sign-in verifies the email."}>Accounts</TitleWithInfo>
           {local && <p className="portal-muted">{me.college}</p>}
         </div>
         {viewer ? <ViewOnlyTag /> : <Link className="portal-button" href="/portal/accounts/new"><Plus size={16} /> Add account</Link>}
       </header>
-      <AccountsTabs current="accounts" showBoardTabs={me.level === FULL_ACCESS} />
+      <AccountsTabs current="accounts" showBoardTabs={me.level === FULL_ACCESS} waiting={waiting} />
       <Notice notice={notice} />
 
       <div className="portal-filter-rows is-inline">
@@ -142,18 +137,11 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
           active={status ?? "all"}
           items={[
             { key: "all", href: href({ kind: category }), label: "All" },
-            ...(Object.keys(filters) as Filter[]).map((value) => ({ key: value, href: href({ status: value, kind: category }), label: `${filters[value]}${value === "pending" && pendingCount ? ` (${pendingCount})` : ""}` })),
+            ...(Object.keys(filters) as Filter[]).map((value) => ({ key: value, href: href({ status: value, kind: category }), label: filters[value] })),
           ]}
         />
       </div>
 
-      {edits.error && <p className="portal-form-error" role="alert">{edits.error}</p>}
-      <SubmissionEditRequests kind="access" requests={visibleEdits} readOnly={viewer} />
-      {requestsError && (
-        <p className="portal-form-error" role="alert">
-          Couldn’t load pending access requests. Run <code>supabase/migrations/0016_access_requests.sql</code> in the Supabase SQL Editor, then reload. ({requestsError})
-        </p>
-      )}
 
       <section className="portal-card is-flush">
         {empty ? (
@@ -163,7 +151,6 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
             <table className="portal-table portal-accounts">
               <thead><tr><th>Name</th><th>Student ID</th><th>Affiliation</th><th>Position</th><th>Status</th><th aria-label="Actions" /></tr></thead>
               <tbody key={`${status ?? "all"}-${category ?? "all"}-${unit ?? "all"}`}>
-                {requests.map((request) => <AccessRequestRow key={request.id} request={request} manager={viewer ? null : { kind: me.kind, affiliation: me.affiliation, position: me.position, college: me.college }} />)}
                 {showBare && (
                   <tr>
                     <td>

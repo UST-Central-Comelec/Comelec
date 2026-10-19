@@ -1,13 +1,13 @@
 import { SlidingSubtabs } from "./sliding-subtabs";
-import { CalendarClock, UserCog } from "lucide-react";
+import { CalendarClock, ClipboardCheck, UserCog } from "lucide-react";
 
-/** Accounts and the board-only expiration settings. Access Control lives in the sidebar. */
-export function AccountsTabs({ current, showBoardTabs }: { current: "accounts" | "expiration"; showBoardTabs: boolean }) {
-  if (!showBoardTabs) return null;
+/** Approvals, Accounts, and the board-only expiration settings. Access Control lives in the sidebar. */
+export function AccountsTabs({ current, showBoardTabs, waiting = 0 }: { current: "approvals" | "accounts" | "expiration"; showBoardTabs: boolean; waiting?: number }) {
   return (
-    <SlidingSubtabs active={current} label="Accounts" scope="accounts" items={[
+    <SlidingSubtabs active={current} label="Accounts" scope="accounts" keepQuery={["unit", "returnTo"]} items={[
+      { key: "approvals", href: "/portal/accounts/approvals", label: <><ClipboardCheck size={15} strokeWidth={1.8} aria-hidden="true" /> Approvals{waiting > 0 && <small>{waiting}</small>}</> },
       { key: "accounts", href: "/portal/accounts", label: <><UserCog size={15} strokeWidth={1.8} aria-hidden="true" /> Accounts</> },
-      { key: "expiration", href: "/portal/accounts/expiration", label: <><CalendarClock size={15} strokeWidth={1.8} aria-hidden="true" /> Expiration</> },
+      ...(showBoardTabs ? [{ key: "expiration", href: "/portal/accounts/expiration", label: <><CalendarClock size={15} strokeWidth={1.8} aria-hidden="true" /> Expiration</> }] : []),
     ]} />
   );
 }

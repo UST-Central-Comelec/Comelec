@@ -119,5 +119,5 @@ export function CookieNoticeForm({ action, shown: saved }: { action: FormAction;
 export function ResetNoticeButton() {
   const { pending } = useFormStatus();
   const hydrated = useHydrated();
-  return <button className="portal-button is-ghost" type="submit" disabled={pending || !hydrated}><RotateCcw size={15} aria-hidden="true" /> {pending ? <Busy>Resetting</Busy> : "Show again to everyone"}</button>;
+  return <button className="portal-button is-ghost is-small" type="submit" disabled={pending || !hydrated}><RotateCcw size={15} aria-hidden="true" /> {pending ? <Busy>Resetting</Busy> : "Show again to everyone"}</button>;
 }
