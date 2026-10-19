@@ -1,4 +1,4 @@
-import { AddIcon as ActionAddIcon, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
+import { AddIcon as ActionAddIcon } from "@/components/action-icons";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BadgeCheck, CircleDashed } from "lucide-react";
@@ -6,6 +6,7 @@ import { AddIcon as Plus } from "@/components/action-icons";
 import { AccountKindLabel, AccountStatusLabel } from "@/components/portal/account-badges";
 import { listSubmissionEditReviews } from "@/lib/applications/edit-requests";
 import { AccountsUnitFilter } from "@/components/portal/accounts-unit-filter";
+import { AccountReviewChevron, AccountReviewLink, AccountReviewRow } from "@/components/portal/account-review-row";
 import { AccountsTabs } from "@/components/portal/accounts-tabs";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
@@ -164,7 +165,7 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                       <small className="portal-muted">{accountPositions["executive-board"]}</small>
                       <small className="portal-muted">Not in the Directory yet</small>
                     </td>
-                    <td><AccountStatusLabel status="active" /><span className="portal-tag">Built-in</span></td>
+                    <td><AccountStatusLabel status="administrator" /></td>
                     <td className="portal-row-actions">{!viewer && <Link href="/portal/accounts/new?for=built-in"><ActionAddIcon size={15} aria-hidden="true" />Add details</Link>}</td>
                   </tr>
                 )}
@@ -174,9 +175,9 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                   const manageable = !viewer && (own || canManageAccount(me, account));
                   const student = account.kind === "personal" && detailsFor(account.affiliation, account.position).studentNumber;
                   return (
-                    <tr key={account.id}>
+                    <AccountReviewRow key={account.id} href={manageable || viewer ? `/portal/accounts/${account.id}/review` : undefined}>
                       <td>
-                        {manageable || viewer ? <Link className="portal-row-title" href={`/portal/accounts/${account.id}`}><RowName name={listName(account)} own={own} /></Link> : <span className="portal-row-title"><RowName name={listName(account)} own={own} /></span>}
+                        {manageable || viewer ? <AccountReviewLink href={`/portal/accounts/${account.id}/review`}><RowName name={listName(account)} own={own} /></AccountReviewLink> : <span className="portal-row-title"><RowName name={listName(account)} own={own} /></span>}
                         {/* A unit's account is known by its email; a person's email, program and role are on their own page. */}
                         {account.kind === "official" && <small className="portal-muted portal-account-email">{account.email} <Verified at={account.emailVerifiedAt} /></small>}
                       </td>
@@ -195,11 +196,10 @@ export default async function PortalAccountsPage({ searchParams }: PageProps<"/p
                       </td>
                       <td><Standing account={account} /></td>
                       <td>
-                        <AccountStatusLabel status={accountStatus} title={accountStatus === "pending" ? "Awaiting their first Google sign-in to verify the email." : undefined} />
-                        {account.builtIn && <span className="portal-tag">Built-in</span>}
+                        <AccountStatusLabel status={account.builtIn ? "administrator" : accountStatus} title={accountStatus === "pending" ? "Awaiting their first Google sign-in to verify the email." : undefined} />
                       </td>
-                      <td className="portal-row-actions">{manageable ? <Link href={`/portal/accounts/${account.id}`}><ActionEditIcon size={15} aria-hidden="true" />{own ? "Edit" : "Manage"}</Link> : viewer && <Link href={`/portal/accounts/${account.id}`}><ActionViewIcon size={15} aria-hidden="true" />View</Link>}</td>
-                    </tr>
+                      <td className="portal-row-actions">{(manageable || viewer) && <AccountReviewChevron href={`/portal/accounts/${account.id}/review`} name={listName(account)} />}</td>
+                    </AccountReviewRow>
                   );
                 })}
               </tbody>

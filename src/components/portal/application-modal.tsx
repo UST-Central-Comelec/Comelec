@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { CloseIcon as X } from "@/components/action-icons";
 
-export function ApplicationModal({ children, onClose, titleId }: { children: ReactNode; onClose: () => void; titleId: string }) {
+export function ApplicationModal({ children, onClose, titleId, closeLabel = "Close application details" }: { children: ReactNode; onClose: () => void; titleId: string; closeLabel?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function ApplicationModal({ children, onClose, titleId }: { children: Rea
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <button type="button" className="portal-icon-button is-light portal-registrant-close" aria-label="Close application details" autoFocus onClick={onClose}>
+      <button type="button" className="portal-icon-button is-light portal-registrant-close" aria-label={closeLabel} autoFocus onClick={onClose}>
         <X size={18} aria-hidden="true" />
       </button>
       {children}

@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AddIcon as Plus, EditIcon as ActionEditIcon, ViewIcon as ActionViewIcon } from "@/components/action-icons";
+import { AddIcon as Plus } from "@/components/action-icons";
 import { AccountKindLabel, AccountStatusLabel } from "@/components/portal/account-badges";
-import { AccessRequestRow, EditRequestRow } from "@/components/portal/access-requests";
+import { AccessRequestRow } from "@/components/portal/access-requests";
 import { AccountsTabs } from "@/components/portal/accounts-tabs";
 import { AccountsUnitFilter } from "@/components/portal/accounts-unit-filter";
+import { AccountReviewChevron, AccountReviewLink, AccountReviewRow } from "@/components/portal/account-review-row";
+import { SlidingFilters } from "@/components/portal/sliding-filters";
 import { TitleWithInfo } from "@/components/portal/info-tip";
 import { Notice } from "@/components/portal/notice";
 import { ViewOnlyTag } from "@/components/portal/view-only";
-import { listPendingAccessRequests } from "@/lib/access-requests/admin";
-import { listSubmissionEditReviews } from "@/lib/applications/edit-requests";
+import { getAccessRequest, listPendingAccessRequests } from "@/lib/access-requests/admin";
+import { listSubmissionEditHistory, listSubmissionEditReviews } from "@/lib/applications/edit-requests";
 import { comelecUnits, unitAbbreviations } from "@/lib/applications/options";
 import { allowed, builtInUser, isLocal, withPortalUser } from "@/lib/auth/session";
 import { accountStatusOf, listName, positionName } from "@/lib/data/accounts";
@@ -22,7 +24,8 @@ import { matchesUnit } from "@/lib/portal/unit-filter";
 export const metadata: Metadata = { title: "Approvals" };
 
 export default async function AccountApprovalsPage({ searchParams }: PageProps<"/portal/accounts/approvals">) {
-  const { notice, unit: unitParam } = await searchParams;
+  const { notice, unit: unitParam, kind: kindParam } = await searchParams;
+  const category = kindParam === "personal" || kindParam === "official" ? kindParam : undefined;
   const builtIn = builtInUser();
   const [me, [everyAccount, { value: everyRequest, error: requestsError }, edits]] = await withPortalUser(Promise.all([getAccounts(builtIn?.email), settle(listPendingAccessRequests()), settle(listSubmissionEditReviews("access"))]), allowed("accounts"));
 
@@ -38,13 +41,26 @@ export default async function AccountApprovalsPage({ searchParams }: PageProps<"
   const units = local ? (me.college ? [me.college] : []) : [...new Set([...comelecUnits, ...visibleRequests.map(request => request.college)])].sort((a, b) => a.localeCompare(b));
   const unit = typeof unitParam === "string" && ((unitParam === "central" && !local) || units.includes(unitParam)) ? unitParam : undefined;
 
-  const requests = visibleRequests.filter(request => matchesUnit(request, unit));
+  const unitRequests = visibleRequests.filter(request => matchesUnit(request, unit));
+  const requests = category === "official" ? [] : unitRequests;
   const editFor = new Map(visibleEdits.map(edit => [edit.access_request_id, edit]));
   // Edit requests on a request that's already decided still need answering.
   const allLooseEdits = visibleEdits.filter(edit => !pendingRequest(edit));
-  const looseEdits = allLooseEdits.filter(edit => matchesUnit({ affiliation: edit.subject.affiliation ?? "central", college: edit.subject.college }, unit));
-  const accounts = waitingAccounts.filter(account => matchesUnit(account, unit));
+  const unitEdits = allLooseEdits.filter(edit => matchesUnit({ affiliation: edit.subject.affiliation ?? "central", college: edit.subject.college }, unit));
+  const looseEdits = category === "official" ? [] : unitEdits;
+  const unitAccounts = waitingAccounts.filter(account => matchesUnit(account, unit));
+  const accounts = unitAccounts.filter(account => !category || account.kind === category);
+  const categoryHref = (kind?: "personal" | "official") => {
+    const params = new URLSearchParams();
+    if (unit) params.set("unit", unit);
+    if (kind) params.set("kind", kind);
+    return `/portal/accounts/approvals${params.size ? `?${params}` : ""}`;
+  };
   const manager = viewer ? null : { kind: me.kind, affiliation: me.affiliation, position: me.position, college: me.college };
+  const [history, decidedRequests] = await Promise.all([
+    settle(listSubmissionEditHistory("access", [...new Set([...requests.map(request => request.id), ...looseEdits.flatMap(edit => edit.access_request_id ? [edit.access_request_id] : [])])])),
+    Promise.all(looseEdits.map(async edit => ({ edit, request: edit.access_request_id ? await getAccessRequest(edit.access_request_id) : null }))),
+  ]);
   const empty = !requests.length && !looseEdits.length && !accounts.length;
 
   return (
@@ -62,6 +78,11 @@ export default async function AccountApprovalsPage({ searchParams }: PageProps<"
 
       <div className="portal-filter-rows is-inline">
         <AccountsUnitFilter units={units} value={unit ?? ""} showCentral={!local} />
+        <SlidingFilters label="Filter approvals by category" active={category ?? "all"} items={[
+          { key: "all", href: categoryHref(), label: "All approvals" },
+          { key: "personal", href: categoryHref("personal"), label: <>Commissioner<small>{unitRequests.length + unitEdits.length + unitAccounts.filter(account => account.kind === "personal").length}</small></> },
+          { key: "official", href: categoryHref("official"), label: <>Official accounts<small>{unitAccounts.filter(account => account.kind === "official").length}</small></> },
+        ]} />
       </div>
 
       {edits.error && <p className="portal-form-error" role="alert">{edits.error}</p>}
@@ -72,25 +93,25 @@ export default async function AccountApprovalsPage({ searchParams }: PageProps<"
       )}
 
       <section className="portal-card is-flush">
-        {empty ? <p className="portal-empty">Nothing waiting. New access requests and edit requests show here.</p> : (
+        {empty ? <p className="portal-empty">{category === "official" ? "No official accounts waiting for verification." : category === "personal" ? "No commissioner approvals waiting." : "Nothing waiting. New access requests and edit requests show here."}</p> : (
           <div className="portal-table-wrap">
             <table className="portal-table portal-accounts">
               <thead><tr><th>Name</th><th>Student ID</th><th>Affiliation</th><th>Position</th><th>Status</th><th aria-label="Actions" /></tr></thead>
               <tbody key={unit ?? "all"}>
-                {requests.map(request => <AccessRequestRow key={request.id} request={request} manager={manager} edit={editFor.get(request.id)} />)}
-                {looseEdits.map(edit => <EditRequestRow key={edit.id} edit={edit} readOnly={viewer} />)}
+                {requests.map(request => <AccessRequestRow key={request.id} request={request} manager={manager} edit={editFor.get(request.id)} history={history.value?.filter(edit => edit.access_request_id === request.id)} historyError={history.error ?? undefined} />)}
+                {decidedRequests.map(({ edit, request }) => request && (viewer ? canSeeUnit(me, request) : canDecideRequest(me, request)) && <AccessRequestRow key={edit.id} request={request} manager={manager} edit={edit} history={history.value?.filter(item => item.access_request_id === request.id)} historyError={history.error ?? undefined} />)}
                 {accounts.map(account => {
                   const manageable = !viewer && canManageAccount(me, account);
                   const short = account.affiliation === "central" ? "CENTRAL" : account.affiliation === "local" ? (account.college ? (unitAbbreviations[account.college] ?? account.college) : "LOCAL") : "OSA";
                   return (
-                    <tr key={account.id}>
-                      <td><Link className="portal-row-title" href={`/portal/accounts/${account.id}`}>{listName(account)}</Link></td>
+                    <AccountReviewRow key={account.id} href={manageable || viewer ? `/portal/accounts/${account.id}/review` : undefined}>
+                      <td>{manageable || viewer ? <AccountReviewLink href={`/portal/accounts/${account.id}/review`}>{listName(account)}</AccountReviewLink> : <span className="portal-row-title">{listName(account)}</span>}</td>
                       <td>{account.kind === "official" ? <span className="portal-muted">Not a student</span> : account.studentNumber ?? <span className="portal-muted">Not set</span>}</td>
                       <td><span title={account.college ?? undefined}>{short}</span></td>
                       <td><div className="portal-account-standing"><AccountKindLabel kind={account.kind} />{account.kind === "personal" && <small className="portal-muted">{positionName(account)}</small>}</div></td>
                       <td><div className="portal-account-status-stack"><AccountStatusLabel status="pending" /><small className="portal-muted">Waiting for first sign-in</small></div></td>
-                      <td className="portal-row-actions">{manageable ? <Link href={`/portal/accounts/${account.id}`}><ActionEditIcon size={15} aria-hidden="true" />Manage</Link> : <Link href={`/portal/accounts/${account.id}`}><ActionViewIcon size={15} aria-hidden="true" />View</Link>}</td>
-                    </tr>
+                      <td className="portal-row-actions">{(manageable || viewer) && <AccountReviewChevron href={`/portal/accounts/${account.id}/review`} name={listName(account)} />}</td>
+                    </AccountReviewRow>
                   );
                 })}
               </tbody>

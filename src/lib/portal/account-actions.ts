@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
+import { accountReviewReturnHref } from "./account-review-return";
 import { z } from "zod";
 import { email as emailField, personName } from "@/lib/forms/fields";
 import { studentNumberPattern } from "@/lib/forms/input";
@@ -311,11 +312,14 @@ export async function updateAccountDetails(id: string, _state: FormState, formDa
     if (changes.length) later(() => sendAutomatic("account-updated", () => accountUpdatedEmail(account, changes, actorOf(manager), { own, access: changesAccess(existing, account) })));
   }
   refresh();
-  redirect(`/portal/accounts/${id}?notice=account-updated`);
+  const review = formData.get("_accountReview") === "1";
+  const query = new URLSearchParams({ notice: "account-updated" });
+  if (review) query.set("from", accountReviewReturnHref(formData.get("_accountReviewReturn")));
+  redirect(`/portal/accounts/${id}${review ? "/review" : ""}?${query}`, review ? RedirectType.replace : RedirectType.push);
 }
 
 /** Access is re-checked on every request, so revoking takes effect on their next click. A revoked account also leaves the Directory. */
-export async function setAccountAccess(id: string, active: boolean) {
+export async function setAccountAccess(id: string, active: boolean, review = false, returnHref?: string) {
   const manager = await requireEditor("accounts");
   const row = await store.get("accounts", id);
   const account = row && toSummary(row);
@@ -325,7 +329,9 @@ export async function setAccountAccess(id: string, active: boolean) {
   await store.update("accounts", id, { active, ...(!active && account.chamberRole ? { chamberRole: null } : {}) }, manager.email);
   if (active !== account.active) later(() => sendAutomatic(active ? "account-restored" : "account-revoked", () => accountAccessEmail(account, active, actorOf(manager))));
   refresh();
-  redirect(`/portal/accounts/${id}?notice=${active ? "restored" : "revoked"}`);
+  const query = new URLSearchParams({ notice: active ? "restored" : "revoked" });
+  if (review) query.set("from", accountReviewReturnHref(returnHref));
+  redirect(`/portal/accounts/${id}${review ? "/review" : ""}?${query}`, review ? RedirectType.replace : RedirectType.push);
 }
 
 /**

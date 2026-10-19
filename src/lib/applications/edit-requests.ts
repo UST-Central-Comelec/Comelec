@@ -14,6 +14,20 @@ export type SubmissionEditReview = SubmissionEditRequest & { subject: EditReques
 const unavailable = "Couldn’t load edit requests. Apply supabase/migrations/0080_submission_edit_requests.sql and try again.";
 export const submissionEditColumn = (kind: SubmissionEditKind) => kind === "application" ? "application_id" : "access_request_id";
 
+/** Internal review history. Call only with submissions already filtered to the viewer’s unit. */
+export async function listSubmissionEditHistory(kind: SubmissionEditKind, ids: string[]): Promise<SubmissionEditRequest[]> {
+  const history: SubmissionEditRequest[] = [];
+  for (let start = 0; start < ids.length; start += 100) {
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await createAdminClient().from("submission_edit_requests").select("*").in(submissionEditColumn(kind), ids.slice(start, start + 100)).order("created_at").order("id").range(offset, offset + 999);
+      if (error) throw new Error("Couldn’t load the edit history. Reload and try again.");
+      history.push(...data as SubmissionEditRequest[]);
+      if (data.length < 1000) break;
+    }
+  }
+  return history;
+}
+
 /** Uses the same reference, identity and retention rules as public application tracking. */
 export async function findTrackedApplicationId(reference: string, identity: string, isStudentNumber: boolean): Promise<string | null> {
   const query = createAdminClient().from("applications").select("id").eq("reference_code", reference).gte("created_at", retentionCutoff());

@@ -746,6 +746,7 @@ a.portal-row-title:hover { text-decoration: underline !important; text-decoratio
 .portal-account-status-mark { border: 1px solid currentColor; box-sizing: border-box; display: inline-block; flex: none; height: 7px; width: 7px; }
 .portal-account-status.is-active { color: var(--p-ok-ink); }
 .portal-account-status.is-active .portal-account-status-mark { background: currentColor; border-color: currentColor; }
+.portal-account-status.is-administrator .portal-account-status-mark { background: var(--p-evaluation-status); border-color: var(--p-evaluation-status); }
 .portal-account-status.is-pending { color: var(--p-danger-ink); }
 .portal-account-status.is-pending .portal-account-status-mark { background: currentColor; border-color: currentColor; }
 .portal-account-status.is-revoked { color: var(--p-faint); }
@@ -766,6 +767,7 @@ a.portal-row-title:hover { text-decoration: underline !important; text-decoratio
    request's review, where it's approved or declined. */
 .portal-request-row.is-reviewable { cursor: pointer; transition: background-color .15s ease; }
 .portal-request-row.is-reviewable:hover { background: rgba(var(--p-ink), .035); }
+.portal-request-row.is-reviewable:hover .portal-list-review { color: var(--p-text); }
 .portal-request-row .portal-tag { margin-right: 0; }
 .portal-row-open { background: none; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 0; text-align: left; }
 .portal-row-open:hover { color: var(--p-bright); }
@@ -1627,7 +1629,7 @@ html:has(.portal-registrant-dialog[open]) { overflow: hidden; }
 .portal-registrant-dialog { background: transparent; border: 0; color: var(--p-text); margin: auto; max-height: calc(100dvh - 40px); max-width: calc(100vw - 32px); overflow: hidden; padding: 0 46px 0 0; width: 1046px; }
 .portal-registrant-dialog::backdrop, .portal-registrant-confirmation::backdrop { background: var(--p-veil); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .portal-registrant-dialog[open] { animation: portal-help-in .22s var(--p-ease); }
-.portal-registrant-receipt { background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 18px; box-shadow: 0 16px 48px rgba(0,0,0,.18); display: flex; flex-direction: column; height: min(800px, calc(100dvh - 40px)); overflow: hidden; }
+.portal-registrant-receipt { background: var(--p-surface); border: 1px solid var(--p-line-strong); border-radius: 18px; box-shadow: 0 16px 48px rgba(0,0,0,.18); display: flex; flex-direction: column; height: min(800px, calc(100dvh - 40px)); overflow: hidden; text-align: left; white-space: normal; }
 .portal-registrant-receipt-head { align-items: center; border-bottom: 1px solid var(--p-line); display: grid; flex: none; gap: 24px; grid-template-columns: minmax(0, 1fr) auto; padding: 22px 28px 18px; position: relative; text-align: left; }
 .portal-registrant-close { background: var(--p-surface); position: absolute; right: 0; top: 0; }
 .portal-registrant-receipt-head h2 { color: var(--p-text); font-size: clamp(20px, 4vw, 24px); font-weight: 600; letter-spacing: -.035em; line-height: 1.25; margin: 0 0 8px; overflow-wrap: anywhere; }
@@ -1642,6 +1644,10 @@ html:has(.portal-registrant-dialog[open]) { overflow: hidden; }
 .portal-registrant-reference > strong { color: var(--p-text); display: block; font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; margin-top: 8px; }
 .portal-registrant-receipt-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 28px; }
 .portal-registrant-receipt-body { scrollbar-width: thin; scrollbar-color: rgba(var(--p-ink),.2) transparent; }
+.portal-account-review-content { display: grid; gap: 20px; min-width: 0; }
+.portal-account-review-content .portal-page-head { margin: 0; }
+.portal-account-review-content .portal-page-head h2 { color: var(--p-text); font-size: clamp(20px, 4vw, 24px); font-weight: 600; line-height: 1.25; margin: 0 0 8px; overflow-wrap: anywhere; }
+.portal-account-review-content .portal-card { margin: 0; }
 @supports selector(::-webkit-scrollbar) {
   .portal-registrant-receipt-body { scrollbar-width: auto; scrollbar-color: auto; }
   .portal-registrant-receipt-body::-webkit-scrollbar { width: 4px; height: 4px; }

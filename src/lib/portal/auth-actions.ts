@@ -7,7 +7,7 @@ import { endAccessFlow } from "@/lib/access-requests/verification";
 import { revalidatePath } from "next/cache";
 import { ACCOUNT_COOKIE, accountCookieOptions } from "./account-selection";
 import { getPortalMemberships, homeFor, isLoginConfigured } from "@/lib/auth/session";
-import { ACTIVITY_COOKIE, activityCookieOptions, REMEMBER_COOKIE, rememberCookieOptions, type TimeoutReason } from "@/lib/security/portal-session";
+import { ACTIVITY_COOKIE, activityCookieOptions, decodeActivity, REMEMBER_COOKIE, rememberCookieOptions, timeoutReason } from "@/lib/security/portal-session";
 import { clientIp, limits, rateLimit } from "@/lib/security/rate-limit";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/supabase/config";
 import { createAuthClient } from "@/lib/supabase/server";
@@ -64,8 +64,16 @@ export async function logout() {
   redirect("/portal/login");
 }
 
-/** Called by the portal when the idle or absolute timeout runs out in the browser. */
-export async function logoutAfterTimeout(reason: TimeoutReason) {
+/** A stale tab must never end a newer or remembered session based on its old browser timer. */
+export async function logoutAfterTimeout() {
+  const { data } = await (await createAuthClient()).auth.getClaims();
+  const sessionId = data?.claims.session_id;
+  if (typeof sessionId !== "string") redirect("/portal/login");
+  const record = await decodeActivity((await cookies()).get(ACTIVITY_COOKIE)?.value, sessionId);
+  const reason = record ? timeoutReason(record) : "expired";
+  if (record && !reason) {
+    return { startedAt: record.startedAt, lastActiveAt: record.lastActiveAt, remember: record.remember };
+  }
   await endSession();
-  redirect(`/portal/login?reason=${reason === "expired" ? "expired" : "idle"}`);
+  redirect(`/portal/login?reason=${reason}`);
 }

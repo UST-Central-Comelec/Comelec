@@ -39,11 +39,13 @@ export type AccessRequest = {
   declarations: Declaration[];
   status: AccessRequestStatus;
   submittedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
 };
 
 const columns = "*";
 
-type Row = { id: string; reference_code: string; first_name: string; middle_initial: string; middle_name?: string | null; last_name: string; email: string; student_number: string; contact_number: string | null; position: string; account_position?: string | null; facebook_url?: string | null; affiliation?: string; college: string; program: string; year_level: string; declarations?: unknown; status: AccessRequestStatus; created_at: string };
+type Row = { id: string; reference_code: string; first_name: string; middle_initial: string; middle_name?: string | null; last_name: string; email: string; student_number: string; contact_number: string | null; position: string; account_position?: string | null; facebook_url?: string | null; affiliation?: string; college: string; program: string; year_level: string; declarations?: unknown; status: AccessRequestStatus; created_at: string; decided_at?: string | null; decided_by?: string | null };
 
 function toRequest(row: Row): AccessRequest {
   return {
@@ -68,6 +70,8 @@ function toRequest(row: Row): AccessRequest {
     declarations: readDeclarations(row.declarations),
     status: row.status,
     submittedAt: row.created_at,
+    decidedAt: row.decided_at ?? null,
+    decidedBy: row.decided_by ?? null,
   };
 }
 

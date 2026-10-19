@@ -40,6 +40,7 @@ export function SessionTimeout({ startedAt }: { startedAt: number | null }) {
   const router = useRouter();
   const lastActivity = useRef(0);
   const lastPing = useRef(0);
+  const sessionStarted = useRef(startedAt);
   const ending = useRef(false);
   /** While the idle warning is up, only "Stay signed in" counts; wandering mouse moves don't. */
   const idleWarningShown = useRef(false);
@@ -49,15 +50,33 @@ export function SessionTimeout({ startedAt }: { startedAt: number | null }) {
   const stayButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    let disposed = false;
     const now = Date.now();
+    sessionStarted.current = startedAt;
+    ending.current = false;
     lastActivity.current = Math.max(now, readShared());
     lastPing.current = now;
     writeShared(lastActivity.current);
 
-    const end = (reason: TimeoutReason) => {
+    const end = () => {
       if (ending.current) return;
       ending.current = true;
-      startTransition(() => logoutAfterTimeout(reason));
+      startTransition(async () => {
+        const session = await logoutAfterTimeout();
+        if (disposed) return;
+        setWarning(null);
+        idleWarningShown.current = false;
+        if (session.remember) {
+          // Another tab kept this session signed in. Stop this old timer and refresh the layout.
+          router.refresh();
+          return;
+        }
+        sessionStarted.current = session.startedAt;
+        lastActivity.current = Math.max(session.lastActiveAt, readShared());
+        writeShared(lastActivity.current);
+        absoluteDismissed.current = false;
+        ending.current = false;
+      });
     };
 
     const ping = async () => {
@@ -85,10 +104,9 @@ export function SessionTimeout({ startedAt }: { startedAt: number | null }) {
       const time = Date.now();
       lastActivity.current = Math.max(lastActivity.current, readShared());
       const idleLeft = lastActivity.current + IDLE_TIMEOUT_MS - time;
-      const absoluteLeft = startedAt ? startedAt + ABSOLUTE_TIMEOUT_MS - time : Infinity;
+      const absoluteLeft = sessionStarted.current ? sessionStarted.current + ABSOLUTE_TIMEOUT_MS - time : Infinity;
 
-      if (absoluteLeft <= 0) return end("expired");
-      if (idleLeft <= 0) return end("idle");
+      if (absoluteLeft <= 0 || idleLeft <= 0) return end();
       idleWarningShown.current = false;
       if (absoluteLeft <= ABSOLUTE_WARNING_MS && absoluteLeft < idleLeft && !absoluteDismissed.current) setWarning({ reason: "expired", left: absoluteLeft });
       else if (idleLeft <= IDLE_WARNING_MS) {
@@ -107,6 +125,7 @@ export function SessionTimeout({ startedAt }: { startedAt: number | null }) {
     const timer = setInterval(tick, 1000);
 
     return () => {
+      disposed = true;
       for (const event of events) window.removeEventListener(event, onActivity, { capture: true });
       window.removeEventListener("storage", onStorage);
       clearInterval(timer);

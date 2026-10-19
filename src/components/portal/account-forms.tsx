@@ -66,11 +66,13 @@ function NotApplicable({ label, hint }: { label: string; hint: string }) {
  * manager can only add to their own college's Local Comelec. The server checks all of this again.
  * `danger` is what sits at the footer's left: revoking, restoring and deleting.
  */
-export function AccountForm({ action, initial = emptyAccount, manager, askEmail, email, fixedUnit, submitLabel, cancelHref, danger, guard }: { action: FormAction; initial?: AccountValues; manager: Manager; askEmail?: boolean; email?: string; fixedUnit?: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; guard?: EditGuardInfo }) {
+export function AccountForm({ action, initial = emptyAccount, manager, askEmail, email, fixedUnit, submitLabel, cancelHref, danger, guard, review }: { action: FormAction; initial?: AccountValues; manager: Manager; askEmail?: boolean; email?: string; fixedUnit?: boolean; submitLabel: string; cancelHref: string; danger?: ReactNode; guard?: EditGuardInfo; review?: boolean }) {
   const { state, pending, onSubmit, errors } = usePortalForm(action);
   const localManager = manager.affiliation === "local";
   // Official accounts are the Central Executive Board's to add.
   const canAddOfficial = canManageAccount(manager, { kind: "official", affiliation: "central", position: "executive-board", college: null });
+  // Existing unit accounts keep the simple official-account form, including when another unit manages them.
+  const showCategory = canAddOfficial && !fixedUnit && (askEmail || initial.kind !== "official");
   const [kind, setKind] = useState<AccountKind>(initial.kind);
   const official = kind === "official";
 
@@ -135,7 +137,8 @@ export function AccountForm({ action, initial = emptyAccount, manager, askEmail,
     <form className="portal-form" onSubmit={onSubmit} noValidate>
       <EditPresence guard={guard} />
       <input type="hidden" name="kind" value={kind} />
-      {canAddOfficial && !fixedUnit && (
+      {review && <><input type="hidden" name="_accountReview" value="1" /><input type="hidden" name="_accountReviewReturn" value={cancelHref} /></>}
+      {showCategory && (
         <fieldset className="portal-form-section">
           <legend>Category</legend>
           <SlidingSegments active={kind} role="radiogroup" aria-label="Category">
