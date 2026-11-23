@@ -7,6 +7,7 @@ import "./cookie-notice.css";
 import { CookieNotice } from "@/components/cookie-notice";
 import { FormInputGuard } from "@/components/form-input-guard";
 import { FramedSignInGuard } from "@/components/framed";
+import { AutopilotBridge } from "@/components/autopilot-bridge";
 import { FormValidation } from "@/components/form-validation";
 import { ScrollKeeper } from "@/components/scroll-keeper";
 import { ReferenceData } from "@/components/reference-data";
@@ -49,6 +50,11 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 const MAX_FEATURED = 4;
+
+// The portfolios allowed to frame the site (PORTFOLIO_ORIGINS, as next.config.ts reads it), which may also demo it
+// through components/autopilot-bridge.tsx.
+const bridgeOrigins = [...new Set((process.env.PORTFOLIO_ORIGINS ?? "").split(/[\s,]+/).flatMap((entry) =>
+  /^https?:\/\/(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(:\d{1,5})?\/?$/i.test(entry) && URL.canParse(entry) ? [new URL(entry).origin] : []))];
 
 /** Open commissioner applications, while they're open. */
 function applicationsCard(period: ApplicationPeriod): Featured[] {
@@ -100,6 +106,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={cn("font-sans", geist.variable, serif.variable)} suppressHydrationWarning>
       <body>
         <FormInputGuard /><FramedSignInGuard /><FormValidation /><ScrollKeeper />
+        <AutopilotBridge origins={bridgeOrigins} />
         <SiteLoader />
         <ReferenceData data={lists}>
         <SmoothScroll>

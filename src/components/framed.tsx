@@ -61,7 +61,7 @@ export function SignInLink({ note = "visible", children, ...props }: ComponentPr
 }
 
 /** Paths that sign in, start Google sign-in, or sit behind a sign-in. */
-const signInPaths = [/^\/filing(\/|$)/, /^\/portal(\/|$)/, /^\/apply\/verify\/start$/, /^\/events\/[^/]+\/register\/start$/];
+export const signInPaths = [/^\/filing(\/|$)/, /^\/portal(\/|$)/, /^\/apply\/verify\/start$/, /^\/events\/[^/]+\/register\/start$/];
 
 /**
  * Mounted in each root layout. While framed, any same-site link into a sign-in path opens in a new
