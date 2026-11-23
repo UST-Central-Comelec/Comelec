@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FramedNote, SignInLink } from "@/components/framed";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { PeriodStatus, type BannerPeriod } from "@/components/apply-banner";
 import { FACEBOOK_PAGE } from "@/lib/content";
@@ -63,8 +64,11 @@ export function ApplicationNotOpen({ title, eyebrow, status, description, period
         </div>
         <footer className="apply-nav">
           <Link className="apply-back" href="/"><ArrowLeft size={15} /> Back to home</Link>
-          <Link className="button-primary" href={action.href}>{action.label} <ArrowRight size={15} /></Link>
+          {action.href.startsWith("/filing")
+            ? <SignInLink note="hidden" className="button-primary" href={action.href}>{action.label} <ArrowRight size={15} /></SignInLink>
+            : <Link className="button-primary" href={action.href}>{action.label} <ArrowRight size={15} /></Link>}
         </footer>
+        {action.href.startsWith("/filing") && <FramedNote className="framed-note apply-framed-note" />}
       </div>
     </main>
   );

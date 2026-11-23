@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Instrument_Serif } from "next/font/google";
 import "./portal.css";
 import { FormInputGuard } from "@/components/form-input-guard";
+import { FramedSignInGuard } from "@/components/framed";
 import { FormValidation } from "@/components/form-validation";
 import { ScrollKeeper } from "@/components/scroll-keeper";
 import { ReferenceData } from "@/components/reference-data";
@@ -25,7 +26,7 @@ export default async function PortalRootLayout({ children }: LayoutProps<"/">) {
   const lists = await getReferenceData();
   return (
     <html lang="en" className={`${geist.variable} ${instrumentSerif.variable}`}>
-      <body className="portal"><FormInputGuard /><FormValidation /><ScrollKeeper /><ReferenceData data={lists}>{children}</ReferenceData></body>
+      <body className="portal"><FormInputGuard /><FramedSignInGuard /><FormValidation /><ScrollKeeper /><ReferenceData data={lists}>{children}</ReferenceData></body>
     </html>
   );
 }

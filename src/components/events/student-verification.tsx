@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FramedNote, isFramed } from "@/components/framed";
 
 /** Verification runs in a popup so switching to Google preserves the form draft. */
 export function StudentVerification({ eventId, target, onVerified }: { eventId: string; target: "rsvp-form" | "evaluate"; onVerified?: (email: string) => void }) {
@@ -24,10 +25,12 @@ export function StudentVerification({ eventId, target, onVerified }: { eventId: 
   return <div className="ev-student-verification">
     <p>{email ? `Verified UST account: ${email}` : "UST students, faculty and staff must verify their UST Google account. External respondents can continue without verification."}</p>
     <a className="ev-button is-ghost" href={href} target="_blank" rel="noopener" onClick={event => {
-      if (!("BroadcastChannel" in window)) return;
+      // Framed by another site: the popup couldn't report back, so the plain new tab is used.
+      if (!("BroadcastChannel" in window) || isFramed()) return;
       const popup = window.open(href, "event-student-verification", "popup,width=520,height=700");
       if (popup) event.preventDefault();
     }}>{email ? "Change verified account" : "Verify UST Google account"}</a>
+    <FramedNote />
     {error && <p className="ev-field-error" role="alert">{error}</p>}
   </div>;
 }

@@ -27,6 +27,7 @@ import { LegalText } from "./legal-text";
 import { LockOpenIcon, type LockOpenIconHandle } from "@/components/lucide-animated/lock-open";
 import "./onboarding.css";
 import { Busy } from "@/components/busy";
+import { FramedNote, leaveFrameForSignIn } from "@/components/framed";
 
 const formatSubmitted = (iso: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(iso));
 
@@ -386,6 +387,8 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
 
   /** Opens Google sign-in in a centred popup. Verifying falls back to this window if popups are blocked. */
   const openGoogle = (googleStep: AccessStep) => {
+    // Inside another site's frame the popup's sign-in can't reach this page: carry on in a new tab.
+    if (leaveFrameForSignIn()) return;
     const url = `/portal/request-access/start?step=${googleStep}${googleStep === "verify" && join ? `&join=${encodeURIComponent(join)}` : ""}`;
     const width = 480;
     const height = 640;
@@ -585,6 +588,7 @@ export function RequestAccessForm({ profile, onProfileChange, initialStatus, onB
                   <GoogleMark /> Verify with UST Google
                 </button>
               )}
+              <FramedNote />
             </>
           ) : (
             <>

@@ -3,6 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { signInWithGoogle } from "@/lib/portal/auth-actions";
 import { Busy } from "@/components/busy";
+import { FRAMED_SIGN_IN_NOTE, leaveFrameForSignIn, useFramed } from "@/components/framed";
 
 /** Google's "G", for buttons that start Google sign-in. */
 export function GoogleMark() {
@@ -28,6 +29,18 @@ function GoogleButton() {
 }
 
 export function LoginForm() {
+  // Inside another site's frame, Google sign-in can't run: open this page in a new tab instead.
+  if (useFramed()) {
+    return (
+      <div className="portal-login-form">
+        <a className="portal-button is-block is-google" href="/portal/login" target="_blank" rel="noopener" onClick={(event) => leaveFrameForSignIn(event)}>
+          <GoogleMark />
+          Sign in with Google
+        </a>
+        <p className="framed-note">{FRAMED_SIGN_IN_NOTE}</p>
+      </div>
+    );
+  }
   return (
     <form className="portal-login-form" action={signInWithGoogle}>
       <GoogleButton />

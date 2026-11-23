@@ -11,14 +11,26 @@ const isDev = process.env.NODE_ENV !== "production";
 const origin = (url: string | undefined) => (url && URL.canParse(url) ? new URL(url).origin : "");
 const supabaseOrigin = origin(supabaseUrl);
 
+// Sites allowed to show this one in an <iframe> (a portfolio): PORTFOLIO_ORIGINS, full origins
+// separated by spaces or commas ("https://example.com http://localhost:3000"). Anything that isn't a
+// plain http(s) origin (a path, a wildcard, a keyword) is ignored. Empty or unset, nothing may frame
+// the site. It's read when the app is built, so changing it needs a new build (a redeploy on Vercel).
+const portfolioOrigins = [...new Set((process.env.PORTFOLIO_ORIGINS ?? "").split(/[\s,]+/).flatMap((entry) => {
+  // Scheme, host (letters, digits, dots, hyphens, or a bracketed IPv6) and an optional port, nothing else,
+  // so no entry can smuggle in a wildcard, a quote or a ";" that starts another directive.
+  if (!/^https?:\/\/(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(:\d{1,5})?\/?$/i.test(entry) || !URL.canParse(entry)) return [];
+  return [new URL(entry).origin];
+}))];
+const frameAncestors = portfolioOrigins.length ? `frame-ancestors 'self' ${portfolioOrigins.join(" ")}` : "frame-ancestors 'none'";
+
 // The Content Security Policy. Scripts only come from this site: Next's inline scripts are
 // allowed, because nonces would make every page render per request and lose its cache, but no
 // script from another address ever runs. The page may only connect to this site, Supabase (data
 // and Realtime) and Google Drive (PDF uploads go straight there), so an injected script would have
 // nowhere to send anything. Images: this site, Supabase and R2 storage, and Google profile photos.
 // Google Fonts is only for the email preview, which shows the email as it's sent. No framing
-// (clickjacking), no plugins, no <base> hijacking, and forms may only post to this site or continue
-// on to Google sign-in through Supabase. `next dev` also needs eval and its own WebSocket.
+// (clickjacking) except by PORTFOLIO_ORIGINS, no plugins, no <base> hijacking, and forms may only
+// post to this site or continue on to Google sign-in through Supabase. `next dev` also needs eval and its own WebSocket.
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -29,7 +41,7 @@ const contentSecurityPolicy = [
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "frame-src 'self'",
-  "frame-ancestors 'none'",
+  frameAncestors,
   "base-uri 'self'",
   "object-src 'none'",
   `form-action 'self' https://accounts.google.com ${supabaseOrigin}`,
@@ -38,7 +50,9 @@ const contentSecurityPolicy = [
 // Security headers on every response (OWASP Secure Headers).
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
+  // X-Frame-Options can't name an allowlist, so it's left out when PORTFOLIO_ORIGINS allows framing
+  // (the CSP's frame-ancestors above does the job, and browsers prefer it).
+  ...(portfolioOrigins.length ? [] : [{ key: "X-Frame-Options", value: "DENY" }]),
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   // Browsers only honour this over HTTPS, so it's harmless on localhost.

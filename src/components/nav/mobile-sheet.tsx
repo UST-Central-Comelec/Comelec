@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SignInLink } from "@/components/framed";
 import { ArrowUpRight, LogIn } from "lucide-react";
 import { SearchIcon as Search } from "@/components/action-icons";
 import { useState, type CSSProperties } from "react";
@@ -63,7 +64,7 @@ function SheetBody({ id, open, status, pathname, featured, featuredIndex, onFeat
       <div className="sh-sheet-extra" style={{ "--i": sections.length } as CSSProperties}>
         <FeaturedCarousel items={featured} index={featuredIndex} onIndexChange={onFeaturedIndexChange} playing={open} onNavigate={onNavigate} />
         <div className="sh-sheet-actions">
-          <Link href="/filing/login" prefetch={false} className="sh-cta" onClick={onNavigate}><LogIn size={15} aria-hidden="true" />Sign in</Link>
+          <SignInLink note="hidden" href="/filing/login" prefetch={false} className="sh-cta" onClick={onNavigate}><LogIn size={15} aria-hidden="true" />Sign in</SignInLink>
           <button type="button" className="sh-search" onClick={onSearch}><Search size={16} strokeWidth={1.8} aria-hidden="true" /><span>Search</span></button>
         </div>
         <p className="sh-sheet-theme"><span>Appearance</span><SiteThemeToggle /></p>

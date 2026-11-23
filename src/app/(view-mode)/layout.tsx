@@ -3,6 +3,7 @@ import "../globals.css";
 import { Geist } from "next/font/google";
 import { ViewModeStrip } from "@/components/view-mode-strip";
 import { FormInputGuard } from "@/components/form-input-guard";
+import { FramedSignInGuard } from "@/components/framed";
 import { FormValidation } from "@/components/form-validation";
 import { ScrollKeeper } from "@/components/scroll-keeper";
 import { ReferenceData } from "@/components/reference-data";
@@ -24,7 +25,7 @@ export default async function ViewModeLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className="view-mode">
-        <FormInputGuard /><FormValidation /><ScrollKeeper />
+        <FormInputGuard /><FramedSignInGuard /><FormValidation /><ScrollKeeper />
         <ViewModeStrip />
         <ReferenceData data={lists}>{children}</ReferenceData>
       </body>

@@ -2,6 +2,7 @@
 
 import { ACCESS_REQUEST_RETENTION_NOTICE } from "@/lib/access-requests/retention";
 import Link from "next/link";
+import { SignInLink } from "@/components/framed";
 import { useActionState, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { requestResponseEdit } from "@/lib/events/edit-request-actions";
 import { ArrowRight, Check, Info, SquareCheck } from "lucide-react";
@@ -186,7 +187,7 @@ function TrackedResult({ application: tracked, identity, askDecline, onAsked }: 
         <p className="track-note">{shown.note}</p>
         {application.offer.state === "open" && <OfferChoice application={application} identity={identity} askDecline={askDecline} onAsked={onAsked} action={declineAction} pending={declining} error={declined?.error} />}
         {application.offer.state !== "open" && declined?.error && <p className="apply-form-error" role="alert">{declined.error}</p>}
-        {application.offer.state === "joined" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
+        {application.offer.state === "joined" && <p className="track-help"><SignInLink href="/portal/login">Sign in to the portal</SignInLink></p>}
       </>}
       facts={<>
         <Fact label="Status"><Status tone={toneOf[shown.tone]}>{shown.label}</Status></Fact>
@@ -276,7 +277,7 @@ function TrackedAccess({ request, identity }: { request: TrackedAccessRequest; i
       lead={<>
         <StatusTimeline result={request.status === "pending" ? null : accessLabels[request.status]} />
         <p className="track-note">{accessNotes[request.status]}</p>
-        {request.status === "approved" && <p className="track-help"><Link href="/portal/login">Sign in to the portal</Link></p>}
+        {request.status === "approved" && <p className="track-help"><SignInLink href="/portal/login">Sign in to the portal</SignInLink></p>}
       </>}
       facts={<>
         <Fact label="Status"><Status tone={tone}>{accessLabels[request.status]}</Status></Fact>

@@ -20,6 +20,7 @@ import { DraftNotice } from "@/components/draft-notice";
 import { forgetFormDraft, useFormDraft } from "@/components/use-form-draft";
 import "./rsvp.css";
 import { Busy } from "@/components/busy";
+import { FramedNote } from "@/components/framed";
 
 /** The five steps, in order. */
 const steps = ["Data Privacy Consent", "Personal information", "University affiliation", "Organization", "Logistics"];
@@ -410,6 +411,7 @@ function RegistrationSteps({ event, mode, initial, verifiedEmail, requireGoogle,
               <p><strong>Verify your UST account.</strong> Continue with your <strong>@ust.edu.ph</strong> Google account to verify this email address. You’ll return here with your answers kept.</p>
               {verifyError && <p className="ev-form-error" role="alert">{verifyError}</p>}
               <a className="ev-button is-google" href={startUrl} rel="nofollow"><GoogleMark />Continue with UST Google</a>
+              <FramedNote />
               {errors.verification && <span className="ev-field-error">{errors.verification}</span>}
             </div>
           )}

@@ -2987,3 +2987,6 @@ html:has(.portal-online-drawer[open]) { overflow: hidden; }
 .portal-response-edit-request h3 { color: var(--p-text); font-size: 15px; font-weight: 600; margin: 0; }
 .portal-response-edit-request p { color: var(--p-soft); font-size: 14px; line-height: 1.65; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .portal-response-edit-request .portal-button { justify-self: start; }
+
+/* Shown beside sign-in controls while the site is inside another site's frame (src/components/framed.tsx). */
+.framed-note { display: block; margin: 8px 0 0; color: var(--p-muted); font-size: 12px; font-weight: 500; line-height: 1.4; }

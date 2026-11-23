@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { SignInLink } from "@/components/framed";
 import { usePathname } from "next/navigation";
 import { ChevronDown, LogIn } from "lucide-react";
 import { SearchIcon as Search } from "@/components/action-icons";
@@ -444,7 +445,7 @@ export function SiteHeader({ featured = [], status }: { featured?: Featured[]; s
               </button>
               <SiteThemeToggle />
               {/* Sign-in for the public: political parties' members and candidates (the filing portal). Commissioners go to /portal/login directly; nothing on the site links there. Another root layout, so a full page load: nothing to fetch ahead. */}
-              <Link href="/filing/login" prefetch={false} className="sh-cta" onClick={closeAll}><LogIn size={15} aria-hidden="true" />Sign in</Link>
+              <SignInLink note="hidden" href="/filing/login" prefetch={false} className="sh-cta" onClick={closeAll}><LogIn size={15} aria-hidden="true" />Sign in</SignInLink>
               <button ref={menuButtonRef} type="button" className="sh-menu-button" aria-label={cover === "sheet" ? "Close menu" : "Open menu"} aria-expanded={cover === "sheet"} aria-controls={SHEET_ID} onClick={toggleSheet}>
                 <i aria-hidden="true" />
                 <i aria-hidden="true" />

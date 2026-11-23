@@ -31,6 +31,7 @@ import { scrollToElement, scrollToTop } from "@/lib/scroll";
 import "@/components/application-form-ui.css";
 import "./sign-up.css";
 import { Busy } from "@/components/busy";
+import { FramedNote, leaveFrameForSignIn, SignInLink } from "@/components/framed";
 
 // The filing portal's sign-up, on Political Party Registration (`purpose="party"`) and Filing of
 // Candidacy (`purpose="candidacy"`), in the same step-by-step form as the commissioner application
@@ -274,6 +275,8 @@ export function FilingSignUp({ purpose, units, initialUnit, verified: verifiedAt
 
   /** Opens Google sign-in in a centred popup, or in this window if popups are blocked. */
   const openVerification = () => {
+    // Inside another site's frame the popup's sign-in can't reach this page: carry on in a new tab.
+    if (leaveFrameForSignIn()) return;
     const url = `/filing/auth/start?mode=${purpose}`;
     const width = 480;
     const height = 640;
@@ -433,7 +436,8 @@ export function FilingSignUp({ purpose, units, initialUnit, verified: verifiedAt
           ) : verifyError ? (
             <p className="apply-form-error" role="alert">{verifyMessages[verifyError]}</p>
           ) : null}
-          {!verified && !hasFiled && <p className="pp-signin-note">Already have an account? <a className="pp-link" href="/filing/login">Sign in to the filing portal</a></p>}
+          {!verified && <FramedNote className="framed-note pp-signin-note" />}
+          {!verified && !hasFiled && <p className="pp-signin-note">Already have an account? <SignInLink className="pp-link" href="/filing/login" prefetch={false} note="hidden">Sign in to the filing portal</SignInLink></p>}
         </div>
 
         <div className="apply-step" hidden={step !== 1}>

@@ -838,3 +838,7 @@ body.view-mode { padding-top: 0; }
 html:has(.track-dialog[open]) { overflow: hidden; }
 @keyframes track-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .track-dialog { animation: none; } .track-button-ghost, .track-decline-confirm, .track-copy, .track-facts dd a { transition: none; } }
+
+/* Shown beside sign-in controls while the site is inside another site's frame (src/components/framed.tsx). */
+.framed-note { display: block; margin: 6px 0 0; font-size: 12px; font-weight: 500; line-height: 1.4; opacity: .72; }
+.apply-framed-note { text-align: right; }

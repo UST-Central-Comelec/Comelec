@@ -29,6 +29,7 @@ import { createPortal } from "react-dom";
 import { DraftExpired, DraftStrip } from "@/components/draft-notice";
 import { ApplyTracker, Field, Required, ReviewSection, VerifiedBadge } from "@/components/apply-form-parts";
 import { Busy } from "@/components/busy";
+import { FramedNote, leaveFrameForSignIn } from "@/components/framed";
 
 const steps: Array<{ title: string; description: string; fields: ApplicationField[] }> = [
   { title: "Data Privacy Consent", description: "Read how we handle your personal information, give your consent, then verify with your UST Google account.", fields: ["consent"] },
@@ -420,6 +421,8 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
 
   /** Opens Google sign-in in a centred popup, or in this window if popups are blocked. */
   const openVerification = () => {
+    // Inside another site's frame the popup's sign-in can't reach this page: carry on in a new tab.
+    if (leaveFrameForSignIn()) return;
     const url = "/apply/verify/start";
     const width = 480;
     const height = 640;
@@ -544,6 +547,7 @@ export function ApplicationForm({ slots: centralSlots, unitSlots, interviews, bo
           ) : verifyError && verifyMessages[verifyError] ? (
             <p className="apply-form-error" role="alert">{verifyMessages[verifyError]}</p>
           ) : null}
+          {!preview && !verified && <FramedNote />}
         </div>
 
         <div className="apply-step" hidden={step !== 1}>
